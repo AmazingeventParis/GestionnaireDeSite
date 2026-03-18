@@ -66,7 +66,7 @@ router.post('/', verifyToken, requireRole('admin'), validate({ body: schemas.sit
   try {
     const { data: site, error } = await supabase
       .from('site_manager_sites')
-      .insert({ ...req.body, created_by: req.user.id })
+      .insert(req.body)
       .select()
       .single();
 
