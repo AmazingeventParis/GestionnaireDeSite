@@ -9,7 +9,7 @@ const { logAudit } = require('../utils/audit');
 const { getClientIp } = require('../middleware/threatDetector');
 const { uploadLimiter } = require('../middleware/rateLimiter');
 
-const IMAGES_DIR = path.join(__dirname, '..', 'public', 'images');
+const IMAGES_DIR = path.join(__dirname, '..', 'public', 'site-images');
 const META_FILE = path.join(IMAGES_DIR, 'media-meta.json');
 const PREVIEWS_DIR = path.join(__dirname, '..', 'previews');
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
@@ -71,7 +71,7 @@ function scanImages(dir, baseDir, results) {
       const folder = path.dirname(relativePath) === '.' ? '' : path.dirname(relativePath);
       const stat = fs.statSync(fullPath);
       results.push({
-        path: '/images/' + relativePath,
+        path: '/site-images/' + relativePath,
         name: entry.name,
         size: stat.size,
         modified: stat.mtime.toISOString(),
@@ -127,7 +127,7 @@ router.get('/', verifyToken, async (req, res) => {
     // Enrich with dimensions
     const meta = loadMeta();
     const enriched = await Promise.all(results.map(async (img) => {
-      const fullPath = path.join(IMAGES_DIR, img.path.replace('/images/', ''));
+      const fullPath = path.join(IMAGES_DIR, img.path.replace('/site-images/', ''));
       const dims = await getImageDimensions(fullPath);
       return {
         ...img,
@@ -215,7 +215,7 @@ router.post('/upload', verifyToken, requireRole('admin', 'editor'), uploadLimite
 
         uploaded.push({
           name: webpName,
-          path: '/images/' + (folder ? folder + '/' : '') + webpName,
+          path: '/site-images/' + (folder ? folder + '/' : '') + webpName,
           size: stat.size,
           dimensions: { width: metadata.width, height: metadata.height },
           format: 'webp'
