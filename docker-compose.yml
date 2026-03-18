@@ -1,0 +1,13 @@
+services:
+  gestionnaire-de-site:
+    build: .
+    ports:
+      - "3001:3001"
+    environment:
+      - SUPABASE_URL=https://supabase-api.swipego.app
+    networks:
+      - coolify
+
+networks:
+  coolify:
+    external: true
