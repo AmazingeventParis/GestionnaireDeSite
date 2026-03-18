@@ -55,7 +55,7 @@ const Auth = (function() {
             }
 
             var data = await res.json();
-            accessToken = data.access_token || null;
+            accessToken = data.accessToken || data.access_token || null;
 
             if (accessToken) {
                 try {

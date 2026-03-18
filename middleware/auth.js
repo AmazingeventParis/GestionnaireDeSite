@@ -20,6 +20,37 @@ async function verifyToken(req, res, next) {
   }
 
   if (!token) {
+    // No access token — try refresh token before rejecting
+    const refreshTokenDirect = req.cookies && req.cookies.refresh_token;
+    if (refreshTokenDirect) {
+      const refreshDecodedDirect = verifyRefreshToken(refreshTokenDirect);
+      if (refreshDecodedDirect) {
+        const tokenHashDirect = hashToken(refreshTokenDirect);
+        const { data: sessionDirect } = await supabase
+          .from('site_manager_sessions')
+          .select('*')
+          .eq('token_hash', tokenHashDirect)
+          .gt('expires_at', new Date().toISOString())
+          .single();
+
+        if (sessionDirect) {
+          const { data: userDirect } = await supabase
+            .from('site_manager_users')
+            .select('id, email, role, username, is_active')
+            .eq('id', sessionDirect.user_id)
+            .single();
+
+          if (userDirect && userDirect.is_active) {
+            const tokensDirect = generateTokens(userDirect, false);
+            res.cookie('access_token', tokensDirect.accessToken, {
+              httpOnly: true, sameSite: 'lax', maxAge: 15 * 60 * 1000
+            });
+            req.user = { id: userDirect.id, email: userDirect.email, role: userDirect.role, username: userDirect.username };
+            return next();
+          }
+        }
+      }
+    }
     return res.status(401).json({ error: 'Token manquant' });
   }
 
@@ -34,19 +65,27 @@ async function verifyToken(req, res, next) {
         const tokenHash = hashToken(refreshToken);
         const { data: session } = await supabase
           .from('site_manager_sessions')
-          .select('*, user:site_manager_users(*)')
+          .select('*')
           .eq('token_hash', tokenHash)
           .gt('expires_at', new Date().toISOString())
           .single();
 
-        if (session && session.user && session.user.is_active) {
-          const user = session.user;
-          const tokens = generateTokens(user, false);
-          res.cookie('access_token', tokens.accessToken, {
-            httpOnly: true, sameSite: 'lax', maxAge: 15 * 60 * 1000
-          });
-          req.user = { id: user.id, email: user.email, role: user.role, username: user.username };
-          return next();
+        if (session) {
+          // Fetch user separately
+          const { data: sessionUser } = await supabase
+            .from('site_manager_users')
+            .select('id, email, role, username, is_active')
+            .eq('id', session.user_id)
+            .single();
+
+          if (sessionUser && sessionUser.is_active) {
+            const tokens = generateTokens(sessionUser, false);
+            res.cookie('access_token', tokens.accessToken, {
+              httpOnly: true, sameSite: 'lax', maxAge: 15 * 60 * 1000
+            });
+            req.user = { id: sessionUser.id, email: sessionUser.email, role: sessionUser.role, username: sessionUser.username };
+            return next();
+          }
         }
       }
     }

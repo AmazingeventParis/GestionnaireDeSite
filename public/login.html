@@ -240,11 +240,17 @@
         var iconEye = document.getElementById('icon-eye');
         var iconEyeOff = document.getElementById('icon-eye-off');
 
+        // Redirect helper
+        function getRedirectUrl() {
+            var params = new URLSearchParams(window.location.search);
+            return params.get('redirect') || '/';
+        }
+
         // Check if already logged in
         fetch('/api/auth/me', { credentials: 'same-origin' })
             .then(function(res) {
                 if (res.ok) {
-                    window.location.href = '/';
+                    window.location.href = getRedirectUrl();
                 }
             })
             .catch(function() {
@@ -324,15 +330,16 @@
                 }
 
                 // Store access token as backup for SPA navigation
-                if (result.data.access_token) {
+                var token = result.data.accessToken || result.data.access_token;
+                if (token) {
                     try {
-                        sessionStorage.setItem('access_token', result.data.access_token);
+                        sessionStorage.setItem('access_token', token);
                     } catch (e) {
                         // sessionStorage may be unavailable
                     }
                 }
 
-                window.location.href = '/';
+                window.location.href = getRedirectUrl();
             })
             .catch(function(err) {
                 setLoading(false);

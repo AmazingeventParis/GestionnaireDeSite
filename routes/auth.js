@@ -162,16 +162,25 @@ router.post('/refresh', async (req, res) => {
     const tokenHash = hashToken(refreshToken);
     const { data: session } = await supabase
       .from('site_manager_sessions')
-      .select('*, user:site_manager_users(*)')
+      .select('*')
       .eq('token_hash', tokenHash)
       .gt('expires_at', new Date().toISOString())
       .single();
 
-    if (!session || !session.user || !session.user.is_active) {
+    if (!session) {
       return res.status(401).json({ error: 'Session invalide ou expiree' });
     }
 
-    const user = session.user;
+    // Fetch user separately
+    const { data: user } = await supabase
+      .from('site_manager_users')
+      .select('id, email, role, username, is_active')
+      .eq('id', session.user_id)
+      .single();
+
+    if (!user || !user.is_active) {
+      return res.status(401).json({ error: 'Utilisateur non trouve ou desactive' });
+    }
     const tokens = generateTokens(user, false);
 
     res.cookie('access_token', tokens.accessToken, {
