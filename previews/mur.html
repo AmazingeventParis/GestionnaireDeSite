@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Preview - mur</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700;1,800;1,900&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; padding: 0; font-family: "Raleway", sans-serif; color: #333; line-height: 1.6; background: #fff; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+a { text-decoration: none; color: inherit; }
+img { max-width: 100%; height: auto; }
+ul { list-style: none; padding: 0; margin: 0; }
+</style>
+</head>
+<body>
+
+<style>
+
+
+
+.snb-mur-wave-top {
+  display: none;
+}
+.snb-mur {
+  padding: 50px 0 40px;
+  margin-top: 0;
+  background: linear-gradient(175deg, #1a1a2e 0%, #16162a 40%, #1e1335 70%, #1a1a2e 100%);
+  position: relative;
+  overflow: hidden;
+  font-family: 'Raleway', sans-serif !important;
+  z-index: 100;
+  isolation: isolate;
+}
+.sm-glow {
+  position: absolute; border-radius: 50%; pointer-events: none; z-index: 0; filter: blur(90px);
+}
+.sm-glow.g1 { width:500px;height:500px;top:-150px;left:10%;background:rgba(229,25,129,0.10); }
+.sm-glow.g2 { width:400px;height:400px;bottom:0px;right:5%;background:rgba(2,80,255,0.08); }
+
+.sm-inner {
+  max-width: 1200px; margin: 0 auto; padding: 0 40px;
+  position: relative; z-index: 3;
+}
+
+/* ── HEADER ── */
+.sm-header { text-align: center; margin-bottom: 40px; }
+.sm-eyebrow {
+  display: inline-flex !important; align-items: center !important; gap: 8px !important;
+  background: rgba(229,25,129,0.12) !important; border: 1px solid rgba(229,25,129,0.25) !important;
+  border-radius: 50px !important; padding: 6px 18px !important;
+  font-size: 11px !important; font-weight: 800 !important; color: #ff6ab0 !important;
+  letter-spacing: 1.2px !important; text-transform: uppercase !important; margin-bottom: 20px !important;
+  font-family: 'Raleway', sans-serif !important;
+}
+.sm-title {
+  font-size: 48px !important; font-weight: 900 !important; color: #fff !important;
+  line-height: 1.12 !important; letter-spacing: -1.5px !important; margin-bottom: 16px !important;
+  font-family: 'Raleway', sans-serif !important;
+  -webkit-text-fill-color: #fff !important;
+  background: none !important;
+  text-transform: none !important;
+}
+.sm-title .gr {
+  background: linear-gradient(120deg, #E51981, #ff6ab0, #f59e0b, #E51981) !important;
+  background-size: 200% 100% !important;
+  -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; background-clip: text !important;
+  animation: smGrad 4s ease-in-out infinite !important;
+}
+@keyframes smGrad {
+  0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}
+}
+.sm-subtitle {
+  font-size: 16px !important; font-weight: 500 !important; color: rgba(255,255,255,0.50) !important;
+  max-width: 560px !important; margin: 0 auto !important; line-height: 1.6 !important;
+  font-family: 'Raleway', sans-serif !important;
+}
+
+/* ── FILTRES ── */
+.sm-filters {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 40px;
+  flex-wrap: nowrap;
+  position: relative;
+  z-index: 50;
+}
+.sm-filter-btn {
+  padding: 10px 24px !important;
+  border-radius: 50px !important;
+  border: 1.5px solid rgba(255,255,255,0.10) !important;
+  background: rgba(255,255,255,0.04) !important;
+  font-family: 'Raleway', sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: rgba(255,255,255,0.50) !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  line-height: 1.4 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+.sm-filter-btn:hover {
+  border-color: rgba(229,25,129,0.4) !important;
+  color: #fff !important;
+  background: rgba(229,25,129,0.08) !important;
+}
+.sm-filter-btn.active {
+  background: linear-gradient(135deg, #E51981, #c0136d) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 20px rgba(229,25,129,0.35) !important;
+}
+.sm-filter-btn .count {
+  background: rgba(255,255,255,0.15);
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 800;
+}
+.sm-filter-btn.active .count {
+  background: rgba(255,255,255,0.25);
+}
+
+/* Icones format dans les boutons */
+.sm-filter-icon {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.sm-filter-icon span {
+  display: block;
+  background: currentColor;
+  border-radius: 1px;
+  opacity: 0.7;
+}
+
+/* ── STRIP DEFILANTE ── */
+.sm-strip-wrap {
+  margin-bottom: 50px;
+  overflow: hidden;
+  position: relative; z-index: 3;
+  padding: 10px 0;
+}
+/* Fade edges */
+.sm-strip-wrap::before,
+.sm-strip-wrap::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 80px;
+  z-index: 5;
+  pointer-events: none;
+}
+.sm-strip-wrap::before {
+  left: 0;
+  background: linear-gradient(to right, #1a1a2e, transparent);
+}
+.sm-strip-wrap::after {
+  right: 0;
+  background: linear-gradient(to left, #1a1a2e, transparent);
+}
+
+.sm-strip {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: max-content;
+  animation: smSlide 45s linear infinite;
+}
+.sm-strip.paused { animation-play-state: paused; }
+@keyframes smSlide { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+.sm-strip-wrap:hover .sm-strip { animation-play-state: paused; }
+
+/* ── CARTE PHOTO ── */
+.sm-photo {
+  flex-shrink: 0;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.4s ease;
+  cursor: pointer;
+}
+.sm-photo:nth-child(odd) { transform: rotate(-1.2deg); }
+.sm-photo:nth-child(even) { transform: rotate(1deg); }
+.sm-photo:nth-child(3n) { transform: rotate(-0.5deg); }
+.sm-photo:nth-child(5n) { transform: rotate(1.5deg); }
+
+.sm-photo:hover {
+  transform: translateY(-12px) scale(1.08) rotate(0deg) !important;
+  z-index: 10;
+}
+.sm-photo img {
+  height: 280px;
+  width: auto;
+  display: block;
+  pointer-events: none;
+}
+.sm-photo.slim img {
+  height: 380px;
+}
+
+/* Photos cachees (filtre) */
+.sm-photo.hidden {
+  display: none !important;
+}
+
+/* ── BANDE STATS ── */
+.sm-stats-bar {
+  display: flex; justify-content: center; align-items: center; gap: 0;
+  background: rgba(255,255,255,0.04); backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 60px; padding: 16px 40px;
+  max-width: 780px; margin: 0 auto 36px;
+}
+.sm-stats-item {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 0 28px; text-align: center;
+}
+.sm-stats-n {
+  font-size: 28px; font-weight: 900;
+  background: linear-gradient(120deg, #E51981, #ff6ab0);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  line-height: 1; margin-bottom: 4px;
+}
+.sm-stats-n.bl { background: linear-gradient(120deg, #0250FF, #0891B2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.sm-stats-n.or { background: linear-gradient(120deg, #FF7A00, #f59e0b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.sm-stats-l { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.35); white-space: nowrap; }
+.sm-stats-sep { width: 1px; height: 36px; background: rgba(255,255,255,0.08); flex-shrink: 0; }
+
+/* ── CTA ── */
+.sm-cta-row { text-align: center; }
+.sm-cta-btn {
+  display: inline-flex !important; align-items: center !important; gap: 10px !important;
+  background: linear-gradient(135deg, #E51981, #c0136d) !important;
+  color: #fff !important; text-decoration: none !important;
+  padding: 16px 34px !important; border-radius: 50px !important;
+  font-weight: 800 !important; font-size: 14px !important; font-family: 'Raleway', sans-serif !important;
+  box-shadow: 0 6px 28px rgba(229,25,129,0.35) !important;
+  transition: transform 0.2s, box-shadow 0.2s !important;
+  position: relative !important; overflow: hidden !important; border: none !important; cursor: pointer !important;
+  text-transform: none !important; letter-spacing: 0 !important; line-height: 1.4 !important;
+}
+.sm-cta-btn::after {
+  content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transform: skewX(-20deg); transition: left 0.5s ease;
+}
+.sm-cta-btn:hover::after { left: 150%; }
+.sm-cta-btn:hover { transform: translateY(-3px); box-shadow: 0 12px 36px rgba(229,25,129,0.45); }
+.sm-cta-sub {
+  display: block !important; text-align: center !important; margin-top: 12px !important;
+  font-size: 12px !important; font-weight: 600 !important; color: rgba(255,255,255,0.3) !important;
+  font-family: 'Raleway', sans-serif !important; text-transform: none !important;
+}
+
+/* ══ RESPONSIVE ══ */
+@media(max-width:860px){
+  .sm-inner { padding: 0 20px !important; }
+  .sm-title { font-size: 34px !important; }
+  .sm-photo img { height: 220px !important; }
+  .sm-photo.slim img { height: 300px !important; }
+  .sm-stats-bar { padding: 14px 20px !important; }
+  .sm-stats-item { padding: 0 16px !important; }
+  .sm-stats-n { font-size: 22px !important; }
+  .sm-filters { gap: 8px !important; }
+  .sm-filter-btn { padding: 7px 12px !important; font-size: 11px !important; gap: 5px !important; }
+  .sm-filter-btn svg { width: 14px !important; height: 14px !important; }
+}
+@media(max-width:540px){
+  .snb-mur { padding: 30px 0 30px !important; }
+  .sm-inner { padding: 0 12px !important; }
+  .sm-header { margin-bottom: 24px !important; }
+  .sm-title { font-size: 24px !important; letter-spacing: -0.5px !important; }
+  .sm-subtitle { font-size: 13px !important; }
+  .sm-eyebrow { font-size: 13px !important; padding: 8px 20px !important; margin-bottom: 14px !important; }
+  /* Filtres mobile : scrollable horizontalement */
+  .sm-filters {
+    gap: 8px !important;
+    justify-content: center !important;
+    overflow-x: visible !important;
+    flex-wrap: wrap !important;
+    padding: 0 4px 8px !important;
+    margin-bottom: 24px !important;
+    position: relative !important;
+    z-index: 100 !important;
+  }
+  .sm-filter-btn {
+    padding: 8px 16px !important; font-size: 12px !important;
+    white-space: nowrap !important; flex-shrink: 0 !important;
+    position: relative !important; z-index: 101 !important;
+    pointer-events: auto !important;
+    -webkit-tap-highlight-color: rgba(229,25,129,0.2) !important;
+  }
+  .sm-filter-btn[data-filter="all"] {
+    width: 100% !important; justify-content: center !important;
+  }
+  .sm-filter-btn .count { display: none !important; }
+  .sm-filter-btn svg { width: 14px !important; height: 14px !important; }
+  /* Photos mobile : plus petites, moins nombreuses */
+  .sm-photo img { height: 150px !important; }
+  .sm-photo.slim img { height: 200px !important; }
+  .sm-photo:nth-child(n+16) { display: none !important; }
+  .sm-strip { animation-duration: 10s !important; gap: 10px !important; }
+  .sm-strip-wrap { margin-bottom: 30px !important; padding: 6px 0 !important; }
+  .sm-strip-wrap::before, .sm-strip-wrap::after { width: 40px !important; }
+  /* Pas de hover sur mobile */
+  .sm-photo:hover { transform: none !important; z-index: auto !important; }
+  /* Stats mobile : compact */
+  .sm-stats-bar {
+    flex-wrap: wrap !important; border-radius: 16px !important;
+    gap: 4px !important; padding: 12px !important; margin-bottom: 24px !important;
+  }
+  .sm-stats-sep { display: none !important; }
+  .sm-stats-item { padding: 6px 10px !important; }
+  .sm-stats-n { font-size: 20px !important; }
+  .sm-stats-l { font-size: 10px !important; }
+  /* CTA mobile */
+  .sm-cta-btn { padding: 14px 28px !important; font-size: 13px !important; }
+  .sm-cta-sub { font-size: 11px !important; margin-top: 8px !important; }
+}
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important;}
+}
+</style>
+<section class="snb-mur">
+  <div class="sm-glow g1"></div>
+  <div class="sm-glow g2"></div>
+
+  <div class="sm-inner">
+
+    <header class="sm-header">
+      <div class="sm-eyebrow">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M7 1L8.5 5H12.5L9.3 7.5L10.3 11.5L7 9L3.7 11.5L4.7 7.5L1.5 5H5.5Z" fill="#ff6ab0"/>
+        </svg>
+        Nos r&eacute;alisations
+      </div>
+      <h2 class="sm-title">
+        Chaque &eacute;v&eacute;nement m&eacute;rite<br>
+        <span class="gr">ses souvenirs uniques.</span>
+      </h2>
+      <p class="sm-subtitle">
+        Anniversaires, mariages, galas d'entreprise &mdash; d&eacute;couvrez les tirages personnalis&eacute;s que nos bornes cr&eacute;ent pour vos invit&eacute;s.
+      </p>
+    </header>
+
+    <!-- FILTRES PAR FORMAT -->
+    <div class="sm-filters">
+      <button type="button" class="sm-filter-btn active" data-filter="all">
+        Tous les formats
+      </button>
+      <button type="button" class="sm-filter-btn" data-filter="paysage">
+        <svg width="20" height="14" viewBox="0 0 20 14" fill="none"><rect x="0.5" y="0.5" width="19" height="13" rx="2" stroke="currentColor" stroke-width="1.2"/></svg>
+        Paysage
+      </button>
+      <button type="button" class="sm-filter-btn" data-filter="portrait">
+        <svg width="14" height="20" viewBox="0 0 14 20" fill="none"><rect x="0.5" y="0.5" width="13" height="19" rx="2" stroke="currentColor" stroke-width="1.2"/></svg>
+        Portrait
+      </button>
+      <button type="button" class="sm-filter-btn" data-filter="slim">
+        <svg width="8" height="22" viewBox="0 0 8 22" fill="none"><rect x="0.5" y="0.5" width="7" height="21" rx="1.5" stroke="currentColor" stroke-width="1"/></svg>
+        Strip
+      </button>
+    </div>
+
+    <!-- BANDE DEFILANTE -->
+    <div class="sm-strip-wrap">
+      <div class="sm-strip" id="smStrip">
+        <!-- SET 1 -->
+        <div class="sm-photo portrait" data-cat="portrait"><img loading="lazy" src="../public/images/bento/1.webp" alt="Tirage photo anniversaire"></div>
+        <div class="sm-photo paysage" data-cat="paysage"><img loading="lazy" src="../public/images/bento/3.webp" alt="Tirage photo"></div>
+        <div class="sm-photo slim" data-cat="slim"><img loading="lazy" src="../public/images/bento/16.webp" alt="Tirage photo strip"></div>
+        <div class="sm-photo portrait" data-cat="portrait"><img loading="lazy" src="../public/images/bento/2.webp" alt="Tirage photo mariage"></div>
+        <div class="sm-photo paysage" data-cat="paysage"><img loading="lazy" src="../public/images/bento/4.webp" alt="Tirage photo soiree"></div>
+        <div class="sm-photo slim" data-cat="slim"><img loading="lazy" src="../public/images/bento/17.webp" alt="Tirage photo strip"></div>
+        <div class="sm-photo portrait" data-cat="portrait"><img loading="lazy" src="../public/images/bento/7.webp" alt="Tirage photo corporate"></div>
+        <div class="sm-photo paysage" data-cat="paysage"><img loading="lazy" src="../public/images/bento/5.webp" alt="Tirage photo personnalise"></div>
+        <div class="sm-photo slim" data-cat="slim"><img loading="lazy" src="../public/images/bento/16.webp" alt="Tirage photo strip"></div>
+        <div class="sm-photo portrait" data-cat="portrait"><img loading="lazy" src="../public/images/bento/8.webp" alt="Tirage photo"></div>
+        <div class="sm-photo paysage" data-cat="paysage"><img loading="lazy" src="../public/images/bento/6.webp" alt="Tirage photo"></div>
+        <div class="sm-photo slim" data-cat="slim"><img loading="lazy" src="../public/images/bento/17.webp" alt="Tirage photo strip"></div>
+        <div class="sm-photo portrait" data-cat="portrait"><img loading="lazy" src="../public/images/bento/11.webp" alt="Tirage photo Eiffage"></div>
+        <div class="sm-photo paysage" data-cat="paysage"><img loading="lazy" src="../public/images/bento/9.webp" alt="Tirage photo"></div>
+        <div class="sm-photo slim" data-cat="slim"><img loading="lazy" src="../public/images/bento/16.webp" alt="Tirage photo strip"></div>
+        <div class="sm-photo portrait" data-cat="portrait"><img loading="lazy" src="../public/images/bento/10.webp" alt="Tirage photo"></div>
+        <div class="sm-photo paysage" data-cat="paysage"><img loading="lazy" src="../public/images/bento/12.webp" alt="Tirage photo"></div>
+        <div class="sm-photo slim" data-cat="slim"><img loading="lazy" src="../public/images/bento/17.webp" alt="Tirage photo strip"></div>
+        <div class="sm-photo portrait" data-cat="portrait"><img loading="lazy" src="../public/images/bento/13.webp" alt="Tirage photo"></div>
+        <div class="sm-photo paysage" data-cat="paysage"><img loading="lazy" src="../public/images/bento/14.webp" alt="Tirage photo"></div>
+        <div class="sm-photo slim" data-cat="slim"><img loading="lazy" src="../public/images/bento/16.webp" alt="Tirage photo strip"></div>
+        <div class="sm-photo portrait" data-cat="portrait"><img loading="lazy" src="../public/images/bento/1.webp" alt="Tirage photo"></div>
+        <div class="sm-photo paysage" data-cat="paysage"><img loading="lazy" src="../public/images/bento/15.webp" alt="Tirage photo"></div>
+        <div class="sm-photo slim" data-cat="slim"><img loading="lazy" src="../public/images/bento/17.webp" alt="Tirage photo strip"></div>
+        <div class="sm-photo portrait" data-cat="portrait"><img loading="lazy" src="../public/images/bento/2.webp" alt="Tirage photo"></div>
+        <div class="sm-photo portrait" data-cat="portrait"><img loading="lazy" src="../public/images/bento/7.webp" alt="Tirage photo"></div>
+        <div class="sm-photo slim" data-cat="slim"><img loading="lazy" src="../public/images/bento/16.webp" alt="Tirage photo strip"></div>
+        <div class="sm-photo portrait" data-cat="portrait"><img loading="lazy" src="../public/images/bento/8.webp" alt="Tirage photo"></div>
+        <!-- DUPLICATA boucle infinie -->
+        <div class="sm-photo portrait" data-cat="portrait"><img loading="lazy" src="../public/images/bento/1.webp" alt="Tirage photo anniversaire"></div>
+        <div class="sm-photo paysage" data-cat="paysage"><img loading="lazy" src="../public/images/bento/3.webp" alt="Tirage photo"></div>
+        <div class="sm-photo slim" data-cat="slim"><img loading="lazy" src="../public/images/bento/16.webp" alt="Tirage photo strip"></div>
+        <div class="sm-photo portrait" data-cat="portrait"><img loading="lazy" src="../public/images/bento/2.webp" alt="Tirage photo mariage"></div>
+        <div class="sm-photo paysage" data-cat="paysage"><img loading="lazy" src="../public/images/bento/4.webp" alt="Tirage photo soiree"></div>
+        <div class="sm-photo slim" data-cat="slim"><img loading="lazy" src="../public/images/bento/17.webp" alt="Tirage photo strip"></div>
+        <div class="sm-photo portrait" data-cat="portrait"><img loading="lazy" src="../public/images/bento/7.webp" alt="Tirage photo corporate"></div>
+        <div class="sm-photo paysage" data-cat="paysage"><img loading="lazy" src="../public/images/bento/5.webp" alt="Tirage photo personnalise"></div>
+        <div class="sm-photo slim" data-cat="slim"><img loading="lazy" src="../public/images/bento/16.webp" alt="Tirage photo strip"></div>
+        <div class="sm-photo portrait" data-cat="portrait"><img loading="lazy" src="../public/images/bento/8.webp" alt="Tirage photo"></div>
+        <div class="sm-photo paysage" data-cat="paysage"><img loading="lazy" src="../public/images/bento/6.webp" alt="Tirage photo"></div>
+        <div class="sm-photo slim" data-cat="slim"><img loading="lazy" src="../public/images/bento/17.webp" alt="Tirage photo strip"></div>
+        <div class="sm-photo portrait" data-cat="portrait"><img loading="lazy" src="../public/images/bento/11.webp" alt="Tirage photo Eiffage"></div>
+        <div class="sm-photo paysage" data-cat="paysage"><img loading="lazy" src="../public/images/bento/9.webp" alt="Tirage photo"></div>
+        <div class="sm-photo slim" data-cat="slim"><img loading="lazy" src="../public/images/bento/16.webp" alt="Tirage photo strip"></div>
+        <div class="sm-photo portrait" data-cat="portrait"><img loading="lazy" src="../public/images/bento/10.webp" alt="Tirage photo"></div>
+        <div class="sm-photo paysage" data-cat="paysage"><img loading="lazy" src="../public/images/bento/12.webp" alt="Tirage photo"></div>
+        <div class="sm-photo slim" data-cat="slim"><img loading="lazy" src="../public/images/bento/17.webp" alt="Tirage photo strip"></div>
+        <div class="sm-photo portrait" data-cat="portrait"><img loading="lazy" src="../public/images/bento/13.webp" alt="Tirage photo"></div>
+        <div class="sm-photo paysage" data-cat="paysage"><img loading="lazy" src="../public/images/bento/14.webp" alt="Tirage photo"></div>
+        <div class="sm-photo slim" data-cat="slim"><img loading="lazy" src="../public/images/bento/16.webp" alt="Tirage photo strip"></div>
+        <div class="sm-photo portrait" data-cat="portrait"><img loading="lazy" src="../public/images/bento/1.webp" alt="Tirage photo"></div>
+        <div class="sm-photo paysage" data-cat="paysage"><img loading="lazy" src="../public/images/bento/15.webp" alt="Tirage photo"></div>
+        <div class="sm-photo slim" data-cat="slim"><img loading="lazy" src="../public/images/bento/17.webp" alt="Tirage photo strip"></div>
+        <div class="sm-photo portrait" data-cat="portrait"><img loading="lazy" src="../public/images/bento/2.webp" alt="Tirage photo"></div>
+        <div class="sm-photo portrait" data-cat="portrait"><img loading="lazy" src="../public/images/bento/7.webp" alt="Tirage photo"></div>
+        <div class="sm-photo slim" data-cat="slim"><img loading="lazy" src="../public/images/bento/16.webp" alt="Tirage photo strip"></div>
+        <div class="sm-photo portrait" data-cat="portrait"><img loading="lazy" src="../public/images/bento/8.webp" alt="Tirage photo"></div>
+      </div>
+    </div>
+
+
+    <div class="sm-cta-row">
+      <a href="https://shootnbox.fr/reservation/" class="sm-cta-btn">
+        Cr&eacute;er vos propres souvenirs
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7H11M8 4L11 7L8 10" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <span class="sm-cta-sub">Devis gratuit en moins de 24h</span>
+    </div>
+
+  </div>
+</section>
+
+<script>
+(function() {
+  var btns = document.querySelectorAll('.sm-filter-btn');
+  var photos = document.querySelectorAll('.sm-photo');
+  var strip = document.getElementById('smStrip');
+  var wrap = document.querySelector('.sm-strip-wrap');
+
+  /* ── Filtres ── */
+  var isMobile = window.innerWidth <= 540;
+  var allCount = photos.length;
+
+  /* Appliquer vitesse mobile au chargement */
+  if (isMobile && strip) {
+    strip.style.setProperty('animation', 'smSlide 10s linear infinite', 'important');
+  }
+
+  btns.forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      btns.forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      var filter = btn.getAttribute('data-filter');
+
+      strip.style.setProperty('animation', 'none', 'important');
+      var visibleCount = 0;
+      photos.forEach(function(p) {
+        if (filter === 'all' || p.getAttribute('data-cat') === filter) {
+          p.classList.remove('hidden');
+          visibleCount++;
+        } else {
+          p.classList.add('hidden');
+        }
+      });
+      var dur;
+      if (isMobile) {
+        var mobileSpeeds = { all: 10, paysage: 10, portrait: 10, slim: 10 };
+        dur = mobileSpeeds[filter] || 10;
+      } else {
+        var desktopSpeeds = { all: 45, paysage: 45, portrait: 25, slim: 15 };
+        dur = desktopSpeeds[filter] || 45;
+      }
+      setTimeout(function() {
+        strip.style.setProperty('animation', 'smSlide ' + dur + 's linear infinite', 'important');
+      }, 50);
+    });
+  });
+
+
+})();
+</script>
+
+</body>
+</html>

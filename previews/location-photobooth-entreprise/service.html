@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Preview - service entreprise</title>
+<link href="https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700;1,800;1,900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; padding: 0; font-family: "Raleway", sans-serif; color: #333; line-height: 1.6; background: #fff; }
+a { text-decoration: none; color: inherit; }
+</style>
+</head>
+<body>
+
+<style>
+.lpee-svc {
+  font-family: 'Raleway', sans-serif;
+  width: 100%;
+  background: linear-gradient(180deg, #f7eef8 0%, #f2e3f3 50%, #eee2f7 100%);
+  padding: 40px 8px;
+}
+@media (min-width: 768px) { .lpee-svc { padding: 60px 32px; } }
+
+.lpee-svc-box {
+  max-width: 1100px;
+  margin: 0 auto;
+  border-radius: 28px;
+  border: 1px solid rgba(255,255,255,0.6);
+  background: rgba(255,255,255,0.45);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 16px 60px rgba(220,120,190,0.18);
+  padding: 20px 12px;
+}
+@media (min-width: 768px) { .lpee-svc-box { padding: 36px 32px; } }
+
+/* ===== HEADER ===== */
+.lpee-svc-header { max-width: 700px; margin: 0 auto; text-align: center; }
+.lpee-svc-pill {
+  display: inline-flex; align-items: center;
+  border-radius: 50px;
+  border: 1px solid rgba(236,175,210,0.7);
+  background: rgba(255,255,255,0.7);
+  padding: 4px 12px;
+  font-size: 12px; font-weight: 600; color: #C91473;
+  margin-bottom: 10px;
+}
+.lpee-svc-header h2 {
+  font-size: 24px; font-weight: 900; line-height: 1.2; letter-spacing: -0.3px;
+  color: #2E1831; margin: 0;
+}
+@media (min-width: 768px) { .lpee-svc-header h2 { font-size: 34px; } }
+.lpee-svc-header h2 span { color: #E51981; }
+.lpee-svc-header p {
+  max-width: 500px; margin: 10px auto 0;
+  font-size: 13px; color: #6C586D;
+}
+@media (min-width: 768px) { .lpee-svc-header p { font-size: 15px; } }
+
+/* ===== SEPARATEUR ===== */
+.lpee-svc-sep {
+  height: 2px; border: none;
+  background: linear-gradient(90deg, transparent, rgba(229,25,129,0.15), rgba(168,85,247,0.15), rgba(2,80,255,0.1), transparent);
+  margin: 24px 0;
+}
+
+/* ===== DESKTOP STEPS ===== */
+.lpee-svc-steps-desktop {
+  position: relative;
+  display: none;
+}
+@media (min-width: 768px) { .lpee-svc-steps-desktop { display: block; } }
+
+.lpee-svc-line {
+  position: absolute;
+  left: 8%; right: 8%; top: 22px;
+  height: 2px;
+  background: linear-gradient(90deg,
+    rgba(229,25,129,0.3),
+    rgba(255,122,0,0.3),
+    rgba(168,85,247,0.3),
+    rgba(2,80,255,0.25),
+    rgba(229,25,129,0.3)
+  );
+}
+
+.lpee-svc-grid5 {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  align-items: stretch;
+}
+.lpee-svc-step {
+  position: relative;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+}
+.lpee-svc-step-card {
+  flex: 1;
+  display: flex; flex-direction: column;
+}
+
+/* Bulles - chacune sa couleur */
+.lpee-svc-bubble {
+  width: 38px; height: 38px;
+  margin: 0 auto 10px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 800; color: #fff;
+  position: relative; z-index: 2;
+}
+.lpee-svc-bubble::after {
+  content: '';
+  position: absolute;
+  top: 2px; left: 5px; right: 5px; height: 40%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.3), transparent);
+  border-radius: 8px 8px 50% 50%;
+  pointer-events: none;
+}
+/* Animation bulles : pop-in successif */
+.lpee-svc-bubble {
+  opacity: 0;
+  transform: scale(0) translateY(10px);
+  animation: snbBubPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.lpee-svc-step:nth-child(1) .lpee-svc-bubble { animation-delay: 0.2s; }
+.lpee-svc-step:nth-child(2) .lpee-svc-bubble { animation-delay: 0.45s; }
+.lpee-svc-step:nth-child(3) .lpee-svc-bubble { animation-delay: 0.7s; }
+.lpee-svc-step:nth-child(4) .lpee-svc-bubble { animation-delay: 0.95s; }
+.lpee-svc-step:nth-child(5) .lpee-svc-bubble { animation-delay: 1.2s; }
+@keyframes snbBubPop {
+  0% { opacity: 0; transform: scale(0) translateY(10px); }
+  60% { opacity: 1; transform: scale(1.2) translateY(-4px); }
+  80% { transform: scale(0.9) translateY(2px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Ligne qui se dessine */
+.lpee-svc-line {
+  transform-origin: left;
+  animation: snbLineDraw 1.5s ease-out 0.1s forwards;
+  transform: scaleX(0);
+}
+@keyframes snbLineDraw {
+  to { transform: scaleX(1); }
+}
+
+/* Cartes qui slide-up apres les bulles */
+.lpee-svc-step-card {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: snbCardUp 0.45s ease-out forwards;
+}
+.lpee-svc-step:nth-child(1) .lpee-svc-step-card { animation-delay: 0.5s; }
+.lpee-svc-step:nth-child(2) .lpee-svc-step-card { animation-delay: 0.75s; }
+.lpee-svc-step:nth-child(3) .lpee-svc-step-card { animation-delay: 1.0s; }
+.lpee-svc-step:nth-child(4) .lpee-svc-step-card { animation-delay: 1.25s; }
+.lpee-svc-step:nth-child(5) .lpee-svc-step-card { animation-delay: 1.5s; }
+@keyframes snbCardUp {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Pulse subtil en boucle apres le pop */
+.lpee-svc-bubble {
+  animation: snbBubPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
+             snbBubPulse 2.5s ease-in-out 2s infinite;
+}
+@keyframes snbBubPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+.lpee-svc-step:nth-child(1) .lpee-svc-bubble { background: linear-gradient(145deg, #E51981, #c91473); box-shadow: 0 4px 12px rgba(229,25,129,0.3); }
+.lpee-svc-step:nth-child(2) .lpee-svc-bubble { background: linear-gradient(145deg, #a855f7, #8b3fd4); box-shadow: 0 4px 12px rgba(168,85,247,0.3); }
+.lpee-svc-step:nth-child(3) .lpee-svc-bubble { background: linear-gradient(145deg, #0250FF, #0040d6); box-shadow: 0 4px 12px rgba(2,80,255,0.3); }
+.lpee-svc-step:nth-child(4) .lpee-svc-bubble { background: linear-gradient(145deg, #FF7A00, #e06800); box-shadow: 0 4px 12px rgba(255,122,0,0.3); }
+.lpee-svc-step:nth-child(5) .lpee-svc-bubble { background: linear-gradient(145deg, #16A34A, #128a3e); box-shadow: 0 4px 12px rgba(22,163,74,0.3); }
+
+/* Cartes neumorphism */
+.lpee-svc-step-card {
+  border-radius: 18px;
+  background: linear-gradient(145deg, #ffffff, #f8f0fc, #f2e8f6);
+  padding: 14px 12px 16px;
+  box-shadow:
+    inset 3px 3px 6px rgba(180,140,200,0.12),
+    inset -2px -2px 5px rgba(255,255,255,0.6),
+    3px 3px 10px rgba(180,140,200,0.1),
+    -2px -2px 6px rgba(255,255,255,0.5);
+  text-align: center;
+  transition: transform 0.35s cubic-bezier(.22,.68,0,1.2), box-shadow 0.35s ease;
+  cursor: default;
+  overflow: hidden;
+  position: relative;
+}
+.lpee-svc-step:nth-child(1) .lpee-svc-step-card { border: 1.5px solid rgba(239,68,68,0.35); }
+.lpee-svc-step:nth-child(2) .lpee-svc-step-card { border: 1.5px solid rgba(255,122,0,0.35); }
+.lpee-svc-step:nth-child(3) .lpee-svc-step-card { border: 1.5px solid rgba(168,85,247,0.35); }
+.lpee-svc-step:nth-child(4) .lpee-svc-step-card { border: 1.5px solid rgba(2,80,255,0.35); }
+.lpee-svc-step:nth-child(5) .lpee-svc-step-card { border: 1.5px solid rgba(229,25,129,0.35); }
+
+/* Neon glow hover */
+.lpee-svc-step:nth-child(1) .lpee-svc-step-card:hover { border-color: rgba(239,68,68,0.6); box-shadow: 0 0 14px rgba(239,68,68,0.2), 0 0 35px rgba(239,68,68,0.08); }
+.lpee-svc-step:nth-child(2) .lpee-svc-step-card:hover { border-color: rgba(255,122,0,0.6); box-shadow: 0 0 14px rgba(255,122,0,0.2), 0 0 35px rgba(255,122,0,0.08); }
+.lpee-svc-step:nth-child(3) .lpee-svc-step-card:hover { border-color: rgba(168,85,247,0.6); box-shadow: 0 0 14px rgba(168,85,247,0.2), 0 0 35px rgba(168,85,247,0.08); }
+.lpee-svc-step:nth-child(4) .lpee-svc-step-card:hover { border-color: rgba(2,80,255,0.6); box-shadow: 0 0 14px rgba(2,80,255,0.2), 0 0 35px rgba(2,80,255,0.08); }
+.lpee-svc-step:nth-child(5) .lpee-svc-step-card:hover { border-color: rgba(229,25,129,0.6); box-shadow: 0 0 14px rgba(229,25,129,0.2), 0 0 35px rgba(229,25,129,0.08); }
+
+/* Watermark - masque */
+.lpee-svc-watermark { display: none; }
+
+/* Scene icone 3D */
+.lpee-svc-scene {
+  width: 100%; display: flex; align-items: center; justify-content: center;
+  position: relative; height: 55px; margin-bottom: 10px; z-index: 1;
+}
+.lpee-svc-scene svg { max-width: 100%; max-height: 48px; height: auto; }
+.lpee-svc-gshadow {
+  position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 55%; height: 6px;
+  background: radial-gradient(ellipse, rgba(180,120,200,0.18) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: snbShPulse 3.5s ease-in-out infinite;
+}
+@keyframes snbShPulse {
+  0%, 100% { transform: translateX(-50%) scaleX(1); opacity: 0.7; }
+  50% { transform: translateX(-50%) scaleX(0.65); opacity: 0.35; }
+}
+/* Float animations */
+.lpee-svc-float1 { animation: snbFloat 3.5s ease-in-out infinite; }
+.lpee-svc-float2 { animation: snbFloat 4s ease-in-out infinite 0.5s; }
+.lpee-svc-float3 { animation: snbFloat 3.8s ease-in-out infinite 1s; }
+.lpee-svc-float4 { animation: snbFloat 4.2s ease-in-out infinite 0.2s; }
+.lpee-svc-float5 { animation: snbFloat 3.6s ease-in-out infinite 0.8s; }
+@keyframes snbFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.lpee-svc-step-card h3 {
+  font-size: 12px; font-weight: 800; line-height: 1.3;
+  color: #2a1540; margin: 0 0 4px; position: relative; z-index: 1;
+}
+.lpee-svc-step-card p {
+  font-size: 11px; line-height: 1.45; color: #6a5a7a; margin: 0;
+  text-align: center; position: relative; z-index: 1;
+}
+
+/* ===== MOBILE STEPS ===== */
+.lpee-svc-steps-mobile {
+  display: grid; gap: 8px;
+}
+@media (min-width: 768px) { .lpee-svc-steps-mobile { display: none; } }
+
+.lpee-svc-mob-step {
+  display: flex; gap: 12px;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #ffffff, #f8f0fc, #f2e8f6);
+  padding: 14px;
+  box-shadow:
+    inset 3px 3px 6px rgba(180,140,200,0.12),
+    inset -2px -2px 5px rgba(255,255,255,0.6),
+    3px 3px 10px rgba(180,140,200,0.1),
+    -2px -2px 6px rgba(255,255,255,0.5);
+  transition: box-shadow 0.35s ease;
+}
+.lpee-svc-mob-step:nth-child(1) { border: 1.5px solid rgba(239,68,68,0.35); }
+.lpee-svc-mob-step:nth-child(2) { border: 1.5px solid rgba(255,122,0,0.35); }
+.lpee-svc-mob-step:nth-child(3) { border: 1.5px solid rgba(168,85,247,0.35); }
+.lpee-svc-mob-step:nth-child(4) { border: 1.5px solid rgba(2,80,255,0.35); }
+.lpee-svc-mob-step:nth-child(5) { border: 1.5px solid rgba(229,25,129,0.35); }
+.lpee-svc-mob-left {
+  display: flex; flex-direction: column; align-items: center;
+}
+.lpee-svc-mob-bubble {
+  width: 30px; height: 30px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 800; color: #fff;
+  position: relative;
+}
+.lpee-svc-mob-step:nth-child(1) .lpee-svc-mob-bubble { background: linear-gradient(145deg, #E51981, #c91473); box-shadow: 0 3px 8px rgba(229,25,129,0.25); }
+.lpee-svc-mob-step:nth-child(2) .lpee-svc-mob-bubble { background: linear-gradient(145deg, #a855f7, #8b3fd4); box-shadow: 0 3px 8px rgba(168,85,247,0.25); }
+.lpee-svc-mob-step:nth-child(3) .lpee-svc-mob-bubble { background: linear-gradient(145deg, #0250FF, #0040d6); box-shadow: 0 3px 8px rgba(2,80,255,0.25); }
+.lpee-svc-mob-step:nth-child(4) .lpee-svc-mob-bubble { background: linear-gradient(145deg, #FF7A00, #e06800); box-shadow: 0 3px 8px rgba(255,122,0,0.25); }
+.lpee-svc-mob-step:nth-child(5) .lpee-svc-mob-bubble { background: linear-gradient(145deg, #16A34A, #128a3e); box-shadow: 0 3px 8px rgba(22,163,74,0.25); }
+.lpee-svc-mob-bubble::after {
+  content: '';
+  position: absolute;
+  top: 2px; left: 5px; right: 5px; height: 40%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.3), transparent);
+  border-radius: 6px 6px 50% 50%;
+}
+.lpee-svc-mob-line {
+  width: 2px; flex: 1;
+  background: rgba(200,170,220,0.3);
+  margin-top: 6px;
+  border-radius: 2px;
+}
+.lpee-svc-mob-right { flex: 1; }
+.lpee-svc-mob-icon { margin-bottom: 4px; }
+.lpee-svc-mob-icon svg { max-width: 100%; max-height: 44px; height: auto; }
+.lpee-svc-mob-right h3 {
+  font-size: 13px; font-weight: 800; line-height: 1.25;
+  color: #2E1831; margin: 2px 0 4px;
+}
+.lpee-svc-mob-right p {
+  font-size: 11.5px; line-height: 1.45; color: #6C586D; margin: 0;
+}
+
+/* ===== BOTTOM 3-COL ===== */
+.lpee-svc-bottom {
+  display: grid; gap: 12px;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 768px) {
+  .lpee-svc-bottom { grid-template-columns: 1fr 1fr; }
+}
+
+/* Carte perso - accent VIOLET */
+.lpee-svc-card-perso {
+  border-radius: 18px;
+  background: linear-gradient(160deg, #f5f0ff 0%, #ede4fa 100%);
+  border: 1px solid rgba(168,85,247,0.12);
+  padding: 18px;
+  box-shadow: 0 4px 16px rgba(168,85,247,0.06);
+}
+.lpee-svc-card-perso .lpee-svc-card-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: linear-gradient(150deg, #c084fc, #a855f7);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; margin-bottom: 10px;
+  box-shadow: 0 4px 12px rgba(168,85,247,0.25);
+  color: #fff; position: relative;
+}
+.lpee-svc-card-perso .lpee-svc-card-icon::after {
+  content: ''; position: absolute; top: 2px; left: 5px; right: 5px; height: 40%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.4), transparent);
+  border-radius: 6px 6px 50% 50%; pointer-events: none;
+}
+
+/* Carte livraison - accent BLEU */
+.lpee-svc-card-livraison {
+  border-radius: 18px;
+  background: linear-gradient(160deg, #f0f4ff 0%, #e4edff 100%);
+  border: 1px solid rgba(2,80,255,0.1);
+  padding: 18px;
+  box-shadow: 0 4px 16px rgba(2,80,255,0.06);
+}
+.lpee-svc-card-livraison .lpee-svc-card-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: linear-gradient(150deg, #7dacff, #0250FF);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; margin-bottom: 10px;
+  box-shadow: 0 4px 12px rgba(2,80,255,0.2);
+  color: #fff; position: relative;
+}
+.lpee-svc-card-livraison .lpee-svc-card-icon::after {
+  content: ''; position: absolute; top: 2px; left: 5px; right: 5px; height: 40%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.4), transparent);
+  border-radius: 6px 6px 50% 50%; pointer-events: none;
+}
+
+/* Carte support - accent FUCHSIA */
+.lpee-svc-card-support {
+  border-radius: 18px;
+  background: linear-gradient(160deg, #fff0f6 0%, #ffe4f0 100%);
+  border: 1px solid rgba(229,25,129,0.12);
+  padding: 18px;
+  box-shadow: 0 4px 16px rgba(229,25,129,0.06);
+}
+.lpee-svc-card-support .lpee-svc-card-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: linear-gradient(150deg, #ff6eb4, #E51981);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; margin-bottom: 10px;
+  box-shadow: 0 4px 12px rgba(229,25,129,0.25);
+  color: #fff; position: relative;
+}
+.lpee-svc-card-support .lpee-svc-card-icon::after {
+  content: ''; position: absolute; top: 2px; left: 5px; right: 5px; height: 40%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.4), transparent);
+  border-radius: 6px 6px 50% 50%; pointer-events: none;
+}
+
+.lpee-svc-card-title {
+  font-size: 14px; font-weight: 800; color: #2E1831; margin: 0 0 8px;
+}
+.lpee-svc-card-desc {
+  font-size: 12px; color: #6C586D; margin: 0; line-height: 1.5;
+}
+
+/* Options retrait/livraison */
+.lpee-svc-options {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px;
+}
+.lpee-svc-option {
+  border-radius: 12px;
+  background: rgba(255,255,255,0.7);
+  padding: 8px;
+  text-align: center;
+  font-size: 11px; font-weight: 700; color: #2a3a5a;
+  overflow: hidden;
+}
+.lpee-svc-option-img {
+  width: 100%; aspect-ratio: 3/2;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 6px;
+  border: 2px solid rgba(2,80,255,0.12);
+  box-shadow: 0 3px 10px rgba(2,80,255,0.08);
+  background: #f0f4ff;
+}
+.lpee-svc-option-img.lpee-svc-contain {
+  object-fit: contain;
+}
+
+/* Photos support */
+.lpee-svc-support-photos {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+  margin-top: 10px;
+}
+.lpee-svc-support-img {
+  width: 100%; aspect-ratio: 3/2;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 2px solid rgba(229,25,129,0.12);
+  box-shadow: 0 3px 10px rgba(229,25,129,0.08);
+  background: #fff0f6;
+}
+
+/* Tags badges */
+.lpee-svc-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; justify-content: center; }
+.lpee-svc-tag {
+  border-radius: 50px;
+  padding: 4px 10px;
+  font-size: 10.5px; font-weight: 700;
+}
+.lpee-svc-tag-rose { background: rgba(229,25,129,0.1); color: #C91473; }
+.lpee-svc-tag-bleu { background: rgba(2,80,255,0.08); color: #0250FF; }
+.lpee-svc-tag-violet { background: rgba(168,85,247,0.1); color: #7c3aed; }
+.lpee-svc-tag-vert { background: rgba(22,163,74,0.1); color: #16A34A; }
+
+/* Estimation pill */
+.lpee-svc-estimate {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 10px;
+  padding: 6px 14px;
+  border-radius: 50px;
+  background: rgba(229,25,129,0.08);
+  font-size: 11px; font-weight: 700; color: #C91473;
+}
+
+/* CTA */
+.lpee-svc-cta {
+  margin-top: 24px;
+  display: flex; justify-content: center;
+}
+.lpee-svc-cta-btn {
+  display: inline-flex; align-items: center;
+  padding: 16px 44px; border-radius: 50px;
+  background: linear-gradient(135deg, #E51981, #ff3fac);
+  color: #fff; font-size: 17px; font-weight: 700;
+  font-family: 'Raleway', sans-serif;
+  text-decoration: none;
+  box-shadow: 0 4px 24px rgba(229,25,129,0.35);
+  position: relative; overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.25,0.46,0.45,0.94);
+}
+.lpee-svc-cta-btn::before {
+  content: ''; position: absolute;
+  top: 0; left: -100%; width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  transition: left 0.5s ease;
+}
+.lpee-svc-cta-btn:hover::before { left: 100%; }
+.lpee-svc-cta-btn:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 8px 32px rgba(229,25,129,0.5);
+}
+</style>
+
+<section class="lpee-svc">
+  <div class="lpee-svc-box">
+
+    <!-- Header -->
+    <div class="lpee-svc-header">
+      <span class="lpee-svc-pill">Location entreprise</span>
+      <h2>Comment louer ma borne photomaton<br><span>d'entreprise</span> ?</h2>
+      <p>Un processus simple et rapide pour votre evenement professionnel</p>
+    </div>
+
+    <hr class="lpee-svc-sep">
+
+    <!-- ===== DESKTOP : 5 colonnes ===== -->
+    <div class="lpee-svc-steps-desktop">
+      <div class="lpee-svc-line"></div>
+      <div class="lpee-svc-grid5">
+
+        <!-- STEP 1 : LAPTOP -->
+        <div class="lpee-svc-step">
+          <div class="lpee-svc-bubble">1</div>
+          <div class="lpee-svc-step-card">
+            <div class="lpee-svc-watermark">01</div>
+            <div class="lpee-svc-scene">
+              <div class="lpee-svc-float1">
+                <svg width="130" height="96" viewBox="0 0 130 96" fill="none"><defs><radialGradient id="e2lid" cx="35%" cy="25%" r="65%"><stop offset="0%" stop-color="#c88aff"/><stop offset="100%" stop-color="#7a20d8"/></radialGradient><radialGradient id="e2bezel" cx="30%" cy="20%" r="70%"><stop offset="0%" stop-color="#8a40e8"/><stop offset="100%" stop-color="#5010a8"/></radialGradient><radialGradient id="e2base" cx="30%" cy="20%" r="70%"><stop offset="0%" stop-color="#b080f0"/><stop offset="100%" stop-color="#6820c0"/></radialGradient><linearGradient id="e2screen" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#1a0a40"/><stop offset="100%" stop-color="#0a0428"/></linearGradient></defs><ellipse cx="65" cy="94" rx="52" ry="5" fill="rgba(120,60,180,0.18)"/><rect x="8" y="72" width="114" height="18" rx="9" fill="url(#e2base)"/><ellipse cx="46" cy="74" rx="22" ry="4" fill="rgba(255,255,255,0.3)"/><rect x="18" y="70" width="94" height="6" rx="3" fill="rgba(60,0,120,0.25)"/><rect x="46" y="77" width="38" height="10" rx="5" fill="rgba(255,255,255,0.15)"/><rect x="14" y="8" width="102" height="68" rx="12" fill="url(#e2lid)"/><ellipse cx="38" cy="18" rx="20" ry="9" fill="rgba(255,255,255,0.28)" transform="rotate(-15 38 18)"/><rect x="20" y="14" width="90" height="58" rx="8" fill="url(#e2bezel)"/><rect x="25" y="18" width="80" height="50" rx="5" fill="url(#e2screen)"/><rect x="25" y="18" width="80" height="10" rx="5" fill="rgba(255,255,255,0.08)"/><circle cx="31" cy="23" r="2.5" fill="#ff6b6b"/><circle cx="38" cy="23" r="2.5" fill="#ffd93d"/><circle cx="45" cy="23" r="2.5" fill="#6bcb77"/><rect x="30" y="31" width="32" height="32" rx="5" fill="rgba(255,90,160,0.3)" stroke="rgba(255,120,180,0.5)" stroke-width="1"/><rect x="35" y="36" width="22" height="16" rx="3" fill="rgba(255,255,255,0.1)"/><circle cx="46" cy="44" r="5" fill="rgba(255,150,200,0.6)"/><circle cx="46" cy="44" r="3" fill="rgba(255,200,230,0.8)"/><rect x="37" y="55" width="18" height="4" rx="2" fill="rgba(255,100,160,0.6)"/><rect x="67" y="31" width="34" height="14" rx="4" fill="rgba(100,180,255,0.3)" stroke="rgba(120,200,255,0.4)" stroke-width="1"/><rect x="72" y="35" width="16" height="2.5" rx="1.25" fill="rgba(255,255,255,0.5)"/><rect x="72" y="40" width="10" height="2" rx="1" fill="rgba(255,255,255,0.3)"/><rect x="67" y="49" width="34" height="14" rx="4" fill="rgba(160,255,200,0.25)"/><rect x="72" y="53" width="12" height="2.5" rx="1.25" fill="rgba(255,255,255,0.5)"/><rect x="72" y="58" width="20" height="2" rx="1" fill="rgba(255,255,255,0.3)"/></svg>
+              </div>
+              <div class="lpee-svc-gshadow"></div>
+            </div>
+            <h3>1 &mdash; J'ESTIME MON PRIX DU PHOTO BOOTH</h3>
+            <p>Commencez par estimer le tarif de votre photobooth et remplissez les informations necessaires pour obtenir votre offre detaillee. Au besoin, contactez notre Team par telephone pour un accompagnement personnalise de A a Z.</p>
+          </div>
+        </div>
+
+        <!-- STEP 2 : ENVELOPE -->
+        <div class="lpee-svc-step">
+          <div class="lpee-svc-bubble">2</div>
+          <div class="lpee-svc-step-card">
+            <div class="lpee-svc-watermark">02</div>
+            <div class="lpee-svc-scene">
+              <div class="lpee-svc-float2">
+                <svg width="130" height="96" viewBox="0 0 130 96" fill="none"><defs><radialGradient id="e2envBack" cx="30%" cy="20%" r="75%"><stop offset="0%" stop-color="#88ccff"/><stop offset="100%" stop-color="#2080e0"/></radialGradient><radialGradient id="e2envFlap" cx="35%" cy="15%" r="70%"><stop offset="0%" stop-color="#aadeff"/><stop offset="100%" stop-color="#4090e8"/></radialGradient><radialGradient id="e2checkBall" cx="35%" cy="25%" r="65%"><stop offset="0%" stop-color="#6ef0a0"/><stop offset="100%" stop-color="#18b050"/></radialGradient><radialGradient id="e2letterPaper" cx="25%" cy="20%" r="75%"><stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#eef4ff"/></radialGradient></defs><ellipse cx="60" cy="93" rx="50" ry="5" fill="rgba(30,100,200,0.15)"/><rect x="8" y="30" width="104" height="60" rx="12" fill="url(#e2envBack)"/><ellipse cx="38" cy="38" rx="22" ry="8" fill="rgba(255,255,255,0.22)" transform="rotate(-10 38 38)"/><line x1="8" y1="90" x2="55" y2="58" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/><line x1="112" y1="90" x2="65" y2="58" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/><rect x="26" y="14" width="68" height="56" rx="6" fill="url(#e2letterPaper)"/><rect x="32" y="22" width="56" height="3" rx="1.5" fill="#c0d8f4"/><rect x="32" y="29" width="44" height="3" rx="1.5" fill="#d0e4f8"/><rect x="32" y="36" width="50" height="3" rx="1.5" fill="#d0e4f8"/><rect x="32" y="43" width="36" height="3" rx="1.5" fill="#e0eeff"/><rect x="26" y="14" width="68" height="14" rx="6" fill="rgba(255,255,255,0.5)"/><path d="M8 36 Q8 30 20 30 L100 30 Q112 30 112 36 L60 65 Z" fill="url(#e2envFlap)"/><path d="M8 36 Q8 30 20 30 L100 30 Q112 30 112 36 L60 65 Z" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1"/><ellipse cx="44" cy="34" rx="20" ry="6" fill="rgba(255,255,255,0.2)" transform="rotate(-5 44 34)"/><circle cx="94" cy="30" r="20" fill="rgba(255,255,255,0.9)"/><circle cx="94" cy="30" r="17" fill="url(#e2checkBall)"/><ellipse cx="88" cy="23" rx="7" ry="5" fill="rgba(255,255,255,0.45)" transform="rotate(-20 88 23)"/><polyline points="84,30 91,37 104,20" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><g opacity="0.9"><path d="M18 18 L19.4 14 L20.8 18 L25 18 L21.8 20.8 L23 25 L19.4 22.4 L15.8 25 L17 20.8 L14 18Z" fill="#ffd040"/></g></svg>
+              </div>
+              <div class="lpee-svc-gshadow" style="animation-delay:0.5s"></div>
+            </div>
+            <h3>2 &mdash; JE VALIDE MON DEVIS</h3>
+            <p>Si vous souhaitez valider le devis envoye, une simple signature du document suffit ! Un acompte de 30&euro; sera demande pour reserver le photo booth. Pour les entreprises, les modalites de reglement sont a consulter aupres de notre equipe comptable.</p>
+          </div>
+        </div>
+
+        <!-- STEP 3 : PHOTOS -->
+        <div class="lpee-svc-step">
+          <div class="lpee-svc-bubble">3</div>
+          <div class="lpee-svc-step-card">
+            <div class="lpee-svc-watermark">03</div>
+            <div class="lpee-svc-scene">
+              <div class="lpee-svc-float3">
+                <svg width="130" height="96" viewBox="0 0 130 96" fill="none"><defs><radialGradient id="e2photoBack" cx="30%" cy="25%" r="70%"><stop offset="0%" stop-color="#f4ccff"/><stop offset="100%" stop-color="#c060f0"/></radialGradient><radialGradient id="e2photoMid" cx="30%" cy="25%" r="70%"><stop offset="0%" stop-color="#ffccee"/><stop offset="100%" stop-color="#e040b0"/></radialGradient><radialGradient id="e2photoFront" cx="28%" cy="22%" r="72%"><stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#f8f0ff"/></radialGradient><radialGradient id="e2imgArea" cx="40%" cy="30%" r="65%"><stop offset="0%" stop-color="#e8d4ff"/><stop offset="100%" stop-color="#b880f0"/></radialGradient><filter id="e2photoShadow"><feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="rgba(140,40,200,0.25)"/></filter></defs><ellipse cx="62" cy="93" rx="52" ry="5" fill="rgba(140,60,200,0.15)"/><g transform="rotate(14, 80, 52)" filter="url(#e2photoShadow)"><rect x="52" y="14" width="56" height="68" rx="8" fill="url(#e2photoBack)"/><ellipse cx="66" cy="22" rx="14" ry="6" fill="rgba(255,255,255,0.3)" transform="rotate(-10 66 22)"/><rect x="58" y="20" width="44" height="36" rx="5" fill="rgba(180,100,240,0.4)"/><circle cx="80" cy="32" r="8" fill="rgba(255,255,255,0.5)"/><ellipse cx="80" cy="48" rx="12" ry="8" fill="rgba(255,255,255,0.4)"/><rect x="58" y="62" width="44" height="14" rx="4" fill="rgba(255,255,255,0.5)"/><rect x="63" y="66" width="24" height="3" rx="1.5" fill="rgba(200,140,255,0.6)"/></g><g transform="rotate(-10, 40, 50)" filter="url(#e2photoShadow)"><rect x="14" y="12" width="54" height="66" rx="8" fill="url(#e2photoMid)"/><ellipse cx="30" cy="20" rx="13" ry="5.5" fill="rgba(255,255,255,0.3)" transform="rotate(-8 30 20)"/><rect x="20" y="18" width="42" height="34" rx="5" fill="rgba(255,160,220,0.4)"/><circle cx="41" cy="28" r="8" fill="rgba(255,255,255,0.5)"/><ellipse cx="41" cy="44" rx="12" ry="8" fill="rgba(255,255,255,0.4)"/><rect x="20" y="58" width="42" height="14" rx="4" fill="rgba(255,255,255,0.5)"/><rect x="25" y="62" width="22" height="3" rx="1.5" fill="rgba(255,160,220,0.7)"/></g><g filter="url(#e2photoShadow)"><rect x="32" y="4" width="60" height="78" rx="9" fill="url(#e2photoFront)" stroke="rgba(220,180,255,0.4)" stroke-width="1.5"/><ellipse cx="48" cy="14" rx="16" ry="7" fill="rgba(255,255,255,0.6)" transform="rotate(-10 48 14)"/><rect x="38" y="10" width="48" height="44" rx="6" fill="url(#e2imgArea)"/><circle cx="62" cy="24" r="10" fill="rgba(180,120,255,0.7)"/><ellipse cx="62" cy="17" rx="10" ry="6" fill="rgba(120,60,180,0.6)"/><ellipse cx="62" cy="44" rx="14" ry="9" fill="rgba(160,100,255,0.6)"/><ellipse cx="57" cy="20" rx="4" ry="3" fill="rgba(255,255,255,0.4)" transform="rotate(-20 57 20)"/><rect x="38" y="58" width="48" height="18" rx="5" fill="rgba(240,230,255,0.8)"/><rect x="44" y="63" width="28" height="3" rx="1.5" fill="#d0b0f0"/><rect x="44" y="69" width="20" height="2.5" rx="1.25" fill="#e0c8f8"/></g><circle cx="16" cy="14" r="4" fill="#ff80d0" opacity="0.8"/><circle cx="118" cy="20" r="3" fill="#80c0ff" opacity="0.8"/><circle cx="122" cy="60" r="3.5" fill="#ffd080" opacity="0.7"/></svg>
+              </div>
+              <div class="lpee-svc-gshadow" style="animation-delay:1s"></div>
+            </div>
+            <h3>3 &mdash; JE CREE MON CONTOUR PHOTO BOX</h3>
+            <p>Catalogue gratuit en ligne avec plus de 250 modeles, creation originale a l'aide de nos graphistes dedies, envoi des consignes techniques et matrices (Adobe et Canva), toutes les options existent pour vous satisfaire au mieux et creer le cadre photo numerique de vos reves !</p>
+          </div>
+        </div>
+
+        <!-- STEP 4 : TRUCK + BUILDING -->
+        <div class="lpee-svc-step">
+          <div class="lpee-svc-bubble">4</div>
+          <div class="lpee-svc-step-card">
+            <div class="lpee-svc-watermark">04</div>
+            <div class="lpee-svc-scene">
+              <div class="lpee-svc-float4">
+                <svg width="180" height="96" viewBox="0 0 280 96" fill="none"><defs><radialGradient id="e2truckOrange" cx="30%" cy="20%" r="75%"><stop offset="0%" stop-color="#ffcc70"/><stop offset="100%" stop-color="#e05800"/></radialGradient><radialGradient id="e2truckCabOrange" cx="25%" cy="20%" r="70%"><stop offset="0%" stop-color="#ffaa50"/><stop offset="100%" stop-color="#cc4400"/></radialGradient><radialGradient id="e2wheelClay" cx="35%" cy="25%" r="65%"><stop offset="0%" stop-color="#666090"/><stop offset="100%" stop-color="#2a2050"/></radialGradient><radialGradient id="e2buildingClay" cx="30%" cy="15%" r="75%"><stop offset="0%" stop-color="#fff0d8"/><stop offset="100%" stop-color="#f0c880"/></radialGradient><radialGradient id="e2roofClay" cx="35%" cy="20%" r="70%"><stop offset="0%" stop-color="#ffe090"/><stop offset="100%" stop-color="#d09820"/></radialGradient><radialGradient id="e2windowClay" cx="30%" cy="25%" r="65%"><stop offset="0%" stop-color="#c8eeff"/><stop offset="100%" stop-color="#70b8e8"/></radialGradient><filter id="e2clayShadow"><feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="rgba(0,0,0,0.2)"/></filter></defs><rect x="0" y="82" width="280" height="4" rx="2" fill="rgba(180,160,220,0.2)"/><rect x="12" y="32" width="96" height="50" rx="10" fill="url(#e2truckOrange)" filter="url(#e2clayShadow)"/><ellipse cx="54" cy="38" rx="28" ry="8" fill="rgba(255,255,255,0.25)" transform="rotate(-5 54 38)"/><line x1="60" y1="32" x2="60" y2="82" stroke="rgba(255,255,255,0.2)" stroke-width="2"/><rect x="100" y="24" width="44" height="58" rx="10" fill="url(#e2truckCabOrange)" filter="url(#e2clayShadow)"/><rect x="106" y="30" width="32" height="22" rx="6" fill="url(#e2windowClay)"/><ellipse cx="116" cy="34" rx="8" ry="5" fill="rgba(255,255,255,0.35)" transform="rotate(-15 116 34)"/><circle cx="40" cy="82" r="13" fill="url(#e2wheelClay)" filter="url(#e2clayShadow)"/><circle cx="40" cy="82" r="8" fill="rgba(180,160,220,0.4)"/><circle cx="88" cy="82" r="13" fill="url(#e2wheelClay)" filter="url(#e2clayShadow)"/><circle cx="88" cy="82" r="8" fill="rgba(180,160,220,0.4)"/><circle cx="128" cy="82" r="12" fill="url(#e2wheelClay)" filter="url(#e2clayShadow)"/><circle cx="128" cy="82" r="7" fill="rgba(180,160,220,0.4)"/><rect x="158" y="28" width="110" height="58" rx="8" fill="url(#e2buildingClay)" filter="url(#e2clayShadow)"/><ellipse cx="184" cy="36" rx="20" ry="8" fill="rgba(255,255,255,0.35)" transform="rotate(-10 184 36)"/><polygon points="152,30 213,6 274,30" fill="url(#e2roofClay)" filter="url(#e2clayShadow)"/><rect x="164" y="36" width="28" height="22" rx="5" fill="url(#e2windowClay)" filter="url(#e2clayShadow)"/><line x1="178" y1="36" x2="178" y2="58" stroke="rgba(255,255,255,0.4)" stroke-width="1.5"/><line x1="164" y1="47" x2="192" y2="47" stroke="rgba(255,255,255,0.4)" stroke-width="1.5"/><rect x="236" y="36" width="26" height="22" rx="5" fill="url(#e2windowClay)" filter="url(#e2clayShadow)"/><line x1="249" y1="36" x2="249" y2="58" stroke="rgba(255,255,255,0.4)" stroke-width="1.5"/><line x1="236" y1="47" x2="262" y2="47" stroke="rgba(255,255,255,0.4)" stroke-width="1.5"/><rect x="196" y="50" width="36" height="36" rx="6" fill="rgba(200,140,50,0.8)"/><circle cx="225" cy="70" r="3.5" fill="rgba(160,100,20,0.8)"/></svg>
+              </div>
+              <div class="lpee-svc-gshadow" style="width:70%;animation-delay:0.2s"></div>
+            </div>
+            <h3>4 &mdash; RETRAIT BOUTIQUE OU LIVRAISON ?</h3>
+            <p>Reglons ensemble les details logistiques : retrait boutique gratuit, livraison a domicile pas cher, installation tres facile sans outils de la borne photo. Nous nous efforcerons toujours de repondre au mieux a vos besoins !</p>
+          </div>
+        </div>
+
+        <!-- STEP 5 : AGENT -->
+        <div class="lpee-svc-step">
+          <div class="lpee-svc-bubble">5</div>
+          <div class="lpee-svc-step-card">
+            <div class="lpee-svc-watermark">05</div>
+            <div class="lpee-svc-scene">
+              <div class="lpee-svc-float5">
+                <svg width="160" height="96" viewBox="0 0 220 96" fill="none"><defs><radialGradient id="e2skinClay" cx="35%" cy="25%" r="65%"><stop offset="0%" stop-color="#ffddb0"/><stop offset="100%" stop-color="#f4a060"/></radialGradient><radialGradient id="e2hairClay" cx="30%" cy="20%" r="70%"><stop offset="0%" stop-color="#c07840"/><stop offset="100%" stop-color="#6a3810"/></radialGradient><radialGradient id="e2uniformClay" cx="30%" cy="20%" r="70%"><stop offset="0%" stop-color="#70c8ff"/><stop offset="100%" stop-color="#2070d0"/></radialGradient><radialGradient id="e2headsetClay" cx="30%" cy="25%" r="65%"><stop offset="0%" stop-color="#6090e8"/><stop offset="100%" stop-color="#2848c0"/></radialGradient><radialGradient id="e2bubbleClay" cx="30%" cy="20%" r="70%"><stop offset="0%" stop-color="#70e8c8"/><stop offset="100%" stop-color="#18b080"/></radialGradient><filter id="e2agentShadow"><feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="rgba(0,0,0,0.18)"/></filter></defs><ellipse cx="80" cy="93" rx="42" ry="5" fill="rgba(30,80,180,0.15)"/><ellipse cx="80" cy="82" rx="30" ry="18" fill="url(#e2uniformClay)" filter="url(#e2agentShadow)"/><ellipse cx="68" cy="74" rx="12" ry="6" fill="rgba(255,255,255,0.3)" transform="rotate(-20 68 74)"/><path d="M62 68 Q80 76 98 68" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/><rect x="72" y="72" width="16" height="12" rx="3" fill="rgba(255,255,255,0.3)"/><rect x="74" y="75" width="12" height="2.5" rx="1.25" fill="rgba(255,255,255,0.6)"/><circle cx="80" cy="40" r="26" fill="url(#e2skinClay)" filter="url(#e2agentShadow)"/><ellipse cx="70" cy="29" rx="10" ry="7" fill="rgba(255,255,255,0.35)" transform="rotate(-20 70 29)"/><path d="M54 34 Q55 10 80 12 Q105 10 106 34 Q100 18 80 18 Q60 18 54 34Z" fill="url(#e2hairClay)"/><ellipse cx="80" cy="15" rx="24" ry="9" fill="url(#e2hairClay)"/><ellipse cx="72" cy="12" rx="9" ry="4" fill="rgba(255,255,255,0.2)" transform="rotate(-15 72 12)"/><ellipse cx="71" cy="38" rx="5" ry="5.5" fill="white"/><circle cx="71" cy="39" r="3.5" fill="#3a2010"/><circle cx="72.5" cy="37.5" r="1.5" fill="white"/><ellipse cx="89" cy="38" rx="5" ry="5.5" fill="white"/><circle cx="89" cy="39" r="3.5" fill="#3a2010"/><circle cx="90.5" cy="37.5" r="1.5" fill="white"/><ellipse cx="80" cy="46" rx="3" ry="2" fill="rgba(200,120,60,0.3)"/><path d="M70 52 Q80 60 90 52" stroke="#d08040" stroke-width="2.5" fill="rgba(220,140,80,0.15)" stroke-linecap="round"/><ellipse cx="61" cy="46" rx="7" ry="5" fill="rgba(255,140,140,0.35)"/><ellipse cx="99" cy="46" rx="7" ry="5" fill="rgba(255,140,140,0.35)"/><path d="M54 34 Q54 10 80 10 Q106 10 106 34" stroke="url(#e2hairClay)" stroke-width="5" fill="none" stroke-linecap="round"/><rect x="46" y="30" width="14" height="22" rx="7" fill="url(#e2headsetClay)" filter="url(#e2agentShadow)"/><rect x="100" y="30" width="14" height="22" rx="7" fill="url(#e2headsetClay)" filter="url(#e2agentShadow)"/><path d="M48 48 Q40 56 44 65" stroke="#4060b8" stroke-width="3.5" fill="none" stroke-linecap="round"/><circle cx="44" cy="66" r="7" fill="url(#e2headsetClay)" filter="url(#e2agentShadow)"/><rect x="122" y="6" width="90" height="52" rx="16" fill="url(#e2bubbleClay)" filter="url(#e2agentShadow)"/><ellipse cx="142" cy="16" rx="22" ry="8" fill="rgba(255,255,255,0.3)" transform="rotate(-10 142 16)"/><path d="M130 56 L116 72 L146 56Z" fill="url(#e2bubbleClay)"/><circle cx="147" cy="32" r="6.5" fill="white" opacity="0.92"/><circle cx="167" cy="32" r="6.5" fill="white" opacity="0.92"/><circle cx="187" cy="32" r="6.5" fill="white" opacity="0.92"/></svg>
+              </div>
+              <div class="lpee-svc-gshadow" style="width:55%;animation-delay:0.8s"></div>
+            </div>
+            <h3>5 &mdash; ASSISTANCE TECHNIQUE</h3>
+            <p>Avec Shootnbox, decouvrez la location de photobooth de luxe l'esprit tranquille : notre assistance technique est disponible 7 jours sur 7, par telephone de 8h a 22h. Nos techniciens sauront vous guider aussi bien dans l'installation de la borne photo que dans son utilisation au cours de votre evenement.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ===== MOBILE : layout vertical ===== -->
+    <div class="lpee-svc-steps-mobile">
+
+      <div class="lpee-svc-mob-step">
+        <div class="lpee-svc-mob-left">
+          <div class="lpee-svc-mob-bubble">1</div>
+          <div class="lpee-svc-mob-line"></div>
+        </div>
+        <div class="lpee-svc-mob-right">
+          <div class="lpee-svc-mob-icon"><svg width="60" height="44" viewBox="0 0 130 96" fill="none"><defs><radialGradient id="em2lid" cx="35%" cy="25%" r="65%"><stop offset="0%" stop-color="#c88aff"/><stop offset="100%" stop-color="#7a20d8"/></radialGradient><radialGradient id="em2bezel" cx="30%" cy="20%" r="70%"><stop offset="0%" stop-color="#8a40e8"/><stop offset="100%" stop-color="#5010a8"/></radialGradient><radialGradient id="em2base" cx="30%" cy="20%" r="70%"><stop offset="0%" stop-color="#b080f0"/><stop offset="100%" stop-color="#6820c0"/></radialGradient><linearGradient id="em2screen" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#1a0a40"/><stop offset="100%" stop-color="#0a0428"/></linearGradient></defs><rect x="8" y="72" width="114" height="18" rx="9" fill="url(#em2base)"/><rect x="14" y="8" width="102" height="68" rx="12" fill="url(#em2lid)"/><ellipse cx="38" cy="18" rx="20" ry="9" fill="rgba(255,255,255,0.28)" transform="rotate(-15 38 18)"/><rect x="20" y="14" width="90" height="58" rx="8" fill="url(#em2bezel)"/><rect x="25" y="18" width="80" height="50" rx="5" fill="url(#em2screen)"/><circle cx="31" cy="23" r="2.5" fill="#ff6b6b"/><circle cx="38" cy="23" r="2.5" fill="#ffd93d"/><circle cx="45" cy="23" r="2.5" fill="#6bcb77"/><rect x="30" y="31" width="32" height="32" rx="5" fill="rgba(255,90,160,0.3)"/><circle cx="46" cy="44" r="5" fill="rgba(255,150,200,0.6)"/><rect x="67" y="31" width="34" height="14" rx="4" fill="rgba(100,180,255,0.3)"/><rect x="67" y="49" width="34" height="14" rx="4" fill="rgba(160,255,200,0.25)"/></svg></div>
+          <h3>1 &mdash; J'ESTIME MON PRIX DU PHOTO BOOTH</h3>
+          <p>Commencez par estimer le tarif de votre photobooth et remplissez les informations necessaires pour obtenir votre offre detaillee. Au besoin, contactez notre Team par telephone pour un accompagnement personnalise de A a Z.</p>
+        </div>
+      </div>
+
+      <div class="lpee-svc-mob-step">
+        <div class="lpee-svc-mob-left">
+          <div class="lpee-svc-mob-bubble">2</div>
+          <div class="lpee-svc-mob-line"></div>
+        </div>
+        <div class="lpee-svc-mob-right">
+          <div class="lpee-svc-mob-icon"><svg width="60" height="44" viewBox="0 0 130 96" fill="none"><defs><radialGradient id="em2envBack" cx="30%" cy="20%" r="75%"><stop offset="0%" stop-color="#88ccff"/><stop offset="100%" stop-color="#2080e0"/></radialGradient><radialGradient id="em2envFlap" cx="35%" cy="15%" r="70%"><stop offset="0%" stop-color="#aadeff"/><stop offset="100%" stop-color="#4090e8"/></radialGradient><radialGradient id="em2checkBall" cx="35%" cy="25%" r="65%"><stop offset="0%" stop-color="#6ef0a0"/><stop offset="100%" stop-color="#18b050"/></radialGradient></defs><rect x="8" y="30" width="104" height="60" rx="12" fill="url(#em2envBack)"/><ellipse cx="38" cy="38" rx="22" ry="8" fill="rgba(255,255,255,0.22)" transform="rotate(-10 38 38)"/><rect x="26" y="14" width="68" height="56" rx="6" fill="#f8fcff"/><rect x="32" y="22" width="56" height="3" rx="1.5" fill="#c0d8f4"/><rect x="32" y="29" width="44" height="3" rx="1.5" fill="#d0e4f8"/><rect x="32" y="36" width="50" height="3" rx="1.5" fill="#d0e4f8"/><path d="M8 36 Q8 30 20 30 L100 30 Q112 30 112 36 L60 65 Z" fill="url(#em2envFlap)"/><circle cx="94" cy="30" r="17" fill="url(#em2checkBall)"/><ellipse cx="88" cy="23" rx="7" ry="5" fill="rgba(255,255,255,0.45)" transform="rotate(-20 88 23)"/><polyline points="84,30 91,37 104,20" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <h3>2 &mdash; JE VALIDE MON DEVIS</h3>
+          <p>Si vous souhaitez valider le devis envoye, une simple signature du document suffit ! Un acompte de 30&euro; sera demande pour reserver le photo booth. Pour les entreprises, les modalites de reglement sont a consulter aupres de notre equipe comptable.</p>
+        </div>
+      </div>
+
+      <div class="lpee-svc-mob-step">
+        <div class="lpee-svc-mob-left">
+          <div class="lpee-svc-mob-bubble">3</div>
+          <div class="lpee-svc-mob-line"></div>
+        </div>
+        <div class="lpee-svc-mob-right">
+          <div class="lpee-svc-mob-icon"><svg width="60" height="44" viewBox="0 0 130 96" fill="none"><defs><radialGradient id="em2photoBack" cx="30%" cy="25%" r="70%"><stop offset="0%" stop-color="#f4ccff"/><stop offset="100%" stop-color="#c060f0"/></radialGradient><radialGradient id="em2photoMid" cx="30%" cy="25%" r="70%"><stop offset="0%" stop-color="#ffccee"/><stop offset="100%" stop-color="#e040b0"/></radialGradient><radialGradient id="em2photoFront" cx="28%" cy="22%" r="72%"><stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#f8f0ff"/></radialGradient><radialGradient id="em2imgArea" cx="40%" cy="30%" r="65%"><stop offset="0%" stop-color="#e8d4ff"/><stop offset="100%" stop-color="#b880f0"/></radialGradient></defs><g transform="rotate(14, 80, 52)"><rect x="52" y="14" width="56" height="68" rx="8" fill="url(#em2photoBack)"/><rect x="58" y="20" width="44" height="36" rx="5" fill="rgba(180,100,240,0.4)"/></g><g transform="rotate(-10, 40, 50)"><rect x="14" y="12" width="54" height="66" rx="8" fill="url(#em2photoMid)"/><rect x="20" y="18" width="42" height="34" rx="5" fill="rgba(255,160,220,0.4)"/></g><rect x="32" y="4" width="60" height="78" rx="9" fill="url(#em2photoFront)" stroke="rgba(220,180,255,0.4)" stroke-width="1.5"/><rect x="38" y="10" width="48" height="44" rx="6" fill="url(#em2imgArea)"/><circle cx="62" cy="24" r="10" fill="rgba(180,120,255,0.7)"/><rect x="38" y="58" width="48" height="18" rx="5" fill="rgba(240,230,255,0.8)"/><rect x="44" y="63" width="28" height="3" rx="1.5" fill="#d0b0f0"/></svg></div>
+          <h3>3 &mdash; JE CREE MON CONTOUR PHOTO BOX</h3>
+          <p>Catalogue gratuit en ligne avec plus de 250 modeles, creation originale a l'aide de nos graphistes dedies, envoi des consignes techniques et matrices (Adobe et Canva), toutes les options existent pour vous satisfaire au mieux et creer le cadre photo numerique de vos reves !</p>
+        </div>
+      </div>
+
+      <div class="lpee-svc-mob-step">
+        <div class="lpee-svc-mob-left">
+          <div class="lpee-svc-mob-bubble">4</div>
+          <div class="lpee-svc-mob-line"></div>
+        </div>
+        <div class="lpee-svc-mob-right">
+          <div class="lpee-svc-mob-icon"><svg width="80" height="44" viewBox="0 0 280 96" fill="none"><defs><radialGradient id="em2truckO" cx="30%" cy="20%" r="75%"><stop offset="0%" stop-color="#ffcc70"/><stop offset="100%" stop-color="#e05800"/></radialGradient><radialGradient id="em2truckCab" cx="25%" cy="20%" r="70%"><stop offset="0%" stop-color="#ffaa50"/><stop offset="100%" stop-color="#cc4400"/></radialGradient><radialGradient id="em2wheel" cx="35%" cy="25%" r="65%"><stop offset="0%" stop-color="#666090"/><stop offset="100%" stop-color="#2a2050"/></radialGradient><radialGradient id="em2build" cx="30%" cy="15%" r="75%"><stop offset="0%" stop-color="#fff0d8"/><stop offset="100%" stop-color="#f0c880"/></radialGradient><radialGradient id="em2roof" cx="35%" cy="20%" r="70%"><stop offset="0%" stop-color="#ffe090"/><stop offset="100%" stop-color="#d09820"/></radialGradient><radialGradient id="em2win" cx="30%" cy="25%" r="65%"><stop offset="0%" stop-color="#c8eeff"/><stop offset="100%" stop-color="#70b8e8"/></radialGradient></defs><rect x="12" y="32" width="96" height="50" rx="10" fill="url(#em2truckO)"/><rect x="100" y="24" width="44" height="58" rx="10" fill="url(#em2truckCab)"/><rect x="106" y="30" width="32" height="22" rx="6" fill="url(#em2win)"/><circle cx="40" cy="82" r="13" fill="url(#em2wheel)"/><circle cx="88" cy="82" r="13" fill="url(#em2wheel)"/><circle cx="128" cy="82" r="12" fill="url(#em2wheel)"/><rect x="158" y="28" width="110" height="58" rx="8" fill="url(#em2build)"/><polygon points="152,30 213,6 274,30" fill="url(#em2roof)"/><rect x="164" y="36" width="28" height="22" rx="5" fill="url(#em2win)"/><rect x="236" y="36" width="26" height="22" rx="5" fill="url(#em2win)"/><rect x="196" y="50" width="36" height="36" rx="6" fill="rgba(200,140,50,0.8)"/></svg></div>
+          <h3>4 &mdash; RETRAIT BOUTIQUE OU LIVRAISON ?</h3>
+          <p>Reglons ensemble les details logistiques : retrait boutique gratuit, livraison a domicile pas cher, installation tres facile sans outils de la borne photo. Nous nous efforcerons toujours de repondre au mieux a vos besoins !</p>
+        </div>
+      </div>
+
+      <div class="lpee-svc-mob-step">
+        <div class="lpee-svc-mob-left">
+          <div class="lpee-svc-mob-bubble">5</div>
+        </div>
+        <div class="lpee-svc-mob-right">
+          <div class="lpee-svc-mob-icon"><svg width="70" height="44" viewBox="0 0 220 96" fill="none"><defs><radialGradient id="em2skin" cx="35%" cy="25%" r="65%"><stop offset="0%" stop-color="#ffddb0"/><stop offset="100%" stop-color="#f4a060"/></radialGradient><radialGradient id="em2hair" cx="30%" cy="20%" r="70%"><stop offset="0%" stop-color="#c07840"/><stop offset="100%" stop-color="#6a3810"/></radialGradient><radialGradient id="em2uniform" cx="30%" cy="20%" r="70%"><stop offset="0%" stop-color="#70c8ff"/><stop offset="100%" stop-color="#2070d0"/></radialGradient><radialGradient id="em2headset" cx="30%" cy="25%" r="65%"><stop offset="0%" stop-color="#6090e8"/><stop offset="100%" stop-color="#2848c0"/></radialGradient><radialGradient id="em2bubble" cx="30%" cy="20%" r="70%"><stop offset="0%" stop-color="#70e8c8"/><stop offset="100%" stop-color="#18b080"/></radialGradient></defs><ellipse cx="80" cy="82" rx="30" ry="18" fill="url(#em2uniform)"/><circle cx="80" cy="40" r="26" fill="url(#em2skin)"/><ellipse cx="70" cy="29" rx="10" ry="7" fill="rgba(255,255,255,0.35)" transform="rotate(-20 70 29)"/><path d="M54 34 Q55 10 80 12 Q105 10 106 34 Q100 18 80 18 Q60 18 54 34Z" fill="url(#em2hair)"/><ellipse cx="80" cy="15" rx="24" ry="9" fill="url(#em2hair)"/><ellipse cx="71" cy="38" rx="5" ry="5.5" fill="white"/><circle cx="71" cy="39" r="3.5" fill="#3a2010"/><ellipse cx="89" cy="38" rx="5" ry="5.5" fill="white"/><circle cx="89" cy="39" r="3.5" fill="#3a2010"/><path d="M70 52 Q80 60 90 52" stroke="#d08040" stroke-width="2.5" fill="rgba(220,140,80,0.15)" stroke-linecap="round"/><rect x="46" y="30" width="14" height="22" rx="7" fill="url(#em2headset)"/><rect x="100" y="30" width="14" height="22" rx="7" fill="url(#em2headset)"/><path d="M48 48 Q40 56 44 65" stroke="#4060b8" stroke-width="3.5" fill="none" stroke-linecap="round"/><circle cx="44" cy="66" r="7" fill="url(#em2headset)"/><rect x="122" y="6" width="90" height="52" rx="16" fill="url(#em2bubble)"/><path d="M130 56 L116 72 L146 56Z" fill="url(#em2bubble)"/><circle cx="147" cy="32" r="6.5" fill="white" opacity="0.92"/><circle cx="167" cy="32" r="6.5" fill="white" opacity="0.92"/><circle cx="187" cy="32" r="6.5" fill="white" opacity="0.92"/></svg></div>
+          <h3>5 &mdash; ASSISTANCE TECHNIQUE</h3>
+          <p>Avec Shootnbox, decouvrez la location de photobooth de luxe l'esprit tranquille : notre assistance technique est disponible 7 jours sur 7, par telephone de 8h a 22h. Nos techniciens sauront vous guider aussi bien dans l'installation de la borne photo que dans son utilisation au cours de votre evenement.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <hr class="lpee-svc-sep">
+
+    <!-- ===== 3 CARTES COLOREES ===== -->
+    <div class="lpee-svc-bottom">
+
+      <!-- BLEU : Livraison -->
+      <div class="lpee-svc-card-livraison">
+        <div class="lpee-svc-card-icon">&#128666;</div>
+        <h3 class="lpee-svc-card-title">Retrait ou livraison entreprise</h3>
+        <p class="lpee-svc-card-desc">Retrait gratuit en showroom ou livraison directement dans vos locaux professionnels.</p>
+        <div class="lpee-svc-options">
+          <div class="lpee-svc-option">
+            <img class="lpee-svc-option-img" src="../../public/images/agence/bureau-bis.webp" alt="Showroom Shootnbox">
+            &#128205; Retrait showroom
+          </div>
+          <div class="lpee-svc-option">
+            <img class="lpee-svc-option-img" src="../../public/images/camion-shootnbox-v2.webp" alt="Camion livraison Shootnbox">
+            &#128666; Livraison
+          </div>
+        </div>
+      </div>
+
+      <!-- FUCHSIA : Support -->
+      <div class="lpee-svc-card-support">
+        <div class="lpee-svc-card-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></div>
+        <h3 class="lpee-svc-card-title">Support d&eacute;di&eacute; entreprise</h3>
+        <p class="lpee-svc-card-desc">Accompagnement t&eacute;l&eacute;phonique 7j/7 et interlocuteur d&eacute;di&eacute; pour votre &eacute;v&eacute;nement professionnel.</p>
+        <div class="lpee-svc-support-photos">
+          <img class="lpee-svc-support-img" src="../../public/images/sarah-appel.webp" alt="Sarah au t&eacute;l&eacute;phone">
+          <img class="lpee-svc-support-img" src="../../public/images/equipe-shootnbox.webp" alt="&Eacute;quipe Shootnbox">
+        </div>
+        <div class="lpee-svc-tags">
+          <span class="lpee-svc-tag lpee-svc-tag-rose">Devis sous 24h</span>
+          <span class="lpee-svc-tag lpee-svc-tag-bleu">Livraison entreprise</span>
+          <span class="lpee-svc-tag lpee-svc-tag-violet">Support 7j/7</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- CTA -->
+    <div class="lpee-svc-cta">
+      <a href="https://shootnbox.fr/reservation/" class="lpee-svc-cta-btn">Demander un devis</a>
+    </div>
+
+  </div>
+</section>
+
+<script>
+document.querySelectorAll('.lpee-svc-step-card').forEach(function(card) {
+  card.addEventListener('mousemove', function(e) {
+    var rect = card.getBoundingClientRect();
+    var x = (e.clientX - rect.left) / rect.width - 0.5;
+    var y = (e.clientY - rect.top) / rect.height - 0.5;
+    card.style.transform = 'perspective(800px) rotateX(' + (-y * 12) + 'deg) rotateY(' + (x * 12) + 'deg) translateY(-4px) scale(1.02)';
+    card.style.transition = 'transform 0.1s ease';
+  });
+  card.addEventListener('mouseleave', function() {
+    card.style.transform = '';
+    card.style.transition = 'transform 0.5s cubic-bezier(.22,.68,0,1.2)';
+  });
+});
+</script>
+
+</body>
+</html>

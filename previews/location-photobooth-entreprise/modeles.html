@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Preview - modeles location-photobooth-entreprise</title>
+<link href="https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700;1,800;1,900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; padding: 0; font-family: "Raleway", sans-serif; color: #333; line-height: 1.6; background: #fff; }
+a { text-decoration: none; color: inherit; }
+img { max-width: 100%; height: auto; }
+</style>
+</head>
+<body>
+
+<style>
+.lpem-modeles {
+  background: linear-gradient(180deg, #f0e4f8 0%, #e8d6f2 50%, #dfc8ec 100%);
+  padding: 70px 5% 80px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Vagues animees */
+.lpem-wave {
+  position: absolute;
+  width: 200%;
+  height: 200px;
+  left: -50%;
+  border-radius: 45%;
+  pointer-events: none;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+.lpem-wave-1 { top: 20%; background: #ff6eb4; animation: lpem-w1 8s infinite; opacity: 0.08; }
+.lpem-wave-2 { top: 30%; background: #4d8bff; animation: lpem-w2 10s infinite; opacity: 0.07; }
+.lpem-wave-3 { top: 40%; background: #c084fc; animation: lpem-w3 12s infinite; opacity: 0.06; }
+.lpem-wave-4 { top: 50%; background: #ff9a3c; animation: lpem-w4 9s infinite; opacity: 0.07; }
+.lpem-wave-5 { top: 35%; background: #4ade80; animation: lpem-w5 11s infinite; opacity: 0.06; }
+@keyframes lpem-w1 { 0%{transform:rotate(0) translateX(0)}25%{transform:rotate(3deg) translateX(30px)}50%{transform:rotate(0) translateX(0)}75%{transform:rotate(-3deg) translateX(-30px)}100%{transform:rotate(0) translateX(0)} }
+@keyframes lpem-w2 { 0%{transform:rotate(0) translateX(0)}25%{transform:rotate(-4deg) translateX(-40px)}50%{transform:rotate(0) translateX(0)}75%{transform:rotate(4deg) translateX(40px)}100%{transform:rotate(0) translateX(0)} }
+@keyframes lpem-w3 { 0%{transform:rotate(2deg) translateX(20px)}33%{transform:rotate(-2deg) translateX(-35px)}66%{transform:rotate(3deg) translateX(25px)}100%{transform:rotate(2deg) translateX(20px)} }
+@keyframes lpem-w4 { 0%{transform:rotate(0) translateX(10px)}50%{transform:rotate(-3deg) translateX(-30px)}100%{transform:rotate(0) translateX(10px)} }
+@keyframes lpem-w5 { 0%{transform:rotate(-1deg) translateX(-15px)}50%{transform:rotate(2deg) translateX(35px)}100%{transform:rotate(-1deg) translateX(-15px)} }
+
+.lpem-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 2;
+}
+.lpem-rows {
+  max-width: 820px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+
+/* Text box */
+.lpem-text-box {
+  background: linear-gradient(145deg, rgba(255,255,255,0.88), rgba(245,235,255,0.75));
+  backdrop-filter: blur(12px);
+  border-radius: 24px;
+  padding: 32px 36px;
+  border: 1.5px solid rgba(168,85,247,0.15);
+  box-shadow:
+    inset 4px 4px 10px rgba(180,140,200,0.1),
+    inset -3px -3px 8px rgba(255,255,255,0.6),
+    6px 6px 20px rgba(180,140,200,0.12),
+    -4px -4px 12px rgba(255,255,255,0.5);
+  margin-bottom: 0;
+}
+.lpem-title-inline {
+  font-family: 'Raleway', sans-serif;
+  font-size: 28px;
+  font-weight: 900;
+  font-style: italic;
+  color: #1a0a22;
+  text-align: center;
+  margin: 0 0 20px;
+  line-height: 1.2;
+}
+.lpem-title-inline span { color: #E51981; }
+.lpem-text {
+  font-family: 'Raleway', sans-serif;
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.8;
+  color: #4a3a5a;
+  margin: 0 0 16px;
+  text-align: center;
+}
+.lpem-text:last-child { margin-bottom: 0; }
+.lpem-text strong { color: #1a0a22; font-weight: 700; }
+.lpem-text .lpem-pink { color: #E51981; font-weight: 700; }
+
+/* ===== ROWS LAYOUT ===== */
+.lpem-rows {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 36px;
+}
+
+.lpem-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(255,255,255,0.75), rgba(240,228,255,0.5));
+  backdrop-filter: blur(12px);
+  border: 1.5px solid transparent;
+  box-shadow:
+    inset 4px 4px 10px rgba(180,140,200,0.12),
+    inset -3px -3px 7px rgba(255,255,255,0.7),
+    6px 6px 20px rgba(100,60,140,0.15),
+    -3px -3px 10px rgba(255,255,255,0.3),
+    0 8px 32px rgba(80,40,120,0.1);
+  transition: border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+}
+.lpem-row:hover {
+  transform: translateY(-5px) scale(1.01);
+  box-shadow:
+    inset 4px 4px 10px rgba(180,140,200,0.12),
+    inset -3px -3px 7px rgba(255,255,255,0.7),
+    8px 10px 30px rgba(100,60,140,0.2),
+    -3px -3px 10px rgba(255,255,255,0.3),
+    0 12px 40px rgba(80,40,120,0.12);
+}
+/* Alternance (desactivee en 2-col) */
+
+/* Couleurs par borne */
+.lpem-row-ring { border-color: rgba(255,122,0,0.2); }
+.lpem-row-ring:hover { border-color: rgba(255,122,0,0.5); box-shadow: inset 3px 3px 8px rgba(180,140,200,0.08), inset -2px -2px 5px rgba(255,255,255,0.5), 0 0 30px rgba(255,122,0,0.12); }
+.lpem-row-vegas { border-color: rgba(229,25,129,0.2); }
+.lpem-row-vegas:hover { border-color: rgba(229,25,129,0.5); box-shadow: inset 3px 3px 8px rgba(180,140,200,0.08), inset -2px -2px 5px rgba(255,255,255,0.5), 0 0 30px rgba(229,25,129,0.12); }
+.lpem-row-miroir { border-color: rgba(2,80,255,0.2); }
+.lpem-row-miroir:hover { border-color: rgba(2,80,255,0.5); box-shadow: inset 3px 3px 8px rgba(180,140,200,0.08), inset -2px -2px 5px rgba(255,255,255,0.5), 0 0 30px rgba(2,80,255,0.12); }
+.lpem-row-spinner { border-color: rgba(22,163,74,0.2); }
+.lpem-row-spinner:hover { border-color: rgba(22,163,74,0.5); box-shadow: inset 3px 3px 8px rgba(180,140,200,0.08), inset -2px -2px 5px rgba(255,255,255,0.5), 0 0 30px rgba(22,163,74,0.12); }
+.lpem-row-aircam { border-color: rgba(168,85,247,0.2); }
+.lpem-row-aircam:hover { border-color: rgba(168,85,247,0.5); box-shadow: inset 3px 3px 8px rgba(180,140,200,0.08), inset -2px -2px 5px rgba(255,255,255,0.5), 0 0 30px rgba(168,85,247,0.12); }
+.lpem-row-fashionbox { border-color: rgba(229,25,129,0.2); }
+.lpem-row-fashionbox:hover { border-color: rgba(229,25,129,0.5); box-shadow: inset 3px 3px 8px rgba(180,140,200,0.08), inset -2px -2px 5px rgba(255,255,255,0.5), 0 0 30px rgba(229,25,129,0.12); }
+
+/* Image */
+.lpem-row-img-wrap {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  aspect-ratio: 3/2;
+  box-shadow:
+    4px 4px 12px rgba(80,40,120,0.15),
+    -2px -2px 6px rgba(255,255,255,0.4);
+}
+.lpem-row-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  position: absolute;
+  top: 0; left: 0;
+  opacity: 0;
+  transition: opacity 1s ease, transform 0.5s ease;
+}
+.lpem-row-img.lpem-active { opacity: 1; }
+.lpem-row:hover .lpem-row-img.lpem-active {
+  transform: scale(1.06);
+}
+/* Single image (no slideshow) */
+.lpem-row-img:only-of-type { opacity: 1; position: relative; }
+.lpem-row-vegas .lpem-row-img { object-position: center 25%; }
+.lpem-row-spinner .lpem-row-img { object-position: center 65%; }
+/* FashionBox : borne fixe gauche + diapo droite */
+.lpem-row-fashionbox .lpem-row-img-wrap {
+  display: none;
+}
+.lpem-fb-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 4px 4px 12px rgba(80,40,120,0.15), -2px -2px 6px rgba(255,255,255,0.4);
+}
+.lpem-fb-fixed {
+  background: linear-gradient(135deg, #f8eaff, #fce8f4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+}
+.lpem-fb-fixed img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.lpem-fb-slides {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 2/3;
+}
+.lpem-fb-slides .lpem-row-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  top: 0; left: 0;
+  opacity: 0;
+  transition: opacity 1s ease;
+}
+.lpem-fb-slides .lpem-row-img.lpem-active { opacity: 1; }
+
+/* Tag */
+.lpem-row-tag {
+  position: absolute;
+  top: 12px; right: 12px;
+  padding: 5px 12px;
+  border-radius: 50px;
+  font-family: 'Raleway', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #fff;
+  z-index: 2;
+  backdrop-filter: blur(6px);
+}
+.lpem-row-ring .lpem-row-tag { background: rgba(255,122,0,0.85); }
+.lpem-row-vegas .lpem-row-tag { background: rgba(229,25,129,0.85); }
+.lpem-row-miroir .lpem-row-tag { background: rgba(2,80,255,0.85); }
+.lpem-row-spinner .lpem-row-tag { background: rgba(22,163,74,0.85); }
+.lpem-row-aircam .lpem-row-tag { background: rgba(168,85,247,0.85); }
+.lpem-row-fashionbox .lpem-row-tag { background: rgba(229,25,129,0.85); }
+
+/* Content */
+.lpem-row-content {
+  background: rgba(255,255,255,0.45);
+  border-radius: 12px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255,255,255,0.6);
+  box-shadow:
+    inset 2px 2px 6px rgba(180,140,200,0.06),
+    inset -2px -2px 4px rgba(255,255,255,0.5);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.lpem-row-desc { flex: 1; }
+.lpem-row-cta { margin-top: auto; }
+.lpem-row-name {
+  font-family: 'Raleway', sans-serif;
+  font-size: 15px;
+  font-weight: 900;
+  font-style: italic;
+  color: #1a0a22;
+  margin: 0 0 6px;
+}
+.lpem-row-ring .lpem-row-name span { color: #FF7A00; }
+.lpem-row-vegas .lpem-row-name span { color: #E51981; }
+.lpem-row-miroir .lpem-row-name span { color: #0250FF; }
+.lpem-row-spinner .lpem-row-name span { color: #16A34A; }
+.lpem-row-aircam .lpem-row-name span { color: #a855f7; }
+.lpem-row-fashionbox .lpem-row-name span { color: #E51981; }
+
+.lpem-row-desc {
+  font-family: 'Raleway', sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.55;
+  color: #4a3a5a;
+  margin: 0 0 6px;
+}
+.lpem-row-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 50px;
+  font-family: 'Raleway', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+.lpem-row-cta:hover { transform: translateY(-2px); }
+.lpem-row-ring .lpem-row-cta { background: linear-gradient(135deg, #FF7A00, #ff9a3c); box-shadow: 0 4px 16px rgba(255,122,0,0.3); }
+.lpem-row-vegas .lpem-row-cta { background: linear-gradient(135deg, #E51981, #ff3fac); box-shadow: 0 4px 16px rgba(229,25,129,0.3); }
+.lpem-row-miroir .lpem-row-cta { background: linear-gradient(135deg, #0250FF, #4d8bff); box-shadow: 0 4px 16px rgba(2,80,255,0.3); }
+.lpem-row-spinner .lpem-row-cta { background: linear-gradient(135deg, #16A34A, #4ade80); box-shadow: 0 4px 16px rgba(22,163,74,0.3); }
+.lpem-row-aircam .lpem-row-cta { background: linear-gradient(135deg, #a855f7, #c084fc); box-shadow: 0 4px 16px rgba(168,85,247,0.3); }
+.lpem-row-fashionbox .lpem-row-cta { background: linear-gradient(135deg, #E51981, #ff3fac); box-shadow: 0 4px 16px rgba(229,25,129,0.3); }
+
+/* Conclusion */
+.lpem-conclusion {
+  margin-top: 32px;
+  padding: 28px 32px;
+  border-radius: 20px;
+  background: linear-gradient(145deg, rgba(26,10,34,0.85), rgba(42,21,64,0.9));
+  backdrop-filter: blur(10px);
+  border: 1.5px solid rgba(229,25,129,0.2);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.15);
+}
+.lpem-conclusion p {
+  font-family: 'Raleway', sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.8;
+  color: rgba(255,255,255,0.85);
+  margin: 0;
+  text-align: center;
+}
+.lpem-conclusion strong { color: #fff; }
+.lpem-conclusion .lpem-hl { color: #ff6eb4; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .lpem-modeles { padding: 50px 12px 60px; }
+  .lpem-title { font-size: 26px; padding: 20px 28px; }
+  .lpem-text { font-size: 15px; }
+  .lpem-rows {
+    grid-template-columns: 1fr;
+  }
+  .lpem-row {
+    padding: 16px;
+  }
+  .lpem-row-img-wrap { height: 200px; }
+  .lpem-row-name { font-size: 20px; }
+  .lpem-row-desc { font-size: 14px; }
+  .lpem-conclusion p { font-size: 14px; }
+}
+</style>
+
+<section class="lpem-modeles">
+  <div class="lpem-wave lpem-wave-1"></div>
+  <div class="lpem-wave lpem-wave-2"></div>
+  <div class="lpem-wave lpem-wave-3"></div>
+  <div class="lpem-wave lpem-wave-4"></div>
+  <div class="lpem-wave lpem-wave-5"></div>
+  <div class="lpem-inner">
+    <div class="lpem-text-box">
+      <h2 class="lpem-title-inline">Quelle borne photo choisir pour<br>votre <span>evenement professionnel</span> ?</h2>
+      <p class="lpem-text">Qu'il s'agisse d'un evenement interne ou bien d'une communication publique, le <strong>photomaton en location pour une soiree d'entreprise</strong> assurera l'animation et la continuite de votre campagne. <span class="lpem-pink">Reposez-vous sur nos differents modeles !</span></p>
+      <p class="lpem-text">Nos modeles de <strong>photobooth d'entreprise en location</strong> sont equipes d'outils a la fois puissants, optimises et personnalises. Ils repondent a chacune de vos demandes :</p>
+    </div>
+
+    <div class="lpem-rows">
+
+      <div class="lpem-row lpem-row-ring">
+        <div class="lpem-row-img-wrap" data-slideshow>
+          <span class="lpem-row-tag">Photobooth</span>
+          <img class="lpem-row-img lpem-active" src="../../public/images/entreprise/ring-slide-1.webp" alt="Borne Ring Shootnbox">
+          <img class="lpem-row-img" src="../../public/images/entreprise/ring-slide-2.webp" alt="Borne Ring Shootnbox">
+          <img class="lpem-row-img" src="../../public/images/entreprise/ring-slide-3.webp" alt="Borne Ring Shootnbox">
+          <img class="lpem-row-img" src="../../public/images/entreprise/ring-slide-4.webp" alt="Borne Ring Shootnbox">
+        </div>
+        <div class="lpem-row-content">
+          <h3 class="lpem-row-name">Le <span>Ring</span></h3>
+          <p class="lpem-row-desc">Le photobooth portable 100% digital : ideal pour les evenements modernes, fluides et connectes. Il convient parfaitement aux animations rapides, aux activations marketing et aux partages instantanes par e-mail ou SMS. Pourquoi hesiter entre photo, video, gif ou boomerang, quand on peut tout avoir en meme temps ?</p>
+          <a href="https://shootnbox.fr/reservation/" class="lpem-row-cta">En savoir plus &#8594;</a>
+        </div>
+      </div>
+
+      <div class="lpem-row lpem-row-vegas">
+        <div class="lpem-row-img-wrap" data-slideshow>
+          <span class="lpem-row-tag">Best-seller</span>
+          <img class="lpem-row-img lpem-active" src="../../public/images/entreprise/vegas-slide-1.webp" alt="Borne Vegas Shootnbox">
+          <img class="lpem-row-img" src="../../public/images/entreprise/vegas-slide-2.webp" alt="Borne Vegas Shootnbox">
+          <img class="lpem-row-img" src="../../public/images/entreprise/vegas-slide-3.webp" alt="Borne Vegas Shootnbox">
+          <img class="lpem-row-img" src="../../public/images/entreprise/vegas-slide-4.webp" alt="Borne Vegas Shootnbox">
+        </div>
+        <div class="lpem-row-content">
+          <h3 class="lpem-row-name">Le <span>Vegas</span> Double Face</h3>
+          <p class="lpem-row-desc">Notre photobooth professionnel emblematique : un excellent choix pour les gros evenements, salons, soirees d'entreprise et dispositifs a fort passage grace a son format visible, performant et tres attractif. Avec impression integree pour un souvenir tangible.</p>
+          <a href="https://shootnbox.fr/reservation/" class="lpem-row-cta">En savoir plus &#8594;</a>
+        </div>
+      </div>
+
+      <div class="lpem-row lpem-row-miroir">
+        <div class="lpem-row-img-wrap" data-slideshow>
+          <span class="lpem-row-tag">Premium</span>
+          <img class="lpem-row-img lpem-active" src="../../public/images/entreprise/miroir-slide-1.webp" alt="Borne Miroir Shootnbox">
+          <img class="lpem-row-img" src="../../public/images/entreprise/miroir-slide-2.webp" alt="Borne Miroir Shootnbox">
+          <img class="lpem-row-img" src="../../public/images/entreprise/miroir-slide-3.webp" alt="Borne Miroir Shootnbox">
+          <img class="lpem-row-img" src="../../public/images/entreprise/miroir-slide-4.webp" alt="Borne Miroir Shootnbox">
+          <img class="lpem-row-img" src="../../public/images/entreprise/miroir-slide-5.webp" alt="Borne Miroir Shootnbox">
+        </div>
+        <div class="lpem-row-content">
+          <h3 class="lpem-row-name">Le <span>Miroir</span></h3>
+          <p class="lpem-row-desc">La borne photo elegante en pied : parfaite pour les soirees corporate premium, galas, remises de prix ou evenements haut de gamme ou l'esthetique compte autant que l'animation. Tapis rouge et potelets inclus.</p>
+          <a href="https://shootnbox.fr/reservation/" class="lpem-row-cta">En savoir plus &#8594;</a>
+        </div>
+      </div>
+
+      <div class="lpem-row lpem-row-spinner">
+        <div class="lpem-row-img-wrap">
+          <span class="lpem-row-tag">Videobooth</span>
+          <img class="lpem-row-img" src="../../public/images/entreprise/spinner.webp" alt="Spinner 360 Shootnbox">
+        </div>
+        <div class="lpem-row-content">
+          <h3 class="lpem-row-name">Le <span>Spinner</span> 360</h3>
+          <p class="lpem-row-desc">Pour des videos dynamiques a 360 degres : recommande pour les lancements, soirees festives, influence, brand content et evenements ou l'on veut un rendu spectaculaire et tres partageable. L'effet WOW garanti.</p>
+          <a href="https://shootnbox.fr/reservation/" class="lpem-row-cta">En savoir plus &#8594;</a>
+        </div>
+      </div>
+
+      <div class="lpem-row lpem-row-aircam">
+        <div class="lpem-row-img-wrap" data-slideshow>
+          <span class="lpem-row-tag">360&deg; Groupe</span>
+          <img class="lpem-row-img lpem-active" src="../../public/images/entreprise/aircam-slide-1.webp" alt="Aircam 360 Shootnbox">
+          <img class="lpem-row-img" src="../../public/images/entreprise/aircam-slide-2.webp" alt="Aircam 360 Shootnbox">
+          <img class="lpem-row-img" src="../../public/images/entreprise/aircam-slide-3.webp" alt="Aircam 360 Shootnbox">
+          <img class="lpem-row-img" src="../../public/images/entreprise/aircam-slide-4.webp" alt="Aircam 360 Shootnbox">
+        </div>
+        <div class="lpem-row-content">
+          <h3 class="lpem-row-name">L'<span>Aircam 360</span></h3>
+          <p class="lpem-row-desc">La solution 360&deg; pour les groupes jusqu'a 15 a 20 personnes : ideale pour les equipes, les groupes de collaborateurs, les grandes soirees et les moments collectifs a forte valeur souvenir.</p>
+          <a href="https://shootnbox.fr/reservation/" class="lpem-row-cta">En savoir plus &#8594;</a>
+        </div>
+      </div>
+
+      <div class="lpem-row lpem-row-fashionbox">
+        <div class="lpem-fb-split">
+          <div class="lpem-fb-fixed">
+            <img src="../../public/images/entreprise/fashionbox-borne.webp" alt="Borne FashionBox Shootnbox">
+          </div>
+          <div class="lpem-fb-slides" data-slideshow>
+            <span class="lpem-row-tag">Studio</span>
+            <img class="lpem-row-img lpem-active" src="../../public/images/entreprise/fashionbox-slide-1.webp" alt="FashionBox Shootnbox">
+            <img class="lpem-row-img" src="../../public/images/entreprise/fashionbox-slide-2.webp" alt="FashionBox Shootnbox">
+            <img class="lpem-row-img" src="../../public/images/entreprise/fashionbox-slide-3.webp" alt="FashionBox Shootnbox">
+            <img class="lpem-row-img" src="../../public/images/entreprise/fashionbox-slide-4.webp" alt="FashionBox Shootnbox">
+            <img class="lpem-row-img" src="../../public/images/entreprise/fashionbox-slide-5.webp" alt="FashionBox Shootnbox">
+            <img class="lpem-row-img" src="../../public/images/entreprise/fashionbox-slide-6.webp" alt="FashionBox Shootnbox">
+            <img class="lpem-row-img" src="../../public/images/entreprise/fashionbox-slide-7.webp" alt="FashionBox Shootnbox">
+          </div>
+        </div>
+        <div class="lpem-row-content">
+          <h3 class="lpem-row-name">La <span>FashionBox</span></h3>
+          <p class="lpem-row-desc">Un mini studio photo ferme pour un impact maximum. Parfait pour les salons professionnels, les activations en magasin et les evenements ou l'on souhaite un rendu photo premium et intime.</p>
+          <a href="https://shootnbox.fr/reservation/" class="lpem-row-cta">En savoir plus &#8594;</a>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="lpem-conclusion">
+      <p>Quel que soit votre objectif — <strong>animer une soiree d'entreprise</strong>, valoriser votre marque, marquer les esprits lors d'un evenement prive professionnel ou proposer une <span class="lpem-hl">activation differenciante</span> pour un client — nous vous aidons a choisir le photobooth le plus adapte a votre format, a votre public et a votre image.</p>
+    </div>
+  </div>
+</section>
+
+<script>
+document.querySelectorAll('[data-slideshow]').forEach(function(wrap) {
+  var imgs = wrap.querySelectorAll('.lpem-row-img');
+  if (imgs.length < 2) return;
+  var idx = 0;
+  setInterval(function() {
+    imgs[idx].classList.remove('lpem-active');
+    idx = (idx + 1) % imgs.length;
+    imgs[idx].classList.add('lpem-active');
+  }, 3000);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intro V1 - Split layout</title>
+<link href="https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700;1,800;1,900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; padding: 0; font-family: "Raleway", sans-serif; color: #333; line-height: 1.6; background: #fff; }
+</style>
+</head>
+<body>
+
+<style>
+.lp-intro {
+  position: relative;
+  padding: 70px 5%;
+  background: #1a0a22;
+  overflow: hidden;
+  color: #fff;
+  font-family: 'Raleway', sans-serif;
+}
+
+/* Lueurs */
+.lp-intro::before {
+  content: '';
+  position: absolute;
+  top: -100px; right: -100px;
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(229,25,129,0.12) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.lp-intro::after {
+  content: '';
+  position: absolute;
+  bottom: -80px; left: -80px;
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(2,80,255,0.08) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.lp-intro-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+/* Colonne texte */
+.lp-intro-text-col {}
+
+.lp-intro-big {
+  font-size: 72px;
+  font-weight: 900;
+  font-style: italic;
+  color: #E51981;
+  line-height: 1;
+  margin: 0 0 4px;
+  text-shadow: 0 0 40px rgba(229,25,129,0.3);
+}
+.lp-intro-big-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.5);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 28px;
+}
+
+.lp-intro-p {
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.75;
+  color: rgba(255,255,255,0.7);
+  margin: 0 0 20px;
+}
+.lp-intro-p strong { color: #fff; font-weight: 700; }
+.lp-intro-p .lp-hl { color: #E51981; font-weight: 800; }
+.lp-intro-p .lp-hl-b { color: #4d8aff; font-weight: 800; }
+
+.lp-intro-sep {
+  width: 60px; height: 2px;
+  background: linear-gradient(90deg, #E51981, #4d8aff);
+  border-radius: 2px;
+  margin: 24px 0;
+}
+
+/* Colonne visuelle */
+.lp-intro-visual {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.lp-intro-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px;
+  padding: 24px 28px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  backdrop-filter: blur(8px);
+  transition: transform 0.3s ease, border-color 0.3s ease;
+}
+.lp-intro-card:hover {
+  transform: translateX(-6px);
+  border-color: rgba(229,25,129,0.2);
+}
+
+.lp-intro-card-icon {
+  width: 56px; height: 56px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  flex-shrink: 0;
+}
+.lp-ic-pink { background: rgba(229,25,129,0.12); }
+.lp-ic-blue { background: rgba(2,80,255,0.12); }
+.lp-ic-gold { background: rgba(251,191,36,0.12); }
+
+.lp-intro-card-text {
+  font-size: 15px;
+  color: rgba(255,255,255,0.7);
+  line-height: 1.5;
+}
+.lp-intro-card-text strong { color: #fff; }
+
+/* Stats en bas */
+.lp-intro-stats {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  gap: 48px;
+  margin-top: 20px;
+  padding-top: 28px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.lp-intro-stat { text-align: center; }
+.lp-intro-stat-n {
+  font-size: 28px; font-weight: 900; font-style: italic;
+  color: #fff; line-height: 1.1;
+}
+.lp-intro-stat-l {
+  font-size: 12px; font-weight: 600;
+  color: rgba(255,255,255,0.4);
+  text-transform: uppercase; letter-spacing: 1px;
+  margin-top: 4px;
+}
+
+@media (max-width: 768px) {
+  .lp-intro-inner { grid-template-columns: 1fr; gap: 32px; }
+  .lp-intro-big { font-size: 52px; }
+  .lp-intro-p { font-size: 15px; }
+  .lp-intro-stats { gap: 24px; flex-wrap: wrap; }
+}
+</style>
+
+<section class="lp-intro">
+  <div class="lp-intro-inner">
+
+    <div class="lp-intro-text-col">
+      <div class="lp-intro-big">10 000+</div>
+      <div class="lp-intro-big-label">organisateurs nous font confiance</div>
+
+      <p class="lp-intro-p">
+        Vous sublimez l'ambiance de votre reception et offrez a vos invites un <strong>souvenir imprime</strong> qu'ils conserveront precieusement. En choisissant l'experience Shootnbox, vous rejoignez ceux qui ont transforme leur evenement en un pur instant de <span class="lp-hl">convivialite</span>.
+      </p>
+
+      <div class="lp-intro-sep"></div>
+
+      <p class="lp-intro-p">
+        Vous ne louez pas une simple cabine photo : vous deployez un veritable <span class="lp-hl-b">createur de souvenirs</span>. Une animation photo <strong>haut de gamme</strong> au meilleur rapport qualite/prix, pour que chaque sourire devienne <strong>inoubliable</strong>.
+      </p>
+    </div>
+
+    <div class="lp-intro-visual">
+      <div class="lp-intro-card">
+        <div class="lp-intro-card-icon lp-ic-pink">&#128248;</div>
+        <div class="lp-intro-card-text"><strong>Souvenir imprime</strong> que vos invites conserveront precieusement</div>
+      </div>
+      <div class="lp-intro-card">
+        <div class="lp-intro-card-icon lp-ic-blue">&#127881;</div>
+        <div class="lp-intro-card-text"><strong>Createur de souvenirs</strong> — bien plus qu'une simple cabine photo</div>
+      </div>
+      <div class="lp-intro-card">
+        <div class="lp-intro-card-icon lp-ic-gold">&#11088;</div>
+        <div class="lp-intro-card-text"><strong>Haut de gamme</strong> au meilleur rapport qualite/prix</div>
+      </div>
+    </div>
+
+    <div class="lp-intro-stats">
+      <div class="lp-intro-stat">
+        <div class="lp-intro-stat-n">+10 000</div>
+        <div class="lp-intro-stat-l">evenements</div>
+      </div>
+      <div class="lp-intro-stat">
+        <div class="lp-intro-stat-n">4.8/5</div>
+        <div class="lp-intro-stat-l">avis Google</div>
+      </div>
+      <div class="lp-intro-stat">
+        <div class="lp-intro-stat-n">100%</div>
+        <div class="lp-intro-stat-l">satisfaction</div>
+      </div>
+      <div class="lp-intro-stat">
+        <div class="lp-intro-stat-n">5 min</div>
+        <div class="lp-intro-stat-l">installation</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+</body>
+</html>

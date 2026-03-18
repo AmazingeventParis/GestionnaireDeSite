@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Preview - Fabrication française</title>
+<link href="https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700;1,800;1,900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; padding: 0; font-family: "Raleway", sans-serif; color: #333; line-height: 1.6; background: #fff; }
+a { text-decoration: none; color: inherit; }
+img { max-width: 100%; height: auto; }
+</style>
+</head>
+<body>
+
+<style>
+.snb-fab {
+  font-family: 'Raleway', sans-serif;
+  width: 100%;
+  background: linear-gradient(160deg, #e8d4f0, #dfc8e8, #e6d8f2);
+  padding: 35px 5%;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Neumorphism panel */
+.snb-fab::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 8px 8px 20px rgba(180,140,200,0.15), inset -6px -6px 16px rgba(255,255,255,0.5);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Blobs */
+.snb-fab-blob { position: absolute; border-radius: 50%; pointer-events: none; filter: blur(60px); z-index: 0; }
+.snb-fab-blob-1 { width: 400px; height: 400px; background: rgba(2,80,255,0.08); top: -100px; right: -100px; animation: snbFabBlob 6s ease-in-out infinite; }
+.snb-fab-blob-2 { width: 350px; height: 350px; background: rgba(229,25,129,0.07); bottom: -80px; left: -80px; animation: snbFabBlob 6s ease-in-out infinite 3s; }
+@keyframes snbFabBlob { 0%,100%{transform:scale(1);opacity:0.7} 50%{transform:scale(1.15);opacity:1} }
+
+.snb-fab-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 48px;
+  align-items: stretch;
+}
+
+/* Image cote */
+.snb-fab-visual {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px 16px;
+  border-radius: 24px;
+  background: linear-gradient(145deg, #ffffff, #f8f0fc, #f2e8f6);
+  border: 1.5px solid rgba(168,85,247,0.2);
+  box-shadow:
+    inset 4px 4px 8px rgba(180,140,200,0.12),
+    inset -3px -3px 6px rgba(255,255,255,0.7),
+    4px 4px 14px rgba(180,140,200,0.12),
+    -3px -3px 8px rgba(255,255,255,0.6),
+    0 0 16px rgba(168,85,247,0.06);
+  overflow: visible;
+}
+/* 3 blocs tricolores empiles au-dessus */
+.snb-fab-visual::before { display: none; }
+.snb-fab-layer {
+  position: absolute;
+  left: 50%; transform: translateX(-50%);
+  border-radius: 18px;
+  pointer-events: none;
+  z-index: 0;
+}
+.snb-fab-layer-bleu {
+  width: 88%; height: calc(100% + 40px);
+  top: -20px;
+  background: rgba(2,80,255,0.06);
+  border: 1.5px solid rgba(2,80,255,0.1);
+}
+.snb-fab-layer-blanc {
+  width: 94%; height: calc(100% + 26px);
+  top: -13px;
+  background: rgba(255,255,255,0.3);
+  border: 1.5px solid rgba(200,200,220,0.18);
+}
+.snb-fab-layer-rouge {
+  width: 100%; height: calc(100% + 12px);
+  top: -6px;
+  background: rgba(229,25,129,0.04);
+  border: 1.5px solid rgba(229,25,129,0.08);
+}
+/* Shimmer subtil */
+.snb-fab-visual::after {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: 24px;
+  background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.3) 50%, transparent 60%);
+  transform: translateX(-150%);
+  animation: snbFabShimmer 5s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes snbFabShimmer {
+  0%, 70%, 100% { transform: translateX(-150%); }
+  40% { transform: translateX(150%); }
+}
+
+.snb-fab-img-wrap {
+  position: relative;
+  display: inline-block;
+  animation: snbFabFloat 4s ease-in-out infinite;
+}
+.snb-fab-img {
+  max-width: 220px;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 20px 40px rgba(60,20,100,0.18));
+  position: relative;
+  z-index: 1;
+}
+
+/* Barre fine collee au pied */
+.snb-fab-glow-bar {
+  width: 70%;
+  height: 3px;
+  border-radius: 2px;
+  margin: -10px auto 0;
+  background: linear-gradient(90deg, transparent, #E51981, transparent);
+  box-shadow: 0 0 12px rgba(229,25,129,0.4), 0 0 30px rgba(229,25,129,0.15);
+}
+@keyframes snbFabFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* Badge Made in France SVG */
+.snb-fab-badge {
+  position: absolute;
+  top: 22%;
+  left: -18%;
+  width: 110px;
+  height: 110px;
+  animation: snbFabBadgeFloat 3.5s ease-in-out infinite;
+  opacity: 0.15;
+}
+@keyframes snbFabBadgeFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+/* Mini cartes flottantes */
+.snb-fab-float-card {
+  position: absolute;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #ffffff, #f8f0fc);
+  box-shadow:
+    inset 2px 2px 4px rgba(180,140,200,0.1),
+    inset -2px -2px 4px rgba(255,255,255,0.6),
+    3px 3px 10px rgba(180,140,200,0.12);
+  padding: 10px 14px;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; font-weight: 700; color: #2a1540;
+  z-index: 2;
+  white-space: nowrap;
+}
+.snb-fab-float-card .snb-fab-fc-icon {
+  width: 30px; height: 30px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; flex-shrink: 0;
+  position: relative;
+}
+.snb-fab-float-card .snb-fab-fc-icon::after {
+  content: '';
+  position: absolute; top: 2px; left: 4px; right: 4px; height: 40%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.4), transparent);
+  border-radius: 6px 6px 50% 50%;
+  pointer-events: none;
+}
+.snb-fab-fc-label { line-height: 1.3; }
+.snb-fab-fc-label small { display: block; font-size: 9px; font-weight: 600; color: #6a5a7a; }
+
+/* Card positions */
+.snb-fab-fc1 {
+  top: 2%; left: -8%;
+  border: 1.5px solid rgba(2,80,255,0.25);
+  animation: snbFcFloat1 4s ease-in-out infinite;
+}
+.snb-fab-fc1 .snb-fab-fc-icon {
+  background: linear-gradient(145deg, #4d8bff, #0250FF);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(2,80,255,0.3);
+}
+.snb-fab-fc2 {
+  bottom: 28%; left: -12%;
+  border: 1.5px solid rgba(229,25,129,0.25);
+  animation: snbFcFloat2 4.5s ease-in-out infinite 0.5s;
+}
+.snb-fab-fc2 .snb-fab-fc-icon {
+  background: linear-gradient(145deg, #ff6eb4, #E51981);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(229,25,129,0.3);
+}
+.snb-fab-fc3 {
+  top: 35%; right: -5%;
+  border: 1.5px solid rgba(168,85,247,0.25);
+  animation: snbFcFloat3 3.8s ease-in-out infinite 1s;
+}
+.snb-fab-fc3 .snb-fab-fc-icon {
+  background: linear-gradient(145deg, #c084fc, #a855f7);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(168,85,247,0.3);
+}
+
+@keyframes snbFcFloat1 {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-8px) rotate(0deg); }
+}
+@keyframes snbFcFloat2 {
+  0%, 100% { transform: translateY(0) rotate(1deg); }
+  50% { transform: translateY(-10px) rotate(-1deg); }
+}
+@keyframes snbFcFloat3 {
+  0%, 100% { transform: translateY(0) rotate(2deg); }
+  50% { transform: translateY(-7px) rotate(0deg); }
+}
+
+/* Responsive - masque mini cartes mobile */
+@media (max-width: 768px) {
+  .snb-fab-float-card { display: none; }
+  .snb-fab-layer { display: none; }
+}
+
+/* Contenu texte - cadre neumorphism */
+.snb-fab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px 24px;
+  border-radius: 24px;
+  background: linear-gradient(145deg, #ffffff, #f8f0fc, #f2e8f6);
+  border: 1.5px solid rgba(2,80,255,0.2);
+  box-shadow:
+    inset 4px 4px 8px rgba(180,140,200,0.12),
+    inset -3px -3px 6px rgba(255,255,255,0.7),
+    4px 4px 14px rgba(180,140,200,0.12),
+    -3px -3px 8px rgba(255,255,255,0.6),
+    0 0 16px rgba(2,80,255,0.08),
+    0 0 40px rgba(2,80,255,0.04);
+  position: relative;
+  overflow: hidden;
+}
+.snb-fab-content::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 4px;
+  background: linear-gradient(90deg, #0250FF, #a855f7, #E51981);
+  border-radius: 24px 24px 0 0;
+}
+
+.snb-fab-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  border-radius: 50px;
+  border: 1px solid rgba(2,80,255,0.2);
+  background: rgba(255,255,255,0.7);
+  padding: 5px 16px;
+  font-size: 12px; font-weight: 700; color: #0250FF;
+  width: fit-content;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.snb-fab h2 {
+  font-size: 24px; font-weight: 900; font-style: italic;
+  color: #2a1540; margin: 0;
+  line-height: 1.2;
+  text-align: center;
+}
+.snb-fab h2 .snb-fab-acc { color: #0250FF; }
+.snb-fab h2 .snb-fab-acc-r { color: #E51981; }
+
+/* Separateur tricolore */
+.snb-fab-tri {
+  display: flex; gap: 4px; margin: 4px 0;
+  justify-content: center;
+}
+.snb-fab-tri span {
+  width: 32px; height: 4px; border-radius: 2px;
+}
+.snb-fab-tri-b { background: #0250FF; }
+.snb-fab-tri-w { background: #e0e0e0; }
+.snb-fab-tri-r { background: #E51981; }
+
+.snb-fab-text {
+  font-size: 14.5px; line-height: 1.7; color: #4a3a5a; margin: 0;
+}
+.snb-fab-text em { color: #2a1540; font-style: italic; font-weight: 600; }
+.snb-fab-text strong { color: #2a1540; font-weight: 700; }
+.snb-fab-text a { color: #0250FF; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.snb-fab-text a:hover { color: #E51981; }
+
+/* Blockquote style */
+.snb-fab-quote {
+  font-size: 14.5px; line-height: 1.7; color: #2a1540;
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgba(168,85,247,0.12), rgba(229,25,129,0.08), rgba(2,80,255,0.1));
+  box-shadow:
+    inset 3px 3px 6px rgba(180,140,200,0.15),
+    inset -2px -2px 5px rgba(255,255,255,0.4),
+    3px 3px 10px rgba(180,140,200,0.12),
+    -2px -2px 6px rgba(255,255,255,0.5);
+  border: 1.5px solid rgba(168,85,247,0.2);
+  font-weight: 600;
+  position: relative;
+}
+.snb-fab-quote::before {
+  content: '\201C';
+  position: absolute; top: -6px; left: 14px;
+  font-size: 40px; font-weight: 900; color: rgba(168,85,247,0.2);
+  line-height: 1;
+}
+
+/* Tags */
+.snb-fab-tags {
+  display: flex; flex-wrap: nowrap; gap: 6px; margin-top: 4px;
+  justify-content: center;
+  padding: 0 8px;
+}
+.snb-fab-tag {
+  border-radius: 50px;
+  padding: 4px 8px;
+  font-size: 10px; font-weight: 700;
+  white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 3px;
+}
+.snb-fab-tag-bleu { background: rgba(2,80,255,0.08); color: #0250FF; }
+.snb-fab-tag-rose { background: rgba(229,25,129,0.08); color: #C91473; }
+.snb-fab-tag-violet { background: rgba(168,85,247,0.08); color: #7c3aed; }
+.snb-fab-tag-vert { background: rgba(22,163,74,0.08); color: #16A34A; }
+
+/* CTA */
+.snb-fab-cta {
+  margin-top: 8px;
+  text-align: center;
+}
+.snb-fab-cta a {
+  display: inline-flex; align-items: center;
+  padding: 10px 26px; border-radius: 50px;
+  background: linear-gradient(135deg, #E51981, #ff3fac);
+  color: #fff; font-size: 13px; font-weight: 700;
+  font-family: 'Raleway', sans-serif;
+  box-shadow: 0 4px 24px rgba(229,25,129,0.35);
+  position: relative; overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.25,0.46,0.45,0.94);
+}
+.snb-fab-cta a::before {
+  content: ''; position: absolute;
+  top: 0; left: -100%; width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  transition: left 0.5s ease;
+}
+.snb-fab-cta a:hover::before { left: 100%; }
+.snb-fab-cta a:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 8px 32px rgba(229,25,129,0.5);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .snb-fab { padding: 40px 16px; }
+  .snb-fab-inner {
+    grid-template-columns: 1fr;
+    gap: 30px;
+    text-align: center;
+  }
+  .snb-fab-visual { order: -1; }
+  .snb-fab-img { max-width: 260px; }
+  .snb-fab h2 { font-size: 24px; }
+  .snb-fab-pill { margin: 0 auto; }
+  .snb-fab-tri { justify-content: center; }
+  .snb-fab-tags { justify-content: center; }
+  .snb-fab-cta { text-align: center; }
+  .snb-fab-badge { right: 5%; bottom: 5%; width: 80px; height: 80px; }
+}
+</style>
+
+<section class="snb-fab">
+  <div class="snb-fab-blob snb-fab-blob-1"></div>
+  <div class="snb-fab-blob snb-fab-blob-2"></div>
+
+  <div class="snb-fab-inner">
+
+    <!-- GAUCHE : Photo borne -->
+    <div class="snb-fab-visual">
+      <div class="snb-fab-layer snb-fab-layer-bleu"></div>
+      <div class="snb-fab-layer snb-fab-layer-blanc"></div>
+      <div class="snb-fab-layer snb-fab-layer-rouge"></div>
+      <div class="snb-fab-img-wrap">
+        <img class="snb-fab-img" src="../../public/images/borne-made-in-france.webp" alt="Borne photobooth fabriqu&eacute;e en France">
+        <div class="snb-fab-glow-bar"></div>
+      </div>
+
+      <!-- Mini cartes flottantes -->
+      <div class="snb-fab-float-card snb-fab-fc1">
+        <div class="snb-fab-fc-icon">&#127981;</div>
+        <div class="snb-fab-fc-label">Usine Normandie<small>Fabrication locale</small></div>
+      </div>
+      <div class="snb-fab-float-card snb-fab-fc2">
+        <div class="snb-fab-fc-icon">&#9851;&#65039;</div>
+        <div class="snb-fab-fc-label">Eco-responsable<small>Recyclage bobines</small></div>
+      </div>
+      <div class="snb-fab-float-card snb-fab-fc3">
+        <div class="snb-fab-fc-icon">&#128187;</div>
+        <div class="snb-fab-fc-label">Logiciel maison<small>D&eacute;velopp&eacute; &agrave; Paris</small></div>
+      </div>
+
+      <!-- Badge Made in France -->
+      <svg class="snb-fab-badge" viewBox="0 0 120 120" fill="none"><circle cx="60" cy="60" r="56" stroke="#2a1540" stroke-width="3" opacity="0.5"/><circle cx="60" cy="60" r="48" stroke="#2a1540" stroke-width="1.5" opacity="0.3"/><text x="60" y="38" text-anchor="middle" font-family="Raleway, sans-serif" font-size="11" font-weight="900" fill="#2a1540" opacity="0.6">MADE IN</text><text x="60" y="72" text-anchor="middle" font-family="Raleway, sans-serif" font-size="22" font-weight="900" fill="#0250FF" opacity="0.7">FRANCE</text><text x="60" y="90" text-anchor="middle" font-family="Raleway, sans-serif" font-size="9" font-weight="700" fill="#2a1540" opacity="0.4">FABRICATION</text></svg>
+    </div>
+
+    <!-- DROITE : Texte -->
+    <div class="snb-fab-content">
+
+      <h2>Un photomaton en location<br><span class="snb-fab-acc">fabriqu&eacute;</span> en <span class="snb-fab-acc-r">France</span></h2>
+
+      <div class="snb-fab-tri">
+        <span class="snb-fab-tri-b"></span>
+        <span class="snb-fab-tri-w"></span>
+        <span class="snb-fab-tri-r"></span>
+      </div>
+
+      <p class="snb-fab-text">
+        Plus que jamais, la question du local a son importance. Totalement inscrit dans cette philosophie, nous nous appliquons &agrave; soutenir le Made in France <em>(fabriqu&eacute; en France)</em>. C'est pourquoi nous fabriquons nos bornes photobooth en France dans notre usine en Normandie&nbsp;! Recherche et d&eacute;veloppement, fabrication, int&eacute;gration et tests sont tous op&eacute;r&eacute;s en France, privil&eacute;giant toujours le circuit court&nbsp;!
+      </p>
+
+      <div class="snb-fab-quote">
+        &laquo;&nbsp;Louer une machine &agrave; photo pr&egrave;s de chez moi&nbsp;?&nbsp;&raquo; Shootnbox r&eacute;pond parfaitement &agrave; votre demande. Notre philosophie devient un acte citoyen, militant pour le respect de l'environnement et la reconnaissance de l'Artisanat Fran&ccedil;ais&nbsp;!
+      </div>
+
+      <p class="snb-fab-text">
+        Nous recyclons le consommable inutilis&eacute; tel que les bobines photo usag&eacute;es, et valorisons l'ensemble de notre cha&icirc;ne de pr&eacute;paration. Le digital n'est pas en reste, gr&acirc;ce notamment au d&eacute;veloppement de notre propre <a href="https://shootnbox.fr/logiciel-photobooth/">logiciel photobooth</a>, d&eacute;velopp&eacute; &agrave; Paris et &agrave; l'h&eacute;bergement de nos serveurs exclusivement en France.
+      </p>
+
+      <div class="snb-fab-tags">
+        <span class="snb-fab-tag snb-fab-tag-bleu">&#127981; Usine en Normandie</span>
+        <span class="snb-fab-tag snb-fab-tag-rose">&#9851;&#65039; Recyclage bobines</span>
+        <span class="snb-fab-tag snb-fab-tag-violet">&#128187; Logiciel made in Paris</span>
+        <span class="snb-fab-tag snb-fab-tag-vert">&#127467;&#127479; Serveurs en France</span>
+      </div>
+
+      <div class="snb-fab-cta">
+        <a href="https://shootnbox.fr/reservation/">D&eacute;couvrir nos bornes</a>
+      </div>
+
+    </div>
+
+  </div>
+</section>
+
+</body>
+</html>

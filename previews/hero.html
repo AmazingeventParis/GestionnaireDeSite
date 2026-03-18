@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Preview - hero</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700;1,800;1,900&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; padding: 0; font-family: "Raleway", sans-serif; color: #333; line-height: 1.6; background: #fff; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+a { text-decoration: none; color: inherit; }
+img { max-width: 100%; height: auto; }
+ul { list-style: none; padding: 0; margin: 0; }
+</style>
+</head>
+<body>
+
+<style>
+.snb-hero { position:relative; overflow:hidden; background:#2d0535; color:#fff; padding:0; font-family:'Raleway',sans-serif; }
+.snb-hero-bg {
+  position:absolute; top:0; left:0; width:100%; height:100%;
+  object-fit:cover; object-position:center center; z-index:0;
+}
+.snb-hero-bg-overlay {
+  content:''; position:absolute; top:0; left:0; width:100%; height:100%;
+  background:linear-gradient(to right,#2d0535 0%,#2d0535 20%,rgba(45,5,53,0.93) 28%,rgba(45,5,53,0.80) 35%,
+    rgba(45,5,53,0.60) 42%,rgba(45,5,53,0.40) 50%,rgba(45,5,53,0.22) 58%,
+    rgba(45,5,53,0.10) 68%,rgba(45,5,53,0.04) 78%,transparent 88%);
+  z-index:0;
+}
+.snb-hero::after {
+  content:''; position:absolute; bottom:0; left:0; width:100%; height:60%;
+  background:linear-gradient(to top,rgba(229,25,129,0.12) 0%,transparent 60%); z-index:1;
+}
+.snb-hero-inner {
+  position:relative; z-index:2; max-width:660px;
+  padding:40px 40px 50px 5%; min-height:520px;
+  display:flex; flex-direction:column; justify-content:center;
+}
+.snb-hero h2 {
+  font-family:Raleway,sans-serif!important; font-size:50px; font-weight:900;
+  font-style:italic; line-height:1.15; color:#fff; margin:0 0 10px;
+}
+.snb-hero .hero-wave {
+  display:inline; animation:hero-color-wave 4s ease-in-out infinite;
+}
+@keyframes hero-color-wave {
+  0%,100%{color:#fff} 30%{color:#E51981} 60%{color:#4d8aff} 85%{color:#fff}
+}
+.snb-hero .hero-tagline {
+  font-size:14px; font-weight:600; color:rgba(255,255,255,0.5);
+  letter-spacing:2px; text-transform:uppercase; margin-bottom:6px;
+}
+.snb-hero .hero-subtitle {
+  font-size:17px; font-weight:400; line-height:1.6; color:rgba(255,255,255,0.7); margin:0 0 22px;
+}
+.snb-hero .hero-subtitle strong { color:#fff; }
+.snb-hero .hero-proof {
+  display:flex; align-items:center; gap:16px; margin-bottom:28px;
+  padding:12px 20px; border-radius:14px;
+  background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.1);
+  width:fit-content;
+}
+.snb-hero .hero-proof .stars { color:#fbbf24; font-size:18px; line-height:1; }
+.snb-hero .hero-proof .proof-text { font-size:14px; color:rgba(255,255,255,0.7); }
+.snb-hero .hero-proof .proof-text strong { color:#fff; font-size:20px; font-weight:900; }
+.snb-hero .hero-proof .divider { width:1px; height:28px; background:rgba(255,255,255,0.15); }
+.snb-hero .hero-proof .proof-logo { font-size:12px; color:rgba(255,255,255,0.5); display:flex; align-items:center; gap:6px; }
+.snb-hero .hero-proof .g-icon {
+  width:20px; height:20px; background:#fff; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-weight:900; font-size:12px; color:#4285f4;
+}
+.snb-hero .hero-stats { display:flex; gap:28px; margin-bottom:28px; flex-wrap:wrap; }
+.snb-hero .hero-stat { display:flex; align-items:center; gap:10px; }
+.snb-hero .hero-stat-icon {
+  width:40px; height:40px; border-radius:12px;
+  display:flex; align-items:center; justify-content:center; font-size:18px;
+}
+.snb-hero .hero-stat-icon.pink { background:rgba(229,25,129,0.15); color:#E51981; }
+.snb-hero .hero-stat-icon.blue { background:rgba(2,80,255,0.15); color:#4d8aff; }
+.snb-hero .hero-stat-number { font-size:20px; font-weight:900; color:#fff; line-height:1.1; }
+.snb-hero .hero-stat-label { font-size:11px; color:rgba(255,255,255,0.5); }
+.snb-hero .hero-buttons { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:22px; }
+.snb-hero .btn {
+  display:inline-block; padding:14px 32px; border-radius:25px; font-weight:700;
+  font-size:16px; text-decoration:none; cursor:pointer; border:none;
+  font-family:'Raleway',sans-serif; position:relative; overflow:hidden;
+  transition:all 0.4s cubic-bezier(0.25,0.46,0.45,0.94);
+}
+.snb-hero .btn::before {
+  content:''; position:absolute; top:0; left:-100%; width:100%; height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent);
+  transition:left 0.5s ease;
+}
+.snb-hero .btn:hover::before { left:100%; }
+.snb-hero .btn-blue {
+  background:linear-gradient(135deg,#E51981,#ff3fac); color:#fff;
+  padding:15px 34px; font-size:16px;
+  box-shadow:0 4px 20px rgba(229,25,129,0.35);
+}
+.snb-hero .btn-blue:hover { transform:translateY(-3px) scale(1.05); box-shadow:0 8px 30px rgba(229,25,129,0.5); }
+.snb-hero .btn-outline {
+  background:transparent; color:#fff; border:2px solid #fff;
+  padding:15px 34px; font-size:16px;
+}
+.snb-hero .btn-outline:hover { background:rgba(255,255,255,0.15); transform:translateY(-3px) scale(1.05); }
+@media (max-width:900px) {
+  .snb-hero-bg { object-position:35% center; }
+  .snb-hero-bg-overlay {
+    background:linear-gradient(to bottom,rgba(45,5,53,0.75) 0%,rgba(45,5,53,0.6) 40%,rgba(45,5,53,0.5) 70%,rgba(45,5,53,0.7) 100%);
+  }
+  .snb-hero::after { display:none; }
+  .snb-hero-inner { padding:40px 20px 50px; min-height:0; max-width:100%; text-align:center; }
+  .snb-hero h2 { font-size:36px; text-shadow:0 2px 20px rgba(0,0,0,0.5); text-align:center; }
+  .snb-hero .hero-tagline { font-size:12px; letter-spacing:1.5px; }
+  .snb-hero .hero-subtitle { font-size:16px; text-shadow:0 1px 10px rgba(0,0,0,0.4); }
+  .snb-hero .hero-buttons { justify-content:center; }
+  .snb-hero .btn { width:100%; max-width:300px; text-align:center; }
+  .snb-hero .hero-proof { margin:0 auto 28px; background:rgba(0,0,0,0.4); backdrop-filter:blur(12px); }
+  .snb-hero .hero-stats { justify-content:center; gap:20px; }
+}
+@media (max-width:480px) {
+  .snb-hero h2 { font-size:28px; }
+  .snb-hero-inner { padding:30px 16px 40px; }
+  .snb-hero .hero-proof { padding:10px 14px; gap:10px; }
+  .snb-hero .hero-proof .proof-text strong { font-size:18px; }
+  .snb-hero .hero-stat-number { font-size:18px; }
+  .snb-hero .hero-stat-icon { width:34px; height:34px; font-size:15px; }
+}
+</style>
+
+<section class="snb-hero">
+  <img class="snb-hero-bg" src="../public/images/vegas-hero-group.webp" alt="Soiree photobooth groupe" loading="eager" fetchpriority="high">
+  <div class="snb-hero-bg-overlay"></div>
+  <div class="snb-hero-inner">
+    <h2>
+      <span class="hero-wave" style="animation-delay:0s">Des</span> <span class="hero-wave" style="animation-delay:0.3s">sourires.</span><br>
+      <span class="hero-wave" style="animation-delay:0.6s">Des</span> <span class="hero-wave" style="animation-delay:0.9s">fous</span> <span class="hero-wave" style="animation-delay:1.2s">rires.</span><br>
+      <span class="hero-wave" style="animation-delay:1.5s">Createur</span> <span class="hero-wave" style="animation-delay:1.8s">de</span> <span class="hero-wave" style="animation-delay:2.1s">souvenirs.</span>
+    </h2>
+    <p class="hero-tagline">Shootnbox l'animation photo qui marque les esprits</p>
+    <p class="hero-subtitle">Location de <strong>photobooth professionnel</strong> pour vos mariages, soirees d'entreprise et evenements. Livraison dans <strong>toute la France</strong>.</p>
+
+    <div class="hero-proof">
+      <div><div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div></div>
+      <div class="proof-text"><strong>4.8</strong>/5</div>
+      <div class="divider"></div>
+      <div class="proof-logo"><span class="g-icon">G</span> 1 192 avis Google</div>
+    </div>
+
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="hero-stat-icon pink">&#127881;</div>
+        <div><div class="hero-stat-number">+8 000</div><div class="hero-stat-label">evenements animes</div></div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-icon blue">&#128179;</div>
+        <div><div class="hero-stat-number">4x</div><div class="hero-stat-label">paiement sans frais</div></div>
+      </div>
+    </div>
+
+    <div class="hero-buttons">
+      <a href="https://shootnbox.fr/reservation/" class="btn btn-blue">Obtenir un devis gratuit</a>
+      <a href="#bornes" class="btn btn-outline">Voir nos bornes</a>
+    </div>
+  </div>
+</section>
+
+
+</body>
+</html>

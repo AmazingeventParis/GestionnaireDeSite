@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Preview - usages</title>
+<link href="https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700;1,800;1,900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; padding: 0; font-family: "Raleway", sans-serif; color: #333; line-height: 1.6; background: #fff; }
+a { text-decoration: none; color: inherit; }
+img { max-width: 100%; height: auto; }
+</style>
+</head>
+<body>
+
+<style>
+.snb-usages {
+  font-family: 'Raleway', sans-serif;
+  position: relative;
+  padding: 50px 5% 50px;
+  background: linear-gradient(160deg, #f0dff5 0%, #e8d4f0 25%, #f2e6f8 50%, #ece0ff 75%, #f8eaff 100%);
+  overflow: hidden;
+}
+
+/* Animated mesh gradient overlay */
+.snb-usages::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 600px 400px at 10% 20%, rgba(229,25,129,0.08) 0%, transparent 70%),
+    radial-gradient(ellipse 500px 500px at 90% 80%, rgba(2,80,255,0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 400px 300px at 50% 50%, rgba(168,85,247,0.05) 0%, transparent 70%);
+  box-shadow: inset 8px 8px 20px rgba(180,140,200,0.15), inset -6px -6px 16px rgba(255,255,255,0.5);
+  pointer-events: none; z-index: 0;
+}
+
+/* Noise texture overlay */
+.snb-usages::after {
+  content: '';
+  position: absolute; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+  pointer-events: none; z-index: 0;
+  opacity: 0.5;
+}
+
+/* Animated blobs - bigger, more movement */
+.snb-usages-blob { position: absolute; border-radius: 50%; pointer-events: none; filter: blur(80px); z-index: 0; }
+.snb-usages-blob1 {
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(229,25,129,0.15) 0%, rgba(229,25,129,0.05) 50%, transparent 70%);
+  top: -200px; left: -200px;
+  animation: snbBlobDrift1 12s ease-in-out infinite;
+}
+.snb-usages-blob2 {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(100,60,255,0.12) 0%, rgba(100,60,255,0.04) 50%, transparent 70%);
+  bottom: -150px; right: -150px;
+  animation: snbBlobDrift2 14s ease-in-out infinite;
+}
+.snb-usages-blob3 {
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(2,80,255,0.08) 0%, rgba(2,80,255,0.02) 50%, transparent 70%);
+  top: 40%; left: 20%;
+  animation: snbBlobDrift3 10s ease-in-out infinite;
+}
+.snb-usages-blob4 {
+  width: 350px; height: 350px;
+  background: radial-gradient(circle, rgba(168,85,247,0.1) 0%, rgba(168,85,247,0.03) 50%, transparent 70%);
+  top: 10%; right: 15%;
+  animation: snbBlobDrift4 16s ease-in-out infinite;
+}
+
+@keyframes snbBlobDrift1 {
+  0%,100% { transform: translate(0,0) scale(1); opacity: 0.7; }
+  25% { transform: translate(60px, 40px) scale(1.1); opacity: 0.9; }
+  50% { transform: translate(30px, 80px) scale(1.2); opacity: 1; }
+  75% { transform: translate(-20px, 30px) scale(1.05); opacity: 0.8; }
+}
+@keyframes snbBlobDrift2 {
+  0%,100% { transform: translate(0,0) scale(1); opacity: 0.6; }
+  33% { transform: translate(-50px, -30px) scale(1.15); opacity: 0.9; }
+  66% { transform: translate(-20px, -60px) scale(1.05); opacity: 0.7; }
+}
+@keyframes snbBlobDrift3 {
+  0%,100% { transform: translate(0,0) scale(1); opacity: 0.5; }
+  50% { transform: translate(40px, -50px) scale(1.2); opacity: 0.8; }
+}
+@keyframes snbBlobDrift4 {
+  0%,100% { transform: translate(0,0) scale(1); opacity: 0.4; }
+  25% { transform: translate(-30px, 20px) scale(1.1); opacity: 0.7; }
+  50% { transform: translate(-60px, 40px) scale(0.9); opacity: 0.6; }
+  75% { transform: translate(-20px, 60px) scale(1.15); opacity: 0.8; }
+}
+
+/* Floating sparkles */
+.snb-usages-sparkle {
+  position: absolute;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  animation: snbSparkle 4s ease-in-out infinite;
+}
+.snb-usages-sparkle::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  background: inherit;
+  filter: blur(3px);
+  opacity: 0.6;
+}
+@keyframes snbSparkle {
+  0%,100% { opacity: 0; transform: translateY(0) scale(0.5); }
+  20% { opacity: 1; transform: translateY(-10px) scale(1); }
+  80% { opacity: 0.8; transform: translateY(-30px) scale(0.8); }
+}
+
+.snb-usages-inner { max-width: 1200px; margin: 0 auto; position: relative; z-index: 1; }
+
+/* Head */
+.snb-usages-head { text-align: center; margin-bottom: 32px; }
+.snb-usages-head h2 { font-size: 32px; font-weight: 900; font-style: italic; color: #2a1540; margin: 0 0 8px; line-height: 1.15; }
+.snb-usages-head h2 span { color: #E51981; }
+.snb-usages-sep { width: 140px; height: 3px; background: linear-gradient(90deg, transparent, #E51981, transparent); border-radius: 3px; margin: 0 auto 10px; }
+.snb-usages-head p { font-size: 14px; color: #6a5a7a; max-width: 520px; margin: 0 auto; }
+
+/* ===== LAYOUT VERTICAL ===== */
+.snb-usage-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 0;
+  position: relative;
+  z-index: 3;
+}
+
+/* ===== TAB SELECTORS (vertical) ===== */
+.snb-usage-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.snb-usage-tab {
+  cursor: pointer;
+  position: relative;
+  border-radius: 20px 0 0 20px;
+  overflow: hidden;
+  height: 130px;
+  transition: all 0.4s cubic-bezier(.22,.68,0,1.2);
+  will-change: transform;
+  /* Neumorphism */
+  background: linear-gradient(145deg, #ffffff, #f8f0fc, #f2e8f6);
+  box-shadow:
+    inset 4px 4px 8px rgba(180,140,200,0.15),
+    inset -3px -3px 6px rgba(255,255,255,0.7),
+    4px 4px 12px rgba(180,140,200,0.12),
+    -3px -3px 8px rgba(255,255,255,0.6);
+  opacity: 0.55;
+  filter: grayscale(0.35);
+}
+.snb-usage-tab.active {
+  opacity: 1;
+  filter: grayscale(0);
+  transform: translateX(6px);
+}
+.snb-usage-tab:hover:not(.active) {
+  opacity: 0.85;
+  filter: grayscale(0.05);
+  transform: translateX(3px);
+}
+.snb-usage-tab img {
+  width: 100%; height: 100%; object-fit: cover; object-position: center 30%;
+  position: absolute; inset: 0;
+}
+
+/* Color overlay on tabs */
+.snb-usage-tab::after {
+  content: '';
+  position: absolute; inset: 0;
+  z-index: 1;
+}
+.snb-usage-tab[data-tab="mariage"]::after { background: linear-gradient(180deg, transparent 20%, rgba(229,25,129,0.5) 100%); }
+.snb-usage-tab[data-tab="entreprise"]::after { background: linear-gradient(180deg, transparent 20%, rgba(2,80,255,0.5) 100%); }
+.snb-usage-tab[data-tab="anniversaire"]::after { background: linear-gradient(180deg, transparent 20%, rgba(168,85,247,0.5) 100%); }
+
+/* Neon border on active tab */
+.snb-usage-tab[data-tab="mariage"].active {
+  border: 1.5px solid rgba(229,25,129,0.5);
+  border-right: none;
+  box-shadow: inset 4px 4px 8px rgba(180,140,200,0.15), inset -3px -3px 6px rgba(255,255,255,0.7), 0 0 18px rgba(229,25,129,0.25), 0 0 45px rgba(229,25,129,0.1);
+}
+.snb-usage-tab[data-tab="entreprise"].active {
+  border: 1.5px solid rgba(2,80,255,0.5);
+  border-right: none;
+  box-shadow: inset 4px 4px 8px rgba(180,140,200,0.15), inset -3px -3px 6px rgba(255,255,255,0.7), 0 0 18px rgba(2,80,255,0.25), 0 0 45px rgba(2,80,255,0.1);
+}
+.snb-usage-tab[data-tab="anniversaire"].active {
+  border: 1.5px solid rgba(168,85,247,0.5);
+  border-right: none;
+  box-shadow: inset 4px 4px 8px rgba(180,140,200,0.15), inset -3px -3px 6px rgba(255,255,255,0.7), 0 0 18px rgba(168,85,247,0.25), 0 0 45px rgba(168,85,247,0.1);
+}
+
+/* Hover glow */
+.snb-usage-tab[data-tab="mariage"]:hover {
+  border-color: rgba(229,25,129,0.6);
+  box-shadow: inset 4px 4px 8px rgba(180,140,200,0.15), inset -3px -3px 6px rgba(255,255,255,0.7), 0 0 22px rgba(229,25,129,0.3), 0 0 50px rgba(229,25,129,0.12);
+}
+.snb-usage-tab[data-tab="entreprise"]:hover {
+  border-color: rgba(2,80,255,0.6);
+  box-shadow: inset 4px 4px 8px rgba(180,140,200,0.15), inset -3px -3px 6px rgba(255,255,255,0.7), 0 0 22px rgba(2,80,255,0.3), 0 0 50px rgba(2,80,255,0.12);
+}
+.snb-usage-tab[data-tab="anniversaire"]:hover {
+  border-color: rgba(168,85,247,0.6);
+  box-shadow: inset 4px 4px 8px rgba(180,140,200,0.15), inset -3px -3px 6px rgba(255,255,255,0.7), 0 0 22px rgba(168,85,247,0.3), 0 0 50px rgba(168,85,247,0.12);
+}
+
+.snb-usage-tab-label {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  z-index: 2;
+  padding: 14px 16px;
+  display: flex; align-items: center; gap: 10px;
+  color: #fff;
+}
+.snb-usage-tab-num {
+  font-size: 28px; font-weight: 900; font-style: italic;
+  opacity: 0.4; line-height: 1;
+}
+.snb-usage-tab-name {
+  font-size: 14px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 1.5px;
+}
+
+/* Active indicator bar (vertical = left side) */
+.snb-usage-tab.active::before {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0; left: 0;
+  width: 4px;
+  z-index: 5;
+}
+.snb-usage-tab[data-tab="mariage"].active::before { background: #E51981; }
+.snb-usage-tab[data-tab="entreprise"].active::before { background: #0250FF; }
+.snb-usage-tab[data-tab="anniversaire"].active::before { background: #a855f7; }
+
+/* ===== SHOWCASE PANEL ===== */
+.snb-usage-showcase {
+  position: relative;
+  background: linear-gradient(145deg, #ffffff, #f8f0fc, #f2e8f6);
+  border-radius: 0 24px 24px 0;
+  /* Neumorphism */
+  box-shadow:
+    inset 4px 4px 8px rgba(180,140,200,0.12),
+    inset -3px -3px 6px rgba(255,255,255,0.6),
+    6px 6px 18px rgba(180,140,200,0.15),
+    -4px -4px 12px rgba(255,255,255,0.5);
+  overflow: hidden;
+  min-height: 420px;
+  display: flex;
+  align-items: stretch;
+}
+
+/* Neon border on showcase matching active tab */
+.snb-usage-showcase.snb-showcase--rose {
+  border: 1.5px solid rgba(229,25,129,0.3);
+  border-left: none;
+  box-shadow: inset 4px 4px 8px rgba(180,140,200,0.12), inset -3px -3px 6px rgba(255,255,255,0.6), 0 0 14px rgba(229,25,129,0.15), 0 0 35px rgba(229,25,129,0.06);
+}
+.snb-usage-showcase.snb-showcase--bleu {
+  border: 1.5px solid rgba(2,80,255,0.3);
+  border-left: none;
+  box-shadow: inset 4px 4px 8px rgba(180,140,200,0.12), inset -3px -3px 6px rgba(255,255,255,0.6), 0 0 14px rgba(2,80,255,0.15), 0 0 35px rgba(2,80,255,0.06);
+}
+.snb-usage-showcase.snb-showcase--violet {
+  border: 1.5px solid rgba(168,85,247,0.3);
+  border-left: none;
+  box-shadow: inset 4px 4px 8px rgba(180,140,200,0.12), inset -3px -3px 6px rgba(255,255,255,0.6), 0 0 14px rgba(168,85,247,0.15), 0 0 35px rgba(168,85,247,0.06);
+}
+
+/* Watermark number in panel */
+.snb-usage-panel-watermark {
+  position: absolute;
+  top: 10px; right: 20px;
+  font-size: 120px; font-weight: 900; font-style: italic;
+  line-height: 1; pointer-events: none; z-index: 0;
+  opacity: 0.06;
+}
+.snb-usage-panel--rose .snb-usage-panel-watermark { color: #E51981; }
+.snb-usage-panel--bleu .snb-usage-panel-watermark { color: #0250FF; }
+.snb-usage-panel--violet .snb-usage-panel-watermark { color: #a855f7; }
+
+/* Individual panels */
+.snb-usage-panel {
+  display: none;
+  animation: usageFadeIn 0.45s ease;
+}
+.snb-usage-panel.active { display: block; }
+
+@keyframes usageFadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Panel content */
+.snb-usage-panel-content {
+  padding: 28px 32px;
+  position: relative;
+  z-index: 1;
+}
+.snb-usage-panel-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 2px;
+  margin-bottom: 14px;
+  width: fit-content;
+}
+.snb-usage-panel-tag-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+}
+.snb-usage-panel--rose .snb-usage-panel-tag { color: #E51981; }
+.snb-usage-panel--rose .snb-usage-panel-tag-dot { background: #E51981; box-shadow: 0 0 10px rgba(229,25,129,0.4); }
+.snb-usage-panel--bleu .snb-usage-panel-tag { color: #0250FF; }
+.snb-usage-panel--bleu .snb-usage-panel-tag-dot { background: #0250FF; box-shadow: 0 0 10px rgba(2,80,255,0.4); }
+.snb-usage-panel--violet .snb-usage-panel-tag { color: #a855f7; }
+.snb-usage-panel--violet .snb-usage-panel-tag-dot { background: #a855f7; box-shadow: 0 0 10px rgba(168,85,247,0.4); }
+
+.snb-usage-panel-content h3 {
+  font-size: 22px; font-weight: 900; font-style: italic;
+  color: #2a1540; margin: 0 0 14px; line-height: 1.2;
+}
+
+/* Points list */
+.snb-usage-points {
+  list-style: none; padding: 0; margin: 0 0 18px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.snb-usage-points li {
+  font-size: 13px; color: #3a2a4a; display: flex; align-items: flex-start; gap: 10px; line-height: 1.55;
+}
+.snb-usage-check-icon {
+  flex-shrink: 0; width: 26px; height: 26px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; margin-top: 2px;
+  position: relative;
+}
+/* Glossy number icon style */
+.snb-usage-check-icon::after {
+  content: '';
+  position: absolute;
+  top: 3px; left: 4px; right: 4px;
+  height: 45%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.4), transparent);
+  border-radius: 8px 8px 50% 50%;
+  pointer-events: none;
+}
+.snb-usage-check-icon svg { width: 13px; height: 13px; position: relative; z-index: 1; }
+.snb-usage-panel--rose .snb-usage-check-icon {
+  background: linear-gradient(145deg, #ff6eb4, #E51981);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(229,25,129,0.3), inset 0 2px 4px rgba(255,255,255,0.3);
+}
+.snb-usage-panel--bleu .snb-usage-check-icon {
+  background: linear-gradient(145deg, #4d8bff, #0250FF);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(2,80,255,0.3), inset 0 2px 4px rgba(255,255,255,0.3);
+}
+.snb-usage-panel--violet .snb-usage-check-icon {
+  background: linear-gradient(145deg, #c084fc, #a855f7);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(168,85,247,0.3), inset 0 2px 4px rgba(255,255,255,0.3);
+}
+
+/* CTA */
+.snb-usage-cta-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 14px 30px; border-radius: 50px;
+  font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+  color: #fff; position: relative; overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  width: fit-content;
+}
+.snb-usage-cta-btn:hover { transform: translateY(-3px) scale(1.03); }
+.snb-usage-cta-btn::before {
+  content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  transition: left 0.5s ease;
+}
+.snb-usage-cta-btn:hover::before { left: 100%; }
+.snb-usage-panel--rose .snb-usage-cta-btn { background: linear-gradient(135deg, #E51981, #ff3fac); box-shadow: 0 4px 24px rgba(229,25,129,0.35); }
+.snb-usage-panel--bleu .snb-usage-cta-btn { background: linear-gradient(135deg, #0250FF, #4d8aff); box-shadow: 0 4px 24px rgba(2,80,255,0.3); }
+.snb-usage-panel--violet .snb-usage-cta-btn { background: linear-gradient(135deg, #a855f7, #c084fc); box-shadow: 0 4px 24px rgba(168,85,247,0.3); }
+.snb-usage-panel--rose .snb-usage-cta-btn:hover { box-shadow: 0 8px 32px rgba(229,25,129,0.5); }
+.snb-usage-panel--bleu .snb-usage-cta-btn:hover { box-shadow: 0 8px 32px rgba(2,80,255,0.45); }
+.snb-usage-panel--violet .snb-usage-cta-btn:hover { box-shadow: 0 8px 32px rgba(168,85,247,0.45); }
+
+/* Photo gallery in panels */
+.snb-usage-gallery {
+  display: flex;
+  gap: 14px;
+  margin-top: 16px;
+  padding: 12px;
+  background: linear-gradient(145deg, rgba(255,255,255,0.6), rgba(248,240,252,0.4));
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.7);
+  box-shadow:
+    inset 3px 3px 6px rgba(180,140,200,0.08),
+    inset -2px -2px 4px rgba(255,255,255,0.5),
+    0 4px 16px rgba(180,140,200,0.08);
+  position: relative;
+  overflow: hidden;
+}
+.snb-usage-gallery::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.4) 50%, transparent 60%);
+  transform: translateX(-150%);
+  animation: snbGalleryShimmer 6s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes snbGalleryShimmer {
+  0%, 70%, 100% { transform: translateX(-150%); }
+  40% { transform: translateX(150%); }
+}
+.snb-usage-gallery img {
+  flex: 1;
+  min-width: 0;
+  height: 110px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 2px solid rgba(255,255,255,0.8);
+  box-shadow:
+    3px 3px 10px rgba(180,140,200,0.15),
+    -2px -2px 6px rgba(255,255,255,0.6);
+  transition: transform 0.4s cubic-bezier(.22,.68,0,1.2), box-shadow 0.35s ease;
+  position: relative;
+  z-index: 1;
+}
+.snb-usage-gallery img:hover {
+  transform: translateY(-6px) scale(1.05) rotate(-1deg);
+  z-index: 2;
+}
+.snb-usage-panel--rose .snb-usage-gallery { border-color: rgba(229,25,129,0.12); }
+.snb-usage-panel--rose .snb-usage-gallery img:hover { box-shadow: 0 10px 28px rgba(229,25,129,0.25), 0 0 12px rgba(229,25,129,0.1); border-color: rgba(229,25,129,0.3); }
+.snb-usage-panel--bleu .snb-usage-gallery { border-color: rgba(2,80,255,0.12); }
+.snb-usage-panel--bleu .snb-usage-gallery img:hover { box-shadow: 0 10px 28px rgba(2,80,255,0.25), 0 0 12px rgba(2,80,255,0.1); border-color: rgba(2,80,255,0.3); }
+.snb-usage-panel--violet .snb-usage-gallery { border-color: rgba(168,85,247,0.12); }
+.snb-usage-panel--violet .snb-usage-gallery img:hover { box-shadow: 0 10px 28px rgba(168,85,247,0.25), 0 0 12px rgba(168,85,247,0.1); border-color: rgba(168,85,247,0.3); }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 900px) {
+  .snb-usages { padding: 60px 4% 60px; }
+  .snb-usages-head h2 { font-size: 30px; }
+  .snb-usages-head { margin-bottom: 36px; }
+
+  /* Stack vertical to horizontal on mobile */
+  .snb-usage-layout {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .snb-usage-tabs {
+    flex-direction: row;
+    gap: 8px;
+  }
+  .snb-usage-tab {
+    flex: 1;
+    height: 100px;
+    border-radius: 14px 14px 0 0;
+  }
+  .snb-usage-tab.active {
+    transform: translateY(-4px);
+  }
+  .snb-usage-tab:hover:not(.active) {
+    transform: translateY(-2px);
+  }
+  .snb-usage-tab.active::before {
+    top: auto; bottom: 0; left: 0; right: 0;
+    width: auto; height: 4px;
+  }
+  .snb-usage-tab-num { font-size: 20px; }
+  .snb-usage-tab-name { font-size: 10px; letter-spacing: 1px; }
+  .snb-usage-tab-label { padding: 8px 10px; gap: 6px; }
+
+  .snb-usage-showcase {
+    border-radius: 0 0 18px 18px;
+    min-height: auto;
+    border-left: 1.5px solid;
+  }
+  .snb-usage-panel-content { padding: 24px 20px 28px; }
+  .snb-usage-panel-content h3 { font-size: 20px; }
+  .snb-usage-points li { font-size: 14px; gap: 10px; }
+  .snb-usage-check-icon { width: 22px; height: 22px; border-radius: 8px; }
+  .snb-usage-panel-watermark { font-size: 80px; top: 8px; right: 12px; }
+  .snb-usage-gallery { gap: 8px; margin-top: 20px; padding: 12px; border-radius: 14px; }
+  .snb-usage-gallery img { height: 100px; border-radius: 8px; }
+}
+</style>
+
+<section class="snb-usages">
+  <div class="snb-usages-blob snb-usages-blob1"></div>
+  <div class="snb-usages-blob snb-usages-blob2"></div>
+  <div class="snb-usages-blob snb-usages-blob3"></div>
+  <div class="snb-usages-blob snb-usages-blob4"></div>
+  <div class="snb-usages-sparkle" style="background:#E51981;top:15%;left:8%;animation-delay:0s;"></div>
+  <div class="snb-usages-sparkle" style="background:#0250FF;top:25%;right:12%;animation-delay:1.2s;"></div>
+  <div class="snb-usages-sparkle" style="background:#a855f7;top:60%;left:15%;animation-delay:2.4s;"></div>
+  <div class="snb-usages-sparkle" style="background:#ff6eb4;top:70%;right:8%;animation-delay:0.8s;"></div>
+  <div class="snb-usages-sparkle" style="background:#4d8bff;top:40%;left:50%;animation-delay:3.2s;"></div>
+  <div class="snb-usages-sparkle" style="background:#c084fc;top:85%;left:30%;animation-delay:1.8s;"></div>
+  <div class="snb-usages-sparkle" style="background:#E51981;top:50%;right:25%;animation-delay:2.8s;"></div>
+  <div class="snb-usages-sparkle" style="background:#FF7A00;top:10%;left:40%;animation-delay:0.5s;"></div>
+
+  <div class="snb-usages-inner">
+    <div class="snb-usages-head">
+      <h2>Un photobooth pour <span>chaque occasion</span></h2>
+      <div class="snb-usages-sep"></div>
+      <p>Mariages, événements d'entreprise ou anniversaires : nos bornes photo s'adaptent à toutes vos envies.</p>
+    </div>
+
+    <div class="snb-usage-layout">
+    <!-- TAB SELECTORS -->
+    <div class="snb-usage-tabs">
+      <div class="snb-usage-tab active" data-tab="mariage" onclick="snbSwitchUsage('mariage')">
+        <img src="../../public/images/usage-mariage.jpeg" alt="">
+        <div class="snb-usage-tab-label">
+          <span class="snb-usage-tab-num">01</span>
+          <span class="snb-usage-tab-name">Mariage</span>
+        </div>
+      </div>
+      <div class="snb-usage-tab" data-tab="entreprise" onclick="snbSwitchUsage('entreprise')">
+        <img src="../../public/images/usage-entreprise.webp" alt="">
+        <div class="snb-usage-tab-label">
+          <span class="snb-usage-tab-num">02</span>
+          <span class="snb-usage-tab-name">Entreprise</span>
+        </div>
+      </div>
+      <div class="snb-usage-tab" data-tab="anniversaire" onclick="snbSwitchUsage('anniversaire')">
+        <img src="../../public/images/usage-anniversaire.webp" alt="">
+        <div class="snb-usage-tab-label">
+          <span class="snb-usage-tab-num">03</span>
+          <span class="snb-usage-tab-name">Anniversaire</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SHOWCASE -->
+    <div class="snb-usage-showcase snb-showcase--rose">
+
+      <!-- MARIAGE -->
+      <div class="snb-usage-panel active snb-usage-panel--rose" data-panel="mariage">
+        <span class="snb-usage-panel-watermark">01</span>
+        <div class="snb-usage-panel-content">
+          <div class="snb-usage-panel-tag"><span class="snb-usage-panel-tag-dot"></span> Mariage</div>
+          <h3>Louer un photobooth pour un mariage</h3>
+          <ul class="snb-usage-points">
+            <li><span class="snb-usage-check-icon"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Vous offrez à vos proches bien plus qu'une simple photo : vous leur offrez un moment de pure complicité.</li>
+            <li><span class="snb-usage-check-icon"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Vous capturez des instants de bonheur que le photographe officiel ne pourrait saisir.</li>
+            <li><span class="snb-usage-check-icon"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Vous créez un livre d'or unique grâce aux tirages immédiats que vos invités collent et dédicacent durant la soirée.</li>
+            <li><span class="snb-usage-check-icon"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Vous leur permettez de repartir avec un cadeau personnalisé.</li>
+          </ul>
+          <a href="#bornes" class="snb-usage-cta-btn">Voir nos bornes mariage <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M8 3.5L11 7l-3 3.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+          <div class="snb-usage-gallery">
+            <img src="../../public/images/strip-photo-1.webp" alt="Photobooth mariage soirée">
+            <img src="../../public/images/strip-photo-2.webp" alt="Photobooth mariage groupe">
+            <img src="../../public/images/strip-photo-3.webp" alt="Photobooth mariage fête">
+          </div>
+        </div>
+      </div>
+
+      <!-- ENTREPRISE -->
+      <div class="snb-usage-panel snb-usage-panel--bleu" data-panel="entreprise">
+        <span class="snb-usage-panel-watermark">02</span>
+        <div class="snb-usage-panel-content">
+          <div class="snb-usage-panel-tag"><span class="snb-usage-panel-tag-dot"></span> Entreprise</div>
+          <h3>Borne à selfie pour événements d'entreprise et Team Building</h3>
+          <ul class="snb-usage-points">
+            <li><span class="snb-usage-check-icon"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Vous transformez votre événement corporate en une expérience interactive et mémorable.</li>
+            <li><span class="snb-usage-check-icon"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Personnalisez entièrement l'interface et les impressions aux couleurs de votre entreprise.</li>
+            <li><span class="snb-usage-check-icon"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Chaque photo partagée devient un ambassadeur de votre identité visuelle.</li>
+            <li><span class="snb-usage-check-icon"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Facilitez le partage sur les réseaux sociaux.</li>
+          </ul>
+          <a href="#bornes" class="snb-usage-cta-btn">Voir nos bornes entreprise <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M8 3.5L11 7l-3 3.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+          <div class="snb-usage-gallery">
+            <img src="../../public/images/strip-photo-5.webp" alt="Photobooth entreprise event">
+            <img src="../../public/images/strip-photo-6.webp" alt="Photobooth team building">
+            <img src="../../public/images/strip-photo-7.webp" alt="Photobooth corporate">
+          </div>
+        </div>
+      </div>
+
+      <!-- ANNIVERSAIRE -->
+      <div class="snb-usage-panel snb-usage-panel--violet" data-panel="anniversaire">
+        <span class="snb-usage-panel-watermark">03</span>
+        <div class="snb-usage-panel-content">
+          <div class="snb-usage-panel-tag"><span class="snb-usage-panel-tag-dot"></span> Anniversaire</div>
+          <h3>Location de photomaton pour un anniversaire inoubliable</h3>
+          <ul class="snb-usage-points">
+            <li><span class="snb-usage-check-icon"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Vous marquez le coup pour souffler vos bougies en offrant une animation ultra-fun qui surprendra et amusera tous vos amis.</li>
+            <li><span class="snb-usage-check-icon"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Vous rassemblez naturellement toutes les générations devant l'objectif, des plus petits aux grands-parents, pour des éclats de rire partagés.</li>
+            <li><span class="snb-usage-check-icon"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Vous incitez au lâcher-prise avec des postures décalées, créant ainsi des clichés hilarants qui finiront affichés sur le frigo de vos invités.</li>
+            <li><span class="snb-usage-check-icon"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Vous conservez une trace indélébile de cette étape de votre vie, tout en permettant à chacun de repartir avec son propre souvenir imprimé de la fête.</li>
+          </ul>
+          <a href="#bornes" class="snb-usage-cta-btn">Voir nos bornes anniversaire <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M8 3.5L11 7l-3 3.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+          <div class="snb-usage-gallery">
+            <img src="../../public/images/strip-photo-8.webp" alt="Photobooth anniversaire fête">
+            <img src="../../public/images/strip-photo-9.webp" alt="Photobooth anniversaire amis">
+            <img src="../../public/images/strip-photo-10.webp" alt="Photobooth anniversaire soirée">
+          </div>
+        </div>
+      </div>
+
+    </div>
+    </div><!-- /layout -->
+  </div>
+</section>
+
+<script>
+function snbSwitchUsage(id) {
+  // Switch tabs
+  document.querySelectorAll('.snb-usage-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.snb-usage-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector('.snb-usage-tab[data-tab="'+id+'"]').classList.add('active');
+  document.querySelector('.snb-usage-panel[data-panel="'+id+'"]').classList.add('active');
+
+  // Switch showcase neon border color
+  var showcase = document.querySelector('.snb-usage-showcase');
+  showcase.className = 'snb-usage-showcase';
+  var colorMap = { mariage: 'snb-showcase--rose', entreprise: 'snb-showcase--bleu', anniversaire: 'snb-showcase--violet' };
+  showcase.classList.add(colorMap[id]);
+}
+
+// 3D tilt on tabs
+document.querySelectorAll('.snb-usage-tab').forEach(function(tab) {
+  tab.addEventListener('mousemove', function(e) {
+    var rect = tab.getBoundingClientRect();
+    var x = (e.clientX - rect.left) / rect.width - 0.5;
+    var y = (e.clientY - rect.top) / rect.height - 0.5;
+    tab.style.transform = 'perspective(800px) rotateX(' + (-y * 8) + 'deg) rotateY(' + (x * 8) + 'deg) translateY(-4px) scale(1.02)';
+    tab.style.transition = 'transform 0.1s ease';
+  });
+  tab.addEventListener('mouseleave', function() {
+    tab.style.transform = '';
+    tab.style.transition = 'transform 0.5s cubic-bezier(.22,.68,0,1.2)';
+  });
+});
+</script>
+
+</body>
+</html>

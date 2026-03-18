@@ -95,6 +95,15 @@ app.use(express.static(path.join(__dirname, 'public'), {
   etag: true
 }));
 
+// ===== SITE PREVIEW (built pages served at /site/) =====
+app.use('/site', express.static(path.join(__dirname, 'public', 'site'), {
+  maxAge: 0, etag: true, extensions: ['html']
+}));
+// Serve site images
+app.use('/site-images', express.static(path.join(__dirname, 'public', 'site-images'), {
+  maxAge: process.env.NODE_ENV === 'production' ? '365d' : 0, etag: true
+}));
+
 // ===== API 404 =====
 app.all('/api/*', (req, res) => {
   res.status(404).json({ error: 'Route API non trouvee' });
