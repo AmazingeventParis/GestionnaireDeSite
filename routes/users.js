@@ -11,7 +11,7 @@ router.get('/', verifyToken, requireRole('admin'), async (req, res) => {
   try {
     const { data: users, error } = await supabase
       .from('site_manager_users')
-      .select('id, email, username, role, is_active, created_at, updated_at, last_login_at')
+      .select('id, email, username, role, is_active, created_at, updated_at, last_login, login_count')
       .order('created_at', { ascending: true });
 
     if (error) {
@@ -30,7 +30,7 @@ router.get('/:id', verifyToken, requireRole('admin'), async (req, res) => {
   try {
     const { data: user, error } = await supabase
       .from('site_manager_users')
-      .select('id, email, username, role, is_active, created_at, updated_at, last_login_at')
+      .select('id, email, username, role, is_active, created_at, updated_at, last_login, login_count')
       .eq('id', req.params.id)
       .single();
 
@@ -310,10 +310,10 @@ router.get('/:id/sessions', verifyToken, requireRole('admin'), async (req, res) 
   try {
     const { data: sessions, error } = await supabase
       .from('site_manager_sessions')
-      .select('id, ip_address, user_agent, created_at, expires_at, last_used_at')
+      .select('id, ip_address, user_agent, created_at, expires_at')
       .eq('user_id', req.params.id)
       .gt('expires_at', new Date().toISOString())
-      .order('last_used_at', { ascending: false });
+      .order('created_at', { ascending: false });
 
     if (error) {
       return res.status(500).json({ error: 'Erreur lors de la recuperation des sessions' });

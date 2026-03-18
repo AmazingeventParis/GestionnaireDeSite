@@ -233,7 +233,7 @@
             html += '</div></div></td>';
             html += '<td><span class="role-badge ' + roleClass + '">' + Components.escapeHtml(u.role) + '</span></td>';
             html += '<td><span class="' + (u.is_active ? 'status-active' : 'status-inactive') + '">' + (u.is_active ? 'Actif' : 'Inactif') + '</span></td>';
-            html += '<td style="color:#8b949e;font-size:13px;">' + (u.last_login_at ? Components.formatDate(u.last_login_at) : '—') + '</td>';
+            html += '<td style="color:#8b949e;font-size:13px;">' + (u.last_login ? Components.formatDate(u.last_login) : '—') + '</td>';
             html += '<td><div class="user-actions">';
             html += '<button onclick="openEditModal(\'' + u.id + '\')">Modifier</button>';
             html += '<button class="btn-sessions" onclick="viewSessions(\'' + u.id + '\', \'' + Components.escapeHtml(u.username || u.email) + '\')">Sessions</button>';
