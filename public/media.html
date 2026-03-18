@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medias — Gestionnaire de Site</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .media-layout {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .media-sidebar {
+            width: 220px;
+            flex-shrink: 0;
+        }
+        .media-main {
+            flex: 1;
+            min-width: 0;
+        }
+        .folder-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .folder-list li {
+            padding: 10px 14px;
+            cursor: pointer;
+            border-radius: 6px;
+            color: #e6edf3;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.15s;
+        }
+        .folder-list li:hover {
+            background: #21262d;
+        }
+        .folder-list li.active {
+            background: #1f6feb33;
+            color: #58a6ff;
+        }
+        .folder-list li .folder-icon {
+            font-size: 16px;
+        }
+        .folder-count {
+            margin-left: auto;
+            background: #30363d;
+            color: #8b949e;
+            font-size: 11px;
+            padding: 2px 7px;
+            border-radius: 10px;
+        }
+
+        /* Upload zone */
+        .upload-zone {
+            border: 2px dashed #30363d;
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #0d1117;
+            margin-bottom: 20px;
+        }
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: #58a6ff;
+            background: #161b22;
+        }
+        .upload-zone.dragover {
+            border-color: #58a6ff;
+            background: #1f6feb15;
+        }
+        .upload-zone-icon {
+            font-size: 48px;
+            color: #30363d;
+            margin-bottom: 12px;
+        }
+        .upload-zone-text {
+            color: #8b949e;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+        .upload-zone-text strong {
+            color: #58a6ff;
+        }
+        .btn-browse {
+            display: inline-block;
+            padding: 8px 20px;
+            background: #238636;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .btn-browse:hover {
+            background: #2ea043;
+        }
+
+        /* Upload progress */
+        .upload-progress-list {
+            margin-bottom: 16px;
+        }
+        .upload-progress-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            margin-bottom: 6px;
+        }
+        .upload-progress-name {
+            color: #e6edf3;
+            font-size: 13px;
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .upload-progress-bar {
+            width: 120px;
+            height: 6px;
+            background: #30363d;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .upload-progress-bar-fill {
+            height: 100%;
+            background: #58a6ff;
+            border-radius: 3px;
+            transition: width 0.3s;
+        }
+        .upload-progress-status {
+            font-size: 12px;
+            color: #8b949e;
+            width: 50px;
+            text-align: right;
+        }
+
+        /* Search and toolbar */
+        .media-toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .media-search {
+            flex: 1;
+            min-width: 200px;
+            padding: 8px 12px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #e6edf3;
+            font-size: 14px;
+        }
+        .media-search:focus {
+            outline: none;
+            border-color: #58a6ff;
+        }
+        .media-search::placeholder {
+            color: #484f58;
+        }
+        .media-sort {
+            padding: 8px 12px;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #e6edf3;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .media-count {
+            color: #8b949e;
+            font-size: 13px;
+        }
+
+        /* Image grid */
+        .images-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 14px;
+        }
+        .image-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: border-color 0.15s, transform 0.15s;
+        }
+        .image-card:hover {
+            border-color: #58a6ff;
+            transform: translateY(-2px);
+        }
+        .image-card.selected {
+            border-color: #58a6ff;
+            box-shadow: 0 0 0 2px #1f6feb44;
+        }
+        .image-card-thumb {
+            width: 100%;
+            height: 140px;
+            object-fit: cover;
+            display: block;
+            background: #0d1117;
+        }
+        .image-card-info {
+            padding: 10px;
+        }
+        .image-card-name {
+            color: #e6edf3;
+            font-size: 12px;
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .image-card-meta {
+            color: #8b949e;
+            font-size: 11px;
+            margin-top: 4px;
+        }
+
+        /* Detail panel */
+        .detail-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .detail-overlay.open {
+            display: flex;
+        }
+        .detail-panel {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            width: 700px;
+            max-width: 95vw;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 24px;
+        }
+        .detail-preview {
+            width: 100%;
+            max-height: 350px;
+            object-fit: contain;
+            border-radius: 8px;
+            background: #0d1117;
+            margin-bottom: 16px;
+        }
+        .detail-info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .detail-info-item {
+            background: #0d1117;
+            border-radius: 6px;
+            padding: 10px 12px;
+        }
+        .detail-info-label {
+            color: #8b949e;
+            font-size: 11px;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        .detail-info-value {
+            color: #e6edf3;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .detail-alt-group {
+            margin-bottom: 16px;
+        }
+        .detail-alt-group label {
+            display: block;
+            color: #8b949e;
+            font-size: 12px;
+            margin-bottom: 6px;
+        }
+        .detail-alt-input {
+            width: 100%;
+            padding: 8px 12px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #e6edf3;
+            font-size: 14px;
+        }
+        .detail-alt-input:focus {
+            outline: none;
+            border-color: #58a6ff;
+        }
+        .detail-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: space-between;
+        }
+        .detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .detail-title {
+            color: #e6edf3;
+            font-size: 18px;
+            font-weight: 600;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 500px;
+        }
+        .btn-close-detail {
+            background: none;
+            border: none;
+            color: #8b949e;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+        .btn-close-detail:hover {
+            color: #e6edf3;
+        }
+
+        /* Usage select in upload */
+        .upload-options {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .upload-options select, .upload-options input {
+            padding: 6px 10px;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #e6edf3;
+            font-size: 13px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #8b949e;
+        }
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        @media (max-width: 768px) {
+            .media-layout {
+                flex-direction: column;
+            }
+            .media-sidebar {
+                width: 100%;
+            }
+            .images-grid {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            }
+            .detail-info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="navbar"></div>
+
+    <div class="container">
+        <div class="section-header">
+            <h1 class="page-title">Mediatheque</h1>
+            <span class="media-count" id="media-count"></span>
+        </div>
+
+        <!-- Upload Zone -->
+        <div class="upload-zone" id="upload-zone">
+            <div class="upload-zone-icon">&#128247;</div>
+            <div class="upload-zone-text">Glissez vos images ici ou <strong>cliquez pour parcourir</strong></div>
+            <button type="button" class="btn-browse" id="btn-browse">Parcourir</button>
+            <input type="file" id="file-input" multiple accept="image/*" style="display:none">
+            <div class="upload-options">
+                <select id="upload-usage">
+                    <option value="">Taille originale</option>
+                    <option value="hero">Hero (1920px)</option>
+                    <option value="card">Card (1200px)</option>
+                    <option value="thumb">Miniature (400px)</option>
+                </select>
+                <input type="text" id="upload-folder" placeholder="Dossier (optionnel)">
+            </div>
+        </div>
+
+        <!-- Upload progress -->
+        <div class="upload-progress-list" id="upload-progress" style="display:none"></div>
+
+        <div class="media-layout">
+            <!-- Sidebar -->
+            <div class="media-sidebar">
+                <ul class="folder-list" id="folder-list">
+                    <li class="active" data-folder="">
+                        <span class="folder-icon">&#128193;</span>
+                        Tous les fichiers
+                        <span class="folder-count" id="count-all">0</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Main content -->
+            <div class="media-main">
+                <div class="media-toolbar">
+                    <input type="text" class="media-search" id="media-search" placeholder="Rechercher une image...">
+                    <select class="media-sort" id="media-sort">
+                        <option value="">Plus recents</option>
+                        <option value="oldest">Plus anciens</option>
+                        <option value="name">Nom</option>
+                        <option value="size">Taille</option>
+                    </select>
+                </div>
+                <div class="images-grid" id="images-grid">
+                    <p class="text-muted">Chargement...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detail panel -->
+    <div class="detail-overlay" id="detail-overlay">
+        <div class="detail-panel">
+            <div class="detail-header">
+                <div class="detail-title" id="detail-title"></div>
+                <button class="btn-close-detail" id="btn-close-detail">&times;</button>
+            </div>
+            <img class="detail-preview" id="detail-preview" src="" alt="">
+            <div class="detail-info-grid" id="detail-info"></div>
+            <div class="detail-alt-group">
+                <label for="detail-alt">Texte alternatif (alt)</label>
+                <input type="text" class="detail-alt-input" id="detail-alt" placeholder="Description de l'image pour l'accessibilite">
+            </div>
+            <div class="detail-actions">
+                <button class="btn btn-primary" id="btn-save-alt">Sauvegarder alt</button>
+                <div>
+                    <button class="btn btn-secondary" id="btn-copy-path">Copier le chemin</button>
+                    <button class="btn btn-danger" id="btn-delete-image" style="display:none">Supprimer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/components.js"></script>
+    <script>
+    (function() {
+        'use strict';
+
+        var images = [];
+        var folders = [];
+        var currentFolder = '';
+        var currentSearch = '';
+        var currentSort = '';
+        var selectedImage = null;
+        var userRole = 'viewer';
+
+        async function init() {
+            await Components.initPage();
+            var user = Auth.getUser();
+            if (user) userRole = user.role || 'viewer';
+
+            if (userRole === 'viewer') {
+                document.getElementById('upload-zone').style.display = 'none';
+            }
+
+            setupUploadZone();
+            setupSearch();
+            setupDetailPanel();
+            loadImages();
+        }
+
+        async function loadImages() {
+            try {
+                var params = new URLSearchParams();
+                if (currentFolder) params.set('folder', currentFolder);
+                if (currentSearch) params.set('search', currentSearch);
+                if (currentSort) params.set('sort', currentSort);
+
+                var res = await Auth.apiFetch('/api/media?' + params.toString());
+                if (!res.ok) throw new Error('Erreur chargement');
+                var data = await res.json();
+                images = data.images || [];
+                folders = data.folders || [];
+
+                renderFolders();
+                renderGrid();
+                document.getElementById('media-count').textContent = data.total + ' image(s)';
+                document.getElementById('count-all').textContent = data.total;
+            } catch (err) {
+                document.getElementById('images-grid').innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#9888;</div><p>Erreur de chargement des medias</p></div>';
+            }
+        }
+
+        function renderFolders() {
+            var list = document.getElementById('folder-list');
+            // Keep the "All" item
+            var html = '<li class="' + (currentFolder === '' ? 'active' : '') + '" data-folder="">' +
+                '<span class="folder-icon">&#128193;</span> Tous les fichiers ' +
+                '<span class="folder-count">' + images.length + '</span></li>';
+
+            for (var i = 0; i < folders.length; i++) {
+                var f = folders[i];
+                var count = images.filter(function(img) { return img.folder === f; }).length;
+                html += '<li class="' + (currentFolder === f ? 'active' : '') + '" data-folder="' + Components.escapeHtml(f) + '">' +
+                    '<span class="folder-icon">&#128194;</span> ' + Components.escapeHtml(f) +
+                    ' <span class="folder-count">' + count + '</span></li>';
+            }
+
+            list.innerHTML = html;
+
+            // Attach click handlers
+            var items = list.querySelectorAll('li');
+            for (var j = 0; j < items.length; j++) {
+                items[j].addEventListener('click', function() {
+                    currentFolder = this.getAttribute('data-folder');
+                    loadImages();
+                });
+            }
+        }
+
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' o';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' Ko';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' Mo';
+        }
+
+        function renderGrid() {
+            var grid = document.getElementById('images-grid');
+
+            if (images.length === 0) {
+                grid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128247;</div><p>Aucune image trouvee</p></div>';
+                return;
+            }
+
+            var html = '';
+            for (var i = 0; i < images.length; i++) {
+                var img = images[i];
+                html += '<div class="image-card" data-index="' + i + '">' +
+                    '<img class="image-card-thumb" src="' + Components.escapeHtml(img.path) + '" alt="' + Components.escapeHtml(img.alt || img.name) + '" loading="lazy">' +
+                    '<div class="image-card-info">' +
+                    '<div class="image-card-name" title="' + Components.escapeHtml(img.name) + '">' + Components.escapeHtml(img.name) + '</div>' +
+                    '<div class="image-card-meta">' + formatSize(img.size);
+                if (img.dimensions && img.dimensions.width) {
+                    html += ' &middot; ' + img.dimensions.width + 'x' + img.dimensions.height;
+                }
+                html += '</div></div></div>';
+            }
+
+            grid.innerHTML = html;
+
+            // Attach click handlers
+            var cards = grid.querySelectorAll('.image-card');
+            for (var j = 0; j < cards.length; j++) {
+                cards[j].addEventListener('click', function() {
+                    var idx = parseInt(this.getAttribute('data-index'));
+                    openDetail(images[idx]);
+                });
+            }
+        }
+
+        function setupSearch() {
+            var searchInput = document.getElementById('media-search');
+            var sortSelect = document.getElementById('media-sort');
+            var searchTimer = null;
+
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(function() {
+                    currentSearch = searchInput.value.trim();
+                    loadImages();
+                }, 300);
+            });
+
+            sortSelect.addEventListener('change', function() {
+                currentSort = sortSelect.value;
+                loadImages();
+            });
+        }
+
+        // ===== Upload =====
+        function setupUploadZone() {
+            var zone = document.getElementById('upload-zone');
+            var fileInput = document.getElementById('file-input');
+            var btnBrowse = document.getElementById('btn-browse');
+
+            btnBrowse.addEventListener('click', function(e) {
+                e.stopPropagation();
+                fileInput.click();
+            });
+
+            zone.addEventListener('click', function() {
+                fileInput.click();
+            });
+
+            zone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                zone.classList.add('dragover');
+            });
+
+            zone.addEventListener('dragleave', function() {
+                zone.classList.remove('dragover');
+            });
+
+            zone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                zone.classList.remove('dragover');
+                if (e.dataTransfer.files.length > 0) {
+                    uploadFiles(e.dataTransfer.files);
+                }
+            });
+
+            fileInput.addEventListener('change', function() {
+                if (fileInput.files.length > 0) {
+                    uploadFiles(fileInput.files);
+                    fileInput.value = '';
+                }
+            });
+        }
+
+        async function uploadFiles(fileList) {
+            var usage = document.getElementById('upload-usage').value;
+            var folder = document.getElementById('upload-folder').value.trim();
+            var progressContainer = document.getElementById('upload-progress');
+            progressContainer.style.display = 'block';
+            progressContainer.innerHTML = '';
+
+            var formData = new FormData();
+            for (var i = 0; i < fileList.length; i++) {
+                formData.append('images', fileList[i]);
+
+                // Show progress item
+                var item = document.createElement('div');
+                item.className = 'upload-progress-item';
+                item.id = 'progress-' + i;
+                item.innerHTML = '<span class="upload-progress-name">' + Components.escapeHtml(fileList[i].name) + '</span>' +
+                    '<div class="upload-progress-bar"><div class="upload-progress-bar-fill" style="width:0%"></div></div>' +
+                    '<span class="upload-progress-status">0%</span>';
+                progressContainer.appendChild(item);
+            }
+
+            var params = new URLSearchParams();
+            if (usage) params.set('usage', usage);
+            if (folder) params.set('folder', folder);
+
+            try {
+                // Use XMLHttpRequest for progress tracking
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', '/api/media/upload?' + params.toString());
+
+                var token = Auth.getToken ? Auth.getToken() : sessionStorage.getItem('access_token');
+                if (token) xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+
+                xhr.upload.addEventListener('progress', function(e) {
+                    if (e.lengthComputable) {
+                        var percent = Math.round((e.loaded / e.total) * 100);
+                        var fills = progressContainer.querySelectorAll('.upload-progress-bar-fill');
+                        var statuses = progressContainer.querySelectorAll('.upload-progress-status');
+                        for (var j = 0; j < fills.length; j++) {
+                            fills[j].style.width = percent + '%';
+                            statuses[j].textContent = percent + '%';
+                        }
+                    }
+                });
+
+                xhr.onload = function() {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        var data = JSON.parse(xhr.responseText);
+                        Components.showToast(data.count + ' image(s) uploadee(s)', 'success');
+                        setTimeout(function() {
+                            progressContainer.style.display = 'none';
+                            progressContainer.innerHTML = '';
+                        }, 2000);
+                        loadImages();
+                    } else {
+                        var err = {};
+                        try { err = JSON.parse(xhr.responseText); } catch(e) {}
+                        Components.showToast(err.error || 'Erreur upload', 'error');
+                    }
+                };
+
+                xhr.onerror = function() {
+                    Components.showToast('Erreur reseau', 'error');
+                };
+
+                xhr.send(formData);
+            } catch (err) {
+                Components.showToast('Erreur lors de l\'upload', 'error');
+            }
+        }
+
+        // ===== Detail Panel =====
+        function setupDetailPanel() {
+            document.getElementById('btn-close-detail').addEventListener('click', closeDetail);
+            document.getElementById('detail-overlay').addEventListener('click', function(e) {
+                if (e.target === this) closeDetail();
+            });
+
+            document.getElementById('btn-save-alt').addEventListener('click', saveAlt);
+            document.getElementById('btn-copy-path').addEventListener('click', copyPath);
+            document.getElementById('btn-delete-image').addEventListener('click', deleteImage);
+        }
+
+        function openDetail(img) {
+            selectedImage = img;
+            document.getElementById('detail-title').textContent = img.name;
+            document.getElementById('detail-preview').src = img.path;
+            document.getElementById('detail-preview').alt = img.alt || img.name;
+            document.getElementById('detail-alt').value = img.alt || '';
+
+            var infoHtml = '<div class="detail-info-item"><div class="detail-info-label">Taille</div><div class="detail-info-value">' + formatSize(img.size) + '</div></div>';
+            if (img.dimensions && img.dimensions.width) {
+                infoHtml += '<div class="detail-info-item"><div class="detail-info-label">Dimensions</div><div class="detail-info-value">' + img.dimensions.width + ' x ' + img.dimensions.height + ' px</div></div>';
+            }
+            infoHtml += '<div class="detail-info-item"><div class="detail-info-label">Format</div><div class="detail-info-value">' + Components.escapeHtml(img.format || 'N/A') + '</div></div>';
+            infoHtml += '<div class="detail-info-item"><div class="detail-info-label">Dossier</div><div class="detail-info-value">' + Components.escapeHtml(img.folder || 'Racine') + '</div></div>';
+            document.getElementById('detail-info').innerHTML = infoHtml;
+
+            // Show delete button for admins only
+            document.getElementById('btn-delete-image').style.display = (userRole === 'admin') ? '' : 'none';
+
+            document.getElementById('detail-overlay').classList.add('open');
+        }
+
+        function closeDetail() {
+            document.getElementById('detail-overlay').classList.remove('open');
+            selectedImage = null;
+        }
+
+        async function saveAlt() {
+            if (!selectedImage) return;
+            var alt = document.getElementById('detail-alt').value;
+            try {
+                var res = await Auth.apiFetch('/api/media/' + encodeURIComponent(selectedImage.name) + '/alt', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ alt: alt })
+                });
+                if (!res.ok) {
+                    var err = await res.json();
+                    throw new Error(err.error || 'Erreur');
+                }
+                Components.showToast('Texte alternatif sauvegarde', 'success');
+                selectedImage.alt = alt;
+            } catch (err) {
+                Components.showToast(err.message || 'Erreur', 'error');
+            }
+        }
+
+        function copyPath() {
+            if (!selectedImage) return;
+            navigator.clipboard.writeText(selectedImage.path).then(function() {
+                Components.showToast('Chemin copie dans le presse-papier', 'success');
+            }).catch(function() {
+                // Fallback
+                var textarea = document.createElement('textarea');
+                textarea.value = selectedImage.path;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                Components.showToast('Chemin copie', 'success');
+            });
+        }
+
+        async function deleteImage() {
+            if (!selectedImage) return;
+            var confirmed = await Components.showConfirm('Supprimer "' + selectedImage.name + '" ?');
+            if (!confirmed) return;
+
+            try {
+                var res = await Auth.apiFetch('/api/media/' + encodeURIComponent(selectedImage.name), {
+                    method: 'DELETE'
+                });
+                if (!res.ok) {
+                    var err = await res.json();
+                    throw new Error(err.error || 'Erreur');
+                }
+                Components.showToast('Image supprimee', 'success');
+                closeDetail();
+                loadImages();
+            } catch (err) {
+                Components.showToast(err.message || 'Erreur', 'error');
+            }
+        }
+
+        init();
+    })();
+    </script>
+</body>
+</html>

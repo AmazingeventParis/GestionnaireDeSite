@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backups — Gestionnaire de Site</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .backup-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+        .backup-table th, .backup-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid #30363d;
+        }
+        .backup-table th {
+            background: #161b22;
+            color: #8b949e;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+        .backup-table tr:hover { background: rgba(88, 166, 255, 0.04); }
+        .backup-actions { display: flex; gap: 8px; }
+        .backup-actions button {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            cursor: pointer;
+            background: #21262d;
+            color: #e6edf3;
+            transition: all 0.15s;
+        }
+        .backup-actions button:hover { border-color: #58a6ff; color: #58a6ff; }
+        .backup-actions .btn-danger { color: #f85149; }
+        .backup-actions .btn-danger:hover { border-color: #f85149; }
+        .backup-actions .btn-restore { color: #3fb950; }
+        .backup-actions .btn-restore:hover { border-color: #3fb950; }
+        .create-section {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+            margin-bottom: 24px;
+        }
+        .create-section .form-group { flex: 1; margin-bottom: 0; }
+        .empty-state {
+            text-align: center;
+            padding: 48px;
+            color: #8b949e;
+        }
+        .size-cell { font-family: monospace; font-size: 13px; color: #8b949e; }
+    </style>
+</head>
+<body>
+    <div id="navbar"></div>
+
+    <div class="container">
+        <div class="section-header">
+            <h1 class="page-title">Backups</h1>
+        </div>
+
+        <div class="card" style="padding: 20px; margin-bottom: 24px;">
+            <h3 style="margin: 0 0 12px; color: #e6edf3; font-size: 15px;">Creer un backup</h3>
+            <div class="create-section">
+                <div class="form-group">
+                    <label class="form-label">Description (optionnel)</label>
+                    <input class="form-input" id="backup-desc" placeholder="Description du backup...">
+                </div>
+                <button class="btn btn-primary" onclick="createBackup()">Creer un backup</button>
+            </div>
+        </div>
+
+        <div class="card" style="padding: 0; overflow: hidden;">
+            <div id="backups-container">
+                <p class="text-muted" style="padding: 20px;">Chargement...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Restore Confirmation Modal -->
+    <div class="modal-overlay" id="restore-modal" style="display:none">
+        <div class="modal">
+            <h2 class="modal-title">Confirmer la restauration</h2>
+            <p style="color: #f85149; margin-bottom: 16px;">
+                Attention : cette action va remplacer les fichiers actuels (previews et configuration) par ceux du backup. Cette operation est irreversible.
+            </p>
+            <p style="color: #8b949e; margin-bottom: 20px;" id="restore-info"></p>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeRestoreModal()">Annuler</button>
+                <button type="button" class="btn btn-primary" id="btn-confirm-restore" style="background: #f85149; border-color: #f85149;">Restaurer</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/components.js"></script>
+    <script>
+    var backups = [];
+
+    function formatSize(bytes) {
+        if (!bytes || bytes === 0) return '0 B';
+        var units = ['B', 'KB', 'MB', 'GB'];
+        var i = 0;
+        var size = bytes;
+        while (size >= 1024 && i < units.length - 1) {
+            size /= 1024;
+            i++;
+        }
+        return size.toFixed(i === 0 ? 0 : 1) + ' ' + units[i];
+    }
+
+    async function loadBackups() {
+        await Components.initPage();
+        var res = await Auth.apiFetch('/api/backups');
+        if (res.ok) {
+            var data = await res.json();
+            backups = data.backups || [];
+            renderBackups();
+        } else {
+            document.getElementById('backups-container').innerHTML =
+                '<p class="text-muted" style="padding:20px;">Erreur lors du chargement des backups.</p>';
+        }
+    }
+
+    function renderBackups() {
+        var el = document.getElementById('backups-container');
+        if (backups.length === 0) {
+            el.innerHTML = '<div class="empty-state">Aucun backup disponible. Creez votre premier backup ci-dessus.</div>';
+            return;
+        }
+
+        var html = '<table class="backup-table">';
+        html += '<thead><tr><th>Date</th><th>Type</th><th>Taille</th><th>Description</th><th>Actions</th></tr></thead>';
+        html += '<tbody>';
+        for (var i = 0; i < backups.length; i++) {
+            var b = backups[i];
+            html += '<tr>';
+            html += '<td>' + Components.formatDate(b.created_at) + '</td>';
+            html += '<td><span class="badge badge-infra">' + Components.escapeHtml(b.type || 'full') + '</span></td>';
+            html += '<td class="size-cell">' + formatSize(b.file_size_bytes) + '</td>';
+            html += '<td style="color:#8b949e">' + Components.escapeHtml(b.description || '—') + '</td>';
+            html += '<td><div class="backup-actions">';
+            html += '<button onclick="downloadBackup(\'' + b.id + '\')">Telecharger</button>';
+            html += '<button class="btn-restore" onclick="openRestoreModal(\'' + b.id + '\', \'' + Components.escapeHtml(b.created_at) + '\')">Restaurer</button>';
+            html += '<button class="btn-danger" onclick="deleteBackup(\'' + b.id + '\')">Supprimer</button>';
+            html += '</div></td>';
+            html += '</tr>';
+        }
+        html += '</tbody></table>';
+        el.innerHTML = html;
+    }
+
+    async function createBackup() {
+        var desc = document.getElementById('backup-desc').value;
+        var res = await Auth.apiFetch('/api/backups', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ description: desc || null })
+        });
+        if (res.ok) {
+            Components.showToast('Backup cree avec succes', 'success');
+            document.getElementById('backup-desc').value = '';
+            loadBackups();
+        } else {
+            var err = await res.json();
+            Components.showToast(err.error || 'Erreur lors de la creation', 'error');
+        }
+    }
+
+    function downloadBackup(id) {
+        window.location.href = '/api/backups/' + id + '/download';
+    }
+
+    var restoreTargetId = null;
+
+    function openRestoreModal(id, date) {
+        restoreTargetId = id;
+        document.getElementById('restore-info').textContent = 'Backup du : ' + date;
+        document.getElementById('restore-modal').style.display = 'flex';
+        document.getElementById('btn-confirm-restore').onclick = function() { confirmRestore(); };
+    }
+
+    function closeRestoreModal() {
+        document.getElementById('restore-modal').style.display = 'none';
+        restoreTargetId = null;
+    }
+
+    async function confirmRestore() {
+        if (!restoreTargetId) return;
+        closeRestoreModal();
+
+        var res = await Auth.apiFetch('/api/backups/' + restoreTargetId + '/restore', {
+            method: 'POST'
+        });
+        if (res.ok) {
+            Components.showToast('Backup restaure avec succes', 'success');
+        } else {
+            var err = await res.json();
+            Components.showToast(err.error || 'Erreur lors de la restauration', 'error');
+        }
+    }
+
+    async function deleteBackup(id) {
+        var confirmed = await Components.showConfirm('Etes-vous sur de vouloir supprimer ce backup ?');
+        if (!confirmed) return;
+
+        var res = await Auth.apiFetch('/api/backups/' + id, { method: 'DELETE' });
+        if (res.ok) {
+            Components.showToast('Backup supprime', 'success');
+            loadBackups();
+        } else {
+            var err = await res.json();
+            Components.showToast(err.error || 'Erreur lors de la suppression', 'error');
+        }
+    }
+
+    document.getElementById('restore-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeRestoreModal();
+    });
+
+    loadBackups();
+    </script>
+</body>
+</html>

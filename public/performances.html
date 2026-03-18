@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performances — Gestionnaire de Site</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .perf-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .perf-card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 24px; text-align: center; }
+        .perf-value { font-size: 36px; font-weight: 700; color: #58a6ff; margin-bottom: 4px; }
+        .perf-unit { font-size: 14px; color: #8b949e; font-weight: 400; }
+        .perf-label { font-size: 13px; color: #8b949e; margin-top: 4px; }
+        .perf-value.good { color: #238636; }
+        .perf-value.warn { color: #d97706; }
+        .perf-value.bad { color: #da3633; }
+
+        .section-box { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 20px; margin-bottom: 24px; }
+        .section-box h2 { font-size: 18px; color: #e6edf3; margin: 0 0 16px 0; }
+
+        .meta-info { font-size: 12px; color: #6e7681; margin-bottom: 20px; }
+        .meta-info span { color: #8b949e; }
+
+        .empty-state { text-align: center; padding: 60px 20px; color: #8b949e; }
+        .empty-state h3 { color: #e6edf3; margin-bottom: 8px; }
+
+        .history-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .history-table th { text-align: left; padding: 10px 12px; color: #8b949e; border-bottom: 1px solid #30363d; font-weight: 600; }
+        .history-table td { padding: 10px 12px; border-bottom: 1px solid #21262d; color: #e6edf3; }
+        .history-table tr:hover { background: #1c2128; }
+
+        .btn-run { display: none; }
+    </style>
+</head>
+<body>
+    <div id="navbar"></div>
+
+    <div class="container">
+        <div class="section-header">
+            <h1 class="page-title">Performances</h1>
+            <button class="btn btn-primary btn-run" id="btn-run" onclick="runTest()">Lancer un test</button>
+        </div>
+
+        <div id="perf-content">
+            <div class="empty-state" id="empty-state">
+                <h3>Aucun test effectue</h3>
+                <p>Lancez un test de performance pour analyser votre site.</p>
+            </div>
+        </div>
+
+        <!-- Results section (hidden initially) -->
+        <div id="results-section" style="display:none">
+            <div class="meta-info" id="meta-info"></div>
+
+            <div class="perf-grid" id="perf-grid"></div>
+
+            <div class="section-box">
+                <h2>Historique des tests</h2>
+                <table class="history-table">
+                    <thead><tr><th>Date</th><th>TTFB</th><th>Taille</th><th>Ressources</th><th>Temps total</th><th>HTTP</th></tr></thead>
+                    <tbody id="history-body"><tr><td colspan="6" style="color:#8b949e">Aucun historique</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/components.js"></script>
+    <script>
+    async function init() {
+        await Components.initPage();
+
+        var user = Auth.getUser();
+        if (user && user.role === 'admin') {
+            document.getElementById('btn-run').style.display = '';
+        }
+
+        loadResults();
+    }
+
+    async function loadResults() {
+        try {
+            var res = await Auth.apiFetch('/api/performance');
+            var data = await res.json();
+
+            if (data.results) {
+                showResults(data.results, data.history || []);
+            }
+        } catch (e) {
+            console.error('Load results error:', e);
+        }
+    }
+
+    function showResults(results, history) {
+        document.getElementById('empty-state').style.display = 'none';
+        document.getElementById('results-section').style.display = '';
+
+        // Meta info
+        document.getElementById('meta-info').innerHTML =
+            'URL testee : <span>' + Components.escapeHtml(results.url) + '</span> — ' +
+            'Dernier test : <span>' + Components.formatDate(results.timestamp) + '</span>';
+
+        // Metric cards
+        var ttfbClass = results.ttfb_ms < 200 ? 'good' : results.ttfb_ms < 500 ? 'warn' : 'bad';
+        var sizeClass = results.page_size_kb < 500 ? 'good' : results.page_size_kb < 2000 ? 'warn' : 'bad';
+        var resClass = results.resource_count < 20 ? 'good' : results.resource_count < 50 ? 'warn' : 'bad';
+        var loadClass = results.load_time_ms < 1000 ? 'good' : results.load_time_ms < 3000 ? 'warn' : 'bad';
+
+        document.getElementById('perf-grid').innerHTML =
+            '<div class="perf-card">' +
+                '<div class="perf-value ' + ttfbClass + '">' + results.ttfb_ms + ' <span class="perf-unit">ms</span></div>' +
+                '<div class="perf-label">TTFB (Time to First Byte)</div>' +
+            '</div>' +
+            '<div class="perf-card">' +
+                '<div class="perf-value ' + sizeClass + '">' + results.page_size_kb + ' <span class="perf-unit">Ko</span></div>' +
+                '<div class="perf-label">Taille de la page</div>' +
+            '</div>' +
+            '<div class="perf-card">' +
+                '<div class="perf-value ' + resClass + '">' + results.resource_count + '</div>' +
+                '<div class="perf-label">Ressources detectees</div>' +
+            '</div>' +
+            '<div class="perf-card">' +
+                '<div class="perf-value ' + loadClass + '">' + results.load_time_ms + ' <span class="perf-unit">ms</span></div>' +
+                '<div class="perf-label">Temps de chargement</div>' +
+            '</div>' +
+            '<div class="perf-card">' +
+                '<div class="perf-value">' + (results.status_code || '-') + '</div>' +
+                '<div class="perf-label">Code HTTP</div>' +
+            '</div>';
+
+        // History
+        var tbody = document.getElementById('history-body');
+        if (history && history.length > 0) {
+            tbody.innerHTML = history.map(function(h) {
+                return '<tr>' +
+                    '<td>' + Components.formatDate(h.timestamp) + '</td>' +
+                    '<td>' + h.ttfb_ms + ' ms</td>' +
+                    '<td>' + h.page_size_kb + ' Ko</td>' +
+                    '<td>' + h.resource_count + '</td>' +
+                    '<td>' + h.load_time_ms + ' ms</td>' +
+                    '<td>' + (h.status_code || '-') + '</td>' +
+                '</tr>';
+            }).join('');
+        }
+    }
+
+    async function runTest() {
+        var btn = document.getElementById('btn-run');
+        btn.disabled = true;
+        btn.textContent = 'Test en cours...';
+
+        try {
+            var res = await Auth.apiFetch('/api/performance/run', { method: 'POST' });
+            var data = await res.json();
+
+            if (res.ok && data.results) {
+                Components.showToast('Test termine', 'success');
+                loadResults();
+            } else {
+                Components.showToast(data.error || 'Erreur', 'error');
+            }
+        } catch (e) {
+            Components.showToast('Erreur lors du test', 'error');
+        }
+
+        btn.disabled = false;
+        btn.textContent = 'Lancer un test';
+    }
+
+    init();
+    </script>
+</body>
+</html>

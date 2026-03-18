@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activite — Gestionnaire de Site</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .section-box { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 20px; margin-bottom: 24px; }
+        .section-box h2 { font-size: 18px; color: #e6edf3; margin: 0 0 16px 0; }
+
+        .filters-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; align-items: flex-end; }
+        .filters-row .form-group { margin: 0; }
+        .filters-row label { display: block; font-size: 12px; color: #8b949e; margin-bottom: 4px; }
+        .filters-row select, .filters-row input { background: #0d1117; border: 1px solid #30363d; color: #e6edf3; padding: 6px 10px; border-radius: 6px; font-size: 13px; }
+
+        .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .data-table th { text-align: left; padding: 10px 12px; color: #8b949e; border-bottom: 1px solid #30363d; font-weight: 600; }
+        .data-table td { padding: 10px 12px; border-bottom: 1px solid #21262d; color: #e6edf3; }
+        .data-table tr:hover { background: #1c2128; }
+
+        .action-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; background: rgba(88,166,255,0.15); color: #58a6ff; }
+
+        .stats-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; }
+        .stat-chip { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 10px 16px; display: flex; align-items: center; gap: 8px; }
+        .stat-chip-count { font-size: 18px; font-weight: 700; color: #58a6ff; }
+        .stat-chip-label { font-size: 12px; color: #8b949e; }
+
+        .details-cell { max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: #8b949e; }
+
+        .pagination { display: flex; gap: 8px; justify-content: center; margin-top: 16px; }
+        .pagination button { background: #21262d; border: 1px solid #30363d; color: #e6edf3; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+        .pagination button.active { background: #58a6ff; color: #0d1117; }
+        .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <div id="navbar"></div>
+
+    <div class="container">
+        <h1 class="page-title">Journal d'activite</h1>
+
+        <!-- Stats -->
+        <div class="stats-row" id="stats-row"></div>
+
+        <!-- Activity log -->
+        <div class="section-box">
+            <h2>Historique</h2>
+            <div class="filters-row">
+                <div class="form-group" id="user-filter-group" style="display:none">
+                    <label>Utilisateur</label>
+                    <select id="filter-user" onchange="loadActivity()">
+                        <option value="">Tous</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Action</label>
+                    <select id="filter-action" onchange="loadActivity()">
+                        <option value="">Toutes</option>
+                        <option value="login">Login</option>
+                        <option value="logout">Logout</option>
+                        <option value="create">Create</option>
+                        <option value="update">Update</option>
+                        <option value="delete">Delete</option>
+                        <option value="publish">Publish</option>
+                        <option value="deploy">Deploy</option>
+                        <option value="ip_ban">IP Ban</option>
+                        <option value="ip_unban">IP Unban</option>
+                        <option value="settings_update">Settings</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Du</label>
+                    <input type="date" id="filter-from" onchange="loadActivity()">
+                </div>
+                <div class="form-group">
+                    <label>Au</label>
+                    <input type="date" id="filter-to" onchange="loadActivity()">
+                </div>
+            </div>
+            <table class="data-table">
+                <thead><tr><th>Date</th><th>Utilisateur</th><th>Action</th><th>Entite</th><th>Details</th><th>IP</th></tr></thead>
+                <tbody id="activity-body"><tr><td colspan="6" style="color:#8b949e">Chargement...</td></tr></tbody>
+            </table>
+            <div class="pagination" id="activity-pagination"></div>
+        </div>
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/components.js"></script>
+    <script>
+    var currentPage = 1;
+
+    async function init() {
+        await Components.initPage();
+
+        var user = Auth.getUser();
+        if (user && user.role === 'admin') {
+            document.getElementById('user-filter-group').style.display = '';
+        }
+
+        loadStats();
+        loadActivity();
+    }
+
+    async function loadStats() {
+        try {
+            var res = await Auth.apiFetch('/api/activity/stats');
+            var data = await res.json();
+            var el = document.getElementById('stats-row');
+
+            if (data.byAction && Object.keys(data.byAction).length > 0) {
+                var html = '<div class="stat-chip"><div class="stat-chip-count">' + data.total + '</div><div class="stat-chip-label">Total (7j)</div></div>';
+                for (var action in data.byAction) {
+                    html += '<div class="stat-chip"><div class="stat-chip-count">' + data.byAction[action] + '</div><div class="stat-chip-label">' + Components.escapeHtml(action) + '</div></div>';
+                }
+                el.innerHTML = html;
+            } else {
+                el.innerHTML = '<div class="stat-chip"><div class="stat-chip-count">0</div><div class="stat-chip-label">Actions (7j)</div></div>';
+            }
+        } catch (e) {
+            console.error('Stats error:', e);
+        }
+    }
+
+    async function loadActivity() {
+        try {
+            var params = new URLSearchParams({ page: currentPage, limit: 25 });
+            var userId = document.getElementById('filter-user').value;
+            var action = document.getElementById('filter-action').value;
+            var from = document.getElementById('filter-from').value;
+            var to = document.getElementById('filter-to').value;
+            if (userId) params.set('user_id', userId);
+            if (action) params.set('action', action);
+            if (from) params.set('from', from + 'T00:00:00Z');
+            if (to) params.set('to', to + 'T23:59:59Z');
+
+            var res = await Auth.apiFetch('/api/activity?' + params.toString());
+            var data = await res.json();
+            var tbody = document.getElementById('activity-body');
+
+            if (!data.entries || data.entries.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="color:#8b949e">Aucune activite</td></tr>';
+                document.getElementById('activity-pagination').innerHTML = '';
+                return;
+            }
+
+            tbody.innerHTML = data.entries.map(function(entry) {
+                var details = '';
+                if (entry.details) {
+                    try {
+                        var parsed = typeof entry.details === 'string' ? JSON.parse(entry.details) : entry.details;
+                        details = JSON.stringify(parsed);
+                    } catch (e) {
+                        details = String(entry.details);
+                    }
+                }
+                return '<tr>' +
+                    '<td>' + Components.formatDate(entry.created_at) + '</td>' +
+                    '<td>' + Components.escapeHtml(entry.username || entry.user_id || '-') + '</td>' +
+                    '<td><span class="action-badge">' + Components.escapeHtml(entry.action) + '</span></td>' +
+                    '<td>' + Components.escapeHtml(entry.entity_type || '-') + (entry.entity_id ? ' #' + Components.escapeHtml(entry.entity_id) : '') + '</td>' +
+                    '<td class="details-cell" title="' + Components.escapeHtml(details) + '">' + Components.escapeHtml(details || '-') + '</td>' +
+                    '<td><code style="font-size:11px">' + Components.escapeHtml(entry.ip_address || '-') + '</code></td>' +
+                '</tr>';
+            }).join('');
+
+            renderPagination(data.page, data.totalPages);
+        } catch (e) {
+            console.error('Activity error:', e);
+        }
+    }
+
+    function renderPagination(current, total) {
+        var el = document.getElementById('activity-pagination');
+        if (total <= 1) { el.innerHTML = ''; return; }
+
+        var html = '<button ' + (current <= 1 ? 'disabled' : '') + ' id="pg-prev">&laquo;</button>';
+        var start = Math.max(1, current - 2);
+        var end = Math.min(total, current + 2);
+        for (var i = start; i <= end; i++) {
+            html += '<button class="' + (i === current ? 'active' : '') + '" data-page="' + i + '">' + i + '</button>';
+        }
+        html += '<button ' + (current >= total ? 'disabled' : '') + ' id="pg-next">&raquo;</button>';
+        el.innerHTML = html;
+
+        el.querySelectorAll('button[data-page]').forEach(function(btn) {
+            btn.addEventListener('click', function() { currentPage = parseInt(this.dataset.page); loadActivity(); });
+        });
+        document.getElementById('pg-prev').addEventListener('click', function() { if (current > 1) { currentPage = current - 1; loadActivity(); } });
+        document.getElementById('pg-next').addEventListener('click', function() { if (current < total) { currentPage = current + 1; loadActivity(); } });
+    }
+
+    init();
+    </script>
+</body>
+</html>

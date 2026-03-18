@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoring — Gestionnaire de Site</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .monitors-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .monitor-card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 20px; position: relative; }
+        .monitor-card.up { border-left: 4px solid #238636; }
+        .monitor-card.down { border-left: 4px solid #da3633; }
+        .monitor-card.unknown { border-left: 4px solid #30363d; }
+
+        .monitor-name { font-size: 16px; font-weight: 600; color: #e6edf3; margin-bottom: 4px; }
+        .monitor-url { font-size: 12px; color: #8b949e; margin-bottom: 12px; word-break: break-all; }
+        .monitor-status { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 16px; font-size: 12px; font-weight: 600; margin-bottom: 12px; }
+        .monitor-status.up { background: rgba(35,134,54,0.15); color: #238636; }
+        .monitor-status.down { background: rgba(218,54,51,0.15); color: #da3633; }
+        .monitor-status.unknown { background: rgba(48,54,61,0.5); color: #8b949e; }
+
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .status-dot.up { background: #238636; }
+        .status-dot.down { background: #da3633; }
+        .status-dot.unknown { background: #8b949e; }
+
+        .monitor-metrics { display: flex; gap: 20px; margin-top: 8px; }
+        .monitor-metric { text-align: center; }
+        .metric-value { font-size: 18px; font-weight: 700; color: #58a6ff; }
+        .metric-label { font-size: 11px; color: #8b949e; }
+
+        .monitor-last-check { font-size: 11px; color: #6e7681; margin-top: 12px; }
+
+        .empty-state { text-align: center; padding: 60px 20px; color: #8b949e; }
+        .empty-state h3 { color: #e6edf3; margin-bottom: 8px; }
+
+        .checking-overlay { position: absolute; inset: 0; background: rgba(13,17,23,0.8); display: flex; align-items: center; justify-content: center; border-radius: 10px; color: #58a6ff; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div id="navbar"></div>
+
+    <div class="container">
+        <div class="section-header">
+            <h1 class="page-title">Monitoring</h1>
+            <button class="btn btn-primary" id="btn-check" style="display:none" onclick="runCheck()">Verifier maintenant</button>
+        </div>
+
+        <div id="monitors-container">
+            <p class="text-muted">Chargement...</p>
+        </div>
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/components.js"></script>
+    <script>
+    var monitors = [];
+    var isChecking = false;
+
+    async function init() {
+        await Components.initPage();
+
+        var user = Auth.getUser();
+        if (user && user.role === 'admin') {
+            document.getElementById('btn-check').style.display = '';
+        }
+
+        loadMonitors();
+    }
+
+    async function loadMonitors() {
+        try {
+            var res = await Auth.apiFetch('/api/monitoring');
+            var data = await res.json();
+            monitors = data.monitors || [];
+            renderMonitors();
+        } catch (e) {
+            console.error('Load monitors error:', e);
+            document.getElementById('monitors-container').innerHTML = '<p class="text-muted">Erreur lors du chargement</p>';
+        }
+    }
+
+    function renderMonitors() {
+        var el = document.getElementById('monitors-container');
+
+        if (monitors.length === 0) {
+            el.innerHTML = '<div class="empty-state"><h3>Aucun moniteur configure</h3><p>Ajoutez des moniteurs depuis la page Sites pour commencer la surveillance.</p></div>';
+            return;
+        }
+
+        el.innerHTML = '<div class="monitors-grid">' + monitors.map(function(m) {
+            var statusClass = m.is_up === true ? 'up' : m.is_up === false ? 'down' : 'unknown';
+            var statusText = m.is_up === true ? 'UP' : m.is_up === false ? 'DOWN' : 'Inconnu';
+            var responseMs = m.last_response_ms != null ? m.last_response_ms : '-';
+
+            return '<div class="monitor-card ' + statusClass + '" id="monitor-' + m.id + '">' +
+                '<div class="monitor-name">' + Components.escapeHtml(m.site_name || m.name || 'Moniteur') + '</div>' +
+                '<div class="monitor-url">' + Components.escapeHtml(m.url || m.site_url || '') + '</div>' +
+                '<div class="monitor-status ' + statusClass + '">' +
+                    '<div class="status-dot ' + statusClass + '"></div>' +
+                    statusText +
+                '</div>' +
+                '<div class="monitor-metrics">' +
+                    '<div class="monitor-metric">' +
+                        '<div class="metric-value">' + responseMs + '</div>' +
+                        '<div class="metric-label">ms</div>' +
+                    '</div>' +
+                    '<div class="monitor-metric">' +
+                        '<div class="metric-value">' + (m.last_status || '-') + '</div>' +
+                        '<div class="metric-label">HTTP</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="monitor-last-check">Derniere verification : ' + (m.last_check ? Components.formatDate(m.last_check) : 'Jamais') + '</div>' +
+            '</div>';
+        }).join('') + '</div>';
+    }
+
+    async function runCheck() {
+        if (isChecking) return;
+        isChecking = true;
+        document.getElementById('btn-check').disabled = true;
+        document.getElementById('btn-check').textContent = 'Verification en cours...';
+
+        try {
+            var res = await Auth.apiFetch('/api/monitoring/check', { method: 'POST' });
+            var data = await res.json();
+
+            if (res.ok) {
+                Components.showToast('Verification terminee', 'success');
+                loadMonitors();
+            } else {
+                Components.showToast(data.error || 'Erreur', 'error');
+            }
+        } catch (e) {
+            Components.showToast('Erreur lors de la verification', 'error');
+        }
+
+        isChecking = false;
+        document.getElementById('btn-check').disabled = false;
+        document.getElementById('btn-check').textContent = 'Verifier maintenant';
+    }
+
+    init();
+    </script>
+</body>
+</html>

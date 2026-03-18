@@ -7,19 +7,12 @@
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-    <nav class="navbar">
-        <a href="/" class="navbar-brand">Gestionnaire <span>de Site</span></a>
-        <div class="navbar-links">
-            <a href="/">Dashboard</a>
-            <a href="/sites.html">Sites</a>
-            <a href="/tasks.html" class="active">Taches</a>
-        </div>
-    </nav>
+    <div id="navbar"></div>
 
     <div class="container">
         <div class="section-header">
             <h1 class="page-title">Taches</h1>
-            <button class="btn btn-primary" onclick="openAddTask()">+ Nouvelle tache</button>
+            <button class="btn btn-primary" id="btn-add-task" style="display:none" onclick="openAddTask()">+ Nouvelle tache</button>
         </div>
 
         <div id="tasks-list">
@@ -65,25 +58,36 @@
         </div>
     </div>
 
+    <script src="/js/auth.js"></script>
+    <script src="/js/components.js"></script>
     <script>
     var sites = [];
 
     async function loadAll() {
-        var res = await fetch('/api/sites');
+        await Components.initPage();
+
+        var user = Auth.getUser();
+        if (user && (user.role === 'admin' || user.role === 'editor')) {
+            document.getElementById('btn-add-task').style.display = '';
+        }
+
+        var res = await Auth.apiFetch('/api/sites');
         sites = await res.json();
+        if (!Array.isArray(sites)) sites = [];
 
         if (sites.length === 0) {
             document.getElementById('tasks-list').innerHTML = '<p class="text-muted">Ajoutez d\'abord un site avant de creer des taches.</p>';
             return;
         }
 
-        var allTasks = [];
-        for (var i = 0; i < sites.length; i++) {
-            var tr = await fetch('/api/sites/' + sites[i].id + '/tasks');
-            var tasks = await tr.json();
-            tasks.forEach(function(t) { t._site_name = sites[i].name; });
-            allTasks = allTasks.concat(tasks);
-        }
+        var tasksRes = await Auth.apiFetch('/api/tasks');
+        var allTasks = await tasksRes.json();
+        if (!Array.isArray(allTasks)) allTasks = [];
+
+        // Map site names
+        var siteMap = {};
+        sites.forEach(function(s) { siteMap[s.id] = s.name; });
+        allTasks.forEach(function(t) { t._site_name = siteMap[t.site_id] || 'Inconnu'; });
 
         allTasks.sort(function(a, b) {
             var order = { urgent: 0, high: 1, medium: 2, low: 3 };
@@ -92,25 +96,32 @@
 
         var el = document.getElementById('tasks-list');
         if (allTasks.length === 0) {
-            el.innerHTML = '<p class="text-muted">Aucune tache. Cliquez sur "+ Nouvelle tache" pour commencer.</p>';
+            el.innerHTML = '<p class="text-muted">Aucune tache.</p>';
             return;
         }
 
-        el.innerHTML = '<table class="table"><thead><tr><th>Tache</th><th>Site</th><th>Priorite</th><th>Statut</th><th>Actions</th></tr></thead><tbody>' +
+        var canEdit = user && (user.role === 'admin' || user.role === 'editor');
+        var canDelete = user && user.role === 'admin';
+
+        el.innerHTML = '<table class="table"><thead><tr><th>Tache</th><th>Site</th><th>Priorite</th><th>Statut</th>' + (canEdit ? '<th>Actions</th>' : '') + '</tr></thead><tbody>' +
             allTasks.map(function(t) {
                 var prioClass = t.priority === 'urgent' ? 'badge-danger' :
                                t.priority === 'high' ? 'badge-tool' : '';
                 var statusClass = t.status === 'done' ? 'badge-prod' :
                                  t.status === 'in_progress' ? 'badge-tool' : '';
-                return '<tr>' +
-                    '<td>' + t.title + '</td>' +
-                    '<td>' + t._site_name + '</td>' +
-                    '<td><span class="badge ' + prioClass + '">' + t.priority + '</span></td>' +
-                    '<td><span class="badge ' + statusClass + '">' + t.status + '</span></td>' +
-                    '<td>' +
+                var actions = '';
+                if (canEdit) {
+                    actions = '<td>' +
                         (t.status !== 'done' ? '<button class="btn btn-sm btn-primary" onclick="markDone(\'' + t.id + '\')">Terminer</button> ' : '') +
-                        '<button class="btn btn-sm btn-danger" onclick="deleteTask(\'' + t.id + '\')">Suppr.</button>' +
-                    '</td>' +
+                        (canDelete ? '<button class="btn btn-sm btn-danger" onclick="deleteTask(\'' + t.id + '\')">Suppr.</button>' : '') +
+                    '</td>';
+                }
+                return '<tr>' +
+                    '<td>' + Components.escapeHtml(t.title) + '</td>' +
+                    '<td>' + Components.escapeHtml(t._site_name) + '</td>' +
+                    '<td><span class="badge ' + prioClass + '">' + Components.escapeHtml(t.priority) + '</span></td>' +
+                    '<td><span class="badge ' + statusClass + '">' + Components.escapeHtml(t.status) + '</span></td>' +
+                    actions +
                 '</tr>';
             }).join('') +
         '</tbody></table>';
@@ -119,7 +130,7 @@
     function openAddTask() {
         var select = document.getElementById('task-site');
         select.innerHTML = sites.map(function(s) {
-            return '<option value="' + s.id + '">' + s.name + '</option>';
+            return '<option value="' + s.id + '">' + Components.escapeHtml(s.name) + '</option>';
         }).join('');
         document.getElementById('task-form').reset();
         document.getElementById('modal').style.display = 'flex';
@@ -132,7 +143,7 @@
     async function saveTask(e) {
         e.preventDefault();
         var due = document.getElementById('task-due').value;
-        await fetch('/api/tasks', {
+        var res = await Auth.apiFetch('/api/tasks', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -143,23 +154,36 @@
                 due_date: due ? new Date(due).toISOString() : null
             })
         });
-        closeModal();
-        loadAll();
+        if (res.ok) {
+            Components.showToast('Tache creee', 'success');
+            closeModal();
+            loadAll();
+        } else {
+            var err = await res.json();
+            Components.showToast(err.error || 'Erreur', 'error');
+        }
     }
 
     async function markDone(id) {
-        await fetch('/api/tasks/' + id, {
+        var res = await Auth.apiFetch('/api/tasks/' + id, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status: 'done', completed_at: new Date().toISOString() })
         });
-        loadAll();
+        if (res.ok) {
+            Components.showToast('Tache terminee', 'success');
+            loadAll();
+        }
     }
 
     async function deleteTask(id) {
-        if (!confirm('Supprimer cette tache ?')) return;
-        await fetch('/api/tasks/' + id, { method: 'DELETE' });
-        loadAll();
+        var confirmed = await Components.showConfirm('Supprimer cette tache ?');
+        if (!confirmed) return;
+        var res = await Auth.apiFetch('/api/tasks/' + id, { method: 'DELETE' });
+        if (res.ok) {
+            Components.showToast('Tache supprimee', 'success');
+            loadAll();
+        }
     }
 
     document.getElementById('modal').addEventListener('click', function(e) {

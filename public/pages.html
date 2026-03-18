@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pages - Gestionnaire de Site</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .pages-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    .pages-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 16px;
+    }
+    .page-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 20px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .page-card:hover {
+      border-color: #58a6ff;
+      box-shadow: 0 0 0 1px #58a6ff33;
+    }
+    .page-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    .page-card-name {
+      font-size: 18px;
+      font-weight: 600;
+      color: #e6edf3;
+      margin: 0;
+    }
+    .page-card-slug {
+      font-size: 13px;
+      color: #8b949e;
+      margin-top: 2px;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+    .status-published {
+      background: #16a34a22;
+      color: #3fb950;
+      border: 1px solid #16a34a44;
+    }
+    .status-draft {
+      background: #d2992222;
+      color: #d29922;
+      border: 1px solid #d2992244;
+    }
+    .status-modified {
+      background: #ff7a0022;
+      color: #ff7a00;
+      border: 1px solid #ff7a0044;
+    }
+    .page-card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 12px 0;
+      font-size: 13px;
+      color: #8b949e;
+    }
+    .page-card-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .page-card-sections {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    .section-tag {
+      background: #21262d;
+      color: #8b949e;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 12px;
+      border: 1px solid #30363d;
+    }
+    .page-card-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-sm {
+      padding: 6px 14px;
+      font-size: 13px;
+      border-radius: 6px;
+      border: 1px solid #30363d;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .btn-view {
+      background: #21262d;
+      color: #e6edf3;
+    }
+    .btn-view:hover {
+      background: #30363d;
+      text-decoration: none;
+    }
+    .btn-edit {
+      background: #58a6ff22;
+      color: #58a6ff;
+      border-color: #58a6ff44;
+    }
+    .btn-edit:hover {
+      background: #58a6ff33;
+      text-decoration: none;
+    }
+    .btn-new-page {
+      background: #238636;
+      color: #ffffff;
+      border: 1px solid #2ea04366;
+      padding: 8px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
+      display: none;
+    }
+    .btn-new-page:hover {
+      background: #2ea043;
+      text-decoration: none;
+    }
+    .btn-new-page.visible {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #8b949e;
+    }
+    .empty-state h3 {
+      color: #e6edf3;
+      margin-bottom: 8px;
+    }
+    .loading-spinner {
+      display: flex;
+      justify-content: center;
+      padding: 40px;
+      color: #8b949e;
+    }
+    @media (max-width: 768px) {
+      .pages-header {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+      }
+      .pages-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="navbar"></div>
+
+  <div class="container">
+    <div class="pages-header">
+      <div>
+        <h1 class="page-title">Pages</h1>
+        <p class="page-subtitle">Gerez les pages de votre site</p>
+      </div>
+      <a href="#" class="btn-new-page" id="btn-new-page" onclick="newPage(); return false;">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 2a.75.75 0 01.75.75v4.5h4.5a.75.75 0 010 1.5h-4.5v4.5a.75.75 0 01-1.5 0v-4.5h-4.5a.75.75 0 010-1.5h4.5v-4.5A.75.75 0 018 2z"/></svg>
+        Nouvelle page
+      </a>
+    </div>
+
+    <div id="pages-loading" class="loading-spinner">Chargement des pages...</div>
+
+    <div id="pages-grid" class="pages-grid" style="display:none;"></div>
+
+    <div id="pages-empty" class="empty-state" style="display:none;">
+      <h3>Aucune page</h3>
+      <p>Il n'y a pas encore de pages dans le dossier previews/. Ajoutez des fichiers HTML pour commencer.</p>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="/js/auth.js"></script>
+  <script src="/js/components.js"></script>
+  <script>
+    (function() {
+      'use strict';
+
+      var currentUser = null;
+
+      function formatDate(isoString) {
+        if (!isoString) return '—';
+        var d = new Date(isoString);
+        var day = String(d.getDate()).padStart(2, '0');
+        var month = String(d.getMonth() + 1).padStart(2, '0');
+        var year = d.getFullYear();
+        var hours = String(d.getHours()).padStart(2, '0');
+        var minutes = String(d.getMinutes()).padStart(2, '0');
+        return day + '/' + month + '/' + year + ' ' + hours + ':' + minutes;
+      }
+
+      function getStatusBadge(status) {
+        var labels = { published: 'Publie', draft: 'Brouillon', modified: 'Modifie' };
+        var label = labels[status] || status;
+        return '<span class="status-badge status-' + Components.escapeHtml(status) + '">' + Components.escapeHtml(label) + '</span>';
+      }
+
+      function renderPages(pages) {
+        var loading = document.getElementById('pages-loading');
+        var grid = document.getElementById('pages-grid');
+        var empty = document.getElementById('pages-empty');
+
+        loading.style.display = 'none';
+
+        if (!pages || pages.length === 0) {
+          empty.style.display = 'block';
+          grid.style.display = 'none';
+          return;
+        }
+
+        grid.style.display = 'grid';
+        empty.style.display = 'none';
+
+        var html = '';
+        for (var i = 0; i < pages.length; i++) {
+          var page = pages[i];
+          var urlPath = page.slug === 'home' ? '/' : '/' + page.slug;
+
+          html += '<div class="page-card">';
+          html += '<div class="page-card-header">';
+          html += '<div>';
+          html += '<h3 class="page-card-name">' + Components.escapeHtml(page.name) + '</h3>';
+          html += '<div class="page-card-slug">' + Components.escapeHtml(urlPath) + '</div>';
+          html += '</div>';
+          html += getStatusBadge(page.status);
+          html += '</div>';
+
+          html += '<div class="page-card-meta">';
+          html += '<span class="page-card-meta-item">';
+          html += '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M4.75 0a.75.75 0 01.75.75V2h5V.75a.75.75 0 011.5 0V2h1.25c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0113.25 16H2.75A1.75 1.75 0 011 14.25V3.75C1 2.784 1.784 2 2.75 2H4V.75A.75.75 0 014.75 0zm0 3.5H2.75a.25.25 0 00-.25.25V6h11V3.75a.25.25 0 00-.25-.25H4.75zm-2.25 4v6.75c0 .138.112.25.25.25h10.5a.25.25 0 00.25-.25V7.5z"/></svg>';
+          html += formatDate(page.lastModified);
+          html += '</span>';
+          html += '<span class="page-card-meta-item">';
+          html += '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.75C1.5.784 2.284 0 3.25 0h9.5C13.716 0 14.5.784 14.5 1.75v12.5A1.75 1.75 0 0112.75 16h-9.5A1.75 1.75 0 011.5 14.25zm1.75-.25a.25.25 0 00-.25.25v12.5c0 .138.112.25.25.25h9.5a.25.25 0 00.25-.25V1.75a.25.25 0 00-.25-.25zM5 5a.75.75 0 000 1.5h6A.75.75 0 0011 5zm-.75 3.75A.75.75 0 015 8h6a.75.75 0 010 1.5H5a.75.75 0 01-.75-.75zM5 11a.75.75 0 000 1.5h3a.75.75 0 000-1.5z"/></svg>';
+          html += (page.sections ? page.sections.length : 0) + ' sections';
+          html += '</span>';
+          html += '</div>';
+
+          if (page.sections && page.sections.length > 0) {
+            html += '<div class="page-card-sections">';
+            var maxShow = Math.min(page.sections.length, 5);
+            for (var j = 0; j < maxShow; j++) {
+              html += '<span class="section-tag">' + Components.escapeHtml(page.sections[j]) + '</span>';
+            }
+            if (page.sections.length > 5) {
+              html += '<span class="section-tag">+' + (page.sections.length - 5) + '</span>';
+            }
+            html += '</div>';
+          }
+
+          html += '<div class="page-card-actions">';
+          html += '<a href="/api/pages/' + encodeURIComponent(page.slug) + '/preview" target="_blank" class="btn-sm btn-view">';
+          html += '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 2c1.981 0 3.671.992 4.933 2.078 1.27 1.091 2.187 2.345 2.637 3.023a1.62 1.62 0 010 1.798c-.45.678-1.367 1.932-2.637 3.023C11.67 13.008 9.981 14 8 14c-1.981 0-3.671-.992-4.933-2.078C1.797 10.831.88 9.577.43 8.899a1.62 1.62 0 010-1.798c.45-.678 1.367-1.932 2.637-3.023C4.33 2.992 6.019 2 8 2zM1.679 7.932a.12.12 0 000 .136c.411.622 1.241 1.75 2.366 2.717C5.176 11.758 6.527 12.5 8 12.5c1.473 0 2.825-.742 3.955-1.715 1.124-.967 1.954-2.096 2.366-2.717a.12.12 0 000-.136c-.412-.621-1.242-1.75-2.366-2.717C10.824 4.242 9.473 3.5 8 3.5c-1.473 0-2.824.742-3.955 1.715-1.124.967-1.954 2.096-2.366 2.717zM8 10a2 2 0 110-4 2 2 0 010 4z"/></svg>';
+          html += 'Voir</a>';
+          html += '<a href="/editor.html?slug=' + encodeURIComponent(page.slug) + '" class="btn-sm btn-edit">';
+          html += '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M11.013 1.427a1.75 1.75 0 012.474 0l1.086 1.086a1.75 1.75 0 010 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 01-.927-.928l.929-3.25a1.75 1.75 0 01.445-.758l8.61-8.61zm1.414 1.06a.25.25 0 00-.354 0L3.463 11.098a.25.25 0 00-.064.108l-.631 2.208 2.208-.63a.25.25 0 00.108-.064l8.61-8.61a.25.25 0 000-.354z"/></svg>';
+          html += 'Editer</a>';
+          html += '</div>';
+          html += '</div>';
+        }
+
+        grid.innerHTML = html;
+      }
+
+      async function loadPages() {
+        try {
+          var response = await Auth.apiFetch('/api/pages');
+          if (!response.ok) {
+            throw new Error('Erreur ' + response.status);
+          }
+          var data = await response.json();
+          renderPages(data.pages || []);
+        } catch (err) {
+          document.getElementById('pages-loading').style.display = 'none';
+          document.getElementById('pages-empty').style.display = 'block';
+          document.getElementById('pages-empty').innerHTML =
+            '<h3>Erreur</h3><p>Impossible de charger les pages: ' + Components.escapeHtml(err.message) + '</p>';
+          Components.showToast('Erreur lors du chargement des pages', 'error');
+        }
+      }
+
+      // Expose newPage function globally
+      window.newPage = function() {
+        var name = prompt('Nom de la nouvelle page (slug):');
+        if (!name) return;
+        var slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        if (!slug) {
+          Components.showToast('Slug invalide', 'error');
+          return;
+        }
+        window.location.href = '/editor.html?slug=' + encodeURIComponent(slug) + '&new=1';
+      };
+
+      // Init
+      Components.initPage().then(function(user) {
+        currentUser = user;
+        if (user && (user.role === 'admin')) {
+          document.getElementById('btn-new-page').classList.add('visible');
+        }
+        loadPages();
+      });
+    })();
+  </script>
+</body>
+</html>

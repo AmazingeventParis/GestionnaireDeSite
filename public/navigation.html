@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Navigation — Gestionnaire de Site</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        /* Menu preview */
+        .menu-preview {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 16px 24px;
+            margin-bottom: 24px;
+            overflow-x: auto;
+        }
+        .menu-preview-bar {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            min-height: 48px;
+        }
+        .menu-preview-logo {
+            color: #58a6ff;
+            font-weight: 700;
+            font-size: 16px;
+            white-space: nowrap;
+        }
+        .menu-preview-links {
+            display: flex;
+            gap: 20px;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .menu-preview-links li {
+            position: relative;
+        }
+        .menu-preview-links li a {
+            color: #e6edf3;
+            text-decoration: none;
+            font-size: 14px;
+            padding: 6px 0;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: color 0.15s;
+        }
+        .menu-preview-links li a:hover {
+            color: #58a6ff;
+        }
+        .menu-preview-links li a .external-icon {
+            font-size: 10px;
+            opacity: 0.5;
+        }
+        .menu-preview-links li .sub-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 6px 0;
+            min-width: 160px;
+            z-index: 10;
+        }
+        .menu-preview-links li:hover .sub-menu {
+            display: block;
+        }
+        .menu-preview-links li .sub-menu a {
+            display: block;
+            padding: 8px 14px;
+            font-size: 13px;
+        }
+        .menu-preview-links li .sub-menu a:hover {
+            background: #21262d;
+        }
+
+        /* Menu items list */
+        .menu-items-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .menu-items-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .menu-item {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 14px 16px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .menu-item.dragging {
+            opacity: 0.5;
+            border-color: #58a6ff;
+        }
+        .menu-item.drag-over {
+            border-color: #58a6ff;
+            box-shadow: 0 0 0 2px #1f6feb44;
+        }
+        .drag-handle {
+            cursor: grab;
+            color: #484f58;
+            font-size: 18px;
+            user-select: none;
+            flex-shrink: 0;
+            padding: 4px;
+        }
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+        .menu-item-content {
+            flex: 1;
+            min-width: 0;
+        }
+        .menu-item-label {
+            color: #e6edf3;
+            font-weight: 500;
+            font-size: 15px;
+        }
+        .menu-item-url {
+            color: #8b949e;
+            font-size: 13px;
+            margin-top: 2px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .menu-item-badges {
+            display: flex;
+            gap: 6px;
+            margin-top: 4px;
+        }
+        .menu-item-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        .badge-external {
+            background: #1f6feb33;
+            color: #58a6ff;
+        }
+        .badge-children {
+            background: #23863633;
+            color: #3fb950;
+        }
+        .menu-item-actions {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        .btn-icon {
+            background: none;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #8b949e;
+            width: 34px;
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 15px;
+            transition: all 0.15s;
+        }
+        .btn-icon:hover {
+            background: #21262d;
+            color: #e6edf3;
+            border-color: #484f58;
+        }
+        .btn-icon.btn-icon-danger:hover {
+            background: #da36331a;
+            color: #f85149;
+            border-color: #f8514933;
+        }
+
+        /* Sub-items in list */
+        .sub-items {
+            margin-top: 8px;
+            padding-left: 28px;
+        }
+        .sub-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            background: #0d1117;
+            border-radius: 6px;
+            margin-bottom: 4px;
+        }
+        .sub-item-label {
+            color: #c9d1d9;
+            font-size: 13px;
+        }
+        .sub-item-url {
+            color: #8b949e;
+            font-size: 12px;
+        }
+        .sub-item-dot {
+            color: #30363d;
+            margin: 0 4px;
+        }
+
+        /* Modal styles */
+        .nav-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .nav-modal-overlay.open {
+            display: flex;
+        }
+        .nav-modal {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            width: 520px;
+            max-width: 95vw;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 24px;
+        }
+        .nav-modal h2 {
+            color: #e6edf3;
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+        .nav-form-group {
+            margin-bottom: 14px;
+        }
+        .nav-form-group label {
+            display: block;
+            color: #8b949e;
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
+        .nav-form-input {
+            width: 100%;
+            padding: 8px 12px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #e6edf3;
+            font-size: 14px;
+        }
+        .nav-form-input:focus {
+            outline: none;
+            border-color: #58a6ff;
+        }
+        .nav-form-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+        .nav-form-checkbox input {
+            width: 16px;
+            height: 16px;
+            accent-color: #58a6ff;
+        }
+        .nav-form-checkbox label {
+            color: #e6edf3;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        /* Sub-items editor */
+        .sub-items-editor {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #30363d;
+        }
+        .sub-items-editor h3 {
+            color: #e6edf3;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .sub-editor-item {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+            align-items: center;
+        }
+        .sub-editor-item input {
+            flex: 1;
+            padding: 6px 10px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #e6edf3;
+            font-size: 13px;
+        }
+        .sub-editor-item input:focus {
+            outline: none;
+            border-color: #58a6ff;
+        }
+        .btn-remove-sub {
+            background: none;
+            border: none;
+            color: #f85149;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 4px;
+        }
+        .btn-add-sub {
+            background: none;
+            border: 1px dashed #30363d;
+            border-radius: 6px;
+            color: #8b949e;
+            padding: 8px;
+            width: 100%;
+            cursor: pointer;
+            font-size: 13px;
+            margin-top: 4px;
+            transition: all 0.15s;
+        }
+        .btn-add-sub:hover {
+            border-color: #58a6ff;
+            color: #58a6ff;
+        }
+        .nav-modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        /* Save bar */
+        .save-bar {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid #30363d;
+        }
+
+        .empty-nav {
+            text-align: center;
+            padding: 40px;
+            color: #8b949e;
+        }
+    </style>
+</head>
+<body>
+    <div id="navbar"></div>
+
+    <div class="container">
+        <div class="section-header">
+            <h1 class="page-title">Navigation</h1>
+        </div>
+
+        <!-- Preview -->
+        <div class="menu-preview">
+            <div class="menu-preview-bar">
+                <div class="menu-preview-logo">Mon Site</div>
+                <ul class="menu-preview-links" id="menu-preview-links"></ul>
+            </div>
+        </div>
+
+        <!-- Items list -->
+        <div class="menu-items-header">
+            <h2 style="color:#e6edf3;font-size:16px;margin:0;">Elements du menu</h2>
+            <button class="btn btn-primary" id="btn-add-item">+ Ajouter un lien</button>
+        </div>
+
+        <ul class="menu-items-list" id="menu-items-list">
+            <li class="empty-nav">Chargement...</li>
+        </ul>
+
+        <div class="save-bar">
+            <button class="btn btn-primary" id="btn-save-nav">Sauvegarder</button>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div class="nav-modal-overlay" id="modal-overlay">
+        <div class="nav-modal">
+            <h2 id="modal-title">Ajouter un lien</h2>
+            <form id="nav-form">
+                <div class="nav-form-group">
+                    <label for="nav-label">Label *</label>
+                    <input type="text" class="nav-form-input" id="nav-label" required placeholder="Accueil">
+                </div>
+                <div class="nav-form-group">
+                    <label for="nav-url">URL *</label>
+                    <input type="text" class="nav-form-input" id="nav-url" required placeholder="/accueil ou https://...">
+                </div>
+                <div class="nav-form-checkbox">
+                    <input type="checkbox" id="nav-external">
+                    <label for="nav-external">Lien externe (ouvre un nouvel onglet)</label>
+                </div>
+
+                <div class="sub-items-editor">
+                    <h3>Sous-elements</h3>
+                    <div id="sub-items-container"></div>
+                    <button type="button" class="btn-add-sub" id="btn-add-sub">+ Ajouter un sous-element</button>
+                </div>
+
+                <div class="nav-modal-actions">
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Valider</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/components.js"></script>
+    <script>
+    (function() {
+        'use strict';
+
+        var menuItems = [];
+        var editingIndex = -1; // -1 = adding new
+        var draggedIndex = null;
+
+        async function init() {
+            await Components.initPage();
+            setupEvents();
+            loadNavigation();
+        }
+
+        async function loadNavigation() {
+            try {
+                var res = await Auth.apiFetch('/api/navigation');
+                if (!res.ok) throw new Error('Erreur chargement');
+                var data = await res.json();
+                menuItems = data.menuItems || [];
+                renderAll();
+            } catch (err) {
+                Components.showToast('Erreur de chargement du menu', 'error');
+            }
+        }
+
+        function renderAll() {
+            renderPreview();
+            renderList();
+        }
+
+        function renderPreview() {
+            var container = document.getElementById('menu-preview-links');
+            var html = '';
+            for (var i = 0; i < menuItems.length; i++) {
+                var item = menuItems[i];
+                var target = item.external ? ' target="_blank" rel="noopener"' : '';
+                var extIcon = item.external ? ' <span class="external-icon">&#8599;</span>' : '';
+                html += '<li><a href="' + Components.escapeHtml(item.url) + '"' + target + '>' + Components.escapeHtml(item.label) + extIcon + '</a>';
+                if (item.children && item.children.length > 0) {
+                    html += '<ul class="sub-menu">';
+                    for (var j = 0; j < item.children.length; j++) {
+                        html += '<li><a href="' + Components.escapeHtml(item.children[j].url) + '">' + Components.escapeHtml(item.children[j].label) + '</a></li>';
+                    }
+                    html += '</ul>';
+                }
+                html += '</li>';
+            }
+            container.innerHTML = html;
+        }
+
+        function renderList() {
+            var list = document.getElementById('menu-items-list');
+            if (menuItems.length === 0) {
+                list.innerHTML = '<li class="empty-nav">Aucun element dans le menu. Cliquez sur "Ajouter un lien" pour commencer.</li>';
+                return;
+            }
+
+            var html = '';
+            for (var i = 0; i < menuItems.length; i++) {
+                var item = menuItems[i];
+                html += '<li class="menu-item" draggable="true" data-index="' + i + '">';
+                html += '<span class="drag-handle" title="Glisser pour reordonner">&#9776;</span>';
+                html += '<div class="menu-item-content">';
+                html += '<div class="menu-item-label">' + Components.escapeHtml(item.label) + '</div>';
+                html += '<div class="menu-item-url">' + Components.escapeHtml(item.url) + '</div>';
+
+                var badges = '';
+                if (item.external) badges += '<span class="menu-item-badge badge-external">Externe</span>';
+                if (item.children && item.children.length > 0) badges += '<span class="menu-item-badge badge-children">' + item.children.length + ' sous-element(s)</span>';
+                if (badges) html += '<div class="menu-item-badges">' + badges + '</div>';
+
+                // Show sub-items
+                if (item.children && item.children.length > 0) {
+                    html += '<div class="sub-items">';
+                    for (var j = 0; j < item.children.length; j++) {
+                        html += '<div class="sub-item"><span class="sub-item-label">' + Components.escapeHtml(item.children[j].label) + '</span><span class="sub-item-dot">&middot;</span><span class="sub-item-url">' + Components.escapeHtml(item.children[j].url) + '</span></div>';
+                    }
+                    html += '</div>';
+                }
+
+                html += '</div>';
+                html += '<div class="menu-item-actions">';
+                html += '<button class="btn-icon btn-edit" data-index="' + i + '" title="Modifier">&#9998;</button>';
+                html += '<button class="btn-icon btn-icon-danger btn-delete" data-index="' + i + '" title="Supprimer">&#10005;</button>';
+                html += '</div>';
+                html += '</li>';
+            }
+
+            list.innerHTML = html;
+            setupDragAndDrop();
+            setupItemActions();
+        }
+
+        function setupDragAndDrop() {
+            var items = document.querySelectorAll('.menu-item[draggable]');
+            items.forEach(function(item) {
+                item.addEventListener('dragstart', function(e) {
+                    draggedIndex = parseInt(this.getAttribute('data-index'));
+                    this.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', draggedIndex);
+                });
+
+                item.addEventListener('dragend', function() {
+                    this.classList.remove('dragging');
+                    document.querySelectorAll('.menu-item').forEach(function(el) {
+                        el.classList.remove('drag-over');
+                    });
+                    draggedIndex = null;
+                });
+
+                item.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    var targetIndex = parseInt(this.getAttribute('data-index'));
+                    if (targetIndex !== draggedIndex) {
+                        this.classList.add('drag-over');
+                    }
+                });
+
+                item.addEventListener('dragleave', function() {
+                    this.classList.remove('drag-over');
+                });
+
+                item.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    this.classList.remove('drag-over');
+                    var targetIndex = parseInt(this.getAttribute('data-index'));
+                    if (draggedIndex !== null && draggedIndex !== targetIndex) {
+                        var moved = menuItems.splice(draggedIndex, 1)[0];
+                        menuItems.splice(targetIndex, 0, moved);
+                        renderAll();
+                    }
+                });
+            });
+        }
+
+        function setupItemActions() {
+            document.querySelectorAll('.btn-edit').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var idx = parseInt(this.getAttribute('data-index'));
+                    openEditModal(idx);
+                });
+            });
+            document.querySelectorAll('.btn-delete').forEach(function(btn) {
+                btn.addEventListener('click', async function() {
+                    var idx = parseInt(this.getAttribute('data-index'));
+                    var confirmed = await Components.showConfirm('Supprimer "' + menuItems[idx].label + '" ?');
+                    if (confirmed) {
+                        menuItems.splice(idx, 1);
+                        renderAll();
+                    }
+                });
+            });
+        }
+
+        function setupEvents() {
+            document.getElementById('btn-add-item').addEventListener('click', function() {
+                openEditModal(-1);
+            });
+
+            document.getElementById('btn-cancel-modal').addEventListener('click', closeModal);
+
+            document.getElementById('modal-overlay').addEventListener('click', function(e) {
+                if (e.target === this) closeModal();
+            });
+
+            document.getElementById('nav-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                saveItem();
+            });
+
+            document.getElementById('btn-add-sub').addEventListener('click', addSubItem);
+
+            document.getElementById('btn-save-nav').addEventListener('click', saveNavigation);
+        }
+
+        function openEditModal(index) {
+            editingIndex = index;
+            var modal = document.getElementById('modal-overlay');
+            document.getElementById('modal-title').textContent = index === -1 ? 'Ajouter un lien' : 'Modifier le lien';
+
+            if (index >= 0) {
+                var item = menuItems[index];
+                document.getElementById('nav-label').value = item.label;
+                document.getElementById('nav-url').value = item.url;
+                document.getElementById('nav-external').checked = !!item.external;
+                renderSubItemsEditor(item.children || []);
+            } else {
+                document.getElementById('nav-label').value = '';
+                document.getElementById('nav-url').value = '';
+                document.getElementById('nav-external').checked = false;
+                renderSubItemsEditor([]);
+            }
+
+            modal.classList.add('open');
+            document.getElementById('nav-label').focus();
+        }
+
+        function closeModal() {
+            document.getElementById('modal-overlay').classList.remove('open');
+            editingIndex = -1;
+        }
+
+        function renderSubItemsEditor(children) {
+            var container = document.getElementById('sub-items-container');
+            var html = '';
+            for (var i = 0; i < children.length; i++) {
+                html += '<div class="sub-editor-item">' +
+                    '<input type="text" placeholder="Label" value="' + Components.escapeHtml(children[i].label) + '" class="sub-label">' +
+                    '<input type="text" placeholder="URL" value="' + Components.escapeHtml(children[i].url) + '" class="sub-url">' +
+                    '<button type="button" class="btn-remove-sub" data-index="' + i + '">&times;</button>' +
+                    '</div>';
+            }
+            container.innerHTML = html;
+
+            container.querySelectorAll('.btn-remove-sub').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    this.parentElement.remove();
+                });
+            });
+        }
+
+        function addSubItem() {
+            var container = document.getElementById('sub-items-container');
+            var div = document.createElement('div');
+            div.className = 'sub-editor-item';
+            div.innerHTML = '<input type="text" placeholder="Label" class="sub-label">' +
+                '<input type="text" placeholder="URL" class="sub-url">' +
+                '<button type="button" class="btn-remove-sub">&times;</button>';
+            container.appendChild(div);
+            div.querySelector('.btn-remove-sub').addEventListener('click', function() {
+                div.remove();
+            });
+            div.querySelector('.sub-label').focus();
+        }
+
+        function saveItem() {
+            var label = document.getElementById('nav-label').value.trim();
+            var url = document.getElementById('nav-url').value.trim();
+            var external = document.getElementById('nav-external').checked;
+
+            if (!label || !url) {
+                Components.showToast('Label et URL requis', 'error');
+                return;
+            }
+
+            // Collect sub-items
+            var children = [];
+            var subEditors = document.querySelectorAll('.sub-editor-item');
+            subEditors.forEach(function(el) {
+                var subLabel = el.querySelector('.sub-label').value.trim();
+                var subUrl = el.querySelector('.sub-url').value.trim();
+                if (subLabel && subUrl) {
+                    children.push({ label: subLabel, url: subUrl });
+                }
+            });
+
+            var item = { label: label, url: url, external: external, children: children };
+
+            if (editingIndex >= 0) {
+                menuItems[editingIndex] = item;
+            } else {
+                menuItems.push(item);
+            }
+
+            closeModal();
+            renderAll();
+        }
+
+        async function saveNavigation() {
+            try {
+                var res = await Auth.apiFetch('/api/navigation', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ menuItems: menuItems })
+                });
+                if (!res.ok) {
+                    var err = await res.json();
+                    throw new Error(err.error || 'Erreur');
+                }
+                Components.showToast('Navigation sauvegardee', 'success');
+            } catch (err) {
+                Components.showToast(err.message || 'Erreur de sauvegarde', 'error');
+            }
+        }
+
+        init();
+    })();
+    </script>
+</body>
+</html>

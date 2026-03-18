@@ -1,58 +1,64 @@
 /**
- * Migration script — Execute SQL migration via Supabase
+ * Migration verification script
  * Usage: node scripts/migrate.js
  *
- * Requires: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY env vars
- * or uses defaults from config
+ * DDL must be run manually via Supabase Studio SQL Editor.
+ * This script verifies all tables exist after migration.
  */
-const fs = require('fs');
-const path = require('path');
-const { createClient } = require('@supabase/supabase-js');
+require('dotenv').config();
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://supabase-api.swipego.app';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc3MTI3NDIyMCwiZXhwIjo0OTI2OTQ3ODIwLCJyb2xlIjoic2VydmljZV9yb2xlIn0.iqPsHjDWX9X2942nD1lsSin0yNvob06s0qP_FDTShns';
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
-  auth: { autoRefreshToken: false, persistSession: false }
-});
+const supabase = require('../lib/supabase');
 
 async function migrate() {
-  console.log('Reading migration SQL...');
-  const sql = fs.readFileSync(path.join(__dirname, 'migration.sql'), 'utf8');
+  console.log('Gestionnaire de Site — Migration Verification');
+  console.log('=============================================\n');
+  console.log('Run scripts/migration-v2.sql via Supabase Studio:');
+  console.log('  https://supabase.swipego.app\n');
+  console.log('Verifying tables...\n');
 
-  // Split into individual statements
-  const statements = sql
-    .split(';')
-    .map(s => s.trim())
-    .filter(s => s.length > 0 && !s.startsWith('--'));
-
-  console.log(`Found ${statements.length} SQL statements to execute.`);
-  console.log('');
-  console.log('NOTE: This script cannot run DDL via PostgREST.');
-  console.log('Please execute the SQL in scripts/migration.sql via:');
-  console.log('  1. Supabase Studio SQL Editor: https://supabase.swipego.app');
-  console.log('  2. Or via psql if PostgreSQL port is accessible');
-  console.log('');
-  console.log('After running the migration, verify tables exist:');
-
-  // Verify tables exist
   const tables = [
     'site_manager_sites',
     'site_manager_contacts',
     'site_manager_credentials',
     'site_manager_tasks',
     'site_manager_notes',
-    'site_manager_monitors'
+    'site_manager_monitors',
+    'site_manager_users',
+    'site_manager_sessions',
+    'site_manager_audit_log',
+    'site_manager_login_attempts',
+    'site_manager_ip_bans',
+    'site_manager_security_events',
+    'site_manager_backups',
+    'site_manager_redirections',
+    'site_manager_scheduled_publishes'
   ];
+
+  let ok = 0;
+  let missing = 0;
 
   for (const table of tables) {
     const { data, error } = await supabase.from(table).select('id').limit(1);
     if (error) {
-      console.log(`  ❌ ${table} — ${error.message}`);
+      console.log(`  MISSING  ${table}`);
+      missing++;
     } else {
-      console.log(`  ✅ ${table} — OK (${data.length} rows)`);
+      console.log(`  OK       ${table} (${data.length} rows)`);
+      ok++;
     }
   }
+
+  console.log(`\nResult: ${ok} OK, ${missing} missing`);
+
+  if (missing > 0) {
+    console.log('\nPlease run migration-v2.sql in Supabase Studio SQL Editor.');
+    process.exit(1);
+  }
+
+  console.log('\nAll tables verified successfully!');
 }
 
-migrate().catch(console.error);
+migrate().then(() => process.exit(0)).catch(err => {
+  console.error('Error:', err.message);
+  process.exit(1);
+});

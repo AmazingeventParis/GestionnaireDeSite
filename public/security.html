@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Securite — Gestionnaire de Site</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 20px; text-align: center; }
+        .stat-value { font-size: 32px; font-weight: 700; color: #58a6ff; margin-bottom: 4px; }
+        .stat-label { font-size: 13px; color: #8b949e; }
+        .stat-value.green { color: #238636; }
+        .stat-value.red { color: #da3633; }
+        .stat-value.orange { color: #d97706; }
+
+        .section-box { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 20px; margin-bottom: 24px; }
+        .section-box h2 { font-size: 18px; color: #e6edf3; margin: 0 0 16px 0; }
+
+        .filters-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; align-items: flex-end; }
+        .filters-row .form-group { margin: 0; }
+        .filters-row label { display: block; font-size: 12px; color: #8b949e; margin-bottom: 4px; }
+        .filters-row select, .filters-row input { background: #0d1117; border: 1px solid #30363d; color: #e6edf3; padding: 6px 10px; border-radius: 6px; font-size: 13px; }
+
+        .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .data-table th { text-align: left; padding: 10px 12px; color: #8b949e; border-bottom: 1px solid #30363d; font-weight: 600; }
+        .data-table td { padding: 10px 12px; border-bottom: 1px solid #21262d; color: #e6edf3; }
+        .data-table tr:hover { background: #1c2128; }
+
+        .badge-severity { padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+        .badge-high, .badge-critical { background: rgba(218,54,51,0.2); color: #da3633; }
+        .badge-medium { background: rgba(217,119,6,0.2); color: #d97706; }
+        .badge-low { background: rgba(35,134,54,0.2); color: #238636; }
+
+        .header-check { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid #21262d; }
+        .header-check:last-child { border-bottom: none; }
+        .check-icon { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+        .check-ok { background: rgba(35,134,54,0.2); color: #238636; }
+        .check-fail { background: rgba(218,54,51,0.2); color: #da3633; }
+        .header-name { font-weight: 600; color: #e6edf3; min-width: 200px; }
+        .header-val { color: #8b949e; font-size: 12px; flex: 1; }
+
+        .ban-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 16px; }
+        .ban-form input, .ban-form select { background: #0d1117; border: 1px solid #30363d; color: #e6edf3; padding: 6px 10px; border-radius: 6px; font-size: 13px; }
+
+        .pagination { display: flex; gap: 8px; justify-content: center; margin-top: 16px; }
+        .pagination button { background: #21262d; border: 1px solid #30363d; color: #e6edf3; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+        .pagination button.active { background: #58a6ff; color: #0d1117; }
+        .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .btn-danger { background: #da3633; color: #fff; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+        .btn-danger:hover { background: #f85149; }
+        .btn-sm { padding: 6px 14px; font-size: 13px; }
+    </style>
+</head>
+<body>
+    <div id="navbar"></div>
+
+    <div class="container">
+        <div class="section-header">
+            <h1 class="page-title">Securite</h1>
+            <button class="btn btn-primary btn-sm" onclick="refreshAll()">Relancer l'analyse</button>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid" id="stats-grid">
+            <div class="stat-card"><div class="stat-value" id="stat-events24h">-</div><div class="stat-label">Evenements 24h</div></div>
+            <div class="stat-card"><div class="stat-value" id="stat-blocked">-</div><div class="stat-label">Menaces bloquees</div></div>
+            <div class="stat-card"><div class="stat-value" id="stat-bans">-</div><div class="stat-label">Bans actifs</div></div>
+            <div class="stat-card"><div class="stat-value" id="stat-ssl">-</div><div class="stat-label">SSL</div></div>
+        </div>
+
+        <!-- Security Events -->
+        <div class="section-box">
+            <h2>Evenements de securite</h2>
+            <div class="filters-row">
+                <div class="form-group">
+                    <label>Type de menace</label>
+                    <select id="filter-threat" onchange="loadEvents()">
+                        <option value="">Tous</option>
+                        <option value="sql_injection">SQL Injection</option>
+                        <option value="xss">XSS</option>
+                        <option value="path_traversal">Path Traversal</option>
+                        <option value="scanner">Scanner</option>
+                        <option value="rate_limit">Rate Limit</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Severite</label>
+                    <select id="filter-severity" onchange="loadEvents()">
+                        <option value="">Toutes</option>
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                        <option value="critical">Critical</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Du</label>
+                    <input type="date" id="filter-from" onchange="loadEvents()">
+                </div>
+                <div class="form-group">
+                    <label>Au</label>
+                    <input type="date" id="filter-to" onchange="loadEvents()">
+                </div>
+            </div>
+            <table class="data-table">
+                <thead><tr><th>Date</th><th>IP</th><th>Type</th><th>Severite</th><th>Methode</th><th>Chemin</th><th>Bloque</th></tr></thead>
+                <tbody id="events-body"><tr><td colspan="7" style="color:#8b949e">Chargement...</td></tr></tbody>
+            </table>
+            <div class="pagination" id="events-pagination"></div>
+        </div>
+
+        <!-- IP Ban Management -->
+        <div class="section-box">
+            <h2>Gestion des bans IP</h2>
+            <div class="ban-form">
+                <div class="form-group">
+                    <label>Adresse IP</label>
+                    <input type="text" id="ban-ip" placeholder="192.168.1.1">
+                </div>
+                <div class="form-group">
+                    <label>Raison</label>
+                    <input type="text" id="ban-reason" placeholder="Raison du ban">
+                </div>
+                <div class="form-group">
+                    <label>Duree</label>
+                    <select id="ban-duration">
+                        <option value="1h">1 heure</option>
+                        <option value="24h">24 heures</option>
+                        <option value="permanent">Permanent</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="banIp()">Bannir</button>
+            </div>
+            <table class="data-table">
+                <thead><tr><th>IP</th><th>Raison</th><th>Expire</th><th>Date</th><th>Action</th></tr></thead>
+                <tbody id="bans-body"><tr><td colspan="5" style="color:#8b949e">Chargement...</td></tr></tbody>
+            </table>
+        </div>
+
+        <!-- Login Attempts -->
+        <div class="section-box">
+            <h2>Tentatives de connexion</h2>
+            <div class="filters-row">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="text" id="filter-login-email" placeholder="Filtrer par email" onchange="loadLoginAttempts()">
+                </div>
+                <div class="form-group">
+                    <label>Resultat</label>
+                    <select id="filter-login-success" onchange="loadLoginAttempts()">
+                        <option value="">Tous</option>
+                        <option value="true">Succes</option>
+                        <option value="false">Echec</option>
+                    </select>
+                </div>
+            </div>
+            <table class="data-table">
+                <thead><tr><th>Date</th><th>Email</th><th>IP</th><th>Resultat</th><th>User Agent</th></tr></thead>
+                <tbody id="login-body"><tr><td colspan="5" style="color:#8b949e">Chargement...</td></tr></tbody>
+            </table>
+            <div class="pagination" id="login-pagination"></div>
+        </div>
+
+        <!-- Security Headers -->
+        <div class="section-box">
+            <h2>Audit des headers de securite</h2>
+            <div id="headers-content"><p style="color:#8b949e">Chargement...</p></div>
+        </div>
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/components.js"></script>
+    <script>
+    var eventsPage = 1;
+    var loginPage = 1;
+
+    async function init() {
+        await Components.initPage();
+        refreshAll();
+    }
+
+    function refreshAll() {
+        loadStats();
+        loadEvents();
+        loadBans();
+        loadLoginAttempts();
+        loadHeaders();
+    }
+
+    async function loadStats() {
+        try {
+            var res = await Auth.apiFetch('/api/security/stats');
+            var data = await res.json();
+
+            document.getElementById('stat-events24h').textContent = data.events24h || 0;
+
+            var blocked = 0;
+            if (data.byThreatType) {
+                for (var k in data.byThreatType) blocked += data.byThreatType[k];
+            }
+            document.getElementById('stat-blocked').textContent = blocked;
+            document.getElementById('stat-blocked').className = 'stat-value' + (blocked > 0 ? ' orange' : ' green');
+
+            document.getElementById('stat-bans').textContent = data.activeBans || 0;
+            document.getElementById('stat-bans').className = 'stat-value' + (data.activeBans > 0 ? ' red' : ' green');
+
+            var sslEl = document.getElementById('stat-ssl');
+            if (data.ssl && data.ssl.status === 'valid') {
+                sslEl.textContent = data.ssl.daysUntilExpiry + 'j';
+                sslEl.className = 'stat-value ' + (data.ssl.daysUntilExpiry > 30 ? 'green' : data.ssl.daysUntilExpiry > 7 ? 'orange' : 'red');
+            } else {
+                sslEl.textContent = data.ssl ? data.ssl.status : '?';
+                sslEl.className = 'stat-value red';
+            }
+        } catch (e) {
+            console.error('Stats error:', e);
+        }
+    }
+
+    async function loadEvents() {
+        try {
+            var params = new URLSearchParams({ page: eventsPage, limit: 20 });
+            var threat = document.getElementById('filter-threat').value;
+            var severity = document.getElementById('filter-severity').value;
+            var from = document.getElementById('filter-from').value;
+            var to = document.getElementById('filter-to').value;
+            if (threat) params.set('threat_type', threat);
+            if (severity) params.set('severity', severity);
+            if (from) params.set('from', from + 'T00:00:00Z');
+            if (to) params.set('to', to + 'T23:59:59Z');
+
+            var res = await Auth.apiFetch('/api/security/events?' + params.toString());
+            var data = await res.json();
+            var tbody = document.getElementById('events-body');
+
+            if (!data.events || data.events.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="color:#8b949e">Aucun evenement</td></tr>';
+                document.getElementById('events-pagination').innerHTML = '';
+                return;
+            }
+
+            tbody.innerHTML = data.events.map(function(ev) {
+                var sevClass = 'badge-' + (ev.severity || 'medium');
+                return '<tr>' +
+                    '<td>' + Components.formatDate(ev.created_at) + '</td>' +
+                    '<td><code>' + Components.escapeHtml(ev.ip_address) + '</code></td>' +
+                    '<td>' + Components.escapeHtml(ev.threat_type) + '</td>' +
+                    '<td><span class="badge-severity ' + sevClass + '">' + Components.escapeHtml(ev.severity) + '</span></td>' +
+                    '<td>' + Components.escapeHtml(ev.request_method) + '</td>' +
+                    '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + Components.escapeHtml(ev.request_path) + '">' + Components.escapeHtml(ev.request_path) + '</td>' +
+                    '<td>' + (ev.blocked ? '<span style="color:#238636">Oui</span>' : '<span style="color:#da3633">Non</span>') + '</td>' +
+                '</tr>';
+            }).join('');
+
+            renderPagination('events-pagination', data.page, data.totalPages, function(p) { eventsPage = p; loadEvents(); });
+        } catch (e) {
+            console.error('Events error:', e);
+        }
+    }
+
+    async function loadBans() {
+        try {
+            var res = await Auth.apiFetch('/api/security/bans');
+            var data = await res.json();
+            var tbody = document.getElementById('bans-body');
+
+            if (!data.bans || data.bans.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="color:#8b949e">Aucun ban actif</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = data.bans.map(function(ban) {
+                return '<tr>' +
+                    '<td><code>' + Components.escapeHtml(ban.ip_address) + '</code></td>' +
+                    '<td>' + Components.escapeHtml(ban.reason || '-') + '</td>' +
+                    '<td>' + (ban.expires_at ? Components.formatDate(ban.expires_at) : 'Permanent') + '</td>' +
+                    '<td>' + Components.formatDate(ban.created_at) + '</td>' +
+                    '<td><button class="btn-danger" onclick="unbanIp(\'' + ban.id + '\')">Debannir</button></td>' +
+                '</tr>';
+            }).join('');
+        } catch (e) {
+            console.error('Bans error:', e);
+        }
+    }
+
+    async function banIp() {
+        var ip = document.getElementById('ban-ip').value.trim();
+        if (!ip) { Components.showToast('Adresse IP requise', 'error'); return; }
+
+        var res = await Auth.apiFetch('/api/security/ban', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                ip_address: ip,
+                reason: document.getElementById('ban-reason').value.trim(),
+                duration: document.getElementById('ban-duration').value
+            })
+        });
+
+        if (res.ok) {
+            Components.showToast('IP bannie', 'success');
+            document.getElementById('ban-ip').value = '';
+            document.getElementById('ban-reason').value = '';
+            loadBans();
+            loadStats();
+        } else {
+            var err = await res.json();
+            Components.showToast(err.error || 'Erreur', 'error');
+        }
+    }
+
+    async function unbanIp(id) {
+        var ok = await Components.showConfirm('Confirmer le debannissement de cette IP ?');
+        if (!ok) return;
+
+        var res = await Auth.apiFetch('/api/security/ban/' + id, { method: 'DELETE' });
+        if (res.ok) {
+            Components.showToast('IP debannie', 'success');
+            loadBans();
+            loadStats();
+        } else {
+            var err = await res.json();
+            Components.showToast(err.error || 'Erreur', 'error');
+        }
+    }
+
+    async function loadLoginAttempts() {
+        try {
+            var params = new URLSearchParams({ page: loginPage, limit: 20 });
+            var email = document.getElementById('filter-login-email').value.trim();
+            var success = document.getElementById('filter-login-success').value;
+            if (email) params.set('email', email);
+            if (success) params.set('success', success);
+
+            var res = await Auth.apiFetch('/api/security/login-attempts?' + params.toString());
+            var data = await res.json();
+            var tbody = document.getElementById('login-body');
+
+            if (!data.attempts || data.attempts.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="color:#8b949e">Aucune tentative</td></tr>';
+                document.getElementById('login-pagination').innerHTML = '';
+                return;
+            }
+
+            tbody.innerHTML = data.attempts.map(function(a) {
+                return '<tr>' +
+                    '<td>' + Components.formatDate(a.created_at) + '</td>' +
+                    '<td>' + Components.escapeHtml(a.email) + '</td>' +
+                    '<td><code>' + Components.escapeHtml(a.ip_address) + '</code></td>' +
+                    '<td>' + (a.success ? '<span style="color:#238636">Succes</span>' : '<span style="color:#da3633">Echec</span>') + '</td>' +
+                    '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + Components.escapeHtml(a.user_agent) + '">' + Components.escapeHtml(a.user_agent || '-') + '</td>' +
+                '</tr>';
+            }).join('');
+
+            renderPagination('login-pagination', data.page, data.totalPages, function(p) { loginPage = p; loadLoginAttempts(); });
+        } catch (e) {
+            console.error('Login attempts error:', e);
+        }
+    }
+
+    async function loadHeaders() {
+        try {
+            var res = await Auth.apiFetch('/api/security/headers');
+            var data = await res.json();
+            var el = document.getElementById('headers-content');
+
+            if (data.error) {
+                el.innerHTML = '<p style="color:#da3633">' + Components.escapeHtml(data.error) + '</p>';
+                return;
+            }
+
+            if (!data.headers || data.headers.length === 0) {
+                el.innerHTML = '<p style="color:#8b949e">Aucun resultat</p>';
+                return;
+            }
+
+            el.innerHTML = data.headers.map(function(h) {
+                var iconClass = h.present ? 'check-ok' : 'check-fail';
+                var icon = h.present ? '&#10003;' : '&#10007;';
+                return '<div class="header-check">' +
+                    '<div class="check-icon ' + iconClass + '">' + icon + '</div>' +
+                    '<div class="header-name">' + Components.escapeHtml(h.header) + '</div>' +
+                    '<div class="header-val">' + (h.present ? Components.escapeHtml(h.value) : '<span style="color:#da3633">' + Components.escapeHtml(h.recommendation) + '</span>') + '</div>' +
+                '</div>';
+            }).join('');
+        } catch (e) {
+            console.error('Headers error:', e);
+            document.getElementById('headers-content').innerHTML = '<p style="color:#da3633">Erreur lors du chargement</p>';
+        }
+    }
+
+    function renderPagination(containerId, current, total, onPage) {
+        var el = document.getElementById(containerId);
+        if (total <= 1) { el.innerHTML = ''; return; }
+
+        var html = '<button ' + (current <= 1 ? 'disabled' : '') + ' onclick="void(0)">&laquo;</button>';
+        var start = Math.max(1, current - 2);
+        var end = Math.min(total, current + 2);
+        for (var i = start; i <= end; i++) {
+            html += '<button class="' + (i === current ? 'active' : '') + '" data-page="' + i + '">' + i + '</button>';
+        }
+        html += '<button ' + (current >= total ? 'disabled' : '') + ' onclick="void(0)">&raquo;</button>';
+        el.innerHTML = html;
+
+        el.querySelectorAll('button[data-page]').forEach(function(btn) {
+            btn.addEventListener('click', function() { onPage(parseInt(this.dataset.page)); });
+        });
+        el.querySelector('button:first-child').addEventListener('click', function() { if (current > 1) onPage(current - 1); });
+        el.querySelector('button:last-child').addEventListener('click', function() { if (current < total) onPage(current + 1); });
+    }
+
+    init();
+    </script>
+</body>
+</html>

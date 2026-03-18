@@ -7,19 +7,12 @@
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-    <nav class="navbar">
-        <a href="/" class="navbar-brand">Gestionnaire <span>de Site</span></a>
-        <div class="navbar-links">
-            <a href="/">Dashboard</a>
-            <a href="/sites.html" class="active">Sites</a>
-            <a href="/tasks.html">Taches</a>
-        </div>
-    </nav>
+    <div id="navbar"></div>
 
     <div class="container">
         <div class="section-header">
             <h1 class="page-title">Sites</h1>
-            <button class="btn btn-primary" onclick="openAddModal()">+ Ajouter un site</button>
+            <button class="btn btn-primary" id="btn-add-site" style="display:none" onclick="openAddModal()">+ Ajouter un site</button>
         </div>
 
         <div id="sites-grid" class="grid">
@@ -70,12 +63,23 @@
         </div>
     </div>
 
+    <script src="/js/auth.js"></script>
+    <script src="/js/components.js"></script>
     <script>
     var sites = [];
 
     async function loadSites() {
-        var res = await fetch('/api/sites');
+        await Components.initPage();
+
+        // Show add button for admins
+        var user = Auth.getUser();
+        if (user && user.role === 'admin') {
+            document.getElementById('btn-add-site').style.display = '';
+        }
+
+        var res = await Auth.apiFetch('/api/sites');
         sites = await res.json();
+        if (!Array.isArray(sites)) sites = [];
         renderSites();
     }
 
@@ -88,13 +92,13 @@
         el.innerHTML = sites.map(function(site) {
             var statusClass = site.status === 'active' ? 'badge-prod' :
                              site.status === 'maintenance' ? 'badge-tool' : 'badge-infra';
-            return '<div class="card" onclick="window.location.href=\'/site.html?id=' + site.id + '\'">' +
+            return '<div class="card">' +
                 '<div class="card-icon">🌐</div>' +
                 '<div class="card-content">' +
-                    '<div class="card-name">' + site.name + ' <span class="badge ' + statusClass + '">' + site.status.toUpperCase() + '</span></div>' +
-                    '<div class="card-desc">' + (site.description || 'Pas de description') + '</div>' +
-                    '<div class="card-url">' + site.url + '</div>' +
-                    (site.hosting_provider ? '<div style="font-size:11px;color:#6e7681;margin-top:4px">Hebergeur: ' + site.hosting_provider + '</div>' : '') +
+                    '<div class="card-name">' + Components.escapeHtml(site.name) + ' <span class="badge ' + statusClass + '">' + Components.escapeHtml(site.status).toUpperCase() + '</span></div>' +
+                    '<div class="card-desc">' + Components.escapeHtml(site.description || 'Pas de description') + '</div>' +
+                    '<div class="card-url">' + Components.escapeHtml(site.url) + '</div>' +
+                    (site.hosting_provider ? '<div style="font-size:11px;color:#6e7681;margin-top:4px">Hebergeur: ' + Components.escapeHtml(site.hosting_provider) + '</div>' : '') +
                 '</div>' +
             '</div>';
         }).join('');
@@ -125,16 +129,24 @@
 
         var method = id ? 'PUT' : 'POST';
         var url = id ? '/api/sites/' + id : '/api/sites';
-        await fetch(url, {
+        var res = await Auth.apiFetch(url, {
             method: method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
         });
-        closeModal();
-        loadSites();
+
+        if (res.ok) {
+            Components.showToast(id ? 'Site mis a jour' : 'Site cree', 'success');
+            closeModal();
+            var r = await Auth.apiFetch('/api/sites');
+            sites = await r.json();
+            renderSites();
+        } else {
+            var err = await res.json();
+            Components.showToast(err.error || 'Erreur', 'error');
+        }
     }
 
-    // Close modal on background click
     document.getElementById('modal').addEventListener('click', function(e) {
         if (e.target === this) closeModal();
     });

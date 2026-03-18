@@ -4,9 +4,26 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - SUPABASE_URL=https://supabase-api.swipego.app
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - NODE_ENV=production
+      - PORT=3000
+    volumes:
+      - gds-uploads:/app/uploads_tmp
+      - gds-backups:/app/backups
+      - gds-previews:/app/previews
     networks:
       - coolify
+
+volumes:
+  gds-uploads:
+  gds-backups:
+  gds-previews:
 
 networks:
   coolify:

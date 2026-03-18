@@ -1,237 +1,132 @@
+require('dotenv').config();
+
 const express = require('express');
 const path = require('path');
-const { createClient } = require('@supabase/supabase-js');
+const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const compression = require('compression');
+
+// Validate required env vars
+const required = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'JWT_SECRET', 'JWT_REFRESH_SECRET'];
+for (const key of required) {
+  if (!process.env[key]) {
+    console.error(`FATAL: ${key} is not set in environment`);
+    process.exit(1);
+  }
+}
 
 const app = express();
-app.use(express.json());
+const PORT = process.env.PORT || 3000;
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://supabase-api.swipego.app';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc3MTI3NDIyMCwiZXhwIjo0OTI2OTQ3ODIwLCJyb2xlIjoiYW5vbiJ9.4c5wruvy-jj3M8fSjhmgR4FvdF6za-mgawlkB_B0uB0';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc3MTI3NDIyMCwiZXhwIjo0OTI2OTQ3ODIwLCJyb2xlIjoic2VydmljZV9yb2xlIn0.iqPsHjDWX9X2942nD1lsSin0yNvob06s0qP_FDTShns';
+// ===== GLOBAL MIDDLEWARE (order matters — follows security pipeline) =====
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
-  auth: { autoRefreshToken: false, persistSession: false }
+// 1. IP Ban check
+const { ipBanCheck } = require('./middleware/ipBan');
+app.use(ipBanCheck);
+
+// 2. Rate limiting
+const { generalLimiter } = require('./middleware/rateLimiter');
+app.use('/api/', generalLimiter);
+
+// 3. Threat detection
+const threatDetector = require('./middleware/threatDetector');
+app.use('/api/', threatDetector);
+
+// 4. Security headers
+const securityHeaders = require('./middleware/securityHeaders');
+app.use(securityHeaders);
+
+// 5. Request logging
+const { requestLogger, logger } = require('./middleware/requestLogger');
+app.use(requestLogger);
+
+// 6. Body parsing & cookies
+app.use(compression());
+app.use(express.json({ limit: '5mb' }));
+app.use(cookieParser());
+
+// 7. CORS
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production'
+    ? ['https://admin.swipego.app', 'https://gestionnaire.swipego.app']
+    : true,
+  credentials: true
+}));
+
+// ===== API ROUTES =====
+
+// Auth (no auth middleware needed — it handles its own)
+app.use('/api/auth', require('./routes/auth'));
+
+// Protected routes
+app.use('/api/sites', require('./routes/sites'));
+app.use('/api/tasks', require('./routes/tasks'));
+app.use('/api/notes', require('./routes/notes'));
+app.use('/api/contacts', require('./routes/contacts'));
+app.use('/api/credentials', require('./routes/credentials'));
+app.use('/api/monitors', require('./routes/monitors'));
+app.use('/api/stats', require('./routes/stats'));
+
+// Phase 2 routes (pages, settings) — mounted when files exist
+try { app.use('/api/pages', require('./routes/pages')); } catch {}
+try { app.use('/api/settings', require('./routes/settings')); } catch {}
+
+// Phase 3 routes (media, navigation, seo)
+try { app.use('/api/media', require('./routes/media')); } catch {}
+try { app.use('/api/navigation', require('./routes/navigation')); } catch {}
+try { app.use('/api/seo', require('./routes/seo')); } catch {}
+
+// Phase 4 routes (security, performance, monitoring, activity)
+try { app.use('/api/security', require('./routes/security')); } catch {}
+try { app.use('/api/performance', require('./routes/performance')); } catch {}
+try { app.use('/api/monitoring', require('./routes/monitoring')); } catch {}
+try { app.use('/api/activity', require('./routes/activity')); } catch {}
+
+// Phase 5 routes (backups, deploy, redirections, schedule, users)
+try { app.use('/api/backups', require('./routes/backups')); } catch {}
+try { app.use('/api/deploy', require('./routes/deploy')); } catch {}
+try { app.use('/api/redirections', require('./routes/redirections')); } catch {}
+try { app.use('/api/schedule', require('./routes/schedule')); } catch {}
+try { app.use('/api/users', require('./routes/users')); } catch {}
+
+// ===== STATIC FILES =====
+app.use(express.static(path.join(__dirname, 'public'), {
+  maxAge: process.env.NODE_ENV === 'production' ? '1d' : 0,
+  etag: true
+}));
+
+// ===== API 404 =====
+app.all('/api/*', (req, res) => {
+  res.status(404).json({ error: 'Route API non trouvee' });
 });
 
-// Serve static files
-app.use(express.static(path.join(__dirname, 'public')));
-
-// --- API Routes ---
-
-// Sites CRUD
-app.get('/api/sites', async (req, res) => {
-  const { data, error } = await supabase
-    .from('site_manager_sites')
-    .select('*')
-    .order('created_at', { ascending: false });
-  if (error) return res.status(500).json({ error: error.message });
-  res.json(data);
+// ===== SPA FALLBACK =====
+app.get('*', (req, res) => {
+  // Check if file exists in public
+  const filePath = path.join(__dirname, 'public', req.path);
+  const fs = require('fs');
+  if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+    return res.sendFile(filePath);
+  }
+  // For known HTML pages, serve them; otherwise 404
+  const htmlPath = path.join(__dirname, 'public', req.path.endsWith('.html') ? req.path : 'index.html');
+  if (fs.existsSync(htmlPath)) {
+    return res.sendFile(htmlPath);
+  }
+  res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.get('/api/sites/:id', async (req, res) => {
-  const { data, error } = await supabase
-    .from('site_manager_sites')
-    .select('*')
-    .eq('id', req.params.id)
-    .single();
-  if (error) return res.status(404).json({ error: error.message });
-  res.json(data);
-});
-
-app.post('/api/sites', async (req, res) => {
-  const { data, error } = await supabase
-    .from('site_manager_sites')
-    .insert(req.body)
-    .select()
-    .single();
-  if (error) return res.status(400).json({ error: error.message });
-  res.status(201).json(data);
-});
-
-app.put('/api/sites/:id', async (req, res) => {
-  const { data, error } = await supabase
-    .from('site_manager_sites')
-    .update(req.body)
-    .eq('id', req.params.id)
-    .select()
-    .single();
-  if (error) return res.status(400).json({ error: error.message });
-  res.json(data);
-});
-
-app.delete('/api/sites/:id', async (req, res) => {
-  const { error } = await supabase
-    .from('site_manager_sites')
-    .delete()
-    .eq('id', req.params.id);
-  if (error) return res.status(400).json({ error: error.message });
-  res.json({ ok: true });
-});
-
-// Tasks CRUD
-app.get('/api/sites/:siteId/tasks', async (req, res) => {
-  const { data, error } = await supabase
-    .from('site_manager_tasks')
-    .select('*')
-    .eq('site_id', req.params.siteId)
-    .order('created_at', { ascending: false });
-  if (error) return res.status(500).json({ error: error.message });
-  res.json(data);
-});
-
-app.post('/api/tasks', async (req, res) => {
-  const { data, error } = await supabase
-    .from('site_manager_tasks')
-    .insert(req.body)
-    .select()
-    .single();
-  if (error) return res.status(400).json({ error: error.message });
-  res.status(201).json(data);
-});
-
-app.put('/api/tasks/:id', async (req, res) => {
-  const { data, error } = await supabase
-    .from('site_manager_tasks')
-    .update(req.body)
-    .eq('id', req.params.id)
-    .select()
-    .single();
-  if (error) return res.status(400).json({ error: error.message });
-  res.json(data);
-});
-
-app.delete('/api/tasks/:id', async (req, res) => {
-  const { error } = await supabase
-    .from('site_manager_tasks')
-    .delete()
-    .eq('id', req.params.id);
-  if (error) return res.status(400).json({ error: error.message });
-  res.json({ ok: true });
-});
-
-// Notes
-app.get('/api/sites/:siteId/notes', async (req, res) => {
-  const { data, error } = await supabase
-    .from('site_manager_notes')
-    .select('*')
-    .eq('site_id', req.params.siteId)
-    .order('created_at', { ascending: false });
-  if (error) return res.status(500).json({ error: error.message });
-  res.json(data);
-});
-
-app.post('/api/notes', async (req, res) => {
-  const { data, error } = await supabase
-    .from('site_manager_notes')
-    .insert(req.body)
-    .select()
-    .single();
-  if (error) return res.status(400).json({ error: error.message });
-  res.status(201).json(data);
-});
-
-app.delete('/api/notes/:id', async (req, res) => {
-  const { error } = await supabase
-    .from('site_manager_notes')
-    .delete()
-    .eq('id', req.params.id);
-  if (error) return res.status(400).json({ error: error.message });
-  res.json({ ok: true });
-});
-
-// Contacts
-app.get('/api/sites/:siteId/contacts', async (req, res) => {
-  const { data, error } = await supabase
-    .from('site_manager_contacts')
-    .select('*')
-    .eq('site_id', req.params.siteId)
-    .order('created_at', { ascending: false });
-  if (error) return res.status(500).json({ error: error.message });
-  res.json(data);
-});
-
-app.post('/api/contacts', async (req, res) => {
-  const { data, error } = await supabase
-    .from('site_manager_contacts')
-    .insert(req.body)
-    .select()
-    .single();
-  if (error) return res.status(400).json({ error: error.message });
-  res.status(201).json(data);
-});
-
-app.delete('/api/contacts/:id', async (req, res) => {
-  const { error } = await supabase
-    .from('site_manager_contacts')
-    .delete()
-    .eq('id', req.params.id);
-  if (error) return res.status(400).json({ error: error.message });
-  res.json({ ok: true });
-});
-
-// Credentials
-app.get('/api/sites/:siteId/credentials', async (req, res) => {
-  const { data, error } = await supabase
-    .from('site_manager_credentials')
-    .select('*')
-    .eq('site_id', req.params.siteId)
-    .order('created_at', { ascending: false });
-  if (error) return res.status(500).json({ error: error.message });
-  res.json(data);
-});
-
-app.post('/api/credentials', async (req, res) => {
-  const { data, error } = await supabase
-    .from('site_manager_credentials')
-    .insert(req.body)
-    .select()
-    .single();
-  if (error) return res.status(400).json({ error: error.message });
-  res.status(201).json(data);
-});
-
-app.delete('/api/credentials/:id', async (req, res) => {
-  const { error } = await supabase
-    .from('site_manager_credentials')
-    .delete()
-    .eq('id', req.params.id);
-  if (error) return res.status(400).json({ error: error.message });
-  res.json({ ok: true });
-});
-
-// Monitors
-app.get('/api/sites/:siteId/monitors', async (req, res) => {
-  const { data, error } = await supabase
-    .from('site_manager_monitors')
-    .select('*')
-    .eq('site_id', req.params.siteId);
-  if (error) return res.status(500).json({ error: error.message });
-  res.json(data);
-});
-
-// Stats dashboard
-app.get('/api/stats', async (req, res) => {
-  const [sites, tasks, monitors] = await Promise.all([
-    supabase.from('site_manager_sites').select('id, status'),
-    supabase.from('site_manager_tasks').select('id, status'),
-    supabase.from('site_manager_monitors').select('id, is_up'),
-  ]);
-  res.json({
-    total_sites: (sites.data || []).length,
-    active_sites: (sites.data || []).filter(s => s.status === 'active').length,
-    total_tasks: (tasks.data || []).length,
-    pending_tasks: (tasks.data || []).filter(t => t.status === 'todo' || t.status === 'in_progress').length,
-    monitors_up: (monitors.data || []).filter(m => m.is_up).length,
-    monitors_total: (monitors.data || []).length,
+// ===== GLOBAL ERROR HANDLER =====
+app.use((err, req, res, next) => {
+  logger.error({ err: err.message, stack: err.stack, path: req.path });
+  res.status(err.status || 500).json({
+    error: process.env.NODE_ENV === 'production' ? 'Erreur interne' : err.message
   });
 });
 
-// SPA fallback
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// ===== START =====
+app.listen(PORT, () => {
+  logger.info(`Gestionnaire de Site running on port ${PORT}`);
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Gestionnaire de Site running on port ${PORT}`);
-});
+module.exports = app;

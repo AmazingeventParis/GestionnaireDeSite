@@ -1,0 +1,625 @@
+/* ===== ADMIN TOOLBAR ===== */
+#gds-admin-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 48px;
+  background: #0d1117;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 16px;
+  z-index: 99999;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  box-shadow: 0 2px 20px rgba(0,0,0,0.4);
+}
+
+#gds-admin-bar .gds-ab-logo {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+#gds-admin-bar .gds-ab-sep {
+  width: 1px;
+  height: 24px;
+  background: rgba(255,255,255,0.15);
+}
+
+#gds-admin-bar select {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.2);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+}
+#gds-admin-bar select:hover {
+  background: rgba(255,255,255,0.15);
+}
+#gds-admin-bar select option {
+  background: #0d1117;
+  color: #fff;
+}
+
+#gds-admin-bar .gds-ab-changes {
+  font-size: 12px;
+  color: #d29922;
+  font-weight: 700;
+  display: none;
+}
+#gds-admin-bar .gds-ab-changes.show { display: block; }
+
+#gds-admin-bar .gds-ab-spacer { flex: 1; }
+
+#gds-admin-bar .gds-ab-btn {
+  padding: 7px 18px;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+#gds-admin-bar .gds-ab-btn-publish {
+  background: linear-gradient(135deg, #238636, #2ea043);
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(35,134,54,0.3);
+}
+#gds-admin-bar .gds-ab-btn-publish:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(35,134,54,0.5);
+}
+#gds-admin-bar .gds-ab-btn-publish:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+#gds-admin-bar .gds-ab-btn-logout {
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.6);
+}
+#gds-admin-bar .gds-ab-btn-logout:hover {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+}
+
+/* Offset page content for admin bar */
+body.gds-admin-mode {
+  padding-top: 48px !important;
+}
+body.gds-admin-mode .gds-header {
+  top: 48px !important;
+}
+body.gds-admin-mode .gds-page-content {
+  padding-top: 120px !important;
+}
+@media (max-width: 850px) {
+  body.gds-admin-mode .gds-page-content {
+    padding-top: 108px !important;
+  }
+}
+
+/* ===== EDITABLE ELEMENTS ===== */
+[data-gds-edit] {
+  position: relative !important;
+  outline: 3px dashed rgba(88,166,255,0.5) !important;
+  outline-offset: 4px;
+  border-radius: 4px;
+  cursor: pointer !important;
+  transition: outline-color 0.2s, background 0.2s;
+  z-index: 10 !important;
+}
+
+[data-gds-edit]:hover {
+  outline-color: rgba(88,166,255,0.8) !important;
+}
+
+[data-gds-edit]:focus {
+  outline: 3px solid #58a6ff !important;
+  outline-offset: 4px;
+  background: rgba(88,166,255,0.05);
+}
+
+/* Badge showing tag type — always visible */
+[data-gds-edit]::after {
+  content: attr(data-gds-tag);
+  position: absolute;
+  top: -14px;
+  right: -2px;
+  font-size: 10px;
+  font-weight: 800;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  color: #fff;
+  background: #58a6ff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  pointer-events: none;
+  opacity: 1 !important;
+  z-index: 11;
+}
+
+/* Modified indicator */
+[data-gds-edit].gds-modified {
+  outline-color: #d29922;
+}
+[data-gds-edit].gds-modified::after {
+  background: #d29922;
+  opacity: 1;
+}
+
+/* Tag selector popup */
+.gds-tag-select {
+  position: absolute;
+  top: -32px;
+  left: 0;
+  display: none;
+  gap: 2px;
+  z-index: 100;
+}
+[data-gds-edit]:focus .gds-tag-select {
+  display: flex;
+}
+.gds-tag-btn {
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 800;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  background: #21262d;
+  color: rgba(255,255,255,0.6);
+  transition: all 0.15s;
+}
+.gds-tag-btn:hover { background: #58a6ff; color: #fff; }
+.gds-tag-btn.active { background: #58a6ff; color: #fff; }
+
+/* ===== TOAST NOTIFICATION ===== */
+#gds-admin-toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: #0d1117;
+  color: #fff;
+  padding: 14px 28px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+  z-index: 999999;
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+#gds-admin-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+#gds-admin-toast.success { border-left: 4px solid #3fb950; }
+#gds-admin-toast.error { border-left: 4px solid #f85149; }
+
+/* ===== SEO PANEL ===== */
+#gds-seo-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border-top: 3px solid #58a6ff;
+  padding: 20px 30px;
+  z-index: 99998;
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+  box-shadow: 0 -8px 30px rgba(0,0,0,0.1);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+}
+#gds-seo-panel.open { transform: translateY(0); }
+#gds-seo-panel h3 {
+  font-size: 14px;
+  font-weight: 800;
+  color: #24292f;
+  margin-bottom: 12px;
+}
+.gds-seo-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.gds-seo-field label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: block;
+  margin-bottom: 4px;
+}
+.gds-seo-field input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 2px solid #d0d7de;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 600;
+  outline: none;
+  box-sizing: border-box;
+}
+.gds-seo-field input:focus { border-color: #58a6ff; }
+.gds-seo-close {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #8b949e;
+}
+
+#gds-admin-bar .gds-ab-btn-seo {
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.8);
+}
+#gds-admin-bar .gds-ab-btn-seo:hover {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+}
+
+/* ===== EDITABLE IMAGES ===== */
+[data-gds-img].gds-img-hover,
+[data-gds-bg].gds-img-hover {
+  outline: 3px dashed rgba(88,166,255,0.7) !important;
+  outline-offset: 3px;
+}
+/* Floating toolbar */
+.gds-img-toolbar {
+  position: absolute;
+  z-index: 99990;
+  pointer-events: auto;
+}
+.gds-img-tb-row {
+  display: flex;
+  gap: 6px;
+}
+.gds-img-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #58a6ff, #79c0ff);
+  color: #fff;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  box-shadow: 0 4px 16px rgba(88,166,255,0.5);
+  cursor: pointer;
+  z-index: 99990;
+  transition: transform 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+  pointer-events: auto;
+}
+.gds-img-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 24px rgba(88,166,255,0.6);
+}
+.gds-img-pos-btn {
+  background: linear-gradient(135deg, #8b5cf6, #a78bfa) !important;
+  box-shadow: 0 4px 16px rgba(139,92,246,0.4) !important;
+}
+.gds-img-pos-btn:hover {
+  box-shadow: 0 6px 24px rgba(139,92,246,0.6) !important;
+}
+.gds-img-btn-loading {
+  background: #d29922 !important;
+  animation: gds-pulse-upload 1s infinite;
+}
+
+/* Position sliders */
+.gds-img-sliders {
+  background: rgba(13, 17, 23, 0.92);
+  backdrop-filter: blur(8px);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-top: 6px;
+  min-width: 200px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+}
+.gds-img-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.gds-img-slider-row label {
+  color: rgba(255,255,255,0.5);
+  font-size: 11px;
+  font-weight: 800;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  width: 14px;
+  text-align: center;
+}
+.gds-img-slider-row input[type="range"] {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255,255,255,0.15);
+  border-radius: 2px;
+  outline: none;
+}
+.gds-img-slider-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #58a6ff;
+  cursor: pointer;
+  box-shadow: 0 0 6px rgba(88,166,255,0.5);
+}
+.gds-img-slider-row input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #58a6ff;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 6px rgba(88,166,255,0.5);
+}
+.gds-img-slider-row span {
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  width: 32px;
+  text-align: right;
+}
+.gds-img-pos-save {
+  width: 100%;
+  padding: 6px;
+  background: linear-gradient(135deg, #238636, #2ea043);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  cursor: pointer;
+  margin-top: 2px;
+}
+.gds-img-pos-save:hover {
+  opacity: 0.9;
+}
+@keyframes gds-pulse-upload {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+
+/* ===== MUR GALLERY MANAGER ===== */
+.gds-mur-manage-btn {
+  position: absolute;
+  top: 12px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #58a6ff, #79c0ff);
+  color: #fff;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  cursor: pointer;
+  z-index: 999;
+  box-shadow: 0 4px 16px rgba(88,166,255,0.5);
+  transition: transform 0.15s;
+}
+.gds-mur-manage-btn:hover {
+  transform: scale(1.05);
+}
+
+/* Modal panel */
+#gds-mur-panel {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.gds-mur-panel-inner {
+  background: #fff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 800px;
+  max-height: 85vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+}
+.gds-mur-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #d0d7de;
+}
+.gds-mur-panel-header h3 {
+  font-size: 18px;
+  font-weight: 800;
+  color: #24292f;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+}
+.gds-mur-close {
+  background: none;
+  border: none;
+  font-size: 28px;
+  cursor: pointer;
+  color: #8b949e;
+  line-height: 1;
+}
+.gds-mur-panel-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+.gds-mur-loading {
+  text-align: center;
+  padding: 40px;
+  color: #8b949e;
+  font-size: 14px;
+}
+
+/* Category sections */
+.gds-mur-cat {
+  margin-bottom: 24px;
+}
+.gds-mur-cat-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.gds-mur-cat-label {
+  padding: 4px 14px;
+  border-radius: 20px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+}
+.gds-mur-cat-count {
+  font-size: 12px;
+  color: #8b949e;
+  font-weight: 600;
+}
+.gds-mur-add-btn {
+  margin-left: auto;
+  padding: 6px 16px;
+  border: 2px solid;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #fff;
+}
+.gds-mur-add-btn:hover {
+  opacity: 0.8;
+}
+
+/* Photo grid */
+.gds-mur-cat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 8px;
+}
+.gds-mur-thumb {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  aspect-ratio: 1;
+  background: #f6f8fa;
+}
+.gds-mur-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.gds-mur-del {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  background: rgba(248,81,73,0.9);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.gds-mur-thumb:hover .gds-mur-del {
+  display: flex;
+}
+
+/* ===== MOBILE RESPONSIVE ===== */
+@media (max-width: 768px) {
+  #gds-admin-bar {
+    padding: 0 10px;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  #gds-admin-bar .gds-ab-logo {
+    font-size: 12px;
+    max-width: 100px;
+  }
+  #gds-admin-bar select {
+    font-size: 11px;
+    padding: 5px 8px;
+    max-width: 120px;
+  }
+  #gds-admin-bar .gds-ab-btn {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+  #gds-admin-bar .gds-ab-changes {
+    font-size: 10px;
+  }
+  .gds-seo-grid {
+    grid-template-columns: 1fr;
+  }
+  #gds-seo-panel {
+    padding: 16px 20px;
+  }
+  .gds-mur-manage-btn {
+    font-size: 11px;
+    padding: 8px 14px;
+    top: 8px;
+    right: 10px;
+  }
+  .gds-mur-panel-inner {
+    max-height: 90vh;
+    border-radius: 14px;
+  }
+  .gds-mur-cat-grid {
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  #gds-admin-bar .gds-ab-btn-seo {
+    display: none;
+  }
+  #gds-admin-bar .gds-ab-sep {
+    display: none;
+  }
+}

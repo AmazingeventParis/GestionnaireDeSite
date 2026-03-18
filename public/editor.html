@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Editeur - Gestionnaire de Site</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/responsive-preview.css">
+  <style>
+    body { overflow: hidden; }
+
+    /* Top bar */
+    .editor-topbar {
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      padding: 0 16px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+    }
+    .editor-topbar-brand {
+      font-size: 15px;
+      font-weight: 700;
+      color: #e6edf3;
+      margin-right: 8px;
+      white-space: nowrap;
+    }
+    .editor-topbar-brand span { color: #58a6ff; }
+    .editor-topbar-divider {
+      width: 1px;
+      height: 24px;
+      background: #30363d;
+    }
+    .page-selector {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      color: #e6edf3;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      min-width: 140px;
+    }
+    .page-selector:focus {
+      border-color: #58a6ff;
+      outline: none;
+      box-shadow: 0 0 0 2px #58a6ff33;
+    }
+    .page-selector option { background: #0d1117; }
+
+    .editor-topbar-spacer { flex: 1; }
+
+    .changes-badge {
+      background: #d29922;
+      color: #0d1117;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      display: none;
+    }
+    .changes-badge.visible { display: inline-block; }
+
+    .topbar-btn {
+      background: #21262d;
+      border: 1px solid #30363d;
+      color: #e6edf3;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+    .topbar-btn:hover { background: #30363d; }
+    .topbar-btn-seo { color: #d2a8ff; border-color: #8b5cf644; }
+    .topbar-btn-seo:hover { background: #8b5cf622; }
+
+    .btn-save {
+      background: #1f6feb;
+      border-color: #388bfd44;
+      color: #fff;
+    }
+    .btn-save:hover { background: #388bfd; }
+
+    .btn-publish {
+      background: #238636;
+      border-color: #2ea04366;
+      color: #fff;
+    }
+    .btn-publish:hover { background: #2ea043; }
+    .btn-publish:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .topbar-btn-logout {
+      color: #f85149;
+      border-color: #f8514933;
+    }
+    .topbar-btn-logout:hover { background: #f8514922; }
+
+    /* Main content area */
+    .editor-main {
+      position: fixed;
+      top: 52px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      flex-direction: column;
+      background: #010409;
+    }
+
+    /* Responsive toolbar area */
+    .editor-toolbar-area {
+      flex-shrink: 0;
+    }
+
+    /* Iframe area */
+    .editor-iframe-area {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 16px;
+    }
+
+    #editor-frame {
+      border: none;
+      background: #ffffff;
+      transition: width 0.3s, height 0.3s;
+      border-radius: 4px;
+      box-shadow: 0 0 0 1px #30363d, 0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    /* SEO Panel */
+    .seo-panel {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #161b22;
+      border-top: 1px solid #30363d;
+      padding: 20px 24px;
+      transform: translateY(100%);
+      transition: transform 0.3s ease;
+      z-index: 90;
+      max-height: 50vh;
+      overflow-y: auto;
+    }
+    .seo-panel.open { transform: translateY(0); }
+    .seo-panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .seo-panel-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #e6edf3;
+    }
+    .seo-panel-close {
+      background: none;
+      border: none;
+      color: #8b949e;
+      cursor: pointer;
+      font-size: 20px;
+      padding: 4px;
+    }
+    .seo-panel-close:hover { color: #e6edf3; }
+    .seo-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .seo-field { display: flex; flex-direction: column; gap: 4px; }
+    .seo-field label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #8b949e;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .seo-field input, .seo-field textarea {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      color: #e6edf3;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+    .seo-field input:focus, .seo-field textarea:focus {
+      border-color: #58a6ff;
+      outline: none;
+      box-shadow: 0 0 0 2px #58a6ff33;
+    }
+    .seo-field textarea { resize: vertical; min-height: 60px; }
+    .seo-preview {
+      grid-column: 1 / -1;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 8px;
+    }
+    .seo-preview-title {
+      font-size: 12px;
+      color: #8b949e;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .seo-preview-google {
+      font-family: Arial, sans-serif;
+    }
+    .seo-preview-google .title {
+      color: #8ab4f8;
+      font-size: 18px;
+      line-height: 1.3;
+      margin-bottom: 4px;
+      cursor: pointer;
+    }
+    .seo-preview-google .url {
+      color: #bdc1c6;
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+    .seo-preview-google .desc {
+      color: #bdc1c6;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 768px) {
+      .editor-topbar { padding: 0 8px; gap: 6px; }
+      .topbar-btn span.btn-label { display: none; }
+      .page-selector { min-width: 100px; }
+      .seo-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Top bar -->
+  <div class="editor-topbar">
+    <a href="/pages.html" class="editor-topbar-brand">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="#8b949e" style="vertical-align: -2px; margin-right: 4px;"><path d="M7.78 12.53a.75.75 0 01-1.06 0L2.47 8.28a.75.75 0 010-1.06l4.25-4.25a.75.75 0 011.06 1.06L4.81 7h7.44a.75.75 0 010 1.5H4.81l2.97 2.97a.75.75 0 010 1.06z"/></svg>
+      Pages
+    </a>
+    <div class="editor-topbar-divider"></div>
+    <select class="page-selector" id="page-selector" title="Changer de page">
+      <option value="">Chargement...</option>
+    </select>
+    <div class="editor-topbar-spacer"></div>
+    <span class="changes-badge" id="changes-badge">0 modif.</span>
+    <button class="topbar-btn topbar-btn-seo" id="btn-seo" title="SEO">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8s3.58 8 8 8 8-3.58 8-8-3.58-8-8-8zm0 14.5a6.5 6.5 0 110-13 6.5 6.5 0 010 13zM6.5 5a1 1 0 112 0 1 1 0 01-2 0zM7 7.5a.75.75 0 011.5 0v4a.75.75 0 01-1.5 0z"/></svg>
+      <span class="btn-label">SEO</span>
+    </button>
+    <button class="topbar-btn btn-save" id="btn-save" title="Sauvegarder">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M5.75 1a.75.75 0 00-.75.75v3c0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75v-3a.75.75 0 00-.75-.75h-4.5zm.75 3V2.5h3V4h-3zm-2.874-.467a.75.75 0 00-.752.75v7.5a.75.75 0 001.5 0V9h7.252v2.783a.75.75 0 001.5 0v-7.5a.75.75 0 00-.752-.75H3.626zM12.876 7.5H3.124V5.033h9.752V7.5z"/></svg>
+      <span class="btn-label">Sauvegarder</span>
+    </button>
+    <button class="topbar-btn btn-publish" id="btn-publish" title="Publier">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M1 7.775V2.75C1 1.784 1.784 1 2.75 1h5.025c.464 0 .91.184 1.238.513l6.25 6.25a1.75 1.75 0 010 2.474l-5.026 5.026a1.75 1.75 0 01-2.474 0l-6.25-6.25A1.752 1.752 0 011 7.775zM5 5a1 1 0 100-2 1 1 0 000 2z"/></svg>
+      <span class="btn-label">Publier</span>
+    </button>
+    <button class="topbar-btn topbar-btn-logout" id="btn-logout" title="Deconnexion">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2.75C2 1.784 2.784 1 3.75 1h8.5c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0112.25 15h-8.5A1.75 1.75 0 012 13.25zm6.56 4.5l1.97-1.97a.75.75 0 10-1.06-1.06L6.22 7.47a.75.75 0 000 1.06l3.25 3.25a.75.75 0 101.06-1.06L8.56 8.75H13a.75.75 0 000-1.5z"/></svg>
+    </button>
+  </div>
+
+  <!-- Main content -->
+  <div class="editor-main">
+    <div class="editor-toolbar-area" id="responsive-toolbar"></div>
+    <div class="editor-iframe-area" id="iframe-area">
+      <iframe id="editor-frame" src="about:blank" width="1920" height="1080"></iframe>
+    </div>
+  </div>
+
+  <!-- SEO Panel -->
+  <div class="seo-panel" id="seo-panel">
+    <div class="seo-panel-header">
+      <span class="seo-panel-title">Parametres SEO</span>
+      <button class="seo-panel-close" id="seo-close">&times;</button>
+    </div>
+    <div class="seo-grid">
+      <div class="seo-field">
+        <label for="seo-title">Titre de la page</label>
+        <input type="text" id="seo-title" placeholder="Titre pour les moteurs de recherche" maxlength="70">
+      </div>
+      <div class="seo-field">
+        <label for="seo-og-title">og:title (reseaux sociaux)</label>
+        <input type="text" id="seo-og-title" placeholder="Titre pour le partage social" maxlength="70">
+      </div>
+      <div class="seo-field">
+        <label for="seo-description">Meta description</label>
+        <textarea id="seo-description" placeholder="Description pour les moteurs de recherche" maxlength="160"></textarea>
+      </div>
+      <div class="seo-field">
+        <label for="seo-og-description">og:description</label>
+        <textarea id="seo-og-description" placeholder="Description pour le partage social" maxlength="200"></textarea>
+      </div>
+      <div class="seo-preview">
+        <div class="seo-preview-title">Apercu Google</div>
+        <div class="seo-preview-google">
+          <div class="title" id="seo-preview-title">Titre de la page</div>
+          <div class="url" id="seo-preview-url">https://example.com/page</div>
+          <div class="desc" id="seo-preview-desc">Description de la page...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="/js/auth.js"></script>
+  <script src="/js/components.js"></script>
+  <script src="/js/responsive-preview.js"></script>
+  <script>
+    (function() {
+      'use strict';
+
+      var currentSlug = '';
+      var currentUser = null;
+      var changes = [];
+      var seoData = { title: '', description: '', ogTitle: '', ogDescription: '' };
+      var seoPanel = document.getElementById('seo-panel');
+
+      /**
+       * Get slug from URL params.
+       */
+      function getSlugFromUrl() {
+        var params = new URLSearchParams(window.location.search);
+        return params.get('slug') || 'home';
+      }
+
+      /**
+       * Load the page list for the page selector dropdown.
+       */
+      async function loadPageList() {
+        try {
+          var response = await Auth.apiFetch('/api/pages');
+          if (!response.ok) throw new Error('Erreur');
+          var data = await response.json();
+          var selector = document.getElementById('page-selector');
+          selector.innerHTML = '';
+          var pages = data.pages || [];
+          for (var i = 0; i < pages.length; i++) {
+            var opt = document.createElement('option');
+            opt.value = pages[i].slug;
+            opt.textContent = pages[i].name;
+            if (pages[i].slug === currentSlug) opt.selected = true;
+            selector.appendChild(opt);
+          }
+        } catch (err) {
+          console.error('Failed to load page list:', err);
+        }
+      }
+
+      /**
+       * Load page data and set up the editor iframe.
+       */
+      async function loadPage(slug) {
+        currentSlug = slug;
+        changes = [];
+        updateChangesBadge();
+
+        var frame = document.getElementById('editor-frame');
+        frame.src = '/api/pages/' + encodeURIComponent(slug) + '/preview';
+
+        // Load SEO data
+        try {
+          var response = await Auth.apiFetch('/api/pages/' + encodeURIComponent(slug));
+          if (response.ok) {
+            var data = await response.json();
+            seoData = data.seo || { title: '', description: '', ogTitle: '', ogDescription: '' };
+            populateSeoFields();
+          }
+        } catch (err) {
+          console.error('Failed to load page data:', err);
+        }
+      }
+
+      /**
+       * Populate SEO form fields from seoData.
+       */
+      function populateSeoFields() {
+        document.getElementById('seo-title').value = seoData.title || '';
+        document.getElementById('seo-description').value = seoData.description || '';
+        document.getElementById('seo-og-title').value = seoData.ogTitle || '';
+        document.getElementById('seo-og-description').value = seoData.ogDescription || '';
+        updateSeoPreview();
+      }
+
+      /**
+       * Collect SEO data from form fields.
+       */
+      function collectSeoData() {
+        return {
+          title: document.getElementById('seo-title').value,
+          description: document.getElementById('seo-description').value,
+          ogTitle: document.getElementById('seo-og-title').value,
+          ogDescription: document.getElementById('seo-og-description').value
+        };
+      }
+
+      /**
+       * Update the Google preview in the SEO panel.
+       */
+      function updateSeoPreview() {
+        var title = document.getElementById('seo-title').value || 'Titre de la page';
+        var desc = document.getElementById('seo-description').value || 'Description de la page...';
+        var domain = window.location.hostname;
+        var urlPath = currentSlug === 'home' ? '' : currentSlug;
+        document.getElementById('seo-preview-title').textContent = title;
+        document.getElementById('seo-preview-url').textContent = 'https://' + domain + '/' + urlPath;
+        document.getElementById('seo-preview-desc').textContent = desc;
+      }
+
+      /**
+       * Update the changes badge.
+       */
+      function updateChangesBadge() {
+        var badge = document.getElementById('changes-badge');
+        if (changes.length > 0) {
+          badge.textContent = changes.length + ' modif.';
+          badge.classList.add('visible');
+        } else {
+          badge.classList.remove('visible');
+        }
+      }
+
+      /**
+       * Save changes.
+       */
+      async function saveChanges() {
+        var seo = collectSeoData();
+        var btn = document.getElementById('btn-save');
+        btn.disabled = true;
+        btn.textContent = 'Sauvegarde...';
+        try {
+          var response = await Auth.apiFetch('/api/pages/' + encodeURIComponent(currentSlug) + '/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ changes: changes, seo: seo })
+          });
+          if (!response.ok) {
+            var err = await response.json();
+            throw new Error(err.error || 'Erreur');
+          }
+          changes = [];
+          updateChangesBadge();
+          Components.showToast('Page sauvegardee', 'success');
+          // Reload preview
+          var frame = document.getElementById('editor-frame');
+          frame.src = frame.src;
+        } catch (err) {
+          Components.showToast('Erreur: ' + err.message, 'error');
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M5.75 1a.75.75 0 00-.75.75v3c0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75v-3a.75.75 0 00-.75-.75h-4.5zm.75 3V2.5h3V4h-3zm-2.874-.467a.75.75 0 00-.752.75v7.5a.75.75 0 001.5 0V9h7.252v2.783a.75.75 0 001.5 0v-7.5a.75.75 0 00-.752-.75H3.626zM12.876 7.5H3.124V5.033h9.752V7.5z"/></svg><span class="btn-label">Sauvegarder</span>';
+        }
+      }
+
+      /**
+       * Publish page.
+       */
+      async function publishPage() {
+        if (!confirm('Publier cette page ? Les modifications seront visibles sur le site.')) return;
+
+        // Save first
+        await saveChanges();
+
+        var btn = document.getElementById('btn-publish');
+        btn.disabled = true;
+        btn.textContent = 'Publication...';
+        try {
+          var response = await Auth.apiFetch('/api/pages/' + encodeURIComponent(currentSlug) + '/publish', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          if (!response.ok) {
+            var err = await response.json();
+            throw new Error(err.error || 'Erreur');
+          }
+          Components.showToast('Page publiee avec succes', 'success');
+        } catch (err) {
+          Components.showToast('Erreur: ' + err.message, 'error');
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M1 7.775V2.75C1 1.784 1.784 1 2.75 1h5.025c.464 0 .91.184 1.238.513l6.25 6.25a1.75 1.75 0 010 2.474l-5.026 5.026a1.75 1.75 0 01-2.474 0l-6.25-6.25A1.752 1.752 0 011 7.775zM5 5a1 1 0 100-2 1 1 0 000 2z"/></svg><span class="btn-label">Publier</span>';
+        }
+      }
+
+      // ==================== Event Listeners ====================
+
+      // Page selector change
+      document.getElementById('page-selector').addEventListener('change', function() {
+        var slug = this.value;
+        if (slug && slug !== currentSlug) {
+          if (changes.length > 0 && !confirm('Vous avez des modifications non sauvegardees. Continuer ?')) {
+            this.value = currentSlug;
+            return;
+          }
+          window.history.replaceState(null, '', '/editor.html?slug=' + encodeURIComponent(slug));
+          loadPage(slug);
+        }
+      });
+
+      // SEO panel toggle
+      document.getElementById('btn-seo').addEventListener('click', function() {
+        seoPanel.classList.toggle('open');
+      });
+      document.getElementById('seo-close').addEventListener('click', function() {
+        seoPanel.classList.remove('open');
+      });
+
+      // SEO fields live preview
+      ['seo-title', 'seo-description', 'seo-og-title', 'seo-og-description'].forEach(function(id) {
+        document.getElementById(id).addEventListener('input', updateSeoPreview);
+      });
+
+      // Save
+      document.getElementById('btn-save').addEventListener('click', saveChanges);
+
+      // Publish
+      document.getElementById('btn-publish').addEventListener('click', publishPage);
+
+      // Logout
+      document.getElementById('btn-logout').addEventListener('click', function() {
+        Auth.apiFetch('/api/auth/logout', { method: 'POST' }).then(function() {
+          window.location.href = '/login.html';
+        });
+      });
+
+      // Listen for changes from iframe (postMessage API)
+      window.addEventListener('message', function(event) {
+        if (event.data && event.data.type === 'contentChange') {
+          changes.push(event.data.change);
+          updateChangesBadge();
+        }
+      });
+
+      // Keyboard shortcuts
+      document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+          e.preventDefault();
+          saveChanges();
+        }
+      });
+
+      // ==================== Init ====================
+
+      Auth.init().then(function(user) {
+        currentUser = user;
+        if (!user) {
+          window.location.href = '/login.html';
+          return;
+        }
+        // Only admin can publish
+        if (user.role !== 'admin') {
+          document.getElementById('btn-publish').style.display = 'none';
+        }
+
+        currentSlug = getSlugFromUrl();
+        loadPageList();
+        loadPage(currentSlug);
+
+        // Initialize responsive preview
+        ResponsivePreview.init('editor-frame', 'responsive-toolbar', 'iframe-area');
+      });
+    })();
+  </script>
+</body>
+</html>
