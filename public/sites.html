@@ -78,8 +78,8 @@
         }
 
         var res = await Auth.apiFetch('/api/sites');
-        sites = await res.json();
-        if (!Array.isArray(sites)) sites = [];
+        var data = await res.json();
+        sites = Array.isArray(data) ? data : (data.sites || []);
         renderSites();
     }
 
@@ -139,7 +139,8 @@
             Components.showToast(id ? 'Site mis a jour' : 'Site cree', 'success');
             closeModal();
             var r = await Auth.apiFetch('/api/sites');
-            sites = await r.json();
+            var d = await r.json();
+            sites = Array.isArray(d) ? d : (d.sites || []);
             renderSites();
         } else {
             var err = await res.json();
