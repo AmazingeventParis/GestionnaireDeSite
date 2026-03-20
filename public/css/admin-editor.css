@@ -627,16 +627,15 @@ body.gds-admin-mode .gds-page-content {
 /* ===== BLOCK INSERTER ===== */
 .gds-block-inserter {
   position: relative;
-  height: 0;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 50;
-  opacity: 0;
+  opacity: 0.6;
   transition: opacity 0.2s;
 }
-.gds-block-inserter:hover,
-.gds-block-inserter.visible {
+.gds-block-inserter:hover {
   opacity: 1;
 }
 .gds-block-inserter::before {

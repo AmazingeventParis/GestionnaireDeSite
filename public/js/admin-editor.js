@@ -910,38 +910,72 @@
   // ===== BLOCK INSERTER =====
   function initBlockInserters() {
     // Find the main content area
-    const main = document.querySelector('main.snb-page-content') || document.querySelector('.snb-page-wrapper') || document.body;
-    const children = Array.from(main.children).filter(el =>
-      el.tagName !== 'SCRIPT' && el.tagName !== 'STYLE' && !el.classList.contains('gds-block-inserter')
-    );
+    const main = document.querySelector('main.snb-page-content');
+    if (!main) {
+      console.warn('[GDS Admin] No main.snb-page-content found for block inserters');
+      return;
+    }
 
-    if (children.length === 0) return;
+    // Collect visual section elements (skip style, script, text nodes)
+    // A "section" is any element that contains visible content (section, div with class, etc.)
+    const allChildren = Array.from(main.children);
+    const sections = [];
+    let i = 0;
+    while (i < allChildren.length) {
+      const el = allChildren[i];
+      // Skip style/script/inserter
+      if (el.tagName === 'STYLE' || el.tagName === 'SCRIPT' || el.tagName === 'LINK' ||
+          el.classList.contains('gds-block-inserter')) {
+        i++;
+        continue;
+      }
+      // This is a visual section — but the <style> before it belongs to it
+      // Group: collect any preceding <style> tags + this element as one "section block"
+      sections.push(el);
+      i++;
+    }
 
-    // Insert an inserter between each child and at start/end
-    const positions = [];
-    children.forEach((child, i) => {
-      // Before first child
-      if (i === 0) positions.push({ ref: child, where: 'before', index: 0 });
-      // After each child
-      positions.push({ ref: child, where: 'after', index: i + 1 });
-    });
-
-    positions.forEach(pos => {
+    if (sections.length === 0) {
+      // For an empty page, add a single inserter
       const inserter = document.createElement('div');
       inserter.className = 'gds-block-inserter';
-      inserter.dataset.insertIndex = pos.index;
+      inserter.dataset.insertIndex = '0';
       inserter.innerHTML = '<button class="gds-block-inserter-btn" title="Ajouter un bloc">+</button>';
-      if (pos.where === 'before') {
-        pos.ref.parentNode.insertBefore(inserter, pos.ref);
-      } else {
-        pos.ref.parentNode.insertBefore(inserter, pos.ref.nextSibling);
-      }
+      main.appendChild(inserter);
+      inserter.querySelector('.gds-block-inserter-btn').addEventListener('click', () => {
+        openBlockModal(0);
+      });
+      console.log('[GDS Admin] Empty page — added 1 block inserter');
+      return;
+    }
+
+    // Insert an inserter before first section, between each, and after last
+    let insertCount = 0;
+    sections.forEach((section, idx) => {
+      // Before this section
+      const inserter = document.createElement('div');
+      inserter.className = 'gds-block-inserter';
+      inserter.dataset.insertIndex = String(idx);
+      inserter.innerHTML = '<button class="gds-block-inserter-btn" title="Ajouter un bloc">+</button>';
+      section.parentNode.insertBefore(inserter, section);
       inserter.querySelector('.gds-block-inserter-btn').addEventListener('click', () => {
         openBlockModal(parseInt(inserter.dataset.insertIndex));
       });
+      insertCount++;
     });
 
-    console.log('[GDS Admin] Inserted', positions.length, 'block inserters');
+    // After last section
+    const lastInserter = document.createElement('div');
+    lastInserter.className = 'gds-block-inserter';
+    lastInserter.dataset.insertIndex = String(sections.length);
+    lastInserter.innerHTML = '<button class="gds-block-inserter-btn" title="Ajouter un bloc">+</button>';
+    main.appendChild(lastInserter);
+    lastInserter.querySelector('.gds-block-inserter-btn').addEventListener('click', () => {
+      openBlockModal(sections.length);
+    });
+    insertCount++;
+
+    console.log('[GDS Admin] Inserted', insertCount, 'block inserters for', sections.length, 'sections');
   }
 
   let currentInsertIndex = 0;
