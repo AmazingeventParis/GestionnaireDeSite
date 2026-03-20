@@ -165,104 +165,59 @@
   .snb-stats .stat-label { font-size:12px; letter-spacing:2px; padding:6px 16px; margin-bottom:12px; }
 }
 </style>
-
 <div class="snb-stats">
-  <div class="stats-dot d1"></div>
-  <div class="stats-dot d2"></div>
-  <div class="stats-dot d3"></div>
-
-  <div class="stats-brush">
-    <svg viewBox="0 0 1200 60" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M0 35C100 15 200 50 400 30C600 10 800 45 1000 25C1100 18 1150 35 1200 30" stroke="#E51981" stroke-width="40" stroke-linecap="round" fill="none"/>
-    </svg>
-  </div>
-
-  <div class="stats-wave">
-    <svg viewBox="0 0 1200 120" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M0 60C200 20 400 90 600 50C800 10 1000 80 1200 40" stroke="rgba(229,25,129,0.1)" stroke-width="1.5" fill="none"/>
-      <path d="M0 80C200 40 400 110 600 70C800 30 1000 100 1200 60" stroke="rgba(2,80,255,0.06)" stroke-width="1" fill="none"/>
-    </svg>
-  </div>
-
-  <div class="stats-inner">
-    <div class="stats-grid">
-
-      <div class="stat-card">
-        <div class="stat-label">Photos captur&#233;es</div>
-        <div class="stat-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#E51981" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-            <circle cx="12" cy="13" r="4"/>
-          </svg>
-        </div>
-        <div class="stat-number" data-target="1658259">0</div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-label">Mariages &amp; anniversaires</div>
-        <div class="stat-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#E51981" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="9" cy="12" r="5"/>
-            <circle cx="15" cy="12" r="5"/>
-          </svg>
-        </div>
-        <div class="stat-number" data-target="2150">0</div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-label">&#201;v&#233;nements r&#233;alis&#233;s</div>
-        <div class="stat-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#E51981" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="10" r="6"/>
-            <line x1="12" y1="16" x2="12" y2="22"/>
-            <line x1="8" y1="7" x2="8.5" y2="5"/>
-            <line x1="16" y1="7" x2="15.5" y2="5"/>
-            <line x1="9" y1="12" x2="7" y2="13"/>
-            <line x1="15" y1="12" x2="17" y2="13"/>
-            <line x1="10" y1="9" x2="9" y2="7.5"/>
-            <line x1="14" y1="9" x2="15" y2="7.5"/>
-          </svg>
-        </div>
-        <div class="stat-number" data-target="4589">0</div>
-      </div>
-
-    </div>
-  </div>
+<div class="stats-dot d1"></div>
+<div class="stats-dot d2"></div>
+<div class="stats-dot d3"></div>
+<div class="stats-brush">
+<svg viewBox="0 0 1200 60" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M0 35C100 15 200 50 400 30C600 10 800 45 1000 25C1100 18 1150 35 1200 30" stroke="#E51981" stroke-width="40" stroke-linecap="round" fill="none"></path>
+</svg>
 </div>
-
-<script>
-(function(){
-  function snbFormatNumber(n) {
-    return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-  }
-  function snbAnimateCounter(el, target, duration) {
-    var startTime = performance.now();
-    function update(now) {
-      var elapsed = now - startTime;
-      var progress = Math.min(elapsed / duration, 1);
-      var eased = 1 - Math.pow(1 - progress, 3);
-      var current = Math.floor(eased * target);
-      el.textContent = snbFormatNumber(current);
-      if (progress < 1) requestAnimationFrame(update);
-      else el.textContent = snbFormatNumber(target);
-    }
-    requestAnimationFrame(update);
-  }
-  var cards = document.querySelectorAll('.snb-stats .stat-card');
-  var observer = new IntersectionObserver(function(entries) {
-    entries.forEach(function(entry) {
-      if (entry.isIntersecting) {
-        var card = entry.target;
-        card.classList.add('visible');
-        var numEl = card.querySelector('.stat-number');
-        var target = parseInt(numEl.getAttribute('data-target'));
-        var idx = Array.prototype.indexOf.call(cards, card);
-        var delay = idx * 300;
-        setTimeout(function(){ snbAnimateCounter(numEl, target, 2000); }, delay);
-        observer.unobserve(card);
-      }
-    });
-  }, { threshold: 0.3 });
-  cards.forEach(function(card){ observer.observe(card); });
-})();
-</script>
+<div class="stats-wave">
+<svg viewBox="0 0 1200 120" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M0 60C200 20 400 90 600 50C800 10 1000 80 1200 40" stroke="rgba(229,25,129,0.1)" stroke-width="1.5" fill="none"></path>
+<path d="M0 80C200 40 400 110 600 70C800 30 1000 100 1200 60" stroke="rgba(2,80,255,0.06)" stroke-width="1" fill="none"></path>
+</svg>
+</div>
+<div class="stats-inner">
+<div class="stats-grid">
+<div class="stat-card">
+<div class="stat-label" data-gds-edit="stats:0:div" data-gds-section="stats" data-gds-tag="DIV">Photos capturées</div>
+<div class="stat-icon">
+<svg viewBox="0 0 24 24" fill="none" stroke="#E51981" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+<circle cx="12" cy="13" r="4"></circle>
+</svg>
+</div>
+<div class="stat-number" data-target="1658259">0</div>
+</div>
+<div class="stat-card">
+<div class="stat-label" data-gds-edit="stats:1:div" data-gds-section="stats" data-gds-tag="DIV">Mariages &amp; anniversaires</div>
+<div class="stat-icon">
+<svg viewBox="0 0 24 24" fill="none" stroke="#E51981" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="9" cy="12" r="5"></circle>
+<circle cx="15" cy="12" r="5"></circle>
+</svg>
+</div>
+<div class="stat-number" data-target="2150">0</div>
+</div>
+<div class="stat-card">
+<div class="stat-label" data-gds-edit="stats:2:div" data-gds-section="stats" data-gds-tag="DIV">Événements réalisés</div>
+<div class="stat-icon">
+<svg viewBox="0 0 24 24" fill="none" stroke="#E51981" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="12" cy="10" r="6"></circle>
+<line x1="12" y1="16" x2="12" y2="22"></line>
+<line x1="8" y1="7" x2="8.5" y2="5"></line>
+<line x1="16" y1="7" x2="15.5" y2="5"></line>
+<line x1="9" y1="12" x2="7" y2="13"></line>
+<line x1="15" y1="12" x2="17" y2="13"></line>
+<line x1="10" y1="9" x2="9" y2="7.5"></line>
+<line x1="14" y1="9" x2="15" y2="7.5"></line>
+</svg>
+</div>
+<div class="stat-number" data-target="4589">0</div>
+</div>
+</div>
+</div>
+</div>

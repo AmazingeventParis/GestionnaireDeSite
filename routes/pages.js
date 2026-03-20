@@ -324,10 +324,12 @@ router.post('/:slug/publish', verifyToken, requireRole('admin'), async (req, res
 
 /**
  * GET /:slug/preview — Serve the current draft HTML
+ * Query: ?edit=1 to inject inline editor scripts
  */
 router.get('/:slug/preview', verifyToken, async (req, res) => {
   try {
     const slug = req.params.slug.replace(/[^a-z0-9-]/gi, '');
+    const editMode = req.query.edit === '1';
     const previewDir = getPreviewDir(slug);
 
     if (!fs.existsSync(previewDir)) {
@@ -428,6 +430,10 @@ router.get('/:slug/preview', verifyToken, async (req, res) => {
 ${bodyContent}
 </div>
 <script src="/js/site/scripts-${slug === 'home' ? 'home' : slug}.js" defer></script>
+${editMode ? `<link rel="stylesheet" href="/css/admin-editor.css">
+<script>window.GDS_SLUG = '${slug}';</script>
+<script src="/js/auth.js"></script>
+<script src="/js/admin-editor.js" defer></script>` : ''}
 ${config.scripts?.bodyEndCustom || ''}
 </body>
 </html>`;

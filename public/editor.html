@@ -379,7 +379,7 @@
         updateChangesBadge();
 
         var frame = document.getElementById('editor-frame');
-        frame.src = '/api/pages/' + encodeURIComponent(slug) + '/preview';
+        frame.src = '/api/pages/' + encodeURIComponent(slug) + '/preview?edit=1';
 
         // Load SEO data
         try {
@@ -444,18 +444,33 @@
       }
 
       /**
-       * Save changes.
+       * Send command to iframe editor.
+       */
+      function sendToIframe(type, data) {
+        var frame = document.getElementById('editor-frame');
+        if (frame && frame.contentWindow) {
+          frame.contentWindow.postMessage({ source: 'gds-parent', type: type, ...data }, '*');
+        }
+      }
+
+      /**
+       * Save changes — sends save command to iframe, also saves SEO from parent.
        */
       async function saveChanges() {
         var seo = collectSeoData();
         var btn = document.getElementById('btn-save');
         btn.disabled = true;
         btn.textContent = 'Sauvegarde...';
+
+        // Tell iframe editor to save its changes
+        sendToIframe('save');
+
+        // Also save SEO data from the parent panel
         try {
           var response = await Auth.apiFetch('/api/pages/' + encodeURIComponent(currentSlug) + '/save', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ changes: changes, seo: seo })
+            body: JSON.stringify({ changes: [], seo: seo })
           });
           if (!response.ok) {
             var err = await response.json();
@@ -546,11 +561,18 @@
         });
       });
 
-      // Listen for changes from iframe (postMessage API)
+      // Listen for changes from iframe (postMessage API from admin-editor.js)
       window.addEventListener('message', function(event) {
-        if (event.data && event.data.type === 'contentChange') {
-          changes.push(event.data.change);
-          updateChangesBadge();
+        if (!event.data || event.data.source !== 'gds-editor') return;
+        if (event.data.type === 'changesCount') {
+          var count = event.data.count || 0;
+          var badge = document.getElementById('changes-badge');
+          if (count > 0) {
+            badge.textContent = count + ' modif.';
+            badge.classList.add('visible');
+          } else {
+            badge.classList.remove('visible');
+          }
         }
       });
 

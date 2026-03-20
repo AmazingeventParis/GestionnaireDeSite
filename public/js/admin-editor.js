@@ -1,10 +1,13 @@
 (function() {
   'use strict';
 
+  // ===== MODE DETECTION =====
+  const isEmbedded = window !== window.parent;
+
   // ===== STATE =====
   let changes = {};
   let originalTexts = {};
-  let currentSlug = 'home';
+  let currentSlug = window.GDS_SLUG || 'home';
   let seoData = {};
   let imageChanges = 0;
   let siteName = 'Site';
@@ -616,15 +619,19 @@
   // ===== UPDATE CHANGES COUNT =====
   function updateChangesCount() {
     const count = Object.keys(changes).length + (seoData._modified ? 1 : 0) + imageChanges;
+
+    // Update admin bar elements (only in standalone mode)
     const el = document.getElementById('gdsChangesCount');
     const btn = document.getElementById('gdsPublishBtn');
-    if (count > 0) {
-      el.textContent = count + ' modification' + (count > 1 ? 's' : '');
-      el.classList.add('show');
-      btn.disabled = false;
-    } else {
-      el.classList.remove('show');
-      btn.disabled = true;
+    if (el && btn) {
+      if (count > 0) {
+        el.textContent = count + ' modification' + (count > 1 ? 's' : '');
+        el.classList.add('show');
+        btn.disabled = false;
+      } else {
+        el.classList.remove('show');
+        btn.disabled = true;
+      }
     }
 
     // Notify parent frame of changes count
@@ -882,6 +889,12 @@
           count: Object.keys(changes).length + (seoData._modified ? 1 : 0) + imageChanges
         });
         break;
+      case 'save':
+        // Parent frame asks us to save
+        if (Object.keys(changes).length > 0 || seoData._modified) {
+          publish();
+        }
+        break;
     }
   });
 
@@ -900,10 +913,27 @@
     }
   });
 
+  // ===== EMBEDDED MODE: direct init without admin bar =====
+  function initEmbedded() {
+    document.body.classList.add('gds-admin-mode');
+    initEditableElements();
+    initEditableImages();
+    initMurGallery();
+    console.log('[GDS Admin] Embedded mode — slug:', currentSlug);
+  }
+
   // ===== INIT =====
+  function startup() {
+    if (isEmbedded) {
+      initEmbedded();
+    } else {
+      buildAdminBar();
+    }
+  }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', buildAdminBar);
+    document.addEventListener('DOMContentLoaded', startup);
   } else {
-    buildAdminBar();
+    startup();
   }
 })();
