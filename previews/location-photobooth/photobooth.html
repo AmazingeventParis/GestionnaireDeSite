@@ -1,0 +1,1513 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Preview - Photobooth Virtuel</title>
+  <link href="https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700;1,800;1,900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; padding: 0; font-family: "Raleway", sans-serif; color: #333; line-height: 1.6; background: #fff; }
+    a { text-decoration: none; color: inherit; }
+    img { max-width: 100%; height: auto; }
+  </style>
+</head>
+<body>
+
+<style>
+/* ===== SECTION ===== */
+.snb-pb {
+  width: 100%;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #fce8f4 0%, #f8eaff 40%, #eaf0ff 80%, #fce8f4 100%);
+  font-family: 'Raleway', sans-serif;
+  padding: 40px 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Blobs */
+.snb-pb-blob { position: absolute; border-radius: 50%; pointer-events: none; filter: blur(80px); z-index: 0; }
+.snb-pb-blob1 { width: 500px; height: 500px; background: rgba(229,25,129,0.08); top: -150px; left: -100px; animation: snbPbBlob 12s ease-in-out infinite; }
+.snb-pb-blob2 { width: 400px; height: 400px; background: rgba(2,80,255,0.06); bottom: -100px; right: -80px; animation: snbPbBlob 14s ease-in-out infinite 3s; }
+.snb-pb-blob3 { width: 350px; height: 350px; background: rgba(168,85,247,0.07); top: 50%; left: 50%; transform: translateX(-50%); animation: snbPbBlob 10s ease-in-out infinite 6s; }
+@keyframes snbPbBlob { 0%,100%{transform:scale(1);opacity:0.6} 50%{transform:scale(1.15);opacity:1} }
+
+.snb-pb-inner {
+  max-width: 700px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+/* ===== HEADER ===== */
+.snb-pb-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+.snb-pb-header h2 {
+  font-size: clamp(24px, 4vw, 38px);
+  font-weight: 900;
+  font-style: italic;
+  color: #1a0a22;
+  margin: 0 0 8px;
+  line-height: 1.15;
+}
+.snb-pb-header h2 span { color: #E51981; }
+.snb-pb-header p {
+  font-size: 15px;
+  color: #6b5a7a;
+  margin: 0;
+}
+
+/* ===== STEPS ===== */
+.snb-pb-step {
+  display: none;
+  animation: snbPbFadeIn 0.4s ease;
+}
+.snb-pb-step.active { display: block; }
+@keyframes snbPbFadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ===== STEP 1: FORMAT ===== */
+.snb-pb-formats {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.snb-pb-format {
+  width: 200px;
+  padding: 24px 16px;
+  border-radius: 24px;
+  background: rgba(255,255,255,0.6);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255,255,255,0.8);
+  box-shadow: 0 8px 32px rgba(180,120,200,0.12);
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.snb-pb-format:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 48px rgba(229,25,129,0.2);
+  border-color: #E51981;
+}
+.snb-pb-format.selected {
+  border-color: #E51981;
+  background: rgba(229,25,129,0.08);
+}
+.snb-pb-format-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  display: block;
+}
+.snb-pb-format-name {
+  font-size: 18px;
+  font-weight: 800;
+  color: #1a0a22;
+  margin-bottom: 4px;
+}
+.snb-pb-format-desc {
+  font-size: 13px;
+  color: #6b5a7a;
+}
+
+/* ===== STEP 2: THEME FRAMES ===== */
+.snb-pb-themes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.snb-pb-theme {
+  border-radius: 20px;
+  border: 2px solid rgba(255,255,255,0.8);
+  background: rgba(255,255,255,0.5);
+  backdrop-filter: blur(6px);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 12px 8px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.snb-pb-theme:hover, .snb-pb-theme.selected {
+  border-color: #E51981;
+  transform: scale(1.03);
+  box-shadow: 0 8px 24px rgba(229,25,129,0.2);
+}
+.snb-pb-theme-preview {
+  width: 100%;
+  aspect-ratio: 3/4;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  position: relative;
+  overflow: hidden;
+}
+.snb-pb-theme-preview canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.snb-pb-theme-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1a0a22;
+}
+.snb-pb-theme-desc {
+  font-size: 10px;
+  color: #6b5a7a;
+  margin-top: 2px;
+}
+
+/* Text input */
+.snb-pb-text-input {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.snb-pb-text-input label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #4a3a5a;
+}
+.snb-pb-text-input input {
+  width: 100%;
+  max-width: 400px;
+  padding: 12px 20px;
+  border-radius: 50px;
+  border: 2px solid rgba(229,25,129,0.2);
+  background: rgba(255,255,255,0.7);
+  font-family: 'Raleway', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.3s;
+}
+.snb-pb-text-input input:focus {
+  border-color: #E51981;
+}
+.snb-pb-text-input input::placeholder {
+  color: #b8a0c8;
+  font-weight: 400;
+}
+
+/* ===== STEP 3: CAMERA ===== */
+.snb-pb-camera-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  max-height: 45vh;
+  margin: 0 auto 16px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #1a0a22;
+  box-shadow: 0 12px 36px rgba(26,10,34,0.3);
+}
+.snb-pb-camera-wrap video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transform: scaleX(-1);
+}
+.snb-pb-camera-overlay {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Filters bar */
+.snb-pb-filters {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.snb-pb-filter {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 3px solid rgba(255,255,255,0.6);
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+.snb-pb-filter:hover, .snb-pb-filter.selected {
+  border-color: #E51981;
+  transform: scale(1.15);
+  box-shadow: 0 4px 16px rgba(229,25,129,0.3);
+}
+.snb-pb-filter-name {
+  position: absolute;
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  font-weight: 700;
+  color: #4a3a5a;
+  white-space: nowrap;
+  opacity: 0;
+  transition: all 0.3s;
+}
+.snb-pb-filter:hover .snb-pb-filter-name { opacity: 1; bottom: -18px; }
+
+.filter-none { background: linear-gradient(135deg, #ff9a9e, #fad0c4); }
+.filter-bw { background: linear-gradient(135deg, #333, #999); }
+.filter-sepia { background: linear-gradient(135deg, #d4a574, #c49a6c); }
+.filter-vintage { background: linear-gradient(135deg, #e8c99b, #d4a574); }
+.filter-cool { background: linear-gradient(135deg, #667eea, #764ba2); }
+.filter-warm { background: linear-gradient(135deg, #f093fb, #f5576c); }
+.filter-boost { background: linear-gradient(135deg, #4facfe, #00f2fe); }
+
+/* Capture button */
+.snb-pb-capture-btn {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 4px solid #fff;
+  background: linear-gradient(135deg, #E51981, #ff3fac);
+  cursor: pointer;
+  margin: 0 auto;
+  display: block;
+  box-shadow: 0 8px 32px rgba(229,25,129,0.4);
+  transition: all 0.2s;
+  position: relative;
+}
+.snb-pb-capture-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 12px 40px rgba(229,25,129,0.5);
+}
+.snb-pb-capture-btn:active { transform: scale(0.95); }
+.snb-pb-capture-btn::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.5);
+}
+
+/* Countdown overlay */
+.snb-pb-countdown {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(26,10,34,0.5);
+  z-index: 10;
+  border-radius: 16px;
+}
+.snb-pb-countdown.active { display: flex; }
+.snb-pb-countdown span {
+  font-size: 100px;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 0 40px rgba(229,25,129,0.8), 0 0 80px rgba(229,25,129,0.4);
+  animation: snbPbCountPop 0.6s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes snbPbCountPop {
+  0% { transform: scale(2); opacity: 0; }
+  50% { transform: scale(0.9); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Flash */
+.snb-pb-flash {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: #fff;
+  opacity: 0;
+  z-index: 11;
+  pointer-events: none;
+  border-radius: 16px;
+}
+.snb-pb-flash.active { animation: snbPbFlash 0.5s ease-out; }
+@keyframes snbPbFlash { 0% { opacity: 1; } 100% { opacity: 0; } }
+
+/* Strip progress */
+.snb-pb-strip-progress {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+.snb-pb-strip-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(229,25,129,0.2);
+  transition: all 0.3s;
+}
+.snb-pb-strip-dot.done { background: #E51981; }
+.snb-pb-strip-dot.current { background: #E51981; animation: snbPbPulse 1s infinite; }
+@keyframes snbPbPulse { 0%,100%{box-shadow:0 0 0 0 rgba(229,25,129,0.4)} 50%{box-shadow:0 0 0 8px rgba(229,25,129,0)} }
+
+/* ===== STEP 4: RESULT ===== */
+.snb-pb-result { text-align: center; }
+.snb-pb-result canvas {
+  max-width: 100%;
+  max-height: 60vh;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 16px 48px rgba(26,10,34,0.2);
+}
+.snb-pb-result-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+/* ===== STEP 5: EMAIL ===== */
+.snb-pb-email-form {
+  max-width: 400px;
+  margin: 0 auto;
+  text-align: center;
+}
+.snb-pb-email-form input[type="email"] {
+  width: 100%;
+  padding: 14px 20px;
+  border-radius: 50px;
+  border: 2px solid rgba(229,25,129,0.2);
+  background: rgba(255,255,255,0.7);
+  font-family: 'Raleway', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  outline: none;
+  margin-bottom: 12px;
+}
+.snb-pb-email-form input[type="email"]:focus { border-color: #E51981; }
+.snb-pb-email-form input[type="email"]::placeholder { color: #b8a0c8; font-weight: 400; }
+
+.snb-pb-success {
+  padding: 30px;
+  text-align: center;
+}
+.snb-pb-success-icon {
+  font-size: 64px;
+  margin-bottom: 12px;
+  display: block;
+}
+
+/* ===== BUTTONS ===== */
+.snb-pb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 32px;
+  border-radius: 50px;
+  font-family: 'Raleway', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+.snb-pb-btn-primary {
+  background: linear-gradient(135deg, #E51981, #ff3fac);
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(229,25,129,0.3);
+}
+.snb-pb-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(229,25,129,0.4);
+}
+.snb-pb-btn-secondary {
+  background: rgba(255,255,255,0.6);
+  color: #4a3a5a;
+  border: 2px solid rgba(229,25,129,0.2);
+}
+.snb-pb-btn-secondary:hover {
+  border-color: #E51981;
+  background: rgba(255,255,255,0.9);
+}
+.snb-pb-btn-back {
+  background: none;
+  color: #6b5a7a;
+  font-size: 13px;
+  padding: 8px 16px;
+}
+.snb-pb-btn-back:hover { color: #E51981; }
+
+/* ===== NAV ===== */
+.snb-pb-nav {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+/* ===== CAMERA ERROR ===== */
+.snb-pb-error {
+  text-align: center;
+  padding: 40px 20px;
+  background: rgba(255,255,255,0.5);
+  border-radius: 20px;
+  border: 2px dashed rgba(229,25,129,0.3);
+}
+.snb-pb-error-icon { font-size: 48px; margin-bottom: 12px; display: block; }
+.snb-pb-error p { color: #6b5a7a; font-size: 14px; }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 600px) {
+  .snb-pb { padding: 24px 12px; }
+  .snb-pb-formats { flex-direction: column; align-items: center; }
+  .snb-pb-format { width: 100%; max-width: 280px; }
+  .snb-pb-themes { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .snb-pb-camera-wrap { max-width: 260px; max-height: 40vh; }
+  .snb-pb-capture-btn { width: 52px; height: 52px; }
+  .snb-pb-filter { width: 34px; height: 34px; }
+}
+</style>
+
+<section class="snb-pb">
+  <div class="snb-pb-blob snb-pb-blob1"></div>
+  <div class="snb-pb-blob snb-pb-blob2"></div>
+  <div class="snb-pb-blob snb-pb-blob3"></div>
+
+  <div class="snb-pb-inner">
+    <div class="snb-pb-header">
+      <h2>Testez notre <span>Photobooth</span></h2>
+      <p>Prenez une photo comme dans une vraie borne Shootnbox !</p>
+    </div>
+
+    <!-- STEP 1: Format selection -->
+    <div class="snb-pb-step active" id="pbStep1">
+      <div class="snb-pb-formats">
+        <div class="snb-pb-format" data-format="polaroid" onclick="snbPb.selectFormat('polaroid')">
+          <span class="snb-pb-format-icon">&#128247;</span>
+          <div class="snb-pb-format-name">Polaroid</div>
+          <div class="snb-pb-format-desc">1 photo format portrait avec cadre personnalis&eacute;</div>
+        </div>
+        <div class="snb-pb-format" data-format="strip" onclick="snbPb.selectFormat('strip')">
+          <span class="snb-pb-format-icon">&#127902;</span>
+          <div class="snb-pb-format-name">Strip</div>
+          <div class="snb-pb-format-desc">4 photos en bande verticale comme une vraie cabine</div>
+        </div>
+      </div>
+      <div class="snb-pb-nav">
+        <button class="snb-pb-btn snb-pb-btn-primary" onclick="snbPb.goStep(2)" id="pbNextFormat" disabled>Choisir ce format</button>
+      </div>
+    </div>
+
+    <!-- STEP 2: Theme + Text -->
+    <div class="snb-pb-step" id="pbStep2">
+      <div class="snb-pb-themes" id="pbThemes"></div>
+
+      <div class="snb-pb-text-input">
+        <label>&#9997; Votre texte sur le cadre</label>
+        <input type="text" id="pbFrameText" placeholder="Ex: Mariage Julie &amp; Thomas &#10084;" maxlength="40">
+      </div>
+
+      <div class="snb-pb-nav">
+        <button class="snb-pb-btn snb-pb-btn-back" onclick="snbPb.goStep(1)">&larr; Retour</button>
+        <button class="snb-pb-btn snb-pb-btn-primary" onclick="snbPb.goStep(3)">Ouvrir la cam&eacute;ra</button>
+      </div>
+    </div>
+
+    <!-- STEP 3: Camera -->
+    <div class="snb-pb-step" id="pbStep3">
+      <div class="snb-pb-strip-progress" id="pbStripProgress" style="display:none;"></div>
+
+      <div class="snb-pb-camera-wrap" id="pbCameraWrap">
+        <video id="pbVideo" autoplay playsinline muted></video>
+        <canvas id="pbOverlay" class="snb-pb-camera-overlay"></canvas>
+        <div class="snb-pb-countdown" id="pbCountdown"><span id="pbCountNum"></span></div>
+        <div class="snb-pb-flash" id="pbFlash"></div>
+      </div>
+
+      <div class="snb-pb-filters" id="pbFilters">
+        <div class="snb-pb-filter filter-none selected" data-filter="none" onclick="snbPb.selectFilter('none')"><span class="snb-pb-filter-name">Normal</span></div>
+        <div class="snb-pb-filter filter-bw" data-filter="grayscale(100%)" onclick="snbPb.selectFilter('grayscale(100%)')"><span class="snb-pb-filter-name">N&amp;B</span></div>
+        <div class="snb-pb-filter filter-sepia" data-filter="sepia(80%)" onclick="snbPb.selectFilter('sepia(80%)')"><span class="snb-pb-filter-name">S&eacute;pia</span></div>
+        <div class="snb-pb-filter filter-vintage" data-filter="sepia(30%) contrast(110%) brightness(105%)" onclick="snbPb.selectFilter('sepia(30%) contrast(110%) brightness(105%)')"><span class="snb-pb-filter-name">Vintage</span></div>
+        <div class="snb-pb-filter filter-cool" data-filter="hue-rotate(30deg) saturate(120%)" onclick="snbPb.selectFilter('hue-rotate(30deg) saturate(120%)')"><span class="snb-pb-filter-name">Cool</span></div>
+        <div class="snb-pb-filter filter-warm" data-filter="hue-rotate(-15deg) saturate(130%) brightness(105%)" onclick="snbPb.selectFilter('hue-rotate(-15deg) saturate(130%) brightness(105%)')"><span class="snb-pb-filter-name">Warm</span></div>
+        <div class="snb-pb-filter filter-boost" data-filter="saturate(160%) contrast(115%)" onclick="snbPb.selectFilter('saturate(160%) contrast(115%)')"><span class="snb-pb-filter-name">Boost</span></div>
+      </div>
+
+      <div style="text-align:center;">
+        <button class="snb-pb-capture-btn" id="pbCaptureBtn" onclick="snbPb.capture()"></button>
+        <p style="font-size:12px;color:#6b5a7a;margin-top:8px;" id="pbCaptureHint">Appuyez pour prendre la photo</p>
+      </div>
+
+      <div class="snb-pb-nav">
+        <button class="snb-pb-btn snb-pb-btn-back" onclick="snbPb.goStep(2)">&larr; Retour</button>
+      </div>
+
+      <div class="snb-pb-error" id="pbCameraError" style="display:none;">
+        <span class="snb-pb-error-icon">&#128247;</span>
+        <p>Impossible d'acc&eacute;der &agrave; votre cam&eacute;ra.<br>V&eacute;rifiez les permissions de votre navigateur.</p>
+        <button class="snb-pb-btn snb-pb-btn-secondary" onclick="snbPb.goStep(2)" style="margin-top:12px;">&larr; Retour</button>
+      </div>
+    </div>
+
+    <!-- STEP 4: Result -->
+    <div class="snb-pb-step" id="pbStep4">
+      <div class="snb-pb-result">
+        <canvas id="pbResultCanvas"></canvas>
+        <div class="snb-pb-result-actions">
+          <button class="snb-pb-btn snb-pb-btn-secondary" onclick="snbPb.retake()">Reprendre</button>
+          <button class="snb-pb-btn snb-pb-btn-secondary" onclick="snbPb.download()">T&eacute;l&eacute;charger</button>
+          <button class="snb-pb-btn snb-pb-btn-primary" onclick="snbPb.goStep(5)">Envoyer par email</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 5: Email -->
+    <div class="snb-pb-step" id="pbStep5">
+      <div class="snb-pb-result" style="margin-bottom:24px;">
+        <canvas id="pbResultPreview" style="max-height:300px;"></canvas>
+      </div>
+      <div class="snb-pb-email-form">
+        <input type="email" id="pbEmail" placeholder="votre@email.com">
+        <div class="snb-pb-nav" style="margin-top:0;">
+          <button class="snb-pb-btn snb-pb-btn-back" onclick="snbPb.goStep(4)">&larr; Retour</button>
+          <button class="snb-pb-btn snb-pb-btn-primary" onclick="snbPb.sendEmail()">Envoyer ma photo</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 6: Success -->
+    <div class="snb-pb-step" id="pbStep6">
+      <div class="snb-pb-success">
+        <span class="snb-pb-success-icon">&#127881;</span>
+        <h3 style="font-size:24px;font-weight:900;color:#1a0a22;margin:0 0 8px;">Photo envoy&eacute;e !</h3>
+        <p style="color:#6b5a7a;font-size:14px;margin:0 0 24px;">V&eacute;rifiez votre bo&icirc;te mail (et vos spams).</p>
+        <div class="snb-pb-nav" style="flex-direction:column;">
+          <button class="snb-pb-btn snb-pb-btn-primary" onclick="snbPb.restart()">Prendre une autre photo</button>
+          <a href="https://shootnbox.fr/reservation/" class="snb-pb-btn snb-pb-btn-secondary" style="margin-top:8px;">Louer un vrai photobooth &rarr;</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<script>
+var snbPb = (function() {
+  var state = {
+    format: null,
+    theme: 'mariage',
+    filter: 'none',
+    text: '',
+    photos: [],
+    stripCount: 4,
+    stream: null
+  };
+
+  var video, overlay, overlayCtx, resultCanvas, resultCtx;
+
+  // ===== THEME DEFINITIONS =====
+  var themes = {
+    mariage: {
+      name: 'Mariage',
+      desc: 'Fleurs & coeurs dor\u00e9s',
+      bg: '#ffffff',
+      border: '#c8a84e',
+      textColor: '#8b6914',
+      textFont: 'italic 600',
+      drawFrame: drawMariage
+    },
+    anniversaire: {
+      name: 'Anniversaire',
+      desc: 'Confettis & \u00e9toiles',
+      bg: '#fff5f8',
+      border: '#E51981',
+      textColor: '#E51981',
+      textFont: '800',
+      drawFrame: drawAnniversaire
+    },
+    soiree: {
+      name: 'Soir\u00e9e',
+      desc: 'N\u00e9on & paillettes',
+      bg: '#0a0a1a',
+      border: '#ff00ff',
+      textColor: '#ff00ff',
+      textFont: '700',
+      drawFrame: drawSoiree
+    },
+    entreprise: {
+      name: 'Entreprise',
+      desc: '\u00c9l\u00e9gant & sobre',
+      bg: '#1a2744',
+      border: '#4a90d9',
+      textColor: '#c0d8f0',
+      textFont: '600',
+      drawFrame: drawEntreprise
+    },
+    noel: {
+      name: 'No\u00ebl',
+      desc: 'Flocons & sapins',
+      bg: '#1a0a0a',
+      border: '#d4281e',
+      textColor: '#ffd700',
+      textFont: 'italic 700',
+      drawFrame: drawNoel
+    },
+    shootnbox: {
+      name: 'Shootnbox',
+      desc: 'Brand\u00e9 rose & bleu',
+      bg: '#E51981',
+      border: '#E51981',
+      textColor: '#ffffff',
+      textFont: '800',
+      gradient: ['#E51981', '#0250FF'],
+      drawFrame: drawShootnbox
+    }
+  };
+
+  // ===== FRAME DRAWING FUNCTIONS =====
+
+  function drawHeart(ctx, x, y, size, color) {
+    ctx.save();
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x, y + size * 0.3);
+    ctx.bezierCurveTo(x, y, x - size * 0.5, y, x - size * 0.5, y + size * 0.3);
+    ctx.bezierCurveTo(x - size * 0.5, y + size * 0.6, x, y + size * 0.8, x, y + size);
+    ctx.bezierCurveTo(x, y + size * 0.8, x + size * 0.5, y + size * 0.6, x + size * 0.5, y + size * 0.3);
+    ctx.bezierCurveTo(x + size * 0.5, y, x, y, x, y + size * 0.3);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawFlower(ctx, x, y, size, color) {
+    ctx.save();
+    ctx.fillStyle = color;
+    for (var i = 0; i < 5; i++) {
+      ctx.beginPath();
+      var angle = (i * 72) * Math.PI / 180;
+      var px = x + Math.cos(angle) * size * 0.4;
+      var py = y + Math.sin(angle) * size * 0.4;
+      ctx.arc(px, py, size * 0.35, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#ffd700';
+    ctx.beginPath();
+    ctx.arc(x, y, size * 0.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawLeaf(ctx, x, y, size, angle, color) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(size * 0.5, -size * 0.3, size, 0);
+    ctx.quadraticCurveTo(size * 0.5, size * 0.3, 0, 0);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawStar(ctx, x, y, r, color) {
+    ctx.save();
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    for (var i = 0; i < 5; i++) {
+      var a = (i * 72 - 90) * Math.PI / 180;
+      var b = ((i * 72) + 36 - 90) * Math.PI / 180;
+      ctx.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
+      ctx.lineTo(x + Math.cos(b) * r * 0.4, y + Math.sin(b) * r * 0.4);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawConfetti(ctx, x, y, w, h, color, angle) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.fillStyle = color;
+    ctx.fillRect(-w/2, -h/2, w, h);
+    ctx.restore();
+  }
+
+  function drawSnowflake(ctx, x, y, size, color) {
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.lineCap = 'round';
+    for (var i = 0; i < 6; i++) {
+      var angle = i * 60 * Math.PI / 180;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      var ex = x + Math.cos(angle) * size;
+      var ey = y + Math.sin(angle) * size;
+      ctx.lineTo(ex, ey);
+      ctx.stroke();
+      // Branches
+      var mx = x + Math.cos(angle) * size * 0.6;
+      var my = y + Math.sin(angle) * size * 0.6;
+      var ba = angle + 0.5;
+      var bb = angle - 0.5;
+      ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(mx + Math.cos(ba) * size * 0.3, my + Math.sin(ba) * size * 0.3); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(mx + Math.cos(bb) * size * 0.3, my + Math.sin(bb) * size * 0.3); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawTree(ctx, x, y, size, color) {
+    ctx.save();
+    ctx.fillStyle = color;
+    // Triangle tree
+    for (var i = 0; i < 3; i++) {
+      ctx.beginPath();
+      var w = size * (0.5 + i * 0.2);
+      var h = size * 0.4;
+      var ty = y - size + i * size * 0.3;
+      ctx.moveTo(x, ty);
+      ctx.lineTo(x - w/2, ty + h);
+      ctx.lineTo(x + w/2, ty + h);
+      ctx.closePath();
+      ctx.fill();
+    }
+    // Trunk
+    ctx.fillStyle = '#8B4513';
+    ctx.fillRect(x - size * 0.08, y - size * 0.05, size * 0.16, size * 0.2);
+    ctx.restore();
+  }
+
+  function drawSparkle(ctx, x, y, size, color) {
+    ctx.save();
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x, y - size);
+    ctx.lineTo(x + size * 0.15, y - size * 0.15);
+    ctx.lineTo(x + size, y);
+    ctx.lineTo(x + size * 0.15, y + size * 0.15);
+    ctx.lineTo(x, y + size);
+    ctx.lineTo(x - size * 0.15, y + size * 0.15);
+    ctx.lineTo(x - size, y);
+    ctx.lineTo(x - size * 0.15, y - size * 0.15);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // ===== MARIAGE - white/gold with flowers, hearts, leaves =====
+  function drawMariage(ctx, w, h, borderW) {
+    var gold = '#c8a84e';
+    var goldLight = 'rgba(200,168,78,0.4)';
+    var rose = 'rgba(255,200,210,0.8)';
+
+    // Gold border
+    ctx.strokeStyle = gold;
+    ctx.lineWidth = borderW;
+    roundRect(ctx, borderW/2, borderW/2, w - borderW, h - borderW, 12);
+    ctx.stroke();
+
+    // Inner thin line
+    ctx.strokeStyle = goldLight;
+    ctx.lineWidth = 1;
+    roundRect(ctx, borderW + 6, borderW + 6, w - borderW*2 - 12, h - borderW*2 - 12, 8);
+    ctx.stroke();
+
+    // Corner flowers
+    drawFlower(ctx, borderW * 1.5, borderW * 1.5, borderW * 0.8, rose);
+    drawFlower(ctx, w - borderW * 1.5, borderW * 1.5, borderW * 0.8, rose);
+    drawFlower(ctx, borderW * 1.5, h - borderW * 3, borderW * 0.8, rose);
+    drawFlower(ctx, w - borderW * 1.5, h - borderW * 3, borderW * 0.8, rose);
+
+    // Hearts along top and bottom
+    for (var i = 0; i < 5; i++) {
+      var x = borderW * 2.5 + i * (w - borderW * 5) / 4;
+      drawHeart(ctx, x, borderW * 0.3, borderW * 0.35, gold);
+      drawHeart(ctx, x, h - borderW * 2.5, borderW * 0.35, gold);
+    }
+
+    // Leaves along sides
+    for (var j = 0; j < 4; j++) {
+      var y = borderW * 3 + j * (h - borderW * 7) / 3;
+      drawLeaf(ctx, borderW * 0.8, y, borderW * 0.7, 0.5, goldLight);
+      drawLeaf(ctx, w - borderW * 0.8, y, borderW * 0.7, 2.6, goldLight);
+    }
+  }
+
+  // ===== ANNIVERSAIRE - confetti, stars, balloons =====
+  function drawAnniversaire(ctx, w, h, borderW) {
+    var colors = ['#E51981', '#0250FF', '#FF7A00', '#a855f7', '#16A34A', '#ffd700'];
+
+    // Rainbow border segments
+    ctx.lineWidth = borderW;
+    var segments = 20;
+    for (var s = 0; s < segments; s++) {
+      ctx.strokeStyle = colors[s % colors.length];
+      var perim = 2 * (w + h);
+      var start = s * perim / segments;
+      var end = (s + 1) * perim / segments;
+      drawBorderSegment(ctx, w, h, borderW, start, end, perim);
+    }
+
+    // Confetti everywhere on border area
+    var seed = 42;
+    for (var c = 0; c < 40; c++) {
+      seed = (seed * 9301 + 49297) % 233280;
+      var cx = (seed / 233280) * w;
+      seed = (seed * 9301 + 49297) % 233280;
+      var cy = (seed / 233280) * h;
+      // Only in border area
+      if (cx > borderW + 5 && cx < w - borderW - 5 && cy > borderW + 5 && cy < h - borderW * 2.5) continue;
+      seed = (seed * 9301 + 49297) % 233280;
+      var angle = (seed / 233280) * Math.PI;
+      drawConfetti(ctx, cx, cy, borderW * 0.4, borderW * 0.15, colors[c % colors.length], angle);
+    }
+
+    // Stars in corners
+    drawStar(ctx, borderW, borderW, borderW * 0.5, '#ffd700');
+    drawStar(ctx, w - borderW, borderW, borderW * 0.5, '#ffd700');
+    drawStar(ctx, borderW, h - borderW * 2.5, borderW * 0.4, '#ffd700');
+    drawStar(ctx, w - borderW, h - borderW * 2.5, borderW * 0.4, '#ffd700');
+
+    // Small stars scattered
+    for (var st = 0; st < 8; st++) {
+      seed = (seed * 9301 + 49297) % 233280;
+      var sx = borderW * 0.5 + (seed / 233280) * (w - borderW);
+      seed = (seed * 9301 + 49297) % 233280;
+      var sy = borderW * 0.3 + (seed / 233280) * borderW * 0.5;
+      if (st >= 4) sy = h - borderW * 2.8 + (seed / 233280) * borderW * 0.6;
+      drawStar(ctx, sx, sy, borderW * 0.2, colors[st % colors.length]);
+    }
+  }
+
+  function drawBorderSegment(ctx, w, h, bw, start, end, perim) {
+    // Simplified: just draw the full border with current color
+    ctx.globalAlpha = 0.6;
+    roundRect(ctx, bw/2, bw/2, w - bw, h - bw, 12);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // ===== SOIREE - neon glow, sparkles =====
+  function drawSoiree(ctx, w, h, borderW) {
+    // Neon pink border with glow
+    ctx.shadowColor = '#ff00ff';
+    ctx.shadowBlur = 20;
+    ctx.strokeStyle = '#ff00ff';
+    ctx.lineWidth = borderW * 0.6;
+    roundRect(ctx, borderW/2, borderW/2, w - borderW, h - borderW, 12);
+    ctx.stroke();
+
+    // Second neon line cyan
+    ctx.shadowColor = '#00ffff';
+    ctx.shadowBlur = 15;
+    ctx.strokeStyle = '#00ffff';
+    ctx.lineWidth = borderW * 0.3;
+    roundRect(ctx, borderW, borderW, w - borderW * 2, h - borderW * 2, 10);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Sparkles
+    var sparkColors = ['#ff00ff', '#00ffff', '#fff', '#ffd700', '#ff6ec7'];
+    var seed = 77;
+    for (var i = 0; i < 16; i++) {
+      seed = (seed * 9301 + 49297) % 233280;
+      var x = (seed / 233280) * w;
+      seed = (seed * 9301 + 49297) % 233280;
+      var y = (seed / 233280) * h;
+      if (x > borderW + 3 && x < w - borderW - 3 && y > borderW + 3 && y < h - borderW * 2.5) continue;
+      drawSparkle(ctx, x, y, borderW * 0.3 + (seed % 10) * 0.02 * borderW, sparkColors[i % sparkColors.length]);
+    }
+
+    // Corner glow dots
+    var glowPts = [[borderW, borderW], [w-borderW, borderW], [borderW, h-borderW*2.2], [w-borderW, h-borderW*2.2]];
+    glowPts.forEach(function(pt) {
+      ctx.shadowColor = '#ff00ff';
+      ctx.shadowBlur = 25;
+      ctx.fillStyle = '#ff00ff';
+      ctx.beginPath();
+      ctx.arc(pt[0], pt[1], borderW * 0.2, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.shadowBlur = 0;
+  }
+
+  // ===== ENTREPRISE - elegant, geometric =====
+  function drawEntreprise(ctx, w, h, borderW) {
+    // Outer border
+    ctx.strokeStyle = '#4a90d9';
+    ctx.lineWidth = borderW * 0.5;
+    roundRect(ctx, borderW/2, borderW/2, w - borderW, h - borderW, 12);
+    ctx.stroke();
+
+    // Inner border
+    ctx.strokeStyle = 'rgba(74,144,217,0.3)';
+    ctx.lineWidth = 1;
+    roundRect(ctx, borderW + 4, borderW + 4, w - borderW*2 - 8, h - borderW*2 - 8, 8);
+    ctx.stroke();
+
+    // Corner geometric shapes (diamonds)
+    var corners = [[borderW*1.2, borderW*1.2], [w-borderW*1.2, borderW*1.2], [borderW*1.2, h-borderW*2.8], [w-borderW*1.2, h-borderW*2.8]];
+    corners.forEach(function(c) {
+      ctx.save();
+      ctx.translate(c[0], c[1]);
+      ctx.rotate(Math.PI/4);
+      ctx.strokeStyle = '#4a90d9';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(-borderW*0.3, -borderW*0.3, borderW*0.6, borderW*0.6);
+      ctx.restore();
+    });
+
+    // Horizontal lines along top and bottom
+    ctx.strokeStyle = 'rgba(74,144,217,0.2)';
+    ctx.lineWidth = 1;
+    for (var i = 0; i < 3; i++) {
+      var y = borderW * 0.4 + i * 3;
+      ctx.beginPath(); ctx.moveTo(borderW * 2.5, y); ctx.lineTo(w - borderW * 2.5, y); ctx.stroke();
+      y = h - borderW * 1.5 - i * 3;
+      ctx.beginPath(); ctx.moveTo(borderW * 2.5, y); ctx.lineTo(w - borderW * 2.5, y); ctx.stroke();
+    }
+  }
+
+  // ===== NOEL - snowflakes, trees, red/green/gold =====
+  function drawNoel(ctx, w, h, borderW) {
+    // Red border
+    ctx.strokeStyle = '#d4281e';
+    ctx.lineWidth = borderW * 0.7;
+    roundRect(ctx, borderW/2, borderW/2, w - borderW, h - borderW, 12);
+    ctx.stroke();
+
+    // Green inner
+    ctx.strokeStyle = '#1a6b1a';
+    ctx.lineWidth = borderW * 0.2;
+    roundRect(ctx, borderW, borderW, w - borderW*2, h - borderW*2, 10);
+    ctx.stroke();
+
+    // Snowflakes
+    var seed = 25;
+    for (var i = 0; i < 12; i++) {
+      seed = (seed * 9301 + 49297) % 233280;
+      var x = (seed / 233280) * w;
+      seed = (seed * 9301 + 49297) % 233280;
+      var y = (seed / 233280) * h;
+      if (x > borderW + 3 && x < w - borderW - 3 && y > borderW + 3 && y < h - borderW * 2.5) continue;
+      drawSnowflake(ctx, x, y, borderW * 0.4, 'rgba(255,255,255,0.8)');
+    }
+
+    // Trees in corners
+    drawTree(ctx, borderW * 1.2, borderW * 1.8, borderW * 0.9, '#1a6b1a');
+    drawTree(ctx, w - borderW * 1.2, borderW * 1.8, borderW * 0.9, '#1a6b1a');
+
+    // Stars on trees
+    drawStar(ctx, borderW * 1.2, borderW * 0.6, borderW * 0.25, '#ffd700');
+    drawStar(ctx, w - borderW * 1.2, borderW * 0.6, borderW * 0.25, '#ffd700');
+
+    // Gold dots (ornaments) along bottom
+    for (var d = 0; d < 6; d++) {
+      var dx = borderW * 1.5 + d * (w - borderW * 3) / 5;
+      ctx.fillStyle = d % 2 === 0 ? '#ffd700' : '#d4281e';
+      ctx.beginPath();
+      ctx.arc(dx, h - borderW * 1.6, borderW * 0.15, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // ===== SHOOTNBOX - branded =====
+  function drawShootnbox(ctx, w, h, borderW) {
+    // Gradient border effect
+    ctx.strokeStyle = '#ff6eb4';
+    ctx.lineWidth = borderW * 0.5;
+    ctx.shadowColor = '#E51981';
+    ctx.shadowBlur = 15;
+    roundRect(ctx, borderW/2, borderW/2, w - borderW, h - borderW, 12);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Inner blue line
+    ctx.strokeStyle = 'rgba(2,80,255,0.5)';
+    ctx.lineWidth = 2;
+    roundRect(ctx, borderW + 3, borderW + 3, w - borderW*2 - 6, h - borderW*2 - 6, 10);
+    ctx.stroke();
+
+    // Sparkles branded
+    var pts = [[borderW, borderW], [w/2, borderW*0.5], [w-borderW, borderW], [borderW, h-borderW*2.5], [w-borderW, h-borderW*2.5], [w/2, h-borderW*1.8]];
+    pts.forEach(function(p, i) {
+      drawSparkle(ctx, p[0], p[1], borderW * 0.3, i % 2 === 0 ? '#ff6eb4' : '#4d8bff');
+    });
+
+    // SHOOTNBOX text watermark at bottom
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.font = '900 ' + (borderW * 0.6) + 'px Raleway, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('SHOOTNBOX', w/2, h - borderW * 0.5);
+  }
+
+  // ===== RENDER THEME PREVIEWS FOR STEP 2 =====
+  function renderThemePreviews() {
+    var container = document.getElementById('pbThemes');
+    container.innerHTML = '';
+
+    Object.keys(themes).forEach(function(key) {
+      var t = themes[key];
+      var div = document.createElement('div');
+      div.className = 'snb-pb-theme' + (key === state.theme ? ' selected' : '');
+      div.dataset.theme = key;
+      div.onclick = function() { selectTheme(key); };
+
+      var previewDiv = document.createElement('div');
+      previewDiv.className = 'snb-pb-theme-preview';
+
+      var canvas = document.createElement('canvas');
+      canvas.width = 180;
+      canvas.height = 240;
+      var ctx = canvas.getContext('2d');
+
+      // Draw mini frame preview
+      var borderW = 18;
+
+      // Background
+      if (t.gradient) {
+        var grad = ctx.createLinearGradient(0, 0, 180, 240);
+        grad.addColorStop(0, t.gradient[0]);
+        grad.addColorStop(1, t.gradient[1]);
+        ctx.fillStyle = grad;
+      } else {
+        ctx.fillStyle = t.bg;
+      }
+      roundRect(ctx, 0, 0, 180, 240, 10);
+      ctx.fill();
+
+      // Photo placeholder (square like real polaroid)
+      var photoArea = 180 - borderW * 2;
+      var photoH = photoArea;
+      ctx.fillStyle = '#ddd';
+      if (t.bg === '#0a0a1a' || t.bg === '#1a0a0a' || t.bg === '#1a2744') ctx.fillStyle = '#333';
+      roundRect(ctx, borderW, borderW, photoArea, photoH, 4);
+      ctx.fill();
+
+      // Silhouette
+      ctx.fillStyle = '#bbb';
+      if (t.bg === '#0a0a1a' || t.bg === '#1a0a0a' || t.bg === '#1a2744') ctx.fillStyle = '#555';
+      ctx.beginPath();
+      ctx.arc(90, borderW + photoH * 0.35, 20, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(90, borderW + photoH * 0.7, 28, 18, 0, Math.PI, 0);
+      ctx.fill();
+
+      // Draw frame decorations
+      t.drawFrame(ctx, 180, 240, borderW);
+
+      // Text placeholder
+      ctx.fillStyle = t.textColor;
+      ctx.font = '600 10px Raleway, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Votre texte ici', 90, 228);
+
+      previewDiv.appendChild(canvas);
+      div.appendChild(previewDiv);
+
+      var name = document.createElement('div');
+      name.className = 'snb-pb-theme-name';
+      name.textContent = t.name;
+      div.appendChild(name);
+
+      var desc = document.createElement('div');
+      desc.className = 'snb-pb-theme-desc';
+      desc.textContent = t.desc;
+      div.appendChild(desc);
+
+      container.appendChild(div);
+    });
+  }
+
+  function selectFormat(fmt) {
+    state.format = fmt;
+    document.querySelectorAll('.snb-pb-format').forEach(function(el) {
+      el.classList.toggle('selected', el.dataset.format === fmt);
+    });
+    document.getElementById('pbNextFormat').disabled = false;
+  }
+
+  function selectTheme(theme) {
+    state.theme = theme;
+    document.querySelectorAll('.snb-pb-theme').forEach(function(el) {
+      el.classList.toggle('selected', el.dataset.theme === theme);
+    });
+  }
+
+  function selectFilter(filter) {
+    state.filter = filter;
+    document.querySelectorAll('.snb-pb-filter').forEach(function(el) {
+      el.classList.toggle('selected', el.dataset.filter === filter);
+    });
+    var v = document.getElementById('pbVideo');
+    v.style.filter = (filter === 'none') ? '' : filter;
+  }
+
+  function goStep(n) {
+    document.querySelectorAll('.snb-pb-step').forEach(function(el) { el.classList.remove('active'); });
+    document.getElementById('pbStep' + n).classList.add('active');
+
+    if (n === 2) renderThemePreviews();
+    if (n === 3) startCamera();
+    if (n !== 3) stopCamera();
+    if (n === 3 && state.format === 'strip') initStripProgress();
+    if (n === 5) copyResultToPreview();
+  }
+
+  function startCamera() {
+    video = document.getElementById('pbVideo');
+    overlay = document.getElementById('pbOverlay');
+    overlayCtx = overlay.getContext('2d');
+    state.photos = [];
+
+    // Set camera aspect ratio based on format
+    var wrap = document.getElementById('pbCameraWrap');
+    if (state.format === 'polaroid') {
+      wrap.style.aspectRatio = '1/1';
+    } else {
+      wrap.style.aspectRatio = '3/4';
+    }
+
+    var constraints = {
+      video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: state.format === 'polaroid' ? 720 : 960 } }
+    };
+
+    navigator.mediaDevices.getUserMedia(constraints).then(function(stream) {
+      state.stream = stream;
+      video.srcObject = stream;
+      video.onloadedmetadata = function() {
+        overlay.width = video.videoWidth;
+        overlay.height = video.videoHeight;
+        document.getElementById('pbCameraWrap').style.display = '';
+        document.getElementById('pbCameraError').style.display = 'none';
+      };
+    }).catch(function() {
+      document.getElementById('pbCameraWrap').style.display = 'none';
+      document.getElementById('pbCameraError').style.display = '';
+    });
+
+    if (state.format === 'strip') {
+      document.getElementById('pbCaptureHint').textContent = 'Photo 1/' + state.stripCount;
+    } else {
+      document.getElementById('pbCaptureHint').textContent = 'Appuyez pour prendre la photo';
+    }
+  }
+
+  function stopCamera() {
+    if (state.stream) {
+      state.stream.getTracks().forEach(function(t) { t.stop(); });
+      state.stream = null;
+    }
+  }
+
+  function initStripProgress() {
+    var prog = document.getElementById('pbStripProgress');
+    prog.style.display = 'flex';
+    prog.innerHTML = '';
+    for (var i = 0; i < state.stripCount; i++) {
+      var dot = document.createElement('div');
+      dot.className = 'snb-pb-strip-dot' + (i === 0 ? ' current' : '');
+      prog.appendChild(dot);
+    }
+  }
+
+  function updateStripProgress() {
+    var dots = document.querySelectorAll('.snb-pb-strip-dot');
+    dots.forEach(function(dot, i) {
+      dot.className = 'snb-pb-strip-dot';
+      if (i < state.photos.length) dot.classList.add('done');
+      if (i === state.photos.length) dot.classList.add('current');
+    });
+    document.getElementById('pbCaptureHint').textContent = 'Photo ' + (state.photos.length + 1) + '/' + state.stripCount;
+  }
+
+  function capture() {
+    var btn = document.getElementById('pbCaptureBtn');
+    btn.disabled = true;
+    var count = 3;
+    var cd = document.getElementById('pbCountdown');
+    var num = document.getElementById('pbCountNum');
+    cd.classList.add('active');
+
+    function tick() {
+      if (count > 0) {
+        num.textContent = count;
+        num.style.animation = 'none';
+        void num.offsetWidth;
+        num.style.animation = '';
+        count--;
+        setTimeout(tick, 800);
+      } else {
+        cd.classList.remove('active');
+        takePhoto();
+      }
+    }
+    tick();
+  }
+
+  function takePhoto() {
+    var flash = document.getElementById('pbFlash');
+    flash.classList.remove('active');
+    void flash.offsetWidth;
+    flash.classList.add('active');
+
+    var canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    var ctx = canvas.getContext('2d');
+
+    if (state.filter !== 'none') ctx.filter = state.filter;
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, 0, 0);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.filter = 'none';
+
+    state.photos.push(canvas.toDataURL('image/jpeg', 0.92));
+
+    var btn = document.getElementById('pbCaptureBtn');
+
+    if (state.format === 'strip' && state.photos.length < state.stripCount) {
+      updateStripProgress();
+      setTimeout(function() { btn.disabled = false; }, 600);
+    } else {
+      setTimeout(function() {
+        renderResult();
+        goStep(4);
+        btn.disabled = false;
+      }, 600);
+    }
+  }
+
+  function renderResult() {
+    state.text = document.getElementById('pbFrameText').value || '';
+    var t = themes[state.theme];
+
+    resultCanvas = document.getElementById('pbResultCanvas');
+    resultCtx = resultCanvas.getContext('2d');
+
+    if (state.format === 'polaroid') {
+      renderPolaroid(resultCanvas, resultCtx, t);
+    } else {
+      renderStrip(resultCanvas, resultCtx, t);
+    }
+  }
+
+  function renderPolaroid(canvas, ctx, t) {
+    var photoW = 600;
+    var photoH = 600;
+    var borderW = 40;
+    var bottomPad = 160;
+    var w = photoW + borderW * 2;
+    var h = photoH + borderW + bottomPad;
+
+    canvas.width = w;
+    canvas.height = h;
+
+    // Background
+    if (t.gradient) {
+      var grad = ctx.createLinearGradient(0, 0, w, h);
+      grad.addColorStop(0, t.gradient[0]);
+      grad.addColorStop(1, t.gradient[1]);
+      ctx.fillStyle = grad;
+    } else {
+      ctx.fillStyle = t.bg;
+    }
+    roundRect(ctx, 0, 0, w, h, 16);
+    ctx.fill();
+
+    // Photo
+    var img = new Image();
+    img.onload = function() {
+      // Crop to fit
+      var sx = 0, sy = 0, sw = img.width, sh = img.height;
+      var targetRatio = photoW / photoH;
+      var imgRatio = sw / sh;
+      if (imgRatio > targetRatio) { sw = sh * targetRatio; sx = (img.width - sw) / 2; }
+      else { sh = sw / targetRatio; sy = (img.height - sh) / 2; }
+
+      ctx.save();
+      roundRect(ctx, borderW, borderW, photoW, photoH, 8);
+      ctx.clip();
+      ctx.drawImage(img, sx, sy, sw, sh, borderW, borderW, photoW, photoH);
+      ctx.restore();
+
+      // Draw themed frame decorations
+      t.drawFrame(ctx, w, h, borderW);
+
+      // Text centered in bottom area
+      var text = state.text || 'Shootnbox';
+      var bottomCenter = photoH + borderW + bottomPad / 2;
+      ctx.fillStyle = t.textColor;
+      ctx.font = t.textFont + ' 36px Raleway, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(text, w / 2, bottomCenter + 5, photoW);
+
+      // Small branding
+      ctx.font = '400 13px Raleway, sans-serif';
+      ctx.globalAlpha = 0.4;
+      ctx.fillText('shootnbox.fr', w / 2, h - 14);
+      ctx.globalAlpha = 1;
+    };
+    img.src = state.photos[0];
+  }
+
+  function renderStrip(canvas, ctx, t) {
+    var photoW = 400;
+    var photoH = 300;
+    var gap = 14;
+    var borderW = 30;
+    var bottomPad = 80;
+    var count = state.photos.length;
+    var w = photoW + borderW * 2;
+    var h = (photoH + gap) * count - gap + borderW + bottomPad;
+
+    canvas.width = w;
+    canvas.height = h;
+
+    // Background
+    if (t.gradient) {
+      var grad = ctx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, t.gradient[0]);
+      grad.addColorStop(1, t.gradient[1]);
+      ctx.fillStyle = grad;
+    } else {
+      ctx.fillStyle = t.bg;
+    }
+    roundRect(ctx, 0, 0, w, h, 16);
+    ctx.fill();
+
+    // Draw each photo
+    var loaded = 0;
+    state.photos.forEach(function(src, i) {
+      var img = new Image();
+      img.onload = function() {
+        var y = borderW + i * (photoH + gap);
+        var sx = 0, sy = 0, sw = img.width, sh = img.height;
+        var targetRatio = photoW / photoH;
+        var imgRatio = sw / sh;
+        if (imgRatio > targetRatio) { sw = sh * targetRatio; sx = (img.width - sw) / 2; }
+        else { sh = sw / targetRatio; sy = (img.height - sh) / 2; }
+
+        ctx.save();
+        roundRect(ctx, borderW, y, photoW, photoH, 6);
+        ctx.clip();
+        ctx.drawImage(img, sx, sy, sw, sh, borderW, y, photoW, photoH);
+        ctx.restore();
+
+        loaded++;
+        if (loaded === count) {
+          // Frame decorations
+          t.drawFrame(ctx, w, h, borderW);
+
+          // Text
+          var text = state.text || 'Shootnbox';
+          ctx.fillStyle = t.textColor;
+          ctx.font = t.textFont + ' 24px Raleway, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(text, w / 2, h - 35, photoW);
+
+          ctx.font = '400 12px Raleway, sans-serif';
+          ctx.globalAlpha = 0.4;
+          ctx.fillText('shootnbox.fr', w / 2, h - 12);
+          ctx.globalAlpha = 1;
+        }
+      };
+      img.src = src;
+    });
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  function copyResultToPreview() {
+    var src = document.getElementById('pbResultCanvas');
+    var dest = document.getElementById('pbResultPreview');
+    dest.width = src.width;
+    dest.height = src.height;
+    dest.getContext('2d').drawImage(src, 0, 0);
+  }
+
+  function download() {
+    var link = document.createElement('a');
+    link.download = 'shootnbox-photo.jpg';
+    link.href = resultCanvas.toDataURL('image/jpeg', 0.95);
+    link.click();
+  }
+
+  function retake() {
+    state.photos = [];
+    goStep(3);
+  }
+
+  function sendEmail() {
+    var email = document.getElementById('pbEmail').value;
+    if (!email || !email.includes('@')) {
+      document.getElementById('pbEmail').style.borderColor = '#ff4444';
+      return;
+    }
+
+    var imgData = resultCanvas.toDataURL('image/jpeg', 0.92);
+
+    fetch('/api/photobooth-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, image: imgData })
+    }).then(function(r) { return r.json(); })
+      .then(function() { goStep(6); })
+      .catch(function() {
+        download();
+        goStep(6);
+      });
+  }
+
+  function restart() {
+    state.photos = [];
+    state.format = null;
+    state.theme = 'mariage';
+    state.filter = 'none';
+    state.text = '';
+    document.getElementById('pbFrameText').value = '';
+    document.getElementById('pbEmail').value = '';
+    document.querySelectorAll('.snb-pb-format').forEach(function(el) { el.classList.remove('selected'); });
+    document.getElementById('pbNextFormat').disabled = true;
+    document.getElementById('pbStripProgress').style.display = 'none';
+    goStep(1);
+  }
+
+  return {
+    selectFormat: selectFormat,
+    selectTheme: selectTheme,
+    selectFilter: selectFilter,
+    goStep: goStep,
+    capture: capture,
+    retake: retake,
+    download: download,
+    sendEmail: sendEmail,
+    restart: restart
+  };
+})();
+</script>
+
+</body>
+</html>

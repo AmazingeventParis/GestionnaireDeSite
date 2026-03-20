@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intro V3 - Photobooth Strip</title>
+<link href="https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700;1,800;1,900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; padding: 0; font-family: "Raleway", sans-serif; color: #333; line-height: 1.6; background: #fff; }
+</style>
+</head>
+<body>
+
+<style>
+.lp-intro {
+  position: relative;
+  padding: 60px 5% 50px;
+  background: linear-gradient(135deg, #fce8f4 0%, #f8eaff 40%, #eaf0ff 80%, #fce8f4 100%);
+  background-size: 300% 300%;
+  animation: lp-intro-gradient 12s ease infinite;
+  overflow: hidden;
+  font-family: 'Raleway', sans-serif;
+  color: #1a0a22;
+}
+
+@keyframes lp-intro-gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Blobs decoratifs animes */
+.lp-intro-blob {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(80px);
+  opacity: 0.5;
+}
+.lp-ib1 {
+  width: 350px; height: 350px;
+  background: rgba(229,25,129,0.2);
+  top: -100px; left: -80px;
+  animation: lp-blob-float1 8s ease-in-out infinite;
+}
+.lp-ib2 {
+  width: 300px; height: 300px;
+  background: rgba(2,80,255,0.12);
+  bottom: -80px; right: -60px;
+  animation: lp-blob-float2 10s ease-in-out infinite;
+}
+.lp-ib3 {
+  width: 200px; height: 200px;
+  background: rgba(120,40,200,0.15);
+  top: 50%; left: 60%;
+  animation: lp-blob-float3 9s ease-in-out infinite;
+}
+
+@keyframes lp-blob-float1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(40px, 30px) scale(1.1); }
+}
+@keyframes lp-blob-float2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-30px, -40px) scale(1.15); }
+}
+@keyframes lp-blob-float3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-20px, 20px) scale(0.9); }
+}
+
+/* Flash qui se declenche au chargement */
+.lp-intro-flash {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  z-index: 10;
+  pointer-events: none;
+  animation: lp-flash-pop 1.2s ease-out forwards;
+}
+@keyframes lp-flash-pop {
+  0% { opacity: 0.9; }
+  15% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+.lp-intro-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 50px;
+  text-align: center;
+}
+
+/* Photo strip gauche */
+.lp-strip {
+  flex-shrink: 0;
+  width: 150px;
+  background: #fff;
+  border-radius: 6px;
+  padding: 8px 8px 14px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.04);
+  transform: rotate(-3deg);
+  position: relative;
+}
+/* Scotch tape */
+.lp-strip::before {
+  content: '';
+  position: absolute;
+  top: -14px; left: 50%;
+  transform: translateX(-50%) rotate(2deg);
+  width: 55px; height: 22px;
+  background: rgba(255,220,140,0.5);
+  border-radius: 3px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  z-index: 3;
+}
+
+.lp-strip-frame {
+  width: 100%;
+  aspect-ratio: 3/2;
+  border-radius: 3px;
+  margin-bottom: 6px;
+  position: relative;
+  overflow: hidden;
+}
+.lp-strip-frame:last-child { margin-bottom: 0; }
+
+.lp-strip-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Shootnbox watermark en bas du strip */
+.lp-strip-watermark {
+  text-align: center;
+  font-size: 8px;
+  font-weight: 800;
+  color: #ccc;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-top: 10px;
+}
+
+/* Colonne texte droite */
+.lp-intro-content {
+  flex: 1;
+  text-align: center;
+}
+
+.lp-intro-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: #E51981;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 16px;
+}
+
+.lp-intro-title {
+  font-size: 42px;
+  font-weight: 900;
+  font-style: italic;
+  color: #1a0a22;
+  line-height: 1.15;
+  margin: 0 0 24px;
+}
+.lp-intro-title .lp-glow {
+  color: #E51981;
+}
+
+.lp-intro-p {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.8;
+  color: #5a4a6a;
+  margin: 0 0 18px;
+  max-width: 560px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.lp-intro-p strong { color: #1a0a22; font-weight: 700; }
+
+.lp-intro-sep {
+  width: 50px; height: 2px;
+  background: linear-gradient(90deg, transparent, #E51981, transparent);
+  border-radius: 2px;
+  margin: 22px auto;
+}
+
+/* Mini stats inline */
+.lp-intro-mini-stats {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-top: 28px;
+  justify-content: center;
+}
+.lp-intro-ms {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.lp-intro-ms-icon {
+  width: 40px; height: 40px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.7);
+  border: 1px solid rgba(255,255,255,0.9);
+  box-shadow: 0 2px 8px rgba(200,140,200,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+.lp-intro-ms-text {
+  font-size: 13px;
+  color: #8a7a9a;
+}
+.lp-intro-ms-text strong {
+  display: block;
+  font-size: 18px;
+  font-weight: 900;
+  color: #1a0a22;
+  line-height: 1.1;
+}
+
+/* Photos strip - sans animation opacity pour fiabilite chargement */
+
+/* Collage photos polaroid droite - style pile desordonnee */
+.lp-polaroid-grid {
+  flex-shrink: 0;
+  width: 220px;
+  height: 380px;
+  position: relative;
+}
+
+.lp-polaroid {
+  background: #fff;
+  padding: 5px 5px 20px;
+  border-radius: 3px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.06);
+  position: absolute;
+  width: 120px;
+}
+
+.lp-polaroid:nth-child(1) { top: 0; left: 10px; transform: rotate(-6deg); z-index: 1; }
+.lp-polaroid:nth-child(2) { top: 15px; right: 0; transform: rotate(4deg); z-index: 2; }
+.lp-polaroid:nth-child(3) { top: 120px; left: 0; transform: rotate(3deg); z-index: 3; }
+.lp-polaroid:nth-child(4) { top: 140px; right: 10px; transform: rotate(-5deg); z-index: 4; }
+.lp-polaroid:nth-child(5) { top: 245px; left: 15px; transform: rotate(5deg); z-index: 5; }
+.lp-polaroid:nth-child(6) { top: 260px; right: 5px; transform: rotate(-3deg); z-index: 6; }
+
+.lp-polaroid img {
+  width: 100%;
+  aspect-ratio: 3/4;
+  object-fit: cover;
+  display: block;
+  border-radius: 2px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .lp-intro-inner { flex-direction: column; gap: 30px; align-items: center; text-align: center; }
+  .lp-strip { width: 120px; transform: rotate(-2deg); }
+  .lp-intro-title { font-size: 30px; }
+  .lp-intro-p { font-size: 15px; }
+  .lp-intro-mini-stats { justify-content: center; }
+  .lp-intro-sep { margin: 18px auto; }
+  .lp-intro-label { margin-bottom: 10px; }
+  .lp-polaroid-grid { width: 180px; height: 320px; }
+  .lp-polaroid { width: 100px; padding: 4px 4px 16px; }
+  .lp-polaroid:nth-child(1) { top: 0; left: 5px; }
+  .lp-polaroid:nth-child(2) { top: 10px; right: 0; }
+  .lp-polaroid:nth-child(3) { top: 100px; left: 0; }
+  .lp-polaroid:nth-child(4) { top: 115px; right: 5px; }
+  .lp-polaroid:nth-child(5) { top: 205px; left: 10px; }
+  .lp-polaroid:nth-child(6) { top: 215px; right: 0; }
+}
+
+@media (max-width: 480px) {
+  .lp-strip { width: 100px; padding: 6px 6px 12px; }
+  .lp-intro-title { font-size: 26px; }
+  .lp-intro-mini-stats { gap: 16px; }
+  .lp-polaroid-grid { width: 150px; height: 280px; }
+  .lp-polaroid { width: 85px; }
+  .lp-polaroid:nth-child(3) { top: 85px; }
+  .lp-polaroid:nth-child(4) { top: 95px; }
+  .lp-polaroid:nth-child(5) { top: 175px; }
+  .lp-polaroid:nth-child(6) { top: 185px; }
+}
+</style>
+
+<section class="lp-intro">
+  <div class="lp-intro-blob lp-ib1"></div>
+  <div class="lp-intro-blob lp-ib2"></div>
+  <div class="lp-intro-blob lp-ib3"></div>
+  <div class="lp-intro-flash"></div>
+
+  <div class="lp-intro-inner">
+
+    <!-- Photo strip a gauche -->
+    <div class="lp-strip">
+      <div class="lp-strip-frame">
+        <img loading="eager" src="../../public/images/strip-photo-1.webp" alt="Soiree photobooth entre amis">
+      </div>
+      <div class="lp-strip-frame">
+        <img loading="eager" src="../../public/images/strip-photo-2.webp" alt="Photo de groupe mariage photobooth">
+      </div>
+      <div class="lp-strip-frame">
+        <img loading="eager" src="../../public/images/strip-photo-3.webp" alt="Ambiance fete photobooth">
+      </div>
+      <div class="lp-strip-frame">
+        <img loading="eager" src="../../public/images/strip-photo-4.webp" alt="Photobooth soiree deguisements">
+      </div>
+      <div class="lp-strip-watermark">shootnbox</div>
+    </div>
+
+    <!-- Texte a droite -->
+    <div class="lp-intro-content">
+
+      <h2 class="lp-intro-title">Bien plus qu'une cabine photo.<br><span class="lp-glow">Un createur de souvenirs.</span></h2>
+
+      <span class="lp-intro-label">Pourquoi Shootnbox ?</span>
+
+      <p class="lp-intro-p">
+        Vous sublimez l'ambiance de votre reception et offrez a vos invites un <strong>souvenir imprime</strong> qu'ils conserveront precieusement. En choisissant l'experience Shootnbox pour votre location de photobooth, vous rejoignez plus de <strong>10 000 organisateurs</strong> qui ont transforme leur evenement en un pur instant de convivialite.
+      </p>
+
+      <div class="lp-intro-sep"></div>
+
+      <p class="lp-intro-p">
+        Vous profitez d'une animation photo <strong>haut de gamme</strong> au meilleur rapport qualite/prix, pour que chaque sourire partage devienne <strong>inoubliable</strong>.
+      </p>
+
+
+    </div>
+
+    <!-- Collage photos polaroid a droite -->
+    <div class="lp-polaroid-grid">
+      <div class="lp-polaroid">
+        <img loading="eager" src="../../public/images/strip-photo-5.webp" alt="Photobooth boas colores">
+      </div>
+      <div class="lp-polaroid">
+        <img loading="eager" src="../../public/images/strip-photo-6.webp" alt="Photobooth noir et blanc mariage">
+      </div>
+      <div class="lp-polaroid">
+        <img loading="eager" src="../../public/images/strip-photo-7.webp" alt="Photobooth soiree gatsby">
+      </div>
+      <div class="lp-polaroid">
+        <img loading="eager" src="../../public/images/strip-photo-8.webp" alt="Photobooth soiree chic">
+      </div>
+      <div class="lp-polaroid">
+        <img loading="eager" src="../../public/images/strip-photo-9.webp" alt="Photobooth soiree noeuds papillon">
+      </div>
+      <div class="lp-polaroid">
+        <img loading="eager" src="../../public/images/strip-photo-10.webp" alt="Photobooth fete entre amis">
+      </div>
+    </div>
+
+  </div>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Option 2 - Split gauche/droite + pastilles flottantes</title>
+<link href="https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700;1,800;1,900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; padding: 0; font-family: "Raleway", sans-serif; background: linear-gradient(180deg, #f8eaff 0%, #fce8f4 30%, #f0e4ff 60%, #eaf0ff 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+
+.snb-tarifs {
+  max-width: 1000px;
+  margin: 60px auto;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 60px;
+}
+
+/* LEFT */
+.snb-tarifs-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.snb-tarifs-h2 {
+  font-size: 36px;
+  font-weight: 900;
+  font-style: italic;
+  color: #1a0a22;
+  margin: 0 0 8px;
+  line-height: 1.15;
+}
+.snb-tarifs-h2 span {
+  background: linear-gradient(135deg, #E51981, #ff6eb4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.snb-tarifs-sep {
+  width: 80px; height: 3px;
+  background: linear-gradient(90deg, #E51981, transparent);
+  border-radius: 3px;
+  margin: 16px 0 20px;
+}
+
+.snb-tarifs-desc {
+  font-size: 15px;
+  color: #4a3a5a;
+  line-height: 1.7;
+  margin: 0 0 28px;
+}
+.snb-tarifs-desc strong {
+  color: #1a0a22;
+  font-weight: 700;
+}
+
+.snb-tarifs-cta {
+  display: inline-block;
+  padding: 14px 36px;
+  background: linear-gradient(135deg, #E51981, #ff3fac);
+  color: #fff;
+  font-family: "Raleway", sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: 50px;
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 4px 20px rgba(229,25,129,0.3);
+}
+.snb-tarifs-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(229,25,129,0.4);
+}
+.snb-tarifs-cta::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, transparent 30%, rgba(255,255,255,0.25) 50%, transparent 70%);
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+}
+.snb-tarifs-cta:hover::before { transform: translateX(100%); }
+
+/* RIGHT - floating badges */
+.snb-tarifs-right {
+  position: relative;
+  width: 320px;
+  height: 300px;
+  flex-shrink: 0;
+}
+
+.snb-tarifs-badge {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px;
+  background: rgba(255,255,255,0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.06);
+  border: 1px solid rgba(255,255,255,0.6);
+  animation: snbFloat 4s ease-in-out infinite;
+  transition: transform 0.3s ease;
+}
+.snb-tarifs-badge:hover { transform: scale(1.05); }
+
+.snb-tarifs-badge:nth-child(1) { top: 0; left: 30px; animation-delay: 0s; }
+.snb-tarifs-badge:nth-child(2) { top: 100px; right: 0; animation-delay: 1.2s; }
+.snb-tarifs-badge:nth-child(3) { bottom: 30px; left: 10px; animation-delay: 2.4s; }
+
+@keyframes snbFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.snb-tarifs-badge-icon {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.snb-tarifs-badge:nth-child(1) .snb-tarifs-badge-icon { background: linear-gradient(135deg, #E51981, #ff6eb4); }
+.snb-tarifs-badge:nth-child(2) .snb-tarifs-badge-icon { background: linear-gradient(135deg, #FF7A00, #ff9a3c); }
+.snb-tarifs-badge:nth-child(3) .snb-tarifs-badge-icon { background: linear-gradient(135deg, #0250FF, #4d8bff); }
+
+.snb-tarifs-badge-text {
+  font-size: 14px;
+  font-weight: 800;
+  color: #1a0a22;
+  line-height: 1.2;
+}
+.snb-tarifs-badge-sub {
+  font-size: 11px;
+  font-weight: 500;
+  color: #6b5a7a;
+  margin-top: 2px;
+}
+
+/* Deco circles */
+.snb-tarifs-deco {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.snb-tarifs-deco1 { width: 180px; height: 180px; border: 2px dashed rgba(229,25,129,0.12); top: 40px; right: 20px; }
+.snb-tarifs-deco2 { width: 120px; height: 120px; border: 2px dashed rgba(2,80,255,0.08); bottom: 10px; left: 60px; }
+
+@media (max-width: 768px) {
+  .snb-tarifs { flex-direction: column; gap: 30px; text-align: center; }
+  .snb-tarifs-sep { margin: 16px auto 20px; background: linear-gradient(90deg, transparent, #E51981, transparent); }
+  .snb-tarifs-right { width: 100%; height: 260px; }
+  .snb-tarifs-h2 { font-size: 28px; }
+  .snb-tarifs-badge:nth-child(1) { left: 5%; }
+  .snb-tarifs-badge:nth-child(2) { right: 5%; }
+  .snb-tarifs-badge:nth-child(3) { left: 15%; }
+}
+</style>
+</head>
+<body>
+
+<div class="snb-tarifs">
+  <div class="snb-tarifs-left">
+    <h2 class="snb-tarifs-h2">Nos tarifs de <span>location photobooth</span> adapt&eacute;s &agrave; votre budget</h2>
+    <div class="snb-tarifs-sep"></div>
+    <p class="snb-tarifs-desc">Vous acc&eacute;dez &agrave; une <strong>location de photobooth de haute qualit&eacute;</strong> au prix le plus juste. Que vous pr&eacute;pariez un mariage romantique, un anniversaire intime ou une r&eacute;ception de grande envergure, vous ma&icirc;trisez votre budget de A &agrave; Z gr&acirc;ce &agrave; nos <strong>formules transparentes et cl&eacute;s en main</strong>.</p>
+    <a href="#bornes" class="snb-tarifs-cta">D&eacute;couvrir nos bornes &#8595;</a>
+  </div>
+
+  <div class="snb-tarifs-right">
+    <div class="snb-tarifs-deco snb-tarifs-deco1"></div>
+    <div class="snb-tarifs-deco snb-tarifs-deco2"></div>
+
+    <div class="snb-tarifs-badge">
+      <div class="snb-tarifs-badge-icon">&#128176;</div>
+      <div>
+        <div class="snb-tarifs-badge-text">&Agrave; partir de 149&euro;</div>
+        <div class="snb-tarifs-badge-sub">Livraison incluse</div>
+      </div>
+    </div>
+    <div class="snb-tarifs-badge">
+      <div class="snb-tarifs-badge-icon">&#9889;</div>
+      <div>
+        <div class="snb-tarifs-badge-text">Sans surprise</div>
+        <div class="snb-tarifs-badge-sub">Tarifs tout compris</div>
+      </div>
+    </div>
+    <div class="snb-tarifs-badge">
+      <div class="snb-tarifs-badge-icon">&#128666;</div>
+      <div>
+        <div class="snb-tarifs-badge-text">Livr&eacute; chez vous</div>
+        <div class="snb-tarifs-badge-sub">Partout en France</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
