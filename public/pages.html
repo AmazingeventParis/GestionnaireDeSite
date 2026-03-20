@@ -315,15 +315,37 @@
       }
 
       // Expose newPage function globally
-      window.newPage = function() {
-        var name = prompt('Nom de la nouvelle page (slug):');
+      window.newPage = async function() {
+        var name = prompt('Nom de la nouvelle page :');
         if (!name) return;
-        var slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        var slug = name.toLowerCase()
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
         if (!slug) {
           Components.showToast('Slug invalide', 'error');
           return;
         }
-        window.location.href = '/editor.html?slug=' + encodeURIComponent(slug) + '&new=1';
+
+        try {
+          var res = await Auth.apiFetch('/api/pages/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ slug: slug, name: name })
+          });
+          var data = await res.json();
+          if (!res.ok) {
+            Components.showToast(data.error || 'Erreur', 'error');
+            return;
+          }
+          Components.showToast('Page "' + data.name + '" creee', 'success');
+          window.open('/api/pages/' + encodeURIComponent(slug) + '/preview?edit=1', '_blank');
+          // Reload list
+          var r = await Auth.apiFetch('/api/pages');
+          var d = await r.json();
+          renderPages(Array.isArray(d) ? d : (d.pages || []));
+        } catch (err) {
+          Components.showToast('Erreur: ' + err.message, 'error');
+        }
       };
 
       // Init

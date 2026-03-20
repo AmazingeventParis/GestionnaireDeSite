@@ -141,6 +141,83 @@ router.get('/', verifyToken, async (req, res) => {
 });
 
 /**
+ * POST /create — Create a new page with a default hero section
+ * Body: { slug: "my-page", name: "Ma page" }
+ * RBAC: admin only
+ */
+router.post('/create', verifyToken, requireRole('admin'), async (req, res) => {
+  try {
+    const { slug, name } = req.body;
+    if (!slug || !slug.match(/^[a-z0-9-]+$/)) {
+      return res.status(400).json({ error: 'Slug invalide (lettres minuscules, chiffres et tirets uniquement)' });
+    }
+
+    const pageDir = path.join(PREVIEWS_DIR, slug);
+    if (fs.existsSync(pageDir)) {
+      return res.status(409).json({ error: 'Cette page existe deja' });
+    }
+
+    fs.mkdirSync(pageDir, { recursive: true });
+
+    // Create a default hero section
+    const pageName = name || slug.replace(/-/g, ' ').replace(/^\w/, c => c.toUpperCase());
+    const heroHtml = `<style>
+.new-page-hero {
+  background: linear-gradient(135deg, #2d0535 0%, #1a0a22 100%);
+  color: #fff;
+  padding: 120px 40px 80px;
+  text-align: center;
+  font-family: 'Raleway', sans-serif;
+}
+.new-page-hero h1 {
+  font-size: 50px;
+  font-weight: 900;
+  font-style: italic;
+  line-height: 1.1;
+  margin: 0 0 16px;
+}
+.new-page-hero p {
+  font-size: 18px;
+  color: rgba(255,255,255,0.7);
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+@media (max-width: 768px) {
+  .new-page-hero { padding: 80px 20px 60px; }
+  .new-page-hero h1 { font-size: 32px; }
+  .new-page-hero p { font-size: 16px; }
+}
+</style>
+<section class="new-page-hero">
+  <h1 data-gds-edit="${slug}:0:h1" data-gds-section="${slug}" data-gds-tag="H1">${pageName}</h1>
+  <p data-gds-edit="${slug}:0:p" data-gds-section="${slug}" data-gds-tag="P">Description de la page. Cliquez pour modifier.</p>
+</section>
+`;
+    fs.writeFileSync(path.join(pageDir, '01-hero.html'), heroHtml, 'utf-8');
+
+    // Create default SEO
+    const seoData = { title: pageName, description: '', ogTitle: '', ogDescription: '' };
+    fs.writeFileSync(path.join(pageDir, 'seo.json'), JSON.stringify(seoData, null, 2), 'utf-8');
+
+    await logAudit({
+      userId: req.user.id,
+      action: 'page_create',
+      entityType: 'page',
+      entityId: slug,
+      details: { name: pageName },
+      ip: getClientIp(req),
+      userAgent: req.headers['user-agent']
+    });
+
+    res.status(201).json({ success: true, slug, name: pageName });
+  } catch (err) {
+    console.error('[Pages] Create error:', err.message);
+    res.status(500).json({ error: 'Erreur lors de la creation de la page' });
+  }
+});
+
+/**
  * GET /:slug — Get page details (sections, SEO data)
  */
 router.get('/:slug', verifyToken, async (req, res) => {
