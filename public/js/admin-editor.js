@@ -126,10 +126,10 @@
     }
 
     // Always init editing features regardless of page list loading
-    initEditableElements();
-    initEditableImages();
-    initBlockInserters();
-    initMurGallery();
+    try { initEditableElements(); } catch (e) { console.error('[GDS] initEditableElements error:', e); }
+    try { initEditableImages(); } catch (e) { console.error('[GDS] initEditableImages error:', e); }
+    try { initBlockInserters(); } catch (e) { console.error('[GDS] initBlockInserters error:', e); }
+    try { initMurGallery(); } catch (e) { console.error('[GDS] initMurGallery error:', e); }
   }
 
   // ===== LOAD SEO =====
@@ -1186,10 +1186,10 @@
   // ===== EMBEDDED MODE: direct init without admin bar =====
   function initEmbedded() {
     document.body.classList.add('gds-admin-mode');
-    initEditableElements();
-    initEditableImages();
-    initBlockInserters();
-    initMurGallery();
+    try { initEditableElements(); } catch (e) { console.error('[GDS] initEditableElements error:', e); }
+    try { initEditableImages(); } catch (e) { console.error('[GDS] initEditableImages error:', e); }
+    try { initBlockInserters(); } catch (e) { console.error('[GDS] initBlockInserters error:', e); }
+    try { initMurGallery(); } catch (e) { console.error('[GDS] initMurGallery error:', e); }
     console.log('[GDS Admin] Embedded mode — slug:', currentSlug);
   }
 
