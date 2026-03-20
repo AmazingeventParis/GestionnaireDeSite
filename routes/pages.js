@@ -423,6 +423,7 @@ router.get('/:slug/preview', verifyToken, async (req, res) => {
     h1, h2, h3, h4, h5, h6 { font-family: var(--font-headings); }
     .container { max-width: var(--max-width); margin: 0 auto; padding: 0 20px; }
   </style>
+  <link rel="stylesheet" href="/css/styles-${slug === 'home' ? 'home' : slug}.css">
   ${config.scripts?.headCustom || ''}
 </head>
 <body>
