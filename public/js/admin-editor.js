@@ -907,12 +907,18 @@
 
   // ===== BLOCK INSERTER =====
   function initBlockInserters() {
+    console.log('[GDS Admin] initBlockInserters START');
+
     // Find section wrappers injected by the preview route
     const wrappers = document.querySelectorAll('.gds-section-wrapper');
     const main = document.querySelector('main.snb-page-content');
 
+    console.log('[GDS Admin] main:', !!main, 'wrappers:', wrappers.length);
+
     if (!main) {
-      console.warn('[GDS Admin] No main.snb-page-content found');
+      console.warn('[GDS Admin] No main.snb-page-content found — checking DOM...');
+      console.log('[GDS Admin] All main tags:', document.querySelectorAll('main').length);
+      console.log('[GDS Admin] Body children:', document.body.children.length);
       return;
     }
 
