@@ -968,7 +968,7 @@
       <div class="gds-modal">
         <div class="gds-modal-header">
           <h3>Ajouter un bloc</h3>
-          <button class="gds-modal-close" onclick="document.getElementById('gds-block-modal').remove()">&times;</button>
+          <button class="gds-modal-close" id="gds-modal-close-btn">&times;</button>
         </div>
         <div class="gds-modal-body">
           <div class="gds-block-types">
@@ -988,7 +988,7 @@
           <div class="gds-block-code" id="gds-block-code-area">
             <textarea id="gds-block-html-input" placeholder="Collez votre code HTML ici..."></textarea>
           </div>
-          <div class="gds-block-upload" id="gds-block-upload-area" onclick="document.getElementById('gds-block-file-input').click()">
+          <div class="gds-block-upload" id="gds-block-upload-area">
             <input type="file" id="gds-block-file-input" accept="image/*">
             <div style="font-size:36px;margin-bottom:8px">&#128247;</div>
             <div>Cliquez ou glissez une image</div>
@@ -1013,12 +1013,22 @@
           </div>
         </div>
         <div class="gds-modal-footer">
-          <button class="gds-modal-btn gds-modal-btn-cancel" onclick="document.getElementById('gds-block-modal').remove()">Annuler</button>
+          <button class="gds-modal-btn gds-modal-btn-cancel" id="gds-modal-cancel-btn">Annuler</button>
           <button class="gds-modal-btn gds-modal-btn-submit" id="gds-block-submit" disabled>Inserer le bloc</button>
         </div>
       </div>
     `;
     document.body.appendChild(overlay);
+
+    // Close buttons
+    const closeModal = () => overlay.remove();
+    document.getElementById('gds-modal-close-btn').addEventListener('click', closeModal);
+    document.getElementById('gds-modal-cancel-btn').addEventListener('click', closeModal);
+
+    // Upload area click
+    document.getElementById('gds-block-upload-area').addEventListener('click', () => {
+      document.getElementById('gds-block-file-input').click();
+    });
 
     // Close on overlay click
     overlay.addEventListener('click', (e) => {
