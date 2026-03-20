@@ -8,6 +8,7 @@ const { logAudit } = require('../utils/audit');
 const { getClientIp } = require('../middleware/threatDetector');
 
 const PREVIEWS_DIR = path.join(__dirname, '..', 'previews');
+const SHARED_DIR = path.join(PREVIEWS_DIR, '_shared');
 const PUBLIC_DIR = path.join(__dirname, '..', 'public', 'site');
 const BUILD_SCRIPT = path.join(__dirname, '..', 'scripts', 'build.js');
 
@@ -111,6 +112,7 @@ router.get('/', verifyToken, async (req, res) => {
     const entries = fs.readdirSync(PREVIEWS_DIR, { withFileTypes: true });
     for (const entry of entries) {
       if (!entry.isDirectory()) continue;
+      if (entry.name.startsWith('_')) continue; // Skip _shared and other internal dirs
       const slug = entry.name;
       const previewDir = path.join(PREVIEWS_DIR, slug);
       const sections = scanSections(previewDir);
@@ -339,19 +341,31 @@ router.get('/:slug/preview', verifyToken, async (req, res) => {
       config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
     }
 
-    // Assemble the page from section files
+    // Assemble the page: shared header + page sections + shared footer
     const sections = scanSections(previewDir);
     let bodyContent = '';
+
+    // Inject shared header
+    const sharedHeaderPath = path.join(SHARED_DIR, 'header.html');
+    if (fs.existsSync(sharedHeaderPath)) {
+      bodyContent += fs.readFileSync(sharedHeaderPath, 'utf-8') + '\n';
+    }
+    bodyContent += '<main class="snb-page-content">\n';
+
+    // Page-specific sections (skip any header/footer files that might remain)
     for (const section of sections) {
+      const nameLower = section.file.toLowerCase();
+      if (nameLower.includes('header') || nameLower.includes('footer')) continue;
       const content = fs.readFileSync(path.join(previewDir, section.file), 'utf-8');
-      // Wrap non-header/footer sections in <main class="snb-page-content">
-      if (section.file.toLowerCase().includes('footer')) {
-        bodyContent += '</main>\n';
-      }
       bodyContent += content + '\n';
-      if (section.file.toLowerCase().includes('header')) {
-        bodyContent += '<main class="snb-page-content">\n';
-      }
+    }
+
+    bodyContent += '</main>\n';
+
+    // Inject shared footer
+    const sharedFooterPath = path.join(SHARED_DIR, 'footer.html');
+    if (fs.existsSync(sharedFooterPath)) {
+      bodyContent += fs.readFileSync(sharedFooterPath, 'utf-8') + '\n';
     }
 
     // Read SEO data
@@ -423,6 +437,74 @@ ${config.scripts?.bodyEndCustom || ''}
   } catch (err) {
     console.error('[Pages] Preview error:', err.message);
     res.status(500).json({ error: 'Erreur lors de la generation du preview' });
+  }
+});
+
+// ==================== SHARED HEADER/FOOTER ====================
+
+/**
+ * GET /shared/:component — Get shared header or footer HTML
+ */
+router.get('/shared/:component', verifyToken, async (req, res) => {
+  try {
+    const component = req.params.component.replace(/[^a-z]/gi, '');
+    if (component !== 'header' && component !== 'footer') {
+      return res.status(400).json({ error: 'Composant invalide. Utiliser "header" ou "footer".' });
+    }
+
+    if (!fs.existsSync(SHARED_DIR)) {
+      fs.mkdirSync(SHARED_DIR, { recursive: true });
+    }
+
+    const filePath = path.join(SHARED_DIR, component + '.html');
+    const content = fs.existsSync(filePath)
+      ? fs.readFileSync(filePath, 'utf-8')
+      : '';
+
+    res.json({ component, content });
+  } catch (err) {
+    console.error('[Pages] Shared get error:', err.message);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+/**
+ * PUT /shared/:component — Save shared header or footer HTML
+ * RBAC: admin only
+ */
+router.put('/shared/:component', verifyToken, requireRole('admin'), async (req, res) => {
+  try {
+    const component = req.params.component.replace(/[^a-z]/gi, '');
+    if (component !== 'header' && component !== 'footer') {
+      return res.status(400).json({ error: 'Composant invalide. Utiliser "header" ou "footer".' });
+    }
+
+    const { content } = req.body;
+    if (typeof content !== 'string') {
+      return res.status(400).json({ error: 'Le champ "content" est requis (string).' });
+    }
+
+    if (!fs.existsSync(SHARED_DIR)) {
+      fs.mkdirSync(SHARED_DIR, { recursive: true });
+    }
+
+    const filePath = path.join(SHARED_DIR, component + '.html');
+    fs.writeFileSync(filePath, content, 'utf-8');
+
+    await logAudit({
+      userId: req.user.id,
+      action: 'shared_update',
+      entityType: component,
+      entityId: component,
+      details: { size: content.length },
+      ip: getClientIp(req),
+      userAgent: req.headers['user-agent']
+    });
+
+    res.json({ success: true, message: `${component} mis a jour`, size: content.length });
+  } catch (err) {
+    console.error('[Pages] Shared save error:', err.message);
+    res.status(500).json({ error: 'Erreur serveur' });
   }
 });
 
