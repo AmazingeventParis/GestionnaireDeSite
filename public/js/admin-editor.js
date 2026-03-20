@@ -94,30 +94,29 @@
   async function loadPages() {
     try {
       const res = await Auth.apiFetch('/api/pages');
-      const pages = await res.json();
+      const data = await res.json();
+      const pages = Array.isArray(data) ? data : (data.pages || []);
       const select = document.getElementById('gdsPageSelect');
       select.innerHTML = '';
       pages.forEach(p => {
         const opt = document.createElement('option');
         opt.value = p.slug;
         opt.textContent = p.name;
-        opt.dataset.path = p.path;
-        if (p.path === window.location.pathname || (p.slug === 'home' && window.location.pathname === '/')) {
+        if (p.slug === currentSlug) {
           opt.selected = true;
-          currentSlug = p.slug;
         }
         select.appendChild(opt);
       });
 
       select.addEventListener('change', () => {
-        const opt = select.options[select.selectedIndex];
+        const newSlug = select.value;
         if (Object.keys(changes).length > 0 || seoData._modified) {
           if (!confirm('Vous avez des modifications non publiees. Changer de page sans publier ?')) {
             select.value = currentSlug;
             return;
           }
         }
-        window.location.href = opt.dataset.path;
+        window.location.href = '/api/pages/' + encodeURIComponent(newSlug) + '/preview?edit=1';
       });
 
       // Load SEO data
@@ -662,6 +661,7 @@
       // Save content
       const saveRes = await Auth.apiFetch('/api/pages/' + currentSlug + '/save', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           changes: cleanChanges,
           seo
