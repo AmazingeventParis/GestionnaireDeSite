@@ -1,18 +1,18 @@
 {
   "identity": {
-    "name": "Mon Site",
-    "tagline": "",
-    "logo": "",
-    "logoWhite": "",
-    "favicon": ""
+    "name": "Shootnbox",
+    "tagline": "Createur de souvenirs depuis 2019. Location de photobooths pour mariages, entreprises et evenements partout en France.",
+    "logo": "/images/logo/shootnbox-logo-new-1.webp",
+    "logoWhite": "/images/logo/shootnbox-logo-new-1.webp",
+    "favicon": "/images/logo/shootnbox-logo-new-1.webp"
   },
   "colors": {
     "primary": "#E51981",
     "secondary": "#0250FF",
-    "tertiary": "#a855f7",
+    "tertiary": "#7828C8",
     "accent1": "#FF7A00",
     "accent2": "#16A34A",
-    "textDark": "#1a0a22",
+    "textDark": "#323338",
     "textLight": "#ffffff",
     "bgMain": "#ffffff",
     "bgAlt": "#f8eaff"
@@ -21,8 +21,8 @@
     "fontMain": "Raleway",
     "fontHeadings": "Raleway",
     "sizes": {
-      "h1": { "desktop": "56px", "mobile": "36px", "weight": 900, "lineHeight": 1.1 },
-      "h2": { "desktop": "42px", "mobile": "28px", "weight": 800, "lineHeight": 1.2 },
+      "h1": { "desktop": "50px", "mobile": "32px", "weight": 900, "lineHeight": 1.08 },
+      "h2": { "desktop": "50px", "mobile": "28px", "weight": 900, "lineHeight": 1.15 },
       "h3": { "desktop": "28px", "mobile": "22px", "weight": 700, "lineHeight": 1.3 },
       "h4": { "desktop": "20px", "mobile": "18px", "weight": 600, "lineHeight": 1.4 },
       "p": { "desktop": "16px", "mobile": "15px", "weight": 400, "lineHeight": 1.6 },
@@ -31,48 +31,86 @@
   },
   "header": {
     "logoPosition": "left",
-    "logoSize": "150px",
+    "logoSize": "100px",
     "sticky": true,
     "transparentOnHero": false,
     "scrollEffect": "shadow",
-    "height": { "desktop": "80px", "mobile": "60px" },
-    "ctaText": "",
-    "ctaLink": "",
-    "phone": "",
+    "height": { "desktop": "72px", "mobile": "60px" },
+    "ctaText": "Obtenir un devis",
+    "ctaLink": "/reservation/",
+    "phone": "01.45.01.66.66",
     "topBanner": { "enabled": false, "text": "", "bgColor": "#E51981", "link": "" },
     "mobileHamburger": "right",
-    "menuItems": []
+    "menuItems": [
+      { "label": "Location", "link": "/location-photobooth/" },
+      { "label": "Nos bornes", "link": "/nos-bornes/", "children": [
+        { "label": "Borne Ring", "link": "/borne-photo-ring/", "desc": "L'anneau lumineux iconique" },
+        { "label": "Borne Vegas", "link": "/borne-photo-vegas/", "desc": "Le photobooth glamour" },
+        { "label": "Borne Miroir", "link": "/borne-photo-miroir/", "desc": "Le miroir magique interactif" },
+        { "label": "Spinner 360\u00b0", "link": "/borne-photo-spinner/", "desc": "La video 360 virale" }
+      ]},
+      { "label": "Reservation", "link": "/reservation/" },
+      { "label": "Contact", "link": "/contact/" },
+      { "label": "Blog", "link": "/blog/" }
+    ]
   },
   "footer": {
-    "columns": [],
-    "socials": { "instagram": "", "facebook": "", "linkedin": "", "tiktok": "", "youtube": "" },
-    "copyright": "\u00a9 {year} Mon Site. Tous droits r\u00e9serv\u00e9s.",
-    "legalPage": ""
+    "columns": [
+      {
+        "title": "Nos bornes",
+        "links": [
+          { "label": "Borne Ring", "url": "/borne-photo-ring/" },
+          { "label": "Borne Vegas", "url": "/borne-photo-vegas/" },
+          { "label": "Borne Miroir", "url": "/borne-photo-miroir/" },
+          { "label": "Spinner 360\u00b0", "url": "/borne-photo-spinner/" },
+          { "label": "Toutes nos bornes", "url": "/nos-bornes/" }
+        ]
+      },
+      {
+        "title": "Liens utiles",
+        "links": [
+          { "label": "Location Photobooth", "url": "/location-photobooth/" },
+          { "label": "Le Shootnblog", "url": "/blog/" },
+          { "label": "Ils nous font confiance", "url": "/ils-nous-font-confiance/" },
+          { "label": "FAQ", "url": "/faq/" },
+          { "label": "Contact", "url": "/contact/" }
+        ]
+      }
+    ],
+    "socials": {
+      "instagram": "https://www.instagram.com/shootnbox/",
+      "facebook": "https://www.facebook.com/shootnbox",
+      "linkedin": "",
+      "tiktok": "https://www.tiktok.com/@shootnbox",
+      "youtube": "https://www.youtube.com/@shootnbox"
+    },
+    "copyright": "\u00a9 2019-{year} Shootnbox | Tous droits reserves",
+    "legalPage": "/mentions-legales/"
   },
   "cta": {
-    "borderRadius": "50px",
+    "borderRadius": "25px",
     "style": "gradient",
     "hoverEffect": "shine",
-    "defaultText": "Nous contacter",
-    "defaultLink": "/contact"
+    "defaultText": "Obtenir un devis gratuit",
+    "defaultLink": "/reservation/"
   },
   "layout": {
-    "maxWidth": "1340px",
-    "sectionPadding": { "desktop": "80px", "mobile": "50px" },
+    "maxWidth": "1300px",
+    "sectionPadding": { "desktop": "60px", "mobile": "40px" },
     "borderRadius": "12px"
   },
   "contact": {
-    "phone": "",
-    "email": "",
-    "address": "",
-    "hours": "",
-    "mapsPlaceId": ""
+    "phone": "01.45.01.66.66",
+    "email": "contact@shootnbox.fr",
+    "address": "Paris & Bordeaux, France",
+    "hours": "7j/7",
+    "mapsPlaceId": "ChIJYTN4e3Bx5kcRIG4bJMuaZlA"
   },
   "seo": {
-    "titleTemplate": "%page% | Mon Site",
-    "defaultDescription": "",
-    "noindex": true,
-    "ogImageDefault": "",
+    "titleTemplate": "%page% | Shootnbox - Location Photobooth",
+    "defaultDescription": "Location de photobooth pour mariages, entreprises et evenements. Borne Ring, Vegas, Miroir et Spinner 360. Livraison partout en France.",
+    "noindex": false,
+    "ogImageDefault": "/images/vegas-hero-group.webp",
     "gtmId": "",
     "searchConsoleId": ""
   },
@@ -83,8 +121,8 @@
     "chatWidget": ""
   },
   "deploy": {
-    "domain": "",
-    "coolifyUuid": "",
+    "domain": "shootnbox.swipego.app",
+    "coolifyUuid": "usnz6o4qp48maw8q0lny22nl",
     "coolifyToken": "",
     "cacheMaxAge": "365d",
     "compression": true,
