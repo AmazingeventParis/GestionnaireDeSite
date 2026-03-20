@@ -187,7 +187,7 @@
         <h1 class="page-title">Pages</h1>
         <p class="page-subtitle">Gerez les pages de votre site</p>
       </div>
-      <button type="button" class="btn-new-page" id="btn-new-page" onclick="newPage()">
+      <button type="button" class="btn-new-page" id="btn-new-page">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 2a.75.75 0 01.75.75v4.5h4.5a.75.75 0 010 1.5h-4.5v4.5a.75.75 0 01-1.5 0v-4.5h-4.5a.75.75 0 010-1.5h4.5v-4.5A.75.75 0 018 2z"/></svg>
         Nouvelle page
       </button>
@@ -314,49 +314,49 @@
         }
       }
 
-      // Expose newPage function globally
-      window.newPage = function() {
-        var name = prompt('Nom de la nouvelle page :');
-        if (!name) return;
-        var slug = name.toLowerCase()
-          .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-          .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-        if (!slug) {
-          Components.showToast('Slug invalide', 'error');
-          return;
-        }
-
-        // Open window immediately (before async) to avoid popup blocker
-        var editWindow = window.open('about:blank', '_blank');
-
-        Auth.apiFetch('/api/pages/create', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ slug: slug, name: name })
-        }).then(function(res) {
-          return res.json().then(function(data) {
-            if (!res.ok) {
-              Components.showToast(data.error || 'Erreur', 'error');
-              if (editWindow) editWindow.close();
-              return;
-            }
-            Components.showToast('Page "' + data.name + '" creee', 'success');
-            if (editWindow) {
-              editWindow.location.href = '/api/pages/' + encodeURIComponent(slug) + '/preview?edit=1';
-            }
-            loadPages();
-          });
-        }).catch(function(err) {
-          Components.showToast('Erreur: ' + err.message, 'error');
-          if (editWindow) editWindow.close();
-        });
-      };
-
       // Init
       Components.initPage().then(function(user) {
         currentUser = user;
         if (user && (user.role === 'admin')) {
-          document.getElementById('btn-new-page').classList.add('visible');
+          var btn = document.getElementById('btn-new-page');
+          btn.classList.add('visible');
+          btn.addEventListener('click', function() {
+            try {
+              var name = prompt('Nom de la nouvelle page :');
+              if (!name) return;
+              var slug = name.toLowerCase()
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+              if (!slug) {
+                Components.showToast('Slug invalide', 'error');
+                return;
+              }
+              var editWindow = window.open('about:blank', '_blank');
+              Auth.apiFetch('/api/pages/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ slug: slug, name: name })
+              }).then(function(res) {
+                return res.json();
+              }).then(function(data) {
+                if (data.error) {
+                  Components.showToast(data.error, 'error');
+                  if (editWindow) editWindow.close();
+                  return;
+                }
+                Components.showToast('Page "' + (data.name || slug) + '" creee', 'success');
+                if (editWindow) {
+                  editWindow.location.href = '/api/pages/' + encodeURIComponent(slug) + '/preview?edit=1';
+                }
+                loadPages();
+              }).catch(function(err) {
+                Components.showToast('Erreur: ' + err.message, 'error');
+                if (editWindow) editWindow.close();
+              });
+            } catch (e) {
+              alert('Erreur: ' + e.message);
+            }
+          });
         }
         loadPages();
       });
