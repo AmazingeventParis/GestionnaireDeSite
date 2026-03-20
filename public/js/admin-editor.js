@@ -121,17 +121,15 @@
 
       // Load SEO data
       loadSEO();
-      // Init editable elements
-      initEditableElements();
-      // Init editable images
-      initEditableImages();
-      // Init block inserters
-      initBlockInserters();
-      // Init mur gallery manager
-      initMurGallery();
     } catch (err) {
-      showToast('Erreur de chargement', 'error');
+      console.error('[GDS Admin] loadPages error:', err);
     }
+
+    // Always init editing features regardless of page list loading
+    initEditableElements();
+    initEditableImages();
+    initBlockInserters();
+    initMurGallery();
   }
 
   // ===== LOAD SEO =====
