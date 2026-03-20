@@ -354,6 +354,91 @@ router.post('/:slug/save', verifyToken, requireRole('admin', 'editor'), async (r
 });
 
 /**
+ * POST /:slug/add-section — Add a new section to a page
+ * Body: { html: "<section>...</section>", position: 3 }
+ * RBAC: admin only
+ */
+router.post('/:slug/add-section', verifyToken, requireRole('admin'), async (req, res) => {
+  try {
+    const slug = req.params.slug.replace(/[^a-z0-9-]/gi, '');
+    const previewDir = getPreviewDir(slug);
+
+    if (!fs.existsSync(previewDir)) {
+      return res.status(404).json({ error: 'Page non trouvee' });
+    }
+
+    const { html, position } = req.body;
+    if (!html || typeof html !== 'string') {
+      return res.status(400).json({ error: 'Le champ "html" est requis' });
+    }
+
+    // Get existing section files (sorted)
+    const existingFiles = fs.readdirSync(previewDir)
+      .filter(f => f.endsWith('.html'))
+      .sort();
+
+    // Determine the new file name based on position
+    // Find the highest number prefix
+    let maxNum = 0;
+    existingFiles.forEach(f => {
+      const match = f.match(/^(\d+)-/);
+      if (match) maxNum = Math.max(maxNum, parseInt(match[1]));
+    });
+
+    // Renumber files to insert at the right position
+    // Position 0 = before first section, position N = after Nth section
+    const pos = Math.min(Math.max(0, position || 0), existingFiles.length);
+
+    // Renumber all files with gaps of 10 to allow insertion
+    const renumberPlan = [];
+    let newNum = 10;
+    for (let i = 0; i < existingFiles.length; i++) {
+      if (i === pos) {
+        // This is where the new section goes
+        renumberPlan.push({ file: null, num: newNum, isNew: true });
+        newNum += 10;
+      }
+      renumberPlan.push({ file: existingFiles[i], num: newNum, isNew: false });
+      newNum += 10;
+    }
+    // If position is at the end
+    if (pos >= existingFiles.length) {
+      renumberPlan.push({ file: null, num: newNum, isNew: true });
+    }
+
+    // Execute renaming and create new file
+    let newFileName = '';
+    for (const item of renumberPlan) {
+      const numStr = String(item.num).padStart(2, '0');
+      if (item.isNew) {
+        newFileName = numStr + '-section.html';
+        fs.writeFileSync(path.join(previewDir, newFileName), html, 'utf-8');
+      } else {
+        const newName = numStr + '-' + item.file.replace(/^\d+-/, '');
+        if (newName !== item.file) {
+          fs.renameSync(path.join(previewDir, item.file), path.join(previewDir, newName));
+        }
+      }
+    }
+
+    await logAudit({
+      userId: req.user.id,
+      action: 'section_add',
+      entityType: 'page',
+      entityId: slug,
+      details: { file: newFileName, position: pos, size: html.length },
+      ip: getClientIp(req),
+      userAgent: req.headers['user-agent']
+    });
+
+    res.status(201).json({ success: true, file: newFileName, position: pos });
+  } catch (err) {
+    console.error('[Pages] Add section error:', err.message);
+    res.status(500).json({ error: 'Erreur lors de l\'ajout de la section' });
+  }
+});
+
+/**
  * POST /:slug/publish — Build and publish the site
  * RBAC: admin only
  */

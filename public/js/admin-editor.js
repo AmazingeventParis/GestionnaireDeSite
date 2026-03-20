@@ -125,6 +125,8 @@
       initEditableElements();
       // Init editable images
       initEditableImages();
+      // Init block inserters
+      initBlockInserters();
       // Init mur gallery manager
       initMurGallery();
     } catch (err) {
@@ -905,6 +907,271 @@
     return div.innerHTML;
   }
 
+  // ===== BLOCK INSERTER =====
+  function initBlockInserters() {
+    // Find the main content area
+    const main = document.querySelector('main.snb-page-content') || document.querySelector('.snb-page-wrapper') || document.body;
+    const children = Array.from(main.children).filter(el =>
+      el.tagName !== 'SCRIPT' && el.tagName !== 'STYLE' && !el.classList.contains('gds-block-inserter')
+    );
+
+    if (children.length === 0) return;
+
+    // Insert an inserter between each child and at start/end
+    const positions = [];
+    children.forEach((child, i) => {
+      // Before first child
+      if (i === 0) positions.push({ ref: child, where: 'before', index: 0 });
+      // After each child
+      positions.push({ ref: child, where: 'after', index: i + 1 });
+    });
+
+    positions.forEach(pos => {
+      const inserter = document.createElement('div');
+      inserter.className = 'gds-block-inserter';
+      inserter.dataset.insertIndex = pos.index;
+      inserter.innerHTML = '<button class="gds-block-inserter-btn" title="Ajouter un bloc">+</button>';
+      if (pos.where === 'before') {
+        pos.ref.parentNode.insertBefore(inserter, pos.ref);
+      } else {
+        pos.ref.parentNode.insertBefore(inserter, pos.ref.nextSibling);
+      }
+      inserter.querySelector('.gds-block-inserter-btn').addEventListener('click', () => {
+        openBlockModal(parseInt(inserter.dataset.insertIndex));
+      });
+    });
+
+    console.log('[GDS Admin] Inserted', positions.length, 'block inserters');
+  }
+
+  let currentInsertIndex = 0;
+
+  function openBlockModal(insertIndex) {
+    currentInsertIndex = insertIndex;
+    // Remove existing modal
+    const existing = document.getElementById('gds-block-modal');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'gds-block-modal';
+    overlay.className = 'gds-modal-overlay';
+    overlay.innerHTML = `
+      <div class="gds-modal">
+        <div class="gds-modal-header">
+          <h3>Ajouter un bloc</h3>
+          <button class="gds-modal-close" onclick="document.getElementById('gds-block-modal').remove()">&times;</button>
+        </div>
+        <div class="gds-modal-body">
+          <div class="gds-block-types">
+            <div class="gds-block-type" data-type="html">
+              <div class="gds-block-type-icon">&lt;/&gt;</div>
+              <div class="gds-block-type-label">Code HTML</div>
+            </div>
+            <div class="gds-block-type" data-type="image">
+              <div class="gds-block-type-icon">&#128247;</div>
+              <div class="gds-block-type-label">Image</div>
+            </div>
+            <div class="gds-block-type" data-type="plugin">
+              <div class="gds-block-type-icon">&#9881;</div>
+              <div class="gds-block-type-label">Plugin</div>
+            </div>
+          </div>
+          <div class="gds-block-code" id="gds-block-code-area">
+            <textarea id="gds-block-html-input" placeholder="Collez votre code HTML ici..."></textarea>
+          </div>
+          <div class="gds-block-upload" id="gds-block-upload-area" onclick="document.getElementById('gds-block-file-input').click()">
+            <input type="file" id="gds-block-file-input" accept="image/*">
+            <div style="font-size:36px;margin-bottom:8px">&#128247;</div>
+            <div>Cliquez ou glissez une image</div>
+          </div>
+          <div class="gds-block-plugins" id="gds-block-plugins-area">
+            <div class="gds-plugin-card" data-plugin="google-reviews">
+              <div class="gds-plugin-card-name">Avis Google</div>
+              <div class="gds-plugin-card-desc">Afficher les avis Google My Business</div>
+            </div>
+            <div class="gds-plugin-card" data-plugin="contact-form">
+              <div class="gds-plugin-card-name">Formulaire de contact</div>
+              <div class="gds-plugin-card-desc">Formulaire email simple</div>
+            </div>
+            <div class="gds-plugin-card" data-plugin="map">
+              <div class="gds-plugin-card-name">Carte Google Maps</div>
+              <div class="gds-plugin-card-desc">Carte interactive avec votre adresse</div>
+            </div>
+            <div class="gds-plugin-card" data-plugin="cta">
+              <div class="gds-plugin-card-name">Bloc CTA</div>
+              <div class="gds-plugin-card-desc">Appel a l'action avec bouton</div>
+            </div>
+          </div>
+        </div>
+        <div class="gds-modal-footer">
+          <button class="gds-modal-btn gds-modal-btn-cancel" onclick="document.getElementById('gds-block-modal').remove()">Annuler</button>
+          <button class="gds-modal-btn gds-modal-btn-submit" id="gds-block-submit" disabled>Inserer le bloc</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    // Close on overlay click
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.remove();
+    });
+
+    // Block type selection
+    let selectedType = null;
+    overlay.querySelectorAll('.gds-block-type').forEach(btn => {
+      btn.addEventListener('click', () => {
+        overlay.querySelectorAll('.gds-block-type').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        selectedType = btn.dataset.type;
+
+        document.getElementById('gds-block-code-area').classList.toggle('visible', selectedType === 'html');
+        document.getElementById('gds-block-upload-area').classList.toggle('visible', selectedType === 'image');
+        document.getElementById('gds-block-plugins-area').classList.toggle('visible', selectedType === 'plugin');
+        document.getElementById('gds-block-submit').disabled = selectedType === 'plugin';
+        if (selectedType === 'html') document.getElementById('gds-block-submit').disabled = false;
+        if (selectedType === 'image') document.getElementById('gds-block-submit').disabled = false;
+      });
+    });
+
+    // HTML input change
+    const htmlInput = document.getElementById('gds-block-html-input');
+    htmlInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const s = htmlInput.selectionStart;
+        htmlInput.value = htmlInput.value.substring(0, s) + '  ' + htmlInput.value.substring(htmlInput.selectionEnd);
+        htmlInput.selectionStart = htmlInput.selectionEnd = s + 2;
+      }
+    });
+
+    // Image file selection
+    document.getElementById('gds-block-file-input').addEventListener('change', (e) => {
+      if (e.target.files[0]) {
+        const fileName = e.target.files[0].name;
+        document.getElementById('gds-block-upload-area').innerHTML =
+          '<div style="color:#3fb950;font-size:14px">&#10003; ' + fileName + '</div>';
+        document.getElementById('gds-block-submit').disabled = false;
+      }
+    });
+
+    // Plugin selection
+    overlay.querySelectorAll('.gds-plugin-card').forEach(card => {
+      card.addEventListener('click', () => {
+        overlay.querySelectorAll('.gds-plugin-card').forEach(c => c.style.borderColor = '#30363d');
+        card.style.borderColor = '#E51981';
+        card.dataset.selected = 'true';
+        document.getElementById('gds-block-submit').disabled = false;
+      });
+    });
+
+    // Submit
+    document.getElementById('gds-block-submit').addEventListener('click', () => {
+      submitBlock(selectedType, overlay);
+    });
+  }
+
+  async function submitBlock(type, modal) {
+    let htmlContent = '';
+
+    if (type === 'html') {
+      htmlContent = document.getElementById('gds-block-html-input').value;
+      if (!htmlContent.trim()) {
+        showToast('Le code HTML est vide', 'error');
+        return;
+      }
+    } else if (type === 'image') {
+      const file = document.getElementById('gds-block-file-input').files[0];
+      if (!file) { showToast('Aucune image selectionnee', 'error'); return; }
+
+      // Upload image first
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('slug', currentSlug);
+      try {
+        const uploadRes = await Auth.apiFetch('/api/media/upload', { method: 'POST', body: formData });
+        if (!uploadRes.ok) throw new Error('Upload echoue');
+        const uploadData = await uploadRes.json();
+        const imgUrl = uploadData.url || uploadData.path || '/images/' + file.name;
+        htmlContent = `<section style="padding:60px 20px;text-align:center;">
+  <img src="${imgUrl}" alt="${file.name.replace(/\.[^.]+$/, '')}" style="max-width:100%;height:auto;border-radius:12px;" data-gds-img="custom:0:${imgUrl}">
+</section>`;
+      } catch (err) {
+        // Fallback: use placeholder
+        htmlContent = `<section style="padding:60px 20px;text-align:center;">
+  <img src="" alt="Image" style="max-width:100%;height:auto;border-radius:12px;" data-gds-img="custom:0:">
+  <p style="color:#999;margin-top:12px;">Image a remplacer via l'editeur</p>
+</section>`;
+      }
+    } else if (type === 'plugin') {
+      const selected = modal.querySelector('.gds-plugin-card[data-selected="true"]');
+      if (!selected) { showToast('Selectionnez un plugin', 'error'); return; }
+      htmlContent = getPluginHtml(selected.dataset.plugin);
+    }
+
+    if (!htmlContent) return;
+
+    // Save the block via API
+    const submitBtn = document.getElementById('gds-block-submit');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Insertion...';
+
+    try {
+      const res = await Auth.apiFetch('/api/pages/' + currentSlug + '/add-section', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ html: htmlContent, position: currentInsertIndex })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Erreur');
+      }
+      modal.remove();
+      showToast('Bloc ajoute !', 'success');
+      // Reload page to show the new block
+      setTimeout(() => window.location.reload(), 500);
+    } catch (err) {
+      showToast('Erreur: ' + err.message, 'error');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Inserer le bloc';
+    }
+  }
+
+  function getPluginHtml(pluginId) {
+    const plugins = {
+      'google-reviews': `<section style="padding:60px 20px;background:#f8f9fa;">
+  <div style="max-width:1300px;margin:0 auto;text-align:center;">
+    <h2 style="font-size:36px;font-weight:900;font-style:italic;margin-bottom:8px;" data-gds-edit="plugin-avis:0:h2" data-gds-section="plugin-avis" data-gds-tag="H2">Ce que disent nos clients</h2>
+    <p style="color:#666;margin-bottom:30px;" data-gds-edit="plugin-avis:0:p" data-gds-section="plugin-avis" data-gds-tag="P">4.8/5 sur Google - Plus de 1000 avis</p>
+    <div style="background:#fff;border-radius:12px;padding:30px;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+      <p style="color:#999;">Les avis Google seront charges ici automatiquement.</p>
+    </div>
+  </div>
+</section>`,
+      'contact-form': `<section style="padding:60px 20px;background:#fff;">
+  <div style="max-width:600px;margin:0 auto;">
+    <h2 style="font-size:36px;font-weight:900;font-style:italic;text-align:center;margin-bottom:30px;" data-gds-edit="plugin-contact:0:h2" data-gds-section="plugin-contact" data-gds-tag="H2">Contactez-nous</h2>
+    <form style="display:flex;flex-direction:column;gap:16px;">
+      <input type="text" placeholder="Votre nom" style="padding:14px 18px;border:1px solid #ddd;border-radius:8px;font-size:15px;">
+      <input type="email" placeholder="Votre email" style="padding:14px 18px;border:1px solid #ddd;border-radius:8px;font-size:15px;">
+      <textarea placeholder="Votre message" rows="5" style="padding:14px 18px;border:1px solid #ddd;border-radius:8px;font-size:15px;resize:vertical;"></textarea>
+      <button type="submit" style="padding:14px;background:linear-gradient(135deg,#E51981,#ff3fac);color:#fff;border:none;border-radius:25px;font-size:16px;font-weight:700;cursor:pointer;">Envoyer</button>
+    </form>
+  </div>
+</section>`,
+      'map': `<section style="padding:0;">
+  <div style="width:100%;height:400px;background:#e0e0e0;display:flex;align-items:center;justify-content:center;">
+    <p style="color:#999;" data-gds-edit="plugin-map:0:p" data-gds-section="plugin-map" data-gds-tag="P">Carte Google Maps — Integrez votre iframe ici</p>
+  </div>
+</section>`,
+      'cta': `<section style="padding:80px 20px;background:linear-gradient(135deg,#2d0535,#1a0a22);text-align:center;">
+  <h2 style="font-size:42px;font-weight:900;font-style:italic;color:#fff;margin-bottom:12px;" data-gds-edit="plugin-cta:0:h2" data-gds-section="plugin-cta" data-gds-tag="H2">Pret a vous lancer ?</h2>
+  <p style="font-size:18px;color:rgba(255,255,255,0.7);margin-bottom:30px;" data-gds-edit="plugin-cta:0:p" data-gds-section="plugin-cta" data-gds-tag="P">Recevez votre devis personnalise en quelques minutes.</p>
+  <a href="/reservation/" style="display:inline-block;padding:16px 40px;background:linear-gradient(135deg,#E51981,#ff3fac);color:#fff;border-radius:30px;font-weight:700;font-size:18px;text-decoration:none;">Obtenir un devis gratuit</a>
+</section>`
+    };
+    return plugins[pluginId] || '<section><p>Plugin non disponible</p></section>';
+  }
+
   // ===== WARN BEFORE LEAVING =====
   window.addEventListener('beforeunload', (e) => {
     if (Object.keys(changes).length > 0 || seoData._modified) {
@@ -918,6 +1185,7 @@
     document.body.classList.add('gds-admin-mode');
     initEditableElements();
     initEditableImages();
+    initBlockInserters();
     initMurGallery();
     console.log('[GDS Admin] Embedded mode — slug:', currentSlug);
   }
