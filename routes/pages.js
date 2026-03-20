@@ -344,7 +344,14 @@ router.get('/:slug/preview', verifyToken, async (req, res) => {
     let bodyContent = '';
     for (const section of sections) {
       const content = fs.readFileSync(path.join(previewDir, section.file), 'utf-8');
+      // Wrap non-header/footer sections in <main class="snb-page-content">
+      if (section.file.toLowerCase().includes('footer')) {
+        bodyContent += '</main>\n';
+      }
       bodyContent += content + '\n';
+      if (section.file.toLowerCase().includes('header')) {
+        bodyContent += '<main class="snb-page-content">\n';
+      }
     }
 
     // Read SEO data
@@ -360,7 +367,6 @@ router.get('/:slug/preview', verifyToken, async (req, res) => {
 
     const fontMain = config.typography?.fontMain || 'Raleway';
     const fontHeadings = config.typography?.fontHeadings || 'Raleway';
-    const fonts = [...new Set([fontMain, fontHeadings])].join('|').replace(/ /g, '+');
 
     const html = `<!DOCTYPE html>
 <html lang="fr">
@@ -369,8 +375,19 @@ router.get('/:slug/preview', verifyToken, async (req, res) => {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${seo.title || config.identity?.name || 'Preview'}</title>
   <meta name="description" content="${seo.description || ''}">
-  <link href="https://fonts.googleapis.com/css2?family=${fonts}:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
+    @font-face{font-family:'Raleway';font-style:normal;font-weight:400 900;font-display:swap;src:url(/fonts/raleway-latin-ext.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+    @font-face{font-family:'Raleway';font-style:normal;font-weight:400 900;font-display:swap;src:url(/fonts/raleway-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+    @font-face{font-family:'Raleway';font-style:italic;font-weight:900;font-display:swap;src:url(/fonts/raleway-900i-latin-ext.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+    @font-face{font-family:'Raleway';font-style:italic;font-weight:900;font-display:swap;src:url(/fonts/raleway-900i-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+    *,*::before,*::after{box-sizing:border-box}
+    body{margin:0;padding:0;font-family:"Raleway",sans-serif;color:#333;line-height:1.6;background:#fff;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+    .snb-page-wrapper{overflow-x:hidden}
+    a{text-decoration:none;color:inherit}
+    img{max-width:100%;height:auto}
+    ul{list-style:none;padding:0;margin:0}
+    .snb-page-content{padding-top:72px}
+    @media (max-width:850px){.snb-page-content{padding-top:60px}}
     :root {
       --color-primary: ${config.colors?.primary || '#E51981'};
       --color-secondary: ${config.colors?.secondary || '#0250FF'};
@@ -387,16 +404,16 @@ router.get('/:slug/preview', verifyToken, async (req, res) => {
       --border-radius: ${config.layout?.borderRadius || '12px'};
       --cta-radius: ${config.cta?.borderRadius || '50px'};
     }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: var(--font-main); color: var(--color-text-dark); background: var(--color-bg-main); }
     h1, h2, h3, h4, h5, h6 { font-family: var(--font-headings); }
-    img { max-width: 100%; height: auto; }
     .container { max-width: var(--max-width); margin: 0 auto; padding: 0 20px; }
   </style>
   ${config.scripts?.headCustom || ''}
 </head>
 <body>
+<div class="snb-page-wrapper">
 ${bodyContent}
+</div>
+<script src="/js/site/scripts-${slug === 'home' ? 'home' : slug}.js" defer></script>
 ${config.scripts?.bodyEndCustom || ''}
 </body>
 </html>`;
