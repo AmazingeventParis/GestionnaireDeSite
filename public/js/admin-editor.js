@@ -907,73 +907,44 @@
 
   // ===== BLOCK INSERTER =====
   function initBlockInserters() {
-    // Find the main content area
+    // Find section wrappers injected by the preview route
+    const wrappers = document.querySelectorAll('.gds-section-wrapper');
     const main = document.querySelector('main.snb-page-content');
+
     if (!main) {
-      console.warn('[GDS Admin] No main.snb-page-content found for block inserters');
+      console.warn('[GDS Admin] No main.snb-page-content found');
       return;
     }
 
-    // Collect visual section elements (skip style, script, text nodes)
-    // A "section" is any element that contains visible content (section, div with class, etc.)
-    const allChildren = Array.from(main.children);
-    const sections = [];
-    let i = 0;
-    while (i < allChildren.length) {
-      const el = allChildren[i];
-      // Skip style/script/inserter
-      if (el.tagName === 'STYLE' || el.tagName === 'SCRIPT' || el.tagName === 'LINK' ||
-          el.classList.contains('gds-block-inserter')) {
-        i++;
-        continue;
-      }
-      // This is a visual section — but the <style> before it belongs to it
-      // Group: collect any preceding <style> tags + this element as one "section block"
-      sections.push(el);
-      i++;
-    }
+    console.log('[GDS Admin] Found', wrappers.length, 'section wrappers');
 
-    if (sections.length === 0) {
-      // For an empty page, add a single inserter
+    function createInserter(index) {
       const inserter = document.createElement('div');
       inserter.className = 'gds-block-inserter';
-      inserter.dataset.insertIndex = '0';
       inserter.innerHTML = '<button class="gds-block-inserter-btn" title="Ajouter un bloc">+</button>';
-      main.appendChild(inserter);
       inserter.querySelector('.gds-block-inserter-btn').addEventListener('click', () => {
-        openBlockModal(0);
+        openBlockModal(index);
       });
-      console.log('[GDS Admin] Empty page — added 1 block inserter');
+      return inserter;
+    }
+
+    if (wrappers.length === 0) {
+      // Empty page — single inserter
+      main.appendChild(createInserter(0));
+      console.log('[GDS Admin] Empty page — added 1 inserter');
       return;
     }
 
-    // Insert an inserter before first section, between each, and after last
-    let insertCount = 0;
-    sections.forEach((section, idx) => {
-      // Before this section
-      const inserter = document.createElement('div');
-      inserter.className = 'gds-block-inserter';
-      inserter.dataset.insertIndex = String(idx);
-      inserter.innerHTML = '<button class="gds-block-inserter-btn" title="Ajouter un bloc">+</button>';
-      section.parentNode.insertBefore(inserter, section);
-      inserter.querySelector('.gds-block-inserter-btn').addEventListener('click', () => {
-        openBlockModal(parseInt(inserter.dataset.insertIndex));
-      });
-      insertCount++;
+    // Before first wrapper
+    wrappers[0].parentNode.insertBefore(createInserter(0), wrappers[0]);
+
+    // After each wrapper
+    wrappers.forEach((wrapper, idx) => {
+      const inserter = createInserter(idx + 1);
+      wrapper.parentNode.insertBefore(inserter, wrapper.nextSibling);
     });
 
-    // After last section
-    const lastInserter = document.createElement('div');
-    lastInserter.className = 'gds-block-inserter';
-    lastInserter.dataset.insertIndex = String(sections.length);
-    lastInserter.innerHTML = '<button class="gds-block-inserter-btn" title="Ajouter un bloc">+</button>';
-    main.appendChild(lastInserter);
-    lastInserter.querySelector('.gds-block-inserter-btn').addEventListener('click', () => {
-      openBlockModal(sections.length);
-    });
-    insertCount++;
-
-    console.log('[GDS Admin] Inserted', insertCount, 'block inserters for', sections.length, 'sections');
+    console.log('[GDS Admin] Inserted', wrappers.length + 1, 'block inserters');
   }
 
   let currentInsertIndex = 0;

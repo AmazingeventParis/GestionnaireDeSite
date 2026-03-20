@@ -624,6 +624,15 @@ body.gds-admin-mode .gds-page-content {
   }
 }
 
+/* ===== SECTION WRAPPER ===== */
+.gds-section-wrapper {
+  position: relative;
+}
+.gds-admin-mode .gds-section-wrapper:hover {
+  outline: 2px dashed rgba(88, 166, 255, 0.3);
+  outline-offset: -2px;
+}
+
 /* ===== BLOCK INSERTER ===== */
 .gds-block-inserter {
   position: relative;

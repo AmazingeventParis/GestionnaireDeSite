@@ -521,7 +521,7 @@ router.get('/:slug/preview', verifyToken, async (req, res) => {
       const nameLower = section.file.toLowerCase();
       if (nameLower.includes('header') || nameLower.includes('footer')) continue;
       const content = fs.readFileSync(path.join(previewDir, section.file), 'utf-8');
-      bodyContent += content + '\n';
+      bodyContent += `<div class="gds-section-wrapper" data-gds-file="${section.file}">\n${content}\n</div>\n`;
     }
 
     bodyContent += '</main>\n';
