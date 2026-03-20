@@ -469,6 +469,66 @@ router.get('/shared/:component', verifyToken, async (req, res) => {
 });
 
 /**
+ * GET /shared/:component/preview — Preview shared header or footer
+ */
+router.get('/shared/:component/preview', verifyToken, async (req, res) => {
+  try {
+    const component = req.params.component.replace(/[^a-z]/gi, '');
+    if (component !== 'header' && component !== 'footer') {
+      return res.status(400).json({ error: 'Composant invalide' });
+    }
+
+    const filePath = path.join(SHARED_DIR, component + '.html');
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'Composant non trouve' });
+    }
+
+    const configPath = path.join(__dirname, '..', 'site-config.json');
+    let config = {};
+    if (fs.existsSync(configPath)) {
+      config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    }
+
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const fontMain = config.typography?.fontMain || 'Raleway';
+
+    const html = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${component === 'header' ? 'Header' : 'Footer'} — Preview</title>
+  <style>
+    @font-face{font-family:'Raleway';font-style:normal;font-weight:400 900;font-display:swap;src:url(/fonts/raleway-latin.woff2) format('woff2')}
+    @font-face{font-family:'Raleway';font-style:italic;font-weight:900;font-display:swap;src:url(/fonts/raleway-900i-latin.woff2) format('woff2')}
+    *,*::before,*::after{box-sizing:border-box}
+    body{margin:0;padding:0;font-family:"${fontMain}",sans-serif;color:#333;line-height:1.6;background:#fff;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+    .snb-page-wrapper{overflow-x:hidden}
+    a{text-decoration:none;color:inherit}
+    img{max-width:100%;height:auto}
+    ul{list-style:none;padding:0;margin:0}
+    .snb-page-content{padding-top:72px}
+    @media(max-width:850px){.snb-page-content{padding-top:60px}}
+  </style>
+</head>
+<body>
+<div class="snb-page-wrapper">
+${content}
+${component === 'header' ? '<main class="snb-page-content" style="min-height:60vh;display:flex;align-items:center;justify-content:center;"><p style="color:#8b949e;font-size:18px;">Contenu de la page...</p></main>' : ''}
+</div>
+<script src="/js/site/scripts-home.js" defer></script>
+</body>
+</html>`;
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (err) {
+    console.error('[Pages] Shared preview error:', err.message);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+/**
  * PUT /shared/:component — Save shared header or footer HTML
  * RBAC: admin only
  */

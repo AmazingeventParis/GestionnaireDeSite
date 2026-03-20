@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Editeur — Gestionnaire de Site</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .editor-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      height: calc(100vh - 60px);
+    }
+    .editor-panel {
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid #30363d;
+      overflow: hidden;
+    }
+    .editor-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .editor-toolbar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .editor-toolbar h2 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #e6edf3;
+      margin: 0;
+    }
+    .editor-toolbar .badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+    .editor-toolbar .badge-header {
+      background: #58a6ff22;
+      color: #58a6ff;
+      border: 1px solid #58a6ff44;
+    }
+    .editor-toolbar .badge-footer {
+      background: #3fb95022;
+      color: #3fb950;
+      border: 1px solid #3fb95044;
+    }
+    .editor-toolbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-save {
+      background: #238636;
+      color: #fff;
+      border: 1px solid #2ea04366;
+      padding: 6px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-save:hover { background: #2ea043; }
+    .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-back {
+      background: #21262d;
+      color: #e6edf3;
+      border: 1px solid #30363d;
+      padding: 6px 14px;
+      font-size: 13px;
+      border-radius: 6px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.2s;
+    }
+    .btn-back:hover { background: #30363d; text-decoration: none; }
+    .save-status {
+      font-size: 12px;
+      color: #8b949e;
+    }
+    #code-editor {
+      flex: 1;
+      width: 100%;
+      background: #0d1117;
+      color: #c9d1d9;
+      border: none;
+      padding: 16px;
+      font-family: 'Courier New', 'Fira Code', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      resize: none;
+      outline: none;
+      tab-size: 2;
+      overflow: auto;
+    }
+    .preview-panel {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .preview-toolbar {
+      display: flex;
+      align-items: center;
+      padding: 10px 16px;
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      flex-shrink: 0;
+    }
+    .preview-toolbar h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #8b949e;
+      margin: 0;
+    }
+    .preview-toolbar .btn-refresh {
+      margin-left: auto;
+      background: #21262d;
+      color: #8b949e;
+      border: 1px solid #30363d;
+      padding: 4px 10px;
+      font-size: 12px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .preview-toolbar .btn-refresh:hover { background: #30363d; color: #e6edf3; }
+    #preview-frame {
+      flex: 1;
+      border: none;
+      background: #fff;
+    }
+    @media (max-width: 900px) {
+      .editor-layout {
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr 1fr;
+      }
+      .editor-panel { border-right: none; border-bottom: 1px solid #30363d; }
+    }
+  </style>
+</head>
+<body>
+  <div id="navbar"></div>
+
+  <div class="editor-layout">
+    <div class="editor-panel">
+      <div class="editor-toolbar">
+        <div class="editor-toolbar-left">
+          <a href="/settings.html" class="btn-back">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M7.78 12.53a.75.75 0 01-1.06 0L2.47 8.28a.75.75 0 010-1.06l4.25-4.25a.75.75 0 011.06 1.06L4.81 7h7.44a.75.75 0 010 1.5H4.81l2.97 2.97a.75.75 0 010 1.06z"/></svg>
+            Parametres
+          </a>
+          <h2 id="editor-title">Chargement...</h2>
+          <span id="editor-badge" class="badge"></span>
+        </div>
+        <div class="editor-toolbar-actions">
+          <span id="save-status" class="save-status"></span>
+          <button id="btn-save" class="btn-save" disabled>Sauvegarder</button>
+        </div>
+      </div>
+      <textarea id="code-editor" spellcheck="false"></textarea>
+    </div>
+
+    <div class="preview-panel">
+      <div class="preview-toolbar">
+        <h3>Apercu</h3>
+        <button id="btn-refresh" class="btn-refresh" onclick="refreshPreview()">Rafraichir</button>
+      </div>
+      <iframe id="preview-frame"></iframe>
+    </div>
+  </div>
+
+  <script src="/js/auth.js"></script>
+  <script src="/js/components.js"></script>
+  <script>
+    (function() {
+      'use strict';
+
+      var component = new URLSearchParams(window.location.search).get('component');
+      if (!component || (component !== 'header' && component !== 'footer')) {
+        window.location.href = '/settings.html';
+        return;
+      }
+
+      var isDirty = false;
+      var editor = document.getElementById('code-editor');
+      var saveBtn = document.getElementById('btn-save');
+      var saveStatus = document.getElementById('save-status');
+
+      // Set title and badge
+      var title = component === 'header' ? 'Header partage' : 'Footer partage';
+      document.getElementById('editor-title').textContent = title;
+      document.title = title + ' — Editeur';
+      var badge = document.getElementById('editor-badge');
+      badge.textContent = component.toUpperCase();
+      badge.className = 'badge badge-' + component;
+
+      // Load content
+      async function loadContent() {
+        try {
+          var res = await Auth.apiFetch('/api/pages/shared/' + component);
+          if (!res.ok) throw new Error('Erreur ' + res.status);
+          var data = await res.json();
+          editor.value = data.content || '';
+          refreshPreview();
+        } catch (err) {
+          Components.showToast('Erreur de chargement', 'error');
+        }
+      }
+
+      // Save content
+      async function saveContent() {
+        saveBtn.disabled = true;
+        saveStatus.textContent = 'Sauvegarde...';
+        saveStatus.style.color = '#8b949e';
+
+        try {
+          var res = await Auth.apiFetch('/api/pages/shared/' + component, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: editor.value })
+          });
+          if (res.ok) {
+            isDirty = false;
+            saveBtn.disabled = true;
+            saveStatus.textContent = 'Sauvegarde';
+            saveStatus.style.color = '#3fb950';
+            Components.showToast(title + ' sauvegarde', 'success');
+            refreshPreview();
+          } else {
+            var err = await res.json();
+            saveStatus.textContent = err.error || 'Erreur';
+            saveStatus.style.color = '#f85149';
+            saveBtn.disabled = false;
+          }
+        } catch (err) {
+          saveStatus.textContent = 'Erreur reseau';
+          saveStatus.style.color = '#f85149';
+          saveBtn.disabled = false;
+        }
+      }
+
+      // Refresh preview
+      window.refreshPreview = function() {
+        document.getElementById('preview-frame').src = '/api/pages/shared/' + component + '/preview?t=' + Date.now();
+      };
+
+      // Track changes
+      editor.addEventListener('input', function() {
+        if (!isDirty) {
+          isDirty = true;
+          saveBtn.disabled = false;
+          saveStatus.textContent = 'Non sauvegarde';
+          saveStatus.style.color = '#d29922';
+        }
+      });
+
+      // Tab key support
+      editor.addEventListener('keydown', function(e) {
+        if (e.key === 'Tab') {
+          e.preventDefault();
+          var start = this.selectionStart;
+          var end = this.selectionEnd;
+          this.value = this.value.substring(0, start) + '  ' + this.value.substring(end);
+          this.selectionStart = this.selectionEnd = start + 2;
+          if (!isDirty) {
+            isDirty = true;
+            saveBtn.disabled = false;
+          }
+        }
+        // Ctrl+S save
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+          e.preventDefault();
+          if (!saveBtn.disabled) saveContent();
+        }
+      });
+
+      // Save button click
+      saveBtn.addEventListener('click', saveContent);
+
+      // Warn before leaving with unsaved changes
+      window.addEventListener('beforeunload', function(e) {
+        if (isDirty) {
+          e.preventDefault();
+          e.returnValue = '';
+        }
+      });
+
+      // Init
+      Components.initPage().then(function(user) {
+        if (!user || user.role !== 'admin') {
+          window.location.href = '/';
+          return;
+        }
+        loadContent();
+      });
+    })();
+  </script>
+</body>
+</html>

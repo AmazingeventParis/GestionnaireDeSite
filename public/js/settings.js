@@ -309,52 +309,24 @@
     }
   }
 
-  // ==================== Shared Header/Footer ====================
+  // ==================== Shared Header/Footer Info ====================
 
-  async function loadSharedComponent(component) {
+  async function loadSharedInfo(component) {
     try {
       var res = await Auth.apiFetch('/api/pages/shared/' + component);
       if (!res.ok) return;
       var data = await res.json();
-      var el = document.getElementById('shared-' + component + '-html');
-      if (el && data.content) {
-        el.value = data.content;
+      var info = document.getElementById('shared-' + component + '-info');
+      if (info && data.content) {
+        info.textContent = (data.content.length / 1024).toFixed(1) + ' Ko';
+      } else if (info) {
+        info.textContent = 'Aucun contenu';
+        info.style.color = '#f85149';
       }
     } catch (err) {
-      console.error('Load shared ' + component + ' error:', err);
+      // silent
     }
   }
-
-  window.saveSharedComponent = async function(component) {
-    var el = document.getElementById('shared-' + component + '-html');
-    var status = document.getElementById('shared-' + component + '-status');
-    if (!el) return;
-
-    status.textContent = 'Sauvegarde...';
-    status.style.color = '#8b949e';
-
-    try {
-      var res = await Auth.apiFetch('/api/pages/shared/' + component, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: el.value })
-      });
-      if (res.ok) {
-        var data = await res.json();
-        status.textContent = 'Sauvegarde (' + data.size + ' car.)';
-        status.style.color = '#3fb950';
-        Components.showToast(component.charAt(0).toUpperCase() + component.slice(1) + ' sauvegarde', 'success');
-      } else {
-        var err = await res.json();
-        status.textContent = 'Erreur: ' + (err.error || 'inconnue');
-        status.style.color = '#f85149';
-        Components.showToast('Erreur lors de la sauvegarde', 'error');
-      }
-    } catch (err) {
-      status.textContent = 'Erreur reseau';
-      status.style.color = '#f85149';
-    }
-  };
 
   // ==================== Init ====================
 
@@ -391,8 +363,8 @@
         return;
       }
       loadConfig();
-      loadSharedComponent('header');
-      loadSharedComponent('footer');
+      loadSharedInfo('header');
+      loadSharedInfo('footer');
     });
   }
 

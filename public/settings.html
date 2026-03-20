@@ -605,16 +605,18 @@
               <option value="left">Gauche</option>
             </select>
           </div>
-          <h3 style="color:#c9d1d9;font-size:15px;margin:20px 0 12px;">Code HTML du header partage</h3>
-          <p style="font-size:12px;color:#8b949e;margin-bottom:8px;">Ce HTML est injecte automatiquement en haut de <strong>toutes les pages</strong> du site.</p>
-          <div class="field-group">
-            <div style="position:relative;">
-              <textarea id="shared-header-html" style="width:100%;min-height:200px;max-height:500px;background:#0d1117;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;padding:12px;font-family:'Courier New',monospace;font-size:12px;line-height:1.5;resize:vertical;tab-size:2;" placeholder="<header class='snb-header'>...</header>"></textarea>
-              <div style="display:flex;gap:8px;margin-top:8px;">
-                <button type="button" class="btn btn-primary" style="font-size:12px;padding:6px 14px;" onclick="saveSharedComponent('header')">Sauvegarder le header</button>
-                <span id="shared-header-status" style="font-size:12px;color:#8b949e;align-self:center;"></span>
-              </div>
-            </div>
+          <h3 style="color:#c9d1d9;font-size:15px;margin:20px 0 12px;">Header partage</h3>
+          <p style="font-size:12px;color:#8b949e;margin-bottom:12px;">Ce header est injecte automatiquement en haut de <strong>toutes les pages</strong> du site.</p>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;">
+            <a href="/api/pages/shared/header/preview" target="_blank" class="btn-sm btn-view" style="padding:8px 16px;font-size:13px;border-radius:6px;border:1px solid #30363d;background:#21262d;color:#e6edf3;text-decoration:none;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:background 0.2s;">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 2c1.981 0 3.671.992 4.933 2.078 1.27 1.091 2.187 2.345 2.637 3.023a1.62 1.62 0 010 1.798c-.45.678-1.367 1.932-2.637 3.023C11.67 13.008 9.981 14 8 14c-1.981 0-3.671-.992-4.933-2.078C1.797 10.831.88 9.577.43 8.899a1.62 1.62 0 010-1.798c.45-.678 1.367-1.932 2.637-3.023C4.33 2.992 6.019 2 8 2zM1.679 7.932a.12.12 0 000 .136c.411.622 1.241 1.75 2.366 2.717C5.176 11.758 6.527 12.5 8 12.5c1.473 0 2.825-.742 3.955-1.715 1.124-.967 1.954-2.096 2.366-2.717a.12.12 0 000-.136c-.412-.621-1.242-1.75-2.366-2.717C10.824 4.242 9.473 3.5 8 3.5c-1.473 0-2.824.742-3.955 1.715-1.124.967-1.954 2.096-2.366 2.717zM8 10a2 2 0 110-4 2 2 0 010 4z"/></svg>
+              Voir
+            </a>
+            <a href="/shared-editor.html?component=header" class="btn-sm btn-edit" style="padding:8px 16px;font-size:13px;border-radius:6px;border:1px solid #58a6ff44;background:#58a6ff22;color:#58a6ff;text-decoration:none;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:background 0.2s;">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M11.013 1.427a1.75 1.75 0 012.474 0l1.086 1.086a1.75 1.75 0 010 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 01-.927-.928l.929-3.25a1.75 1.75 0 01.445-.758l8.61-8.61zm1.414 1.06a.25.25 0 00-.354 0L3.463 11.098a.25.25 0 00-.064.108l-.631 2.208 2.208-.63a.25.25 0 00.108-.064l8.61-8.61a.25.25 0 000-.354z"/></svg>
+              Editer
+            </a>
+            <span id="shared-header-info" style="font-size:12px;color:#8b949e;"></span>
           </div>
           <h3 style="color:#c9d1d9;font-size:15px;margin:20px 0 12px;">Bandeau superieur</h3>
           <div class="toggle-field">
@@ -656,16 +658,18 @@
             <label for="footer-legalPage">Page mentions legales (slug)</label>
             <input type="text" id="footer-legalPage" data-path="footer.legalPage" placeholder="mentions-legales">
           </div>
-          <h3 style="color:#c9d1d9;font-size:15px;margin:20px 0 12px;">Code HTML du footer partage</h3>
-          <p style="font-size:12px;color:#8b949e;margin-bottom:8px;">Ce HTML est injecte automatiquement en bas de <strong>toutes les pages</strong> du site.</p>
-          <div class="field-group">
-            <div style="position:relative;">
-              <textarea id="shared-footer-html" style="width:100%;min-height:200px;max-height:500px;background:#0d1117;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;padding:12px;font-family:'Courier New',monospace;font-size:12px;line-height:1.5;resize:vertical;tab-size:2;" placeholder="<footer class='snb-footer'>...</footer>"></textarea>
-              <div style="display:flex;gap:8px;margin-top:8px;">
-                <button type="button" class="btn btn-primary" style="font-size:12px;padding:6px 14px;" onclick="saveSharedComponent('footer')">Sauvegarder le footer</button>
-                <span id="shared-footer-status" style="font-size:12px;color:#8b949e;align-self:center;"></span>
-              </div>
-            </div>
+          <h3 style="color:#c9d1d9;font-size:15px;margin:20px 0 12px;">Footer partage</h3>
+          <p style="font-size:12px;color:#8b949e;margin-bottom:12px;">Ce footer est injecte automatiquement en bas de <strong>toutes les pages</strong> du site.</p>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;">
+            <a href="/api/pages/shared/footer/preview" target="_blank" class="btn-sm btn-view" style="padding:8px 16px;font-size:13px;border-radius:6px;border:1px solid #30363d;background:#21262d;color:#e6edf3;text-decoration:none;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:background 0.2s;">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 2c1.981 0 3.671.992 4.933 2.078 1.27 1.091 2.187 2.345 2.637 3.023a1.62 1.62 0 010 1.798c-.45.678-1.367 1.932-2.637 3.023C11.67 13.008 9.981 14 8 14c-1.981 0-3.671-.992-4.933-2.078C1.797 10.831.88 9.577.43 8.899a1.62 1.62 0 010-1.798c.45-.678 1.367-1.932 2.637-3.023C4.33 2.992 6.019 2 8 2zM1.679 7.932a.12.12 0 000 .136c.411.622 1.241 1.75 2.366 2.717C5.176 11.758 6.527 12.5 8 12.5c1.473 0 2.825-.742 3.955-1.715 1.124-.967 1.954-2.096 2.366-2.717a.12.12 0 000-.136c-.412-.621-1.242-1.75-2.366-2.717C10.824 4.242 9.473 3.5 8 3.5c-1.473 0-2.824.742-3.955 1.715-1.124.967-1.954 2.096-2.366 2.717zM8 10a2 2 0 110-4 2 2 0 010 4z"/></svg>
+              Voir
+            </a>
+            <a href="/shared-editor.html?component=footer" class="btn-sm btn-edit" style="padding:8px 16px;font-size:13px;border-radius:6px;border:1px solid #58a6ff44;background:#58a6ff22;color:#58a6ff;text-decoration:none;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:background 0.2s;">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M11.013 1.427a1.75 1.75 0 012.474 0l1.086 1.086a1.75 1.75 0 010 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 01-.927-.928l.929-3.25a1.75 1.75 0 01.445-.758l8.61-8.61zm1.414 1.06a.25.25 0 00-.354 0L3.463 11.098a.25.25 0 00-.064.108l-.631 2.208 2.208-.63a.25.25 0 00.108-.064l8.61-8.61a.25.25 0 000-.354z"/></svg>
+              Editer
+            </a>
+            <span id="shared-footer-info" style="font-size:12px;color:#8b949e;"></span>
           </div>
           <h3 style="color:#c9d1d9;font-size:15px;margin:20px 0 12px;">Reseaux sociaux</h3>
           <div class="field-group">
