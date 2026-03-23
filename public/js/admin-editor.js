@@ -1070,7 +1070,7 @@
       wrapper.parentNode.insertBefore(inserter, wrapper.nextSibling);
     });
 
-    // Add delete button to each section wrapper
+    // Add action buttons (code + delete) to each section wrapper
     wrappers.forEach((wrapper) => {
       const file = wrapper.getAttribute('data-gds-file');
       if (!file) return;
@@ -1078,11 +1078,19 @@
       const actions = document.createElement('div');
       actions.className = 'gds-section-actions';
       actions.innerHTML = `
+        <button class="gds-section-code-btn" title="Modifier le code HTML" data-file="${file}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        </button>
         <button class="gds-section-delete-btn" title="Supprimer ce bloc" data-file="${file}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
         </button>
       `;
       wrapper.appendChild(actions);
+
+      actions.querySelector('.gds-section-code-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        openCodeModal(file, wrapper);
+      });
 
       actions.querySelector('.gds-section-delete-btn').addEventListener('click', (e) => {
         e.stopPropagation();
@@ -1293,6 +1301,119 @@
       submitBtn.disabled = false;
       submitBtn.textContent = 'Inserer le bloc';
     }
+  }
+
+  // ===== CODE EDITOR MODAL =====
+  async function openCodeModal(file, wrapper) {
+    const existing = document.getElementById('gds-code-modal');
+    if (existing) existing.remove();
+
+    // Load current HTML from server
+    let htmlContent = '';
+    try {
+      const res = await Auth.apiFetch('/api/pages/' + currentSlug + '/section/' + encodeURIComponent(file));
+      if (!res.ok) throw new Error('Erreur chargement');
+      const data = await res.json();
+      htmlContent = data.content || '';
+    } catch (err) {
+      showToast('Erreur: ' + err.message, 'error');
+      return;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.id = 'gds-code-modal';
+    overlay.className = 'gds-modal-overlay';
+    overlay.innerHTML = `
+      <div class="gds-modal" style="max-width:900px;height:85vh;display:flex;flex-direction:column;">
+        <div class="gds-modal-header">
+          <h3 style="display:flex;align-items:center;gap:8px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            Code HTML — ${escapeHtml(file)}
+          </h3>
+          <button class="gds-modal-close" id="gds-code-close">&times;</button>
+        </div>
+        <div class="gds-modal-body" style="flex:1;overflow:hidden;padding:0;display:flex;flex-direction:column;">
+          <textarea id="gds-code-editor" style="
+            flex:1;width:100%;border:none;background:#0d1117;color:#c9d1d9;
+            font-family:'Courier New',monospace;font-size:13px;line-height:1.6;
+            padding:16px;resize:none;tab-size:2;outline:none;
+          ">${escapeHtml(htmlContent)}</textarea>
+        </div>
+        <div class="gds-modal-footer">
+          <span id="gds-code-status" style="color:#8b949e;font-size:12px;margin-right:auto;"></span>
+          <button class="gds-modal-btn gds-modal-btn-cancel" id="gds-code-cancel">Annuler</button>
+          <button class="gds-modal-btn gds-modal-btn-submit" id="gds-code-save">Sauvegarder</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const editor = document.getElementById('gds-code-editor');
+    const status = document.getElementById('gds-code-status');
+
+    // Tab support in textarea
+    editor.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const s = editor.selectionStart;
+        editor.value = editor.value.substring(0, s) + '  ' + editor.value.substring(editor.selectionEnd);
+        editor.selectionStart = editor.selectionEnd = s + 2;
+      }
+    });
+
+    // Show line count
+    function updateStatus() {
+      const lines = editor.value.split('\n').length;
+      const size = new Blob([editor.value]).size;
+      status.textContent = lines + ' lignes | ' + (size / 1024).toFixed(1) + ' KB';
+    }
+    editor.addEventListener('input', updateStatus);
+    updateStatus();
+
+    // Close
+    const close = () => overlay.remove();
+    document.getElementById('gds-code-close').addEventListener('click', close);
+    document.getElementById('gds-code-cancel').addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+    // Save
+    document.getElementById('gds-code-save').addEventListener('click', async () => {
+      const saveBtn = document.getElementById('gds-code-save');
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Sauvegarde...';
+
+      try {
+        const res = await Auth.apiFetch('/api/pages/' + currentSlug + '/section/' + encodeURIComponent(file), {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: editor.value })
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Erreur');
+        }
+
+        close();
+        showToast('Code sauvegarde !', 'success');
+        setTimeout(() => window.location.reload(), 500);
+      } catch (err) {
+        showToast('Erreur: ' + err.message, 'error');
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Sauvegarder';
+      }
+    });
+
+    // Ctrl+S shortcut inside the modal
+    editor.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        document.getElementById('gds-code-save').click();
+      }
+    });
+
+    // Focus editor
+    editor.focus();
   }
 
   function openDeleteModal(file, wrapper) {

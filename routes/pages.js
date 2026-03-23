@@ -500,6 +500,76 @@ router.delete('/:slug/delete-section', verifyToken, requireRole('admin'), async 
 });
 
 /**
+ * GET /:slug/section/:file — Get the raw HTML content of a section
+ */
+router.get('/:slug/section/:file', verifyToken, async (req, res) => {
+  try {
+    const slug = req.params.slug.replace(/[^a-z0-9-]/gi, '');
+    const file = path.basename(req.params.file);
+    if (!file.endsWith('.html')) {
+      return res.status(400).json({ error: 'Fichier invalide' });
+    }
+
+    const previewDir = getPreviewDir(slug);
+    const filePath = path.join(previewDir, file);
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'Section non trouvee' });
+    }
+
+    const content = fs.readFileSync(filePath, 'utf-8');
+    res.json({ file, content });
+  } catch (err) {
+    console.error('[Pages] Get section error:', err.message);
+    res.status(500).json({ error: 'Erreur lors de la lecture de la section' });
+  }
+});
+
+/**
+ * PUT /:slug/section/:file — Update the raw HTML content of a section
+ * Body: { content: "<style>...</style><section>...</section>" }
+ * RBAC: admin + editor
+ */
+router.put('/:slug/section/:file', verifyToken, requireRole('admin', 'editor'), async (req, res) => {
+  try {
+    const slug = req.params.slug.replace(/[^a-z0-9-]/gi, '');
+    const file = path.basename(req.params.file);
+    if (!file.endsWith('.html')) {
+      return res.status(400).json({ error: 'Fichier invalide' });
+    }
+
+    const { content } = req.body;
+    if (typeof content !== 'string') {
+      return res.status(400).json({ error: 'Le champ "content" est requis' });
+    }
+
+    const previewDir = getPreviewDir(slug);
+    const filePath = path.join(previewDir, file);
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'Section non trouvee' });
+    }
+
+    fs.writeFileSync(filePath, content, 'utf-8');
+
+    await logAudit({
+      userId: req.user.id,
+      action: 'section_code_update',
+      entityType: 'page',
+      entityId: slug,
+      details: { file, size: content.length },
+      ip: getClientIp(req),
+      userAgent: req.headers['user-agent']
+    });
+
+    res.json({ success: true, file, size: content.length });
+  } catch (err) {
+    console.error('[Pages] Update section error:', err.message);
+    res.status(500).json({ error: 'Erreur lors de la mise a jour de la section' });
+  }
+});
+
+/**
  * POST /:slug/publish — Build and publish the site
  * RBAC: admin only
  */

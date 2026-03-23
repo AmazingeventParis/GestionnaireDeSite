@@ -641,6 +641,8 @@ body.gds-admin-mode .gds-page-content {
   z-index: 60;
   opacity: 0;
   transition: opacity 0.2s;
+  display: flex;
+  gap: 6px;
 }
 .gds-section-wrapper:hover .gds-section-actions {
   opacity: 1;
@@ -666,6 +668,28 @@ body.gds-admin-mode .gds-page-content {
   border-color: #da3633;
   transform: scale(1.1);
   box-shadow: 0 4px 16px rgba(248,81,73,0.5);
+}
+.gds-section-code-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid rgba(88,166,255,0.3);
+  background: rgba(13,17,23,0.85);
+  backdrop-filter: blur(8px);
+  color: #58a6ff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+.gds-section-code-btn:hover {
+  background: #1f6feb;
+  color: #fff;
+  border-color: #1f6feb;
+  transform: scale(1.1);
+  box-shadow: 0 4px 16px rgba(31,111,235,0.5);
 }
 
 /* ===== BLOCK INSERTER ===== */
