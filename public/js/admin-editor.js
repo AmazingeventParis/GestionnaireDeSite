@@ -129,6 +129,7 @@
     try { autoTagEditableElements(); } catch (e) { console.error('[GDS] autoTagEditableElements error:', e); }
     try { initEditableElements(); } catch (e) { console.error('[GDS] initEditableElements error:', e); }
     try { initEditableImages(); } catch (e) { console.error('[GDS] initEditableImages error:', e); }
+    try { initPlaceholderImages(); } catch (e) { console.error('[GDS] initPlaceholderImages error:', e); }
     try { initBlockInserters(); } catch (e) { console.error('[GDS] initBlockInserters error:', e); }
     try { initMurGallery(); } catch (e) { console.error('[GDS] initMurGallery error:', e); }
   }
@@ -534,6 +535,221 @@
       changeBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Changer`;
       fileInput.value = '';
       uploadTarget = null;
+    });
+  }
+
+  // ===== PLACEHOLDER IMAGE REPLACEMENT =====
+  function initPlaceholderImages() {
+    // Find placeholder elements (bento-placeholder, or any div with placeholder-like content)
+    const placeholders = document.querySelectorAll('.bento-placeholder, .image-placeholder, [data-gds-placeholder]');
+    console.log('[GDS Admin] Found', placeholders.length, 'image placeholders');
+
+    placeholders.forEach(ph => {
+      // Style as clickable
+      ph.style.cursor = 'pointer';
+      ph.style.transition = 'all 0.2s';
+
+      // Add hover overlay
+      const overlay = document.createElement('div');
+      overlay.className = 'gds-ph-overlay';
+      overlay.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Ajouter une image';
+      ph.style.position = 'relative';
+      ph.appendChild(overlay);
+
+      ph.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openPlaceholderModal(ph);
+      });
+    });
+  }
+
+  function openPlaceholderModal(placeholderEl) {
+    const existing = document.getElementById('gds-ph-modal');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'gds-ph-modal';
+    overlay.className = 'gds-modal-overlay';
+    overlay.innerHTML = `
+      <div class="gds-modal" style="max-width:500px;">
+        <div class="gds-modal-header">
+          <h3>Ajouter une image</h3>
+          <button class="gds-modal-close" id="gds-ph-close">&times;</button>
+        </div>
+        <div class="gds-modal-body">
+          <div style="display:flex;gap:12px;margin-bottom:20px;">
+            <button class="gds-ph-tab active" data-tab="upload" id="gds-ph-tab-upload" style="flex:1;padding:12px;border:1px solid #30363d;border-radius:8px;background:#21262d;color:#e6edf3;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;">
+              <div style="font-size:24px;margin-bottom:4px;">&#128228;</div>
+              Uploader
+            </button>
+            <button class="gds-ph-tab" data-tab="url" id="gds-ph-tab-url" style="flex:1;padding:12px;border:1px solid #30363d;border-radius:8px;background:#0d1117;color:#8b949e;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;">
+              <div style="font-size:24px;margin-bottom:4px;">&#128279;</div>
+              URL
+            </button>
+          </div>
+          <div id="gds-ph-upload-area" class="gds-ph-area">
+            <div class="gds-block-upload visible" id="gds-ph-dropzone" style="display:block;">
+              <input type="file" id="gds-ph-file" accept="image/*,image/gif" style="display:none;">
+              <div style="font-size:36px;margin-bottom:8px;">&#128247;</div>
+              <div>Cliquez ou glissez une image / GIF</div>
+              <div style="font-size:12px;color:#484f58;margin-top:6px;">JPG, PNG, WebP, GIF</div>
+            </div>
+            <div id="gds-ph-preview-img" style="display:none;text-align:center;">
+              <img id="gds-ph-preview-src" style="max-width:100%;max-height:200px;border-radius:8px;border:1px solid #30363d;">
+              <div style="margin-top:8px;font-size:12px;color:#3fb950;" id="gds-ph-file-name"></div>
+            </div>
+          </div>
+          <div id="gds-ph-url-area" class="gds-ph-area" style="display:none;">
+            <input type="url" id="gds-ph-url-input" placeholder="https://example.com/image.jpg" style="width:100%;padding:10px 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:14px;">
+            <div style="margin-top:8px;font-size:12px;color:#8b949e;">URL directe vers une image (JPG, PNG, WebP, GIF)</div>
+            <div id="gds-ph-url-preview" style="display:none;margin-top:12px;text-align:center;">
+              <img id="gds-ph-url-preview-img" style="max-width:100%;max-height:200px;border-radius:8px;border:1px solid #30363d;">
+            </div>
+          </div>
+        </div>
+        <div class="gds-modal-footer">
+          <button class="gds-modal-btn gds-modal-btn-cancel" id="gds-ph-cancel">Annuler</button>
+          <button class="gds-modal-btn gds-modal-btn-submit" id="gds-ph-submit" disabled>Appliquer</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const close = () => overlay.remove();
+    document.getElementById('gds-ph-close').addEventListener('click', close);
+    document.getElementById('gds-ph-cancel').addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+    // Tab switching
+    const tabUpload = document.getElementById('gds-ph-tab-upload');
+    const tabUrl = document.getElementById('gds-ph-tab-url');
+    const areaUpload = document.getElementById('gds-ph-upload-area');
+    const areaUrl = document.getElementById('gds-ph-url-area');
+
+    tabUpload.addEventListener('click', () => {
+      tabUpload.style.background = '#21262d'; tabUpload.style.color = '#e6edf3';
+      tabUrl.style.background = '#0d1117'; tabUrl.style.color = '#8b949e';
+      areaUpload.style.display = 'block'; areaUrl.style.display = 'none';
+    });
+    tabUrl.addEventListener('click', () => {
+      tabUrl.style.background = '#21262d'; tabUrl.style.color = '#e6edf3';
+      tabUpload.style.background = '#0d1117'; tabUpload.style.color = '#8b949e';
+      areaUrl.style.display = 'block'; areaUpload.style.display = 'none';
+    });
+
+    // Upload dropzone
+    const dropzone = document.getElementById('gds-ph-dropzone');
+    const fileInput = document.getElementById('gds-ph-file');
+    let selectedFile = null;
+    let selectedUrl = '';
+
+    dropzone.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) {
+        selectedFile = fileInput.files[0];
+        selectedUrl = '';
+        // Show preview
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          document.getElementById('gds-ph-preview-src').src = e.target.result;
+          document.getElementById('gds-ph-file-name').textContent = selectedFile.name + ' (' + (selectedFile.size / 1024).toFixed(0) + ' KB)';
+          document.getElementById('gds-ph-preview-img').style.display = 'block';
+          dropzone.style.display = 'none';
+        };
+        reader.readAsDataURL(selectedFile);
+        document.getElementById('gds-ph-submit').disabled = false;
+      }
+    });
+
+    // URL input
+    const urlInput = document.getElementById('gds-ph-url-input');
+    let urlDebounce;
+    urlInput.addEventListener('input', () => {
+      clearTimeout(urlDebounce);
+      urlDebounce = setTimeout(() => {
+        const url = urlInput.value.trim();
+        if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+          selectedUrl = url;
+          selectedFile = null;
+          // Try to show preview
+          const preview = document.getElementById('gds-ph-url-preview');
+          const previewImg = document.getElementById('gds-ph-url-preview-img');
+          previewImg.src = url;
+          previewImg.onload = () => { preview.style.display = 'block'; };
+          previewImg.onerror = () => { preview.style.display = 'none'; };
+          document.getElementById('gds-ph-submit').disabled = false;
+        } else {
+          document.getElementById('gds-ph-submit').disabled = true;
+          document.getElementById('gds-ph-url-preview').style.display = 'none';
+        }
+      }, 500);
+    });
+
+    // Submit
+    document.getElementById('gds-ph-submit').addEventListener('click', async () => {
+      const submitBtn = document.getElementById('gds-ph-submit');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Application...';
+
+      try {
+        let imgSrc = '';
+
+        if (selectedFile) {
+          // Upload image
+          const formData = new FormData();
+          formData.append('image', selectedFile);
+          formData.append('slug', currentSlug);
+
+          const res = await Auth.apiFetch('/api/media/upload', {
+            method: 'POST',
+            body: formData
+          });
+          if (!res.ok) throw new Error('Upload echoue');
+          const data = await res.json();
+          imgSrc = data.url || data.path || '';
+        } else if (selectedUrl) {
+          imgSrc = selectedUrl;
+        }
+
+        if (!imgSrc) throw new Error('Aucune image');
+
+        // Replace placeholder with img tag
+        const parent = placeholderEl.parentElement;
+        const caption = parent.querySelector('.bento-caption span');
+        const altText = caption ? caption.textContent : 'Image';
+
+        const img = document.createElement('img');
+        img.src = imgSrc;
+        img.alt = altText;
+        img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+
+        placeholderEl.replaceWith(img);
+
+        // Save the section file with the new content
+        const wrapper = parent.closest('.gds-section-wrapper');
+        if (wrapper) {
+          const file = wrapper.getAttribute('data-gds-file');
+          if (file) {
+            // Get full section HTML and save
+            const sectionHtml = wrapper.innerHTML;
+            await Auth.apiFetch('/api/pages/' + currentSlug + '/section/' + encodeURIComponent(file), {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ content: sectionHtml })
+            });
+          }
+        }
+
+        close();
+        showToast('Image ajoutee !', 'success');
+        imageChanges++;
+        updateChangesCount();
+      } catch (err) {
+        showToast('Erreur: ' + err.message, 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Appliquer';
+      }
     });
   }
 
@@ -1711,6 +1927,7 @@
     try { autoTagEditableElements(); } catch (e) { console.error('[GDS] autoTagEditableElements error:', e); }
     try { initEditableElements(); } catch (e) { console.error('[GDS] initEditableElements error:', e); }
     try { initEditableImages(); } catch (e) { console.error('[GDS] initEditableImages error:', e); }
+    try { initPlaceholderImages(); } catch (e) { console.error('[GDS] initPlaceholderImages error:', e); }
     try { initBlockInserters(); } catch (e) { console.error('[GDS] initBlockInserters error:', e); }
     try { initMurGallery(); } catch (e) { console.error('[GDS] initMurGallery error:', e); }
     console.log('[GDS Admin] Embedded mode — slug:', currentSlug);
