@@ -648,10 +648,35 @@ router.get('/:slug/preview', verifyToken, async (req, res) => {
     bodyContent += '<main class="snb-page-content">\n';
 
     // Page-specific sections (skip any header/footer files that might remain)
+    let sectionScripts = '';
+    let sectionStyles = '';
     for (const section of sections) {
       const nameLower = section.file.toLowerCase();
       if (nameLower.includes('header') || nameLower.includes('footer')) continue;
-      const content = fs.readFileSync(path.join(previewDir, section.file), 'utf-8');
+      let content = fs.readFileSync(path.join(previewDir, section.file), 'utf-8');
+
+      // If the section is a standalone HTML doc, extract body content
+      const bodyMatch = content.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+      if (bodyMatch) {
+        // Extract <style> from <head> before stripping it
+        const headMatch = content.match(/<head[^>]*>([\s\S]*)<\/head>/i);
+        if (headMatch) {
+          const headStyles = headMatch[1].match(/<style[^>]*>[\s\S]*?<\/style>/gi);
+          if (headStyles) {
+            sectionStyles += headStyles.join('\n') + '\n';
+          }
+        }
+        content = bodyMatch[1].trim();
+      }
+
+      // Extract <script> blocks from content and collect them separately
+      content = content.replace(/<script[^>]*>([\s\S]*?)<\/script>/gi, (match, js) => {
+        if (js.trim()) {
+          sectionScripts += `<script>${js}</script>\n`;
+        }
+        return '';
+      });
+
       bodyContent += `<div class="gds-section-wrapper" data-gds-file="${section.file}" style="position:relative;">\n${content}\n</div>\n`;
     }
 
@@ -717,6 +742,7 @@ router.get('/:slug/preview', verifyToken, async (req, res) => {
     .container { max-width: var(--max-width); margin: 0 auto; padding: 0 20px; }
   </style>
   <link rel="stylesheet" href="/css/styles-${slug === 'home' ? 'home' : slug}.css">
+  ${sectionStyles}
   ${config.scripts?.headCustom || ''}
 </head>
 <body>
@@ -724,6 +750,7 @@ router.get('/:slug/preview', verifyToken, async (req, res) => {
 ${bodyContent}
 </div>
 <script src="/js/site/scripts-${slug === 'home' ? 'home' : slug}.js" defer></script>
+${sectionScripts}
 ${editMode ? `<link rel="stylesheet" href="/css/admin-editor.css">
 <script>window.GDS_SLUG = '${slug}';</script>
 <script src="/js/auth.js"></script>
