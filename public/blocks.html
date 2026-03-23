@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bibliotheque de blocs - Gestionnaire de Site</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .blocks-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    .blocks-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 16px;
+    }
+    .block-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 20px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .block-card:hover {
+      border-color: #58a6ff;
+      box-shadow: 0 0 0 1px #58a6ff33;
+    }
+    .block-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+    .block-card-name {
+      font-size: 17px;
+      font-weight: 600;
+      color: #e6edf3;
+      margin: 0;
+    }
+    .block-card-cat {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      background: #388bfd22;
+      color: #58a6ff;
+      border: 1px solid #388bfd44;
+    }
+    .block-card-desc {
+      font-size: 13px;
+      color: #8b949e;
+      margin-bottom: 12px;
+      line-height: 1.5;
+    }
+    .block-card-meta {
+      font-size: 12px;
+      color: #484f58;
+      margin-bottom: 14px;
+    }
+    .block-card-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .block-btn {
+      padding: 7px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid #30363d;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: inherit;
+    }
+    .block-btn-code {
+      background: #1f6feb;
+      border-color: #388bfd44;
+      color: #fff;
+    }
+    .block-btn-code:hover { background: #388bfd; }
+    .block-btn-copy {
+      background: #238636;
+      border-color: #2ea04366;
+      color: #fff;
+    }
+    .block-btn-copy:hover { background: #2ea043; }
+    .block-btn-delete {
+      background: #21262d;
+      color: #f85149;
+      border-color: #f8514933;
+      margin-left: auto;
+    }
+    .block-btn-delete:hover { background: #f8514922; }
+
+    /* Code modal */
+    .code-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+    .code-modal {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 900px;
+      height: 80vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.4);
+    }
+    .code-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid #30363d;
+    }
+    .code-modal-header h3 {
+      color: #e6edf3;
+      font-size: 16px;
+      font-weight: 600;
+      margin: 0;
+    }
+    .code-modal-close {
+      background: none;
+      border: none;
+      color: #8b949e;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+    .code-modal-close:hover { background: #21262d; color: #e6edf3; }
+    .code-modal-body {
+      flex: 1;
+      overflow: hidden;
+      padding: 0;
+    }
+    .code-modal-body textarea {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: #0d1117;
+      color: #c9d1d9;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      padding: 16px;
+      resize: none;
+      outline: none;
+    }
+    .code-modal-footer {
+      padding: 12px 20px;
+      border-top: 1px solid #30363d;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .code-modal-footer .code-info {
+      color: #8b949e;
+      font-size: 12px;
+      margin-right: auto;
+    }
+
+    /* Empty state */
+    .blocks-empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: #8b949e;
+    }
+    .blocks-empty-icon { font-size: 48px; margin-bottom: 16px; }
+    .blocks-empty h3 { color: #e6edf3; font-size: 20px; margin-bottom: 8px; }
+    .blocks-empty p { font-size: 14px; line-height: 1.6; max-width: 400px; margin: 0 auto; }
+
+    /* Toast override */
+    #toast-container {
+      position: fixed; bottom: 20px; right: 20px; z-index: 99999;
+    }
+  </style>
+</head>
+<body>
+  <div id="navbar"></div>
+
+  <div class="container">
+    <div class="blocks-header">
+      <div>
+        <h1 class="page-title">Bibliotheque <span>de blocs</span></h1>
+        <p class="page-subtitle">Blocs HTML reutilisables — cliquez pour copier le code</p>
+      </div>
+    </div>
+
+    <div id="blocks-list">
+      <div class="blocks-empty">
+        <div class="blocks-empty-icon">&#128218;</div>
+        <h3>Chargement...</h3>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="/js/auth.js"></script>
+  <script src="/js/components.js"></script>
+  <script>
+  (function() {
+    'use strict';
+
+    var currentUser = null;
+
+    async function loadBlocks() {
+      try {
+        var res = await Auth.apiFetch('/api/blocks');
+        if (!res.ok) throw new Error('Erreur');
+        var data = await res.json();
+        renderBlocks(data.blocks || []);
+      } catch (err) {
+        document.getElementById('blocks-list').innerHTML =
+          '<div class="blocks-empty"><div class="blocks-empty-icon">&#9888;</div><h3>Erreur</h3><p>' + err.message + '</p></div>';
+      }
+    }
+
+    function renderBlocks(blocks) {
+      var container = document.getElementById('blocks-list');
+
+      if (blocks.length === 0) {
+        container.innerHTML =
+          '<div class="blocks-empty">' +
+          '<div class="blocks-empty-icon">&#128218;</div>' +
+          '<h3>Aucun bloc sauvegarde</h3>' +
+          '<p>Ouvrez une page dans l\'editeur et cliquez le bouton livre (vert) sur une section pour la sauvegarder ici.</p>' +
+          '</div>';
+        return;
+      }
+
+      var html = '<div class="blocks-grid">';
+      for (var i = 0; i < blocks.length; i++) {
+        var b = blocks[i];
+        var sizeKB = (b.size / 1024).toFixed(1);
+        html += '<div class="block-card" data-id="' + Components.escapeHtml(b.id) + '">' +
+          '<div class="block-card-header">' +
+          '<h3 class="block-card-name">' + Components.escapeHtml(b.name) + '</h3>' +
+          '<span class="block-card-cat">' + Components.escapeHtml(b.category) + '</span>' +
+          '</div>' +
+          (b.description ? '<div class="block-card-desc">' + Components.escapeHtml(b.description) + '</div>' : '') +
+          '<div class="block-card-meta">' + sizeKB + ' KB</div>' +
+          '<div class="block-card-actions">' +
+          '<button class="block-btn block-btn-code" onclick="viewCode(\'' + b.id + '\', \'' + Components.escapeHtml(b.name).replace(/'/g, "\\'") + '\')">' +
+          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg> Voir le code</button>' +
+          '<button class="block-btn block-btn-copy" onclick="copyCode(\'' + b.id + '\')">' +
+          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copier</button>' +
+          '<button class="block-btn block-btn-delete" onclick="deleteBlock(\'' + b.id + '\', \'' + Components.escapeHtml(b.name).replace(/'/g, "\\'") + '\')">' +
+          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>' +
+          '</div>' +
+          '</div>';
+      }
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    // View code in modal
+    window.viewCode = async function(id, name) {
+      try {
+        var res = await Auth.apiFetch('/api/blocks/' + id);
+        if (!res.ok) throw new Error('Erreur');
+        var data = await res.json();
+        var code = data.html || '';
+
+        var overlay = document.createElement('div');
+        overlay.className = 'code-overlay';
+        overlay.innerHTML =
+          '<div class="code-modal">' +
+          '<div class="code-modal-header">' +
+          '<h3>' + Components.escapeHtml(name) + '</h3>' +
+          '<button class="code-modal-close" id="code-close">&times;</button>' +
+          '</div>' +
+          '<div class="code-modal-body">' +
+          '<textarea id="code-textarea" readonly></textarea>' +
+          '</div>' +
+          '<div class="code-modal-footer">' +
+          '<span class="code-info">' + code.split('\n').length + ' lignes | ' + (code.length / 1024).toFixed(1) + ' KB</span>' +
+          '<button class="block-btn block-btn-copy" id="code-copy-btn">' +
+          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copier le code</button>' +
+          '</div>' +
+          '</div>';
+
+        document.body.appendChild(overlay);
+        document.getElementById('code-textarea').value = code;
+
+        document.getElementById('code-close').addEventListener('click', function() { overlay.remove(); });
+        overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+
+        document.getElementById('code-copy-btn').addEventListener('click', function() {
+          var ta = document.getElementById('code-textarea');
+          ta.select();
+          document.execCommand('copy');
+          Components.showToast('Code copie dans le presse-papier !', 'success');
+        });
+
+        // Ctrl+A to select all in textarea
+        document.getElementById('code-textarea').addEventListener('keydown', function(e) {
+          if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+            e.target.select();
+          }
+        });
+
+      } catch (err) {
+        Components.showToast('Erreur: ' + err.message, 'error');
+      }
+    };
+
+    // Copy code directly to clipboard
+    window.copyCode = async function(id) {
+      try {
+        var res = await Auth.apiFetch('/api/blocks/' + id);
+        if (!res.ok) throw new Error('Erreur');
+        var data = await res.json();
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(data.html || '');
+        } else {
+          var ta = document.createElement('textarea');
+          ta.value = data.html || '';
+          ta.style.position = 'fixed';
+          ta.style.left = '-9999px';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          ta.remove();
+        }
+
+        Components.showToast('Code copie !', 'success');
+      } catch (err) {
+        Components.showToast('Erreur: ' + err.message, 'error');
+      }
+    };
+
+    // Delete block
+    window.deleteBlock = async function(id, name) {
+      if (!confirm('Supprimer le bloc "' + name + '" de la bibliotheque ?')) return;
+      try {
+        var res = await Auth.apiFetch('/api/blocks/' + id, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Erreur');
+        Components.showToast('Bloc supprime', 'success');
+        loadBlocks();
+      } catch (err) {
+        Components.showToast('Erreur: ' + err.message, 'error');
+      }
+    };
+
+    // Init
+    Auth.init().then(function(user) {
+      currentUser = user;
+      if (!user) { window.location.href = '/login.html'; return; }
+      Components.buildNavbar('blocks');
+      loadBlocks();
+    });
+  })();
+  </script>
+</body>
+</html>
