@@ -163,6 +163,8 @@
         if (el.hasAttribute('data-gds-edit')) return;
         // Skip if inside admin UI elements
         if (el.closest('#gds-admin-bar, #gds-seo-panel, .gds-block-inserter, .gds-section-actions')) return;
+        // Skip if inside an element with onclick (FAQ toggles, accordions, etc.)
+        if (el.closest('[onclick]')) return;
         // Skip if it's an empty or whitespace-only element
         if (!el.textContent.trim()) return;
         // Skip tiny elements (likely labels or decorations)
