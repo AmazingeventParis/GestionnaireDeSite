@@ -217,8 +217,6 @@
   (function() {
     'use strict';
 
-    var currentUser = null;
-
     async function loadBlocks() {
       try {
         var res = await Auth.apiFetch('/api/blocks');
@@ -248,7 +246,7 @@
       for (var i = 0; i < blocks.length; i++) {
         var b = blocks[i];
         var sizeKB = (b.size / 1024).toFixed(1);
-        html += '<div class="block-card" data-id="' + Components.escapeHtml(b.id) + '">' +
+        html += '<div class="block-card" data-id="' + Components.escapeHtml(b.id) + '" data-name="' + Components.escapeHtml(b.name) + '">' +
           '<div class="block-card-header">' +
           '<h3 class="block-card-name">' + Components.escapeHtml(b.name) + '</h3>' +
           '<span class="block-card-cat">' + Components.escapeHtml(b.category) + '</span>' +
@@ -256,24 +254,38 @@
           (b.description ? '<div class="block-card-desc">' + Components.escapeHtml(b.description) + '</div>' : '') +
           '<div class="block-card-meta">' + sizeKB + ' KB</div>' +
           '<div class="block-card-actions">' +
-          '<button class="block-btn block-btn-code" onclick="viewCode(\'' + b.id + '\', \'' + Components.escapeHtml(b.name).replace(/'/g, "\\'") + '\')">' +
+          '<button class="block-btn block-btn-code" data-action="view">' +
           '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg> Voir le code</button>' +
-          '<button class="block-btn block-btn-copy" onclick="copyCode(\'' + b.id + '\')">' +
+          '<button class="block-btn block-btn-copy" data-action="copy">' +
           '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copier</button>' +
-          '<button class="block-btn block-btn-delete" onclick="deleteBlock(\'' + b.id + '\', \'' + Components.escapeHtml(b.name).replace(/'/g, "\\'") + '\')">' +
+          '<button class="block-btn block-btn-delete" data-action="delete">' +
           '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>' +
           '</div>' +
           '</div>';
       }
       html += '</div>';
       container.innerHTML = html;
+
+      // Bind events via delegation
+      container.addEventListener('click', function(e) {
+        var btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        var card = btn.closest('.block-card');
+        if (!card) return;
+        var id = card.dataset.id;
+        var name = card.dataset.name;
+        var action = btn.dataset.action;
+
+        if (action === 'view') viewCode(id, name);
+        else if (action === 'copy') copyCode(id);
+        else if (action === 'delete') deleteBlock(id, name);
+      });
     }
 
-    // View code in modal
-    window.viewCode = async function(id, name) {
+    async function viewCode(id, name) {
       try {
         var res = await Auth.apiFetch('/api/blocks/' + id);
-        if (!res.ok) throw new Error('Erreur');
+        if (!res.ok) throw new Error('Erreur chargement');
         var data = await res.json();
         var code = data.html || '';
 
@@ -283,57 +295,51 @@
           '<div class="code-modal">' +
           '<div class="code-modal-header">' +
           '<h3>' + Components.escapeHtml(name) + '</h3>' +
-          '<button class="code-modal-close" id="code-close">&times;</button>' +
+          '<button class="code-modal-close">&times;</button>' +
           '</div>' +
           '<div class="code-modal-body">' +
-          '<textarea id="code-textarea" readonly></textarea>' +
+          '<textarea readonly></textarea>' +
           '</div>' +
           '<div class="code-modal-footer">' +
           '<span class="code-info">' + code.split('\n').length + ' lignes | ' + (code.length / 1024).toFixed(1) + ' KB</span>' +
-          '<button class="block-btn block-btn-copy" id="code-copy-btn">' +
+          '<button class="block-btn block-btn-copy">' +
           '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copier le code</button>' +
           '</div>' +
           '</div>';
 
         document.body.appendChild(overlay);
-        document.getElementById('code-textarea').value = code;
+        var textarea = overlay.querySelector('textarea');
+        textarea.value = code;
 
-        document.getElementById('code-close').addEventListener('click', function() { overlay.remove(); });
+        overlay.querySelector('.code-modal-close').addEventListener('click', function() { overlay.remove(); });
         overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
 
-        document.getElementById('code-copy-btn').addEventListener('click', function() {
-          var ta = document.getElementById('code-textarea');
-          ta.select();
+        overlay.querySelector('.code-modal-footer .block-btn-copy').addEventListener('click', function() {
+          textarea.removeAttribute('readonly');
+          textarea.select();
           document.execCommand('copy');
+          textarea.setAttribute('readonly', '');
           Components.showToast('Code copie dans le presse-papier !', 'success');
-        });
-
-        // Ctrl+A to select all in textarea
-        document.getElementById('code-textarea').addEventListener('keydown', function(e) {
-          if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
-            e.target.select();
-          }
         });
 
       } catch (err) {
         Components.showToast('Erreur: ' + err.message, 'error');
       }
-    };
+    }
 
-    // Copy code directly to clipboard
-    window.copyCode = async function(id) {
+    async function copyCode(id) {
       try {
         var res = await Auth.apiFetch('/api/blocks/' + id);
-        if (!res.ok) throw new Error('Erreur');
+        if (!res.ok) throw new Error('Erreur chargement');
         var data = await res.json();
+        var code = data.html || '';
 
         if (navigator.clipboard && navigator.clipboard.writeText) {
-          await navigator.clipboard.writeText(data.html || '');
+          await navigator.clipboard.writeText(code);
         } else {
           var ta = document.createElement('textarea');
-          ta.value = data.html || '';
-          ta.style.position = 'fixed';
-          ta.style.left = '-9999px';
+          ta.value = code;
+          ta.style.cssText = 'position:fixed;left:-9999px;';
           document.body.appendChild(ta);
           ta.select();
           document.execCommand('copy');
@@ -344,10 +350,9 @@
       } catch (err) {
         Components.showToast('Erreur: ' + err.message, 'error');
       }
-    };
+    }
 
-    // Delete block
-    window.deleteBlock = async function(id, name) {
+    async function deleteBlock(id, name) {
       if (!confirm('Supprimer le bloc "' + name + '" de la bibliotheque ?')) return;
       try {
         var res = await Auth.apiFetch('/api/blocks/' + id, { method: 'DELETE' });
@@ -357,11 +362,10 @@
       } catch (err) {
         Components.showToast('Erreur: ' + err.message, 'error');
       }
-    };
+    }
 
     // Init
     Auth.init().then(function(user) {
-      currentUser = user;
       if (!user) { window.location.href = '/login.html'; return; }
       Components.buildNavbar('blocks');
       loadBlocks();
