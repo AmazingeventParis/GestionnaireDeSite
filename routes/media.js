@@ -30,15 +30,18 @@ const storage = multer.diskStorage({
   }
 });
 
+const ALLOWED_MIMETYPES = ['image/', 'video/mp4', 'video/webm', 'video/quicktime'];
+
 const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image/')) {
+  const allowed = ALLOWED_MIMETYPES.some(t => file.mimetype.startsWith(t));
+  if (allowed) {
     cb(null, true);
   } else {
-    cb(new Error('Seules les images sont acceptees'), false);
+    cb(new Error('Format non accepte. Images (JPG, PNG, WebP, GIF) et videos (MP4, WebM) uniquement.'), false);
   }
 };
 
-const upload = multer({ storage, fileFilter, limits: { fileSize: 20 * 1024 * 1024 } });
+const upload = multer({ storage, fileFilter, limits: { fileSize: 50 * 1024 * 1024 } }); // 50MB (videos)
 
 /**
  * Load media metadata sidecar file
@@ -198,34 +201,52 @@ router.post('/upload', verifyToken, requireRole('admin', 'editor'), uploadLimite
         const baseName = path.basename(file.originalname, path.extname(file.originalname))
           .replace(/[^a-z0-9_-]/gi, '-')
           .toLowerCase();
-        const webpName = baseName + '-' + Date.now() + '.webp';
-        const outputPath = path.join(targetDir, webpName);
+        const isVideo = file.mimetype.startsWith('video/');
 
-        let pipeline = sharp(file.path);
+        if (isVideo) {
+          // Videos: copy directly without processing
+          const ext = path.extname(file.originalname).toLowerCase() || '.mp4';
+          const videoName = baseName + '-' + Date.now() + ext;
+          const outputPath = path.join(targetDir, videoName);
+          fs.copyFileSync(file.path, outputPath);
+          const stat = fs.statSync(outputPath);
 
-        if (resizeWidth) {
-          pipeline = pipeline.resize(resizeWidth, null, { withoutEnlargement: true });
+          uploaded.push({
+            name: videoName,
+            path: '/site-images/' + (folder ? folder + '/' : '') + videoName,
+            size: stat.size,
+            format: ext.replace('.', '')
+          });
+
+          fs.unlinkSync(file.path);
+        } else {
+          // Images: resize + convert to WebP
+          const webpName = baseName + '-' + Date.now() + '.webp';
+          const outputPath = path.join(targetDir, webpName);
+
+          let pipeline = sharp(file.path);
+
+          if (resizeWidth) {
+            pipeline = pipeline.resize(resizeWidth, null, { withoutEnlargement: true });
+          }
+
+          await pipeline.webp({ quality }).toFile(outputPath);
+
+          const metadata = await sharp(outputPath).metadata();
+          const stat = fs.statSync(outputPath);
+
+          uploaded.push({
+            name: webpName,
+            path: '/site-images/' + (folder ? folder + '/' : '') + webpName,
+            size: stat.size,
+            dimensions: { width: metadata.width, height: metadata.height },
+            format: 'webp'
+          });
+
+          fs.unlinkSync(file.path);
         }
-
-        await pipeline.webp({ quality }).toFile(outputPath);
-
-        // Get final metadata
-        const metadata = await sharp(outputPath).metadata();
-        const stat = fs.statSync(outputPath);
-
-        uploaded.push({
-          name: webpName,
-          path: '/site-images/' + (folder ? folder + '/' : '') + webpName,
-          size: stat.size,
-          dimensions: { width: metadata.width, height: metadata.height },
-          format: 'webp'
-        });
-
-        // Clean up temp file
-        fs.unlinkSync(file.path);
       } catch (fileErr) {
         console.error('[Media] Process file error:', fileErr.message);
-        // Clean up temp file on error
         if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
       }
     }

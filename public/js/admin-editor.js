@@ -589,10 +589,10 @@
           </div>
           <div id="gds-ph-upload-area" class="gds-ph-area">
             <div class="gds-block-upload visible" id="gds-ph-dropzone" style="display:block;">
-              <input type="file" id="gds-ph-file" accept="image/*,image/gif" style="display:none;">
+              <input type="file" id="gds-ph-file" accept="image/*,video/mp4" style="display:none;">
               <div style="font-size:36px;margin-bottom:8px;">&#128247;</div>
-              <div>Cliquez ou glissez une image / GIF</div>
-              <div style="font-size:12px;color:#484f58;margin-top:6px;">JPG, PNG, WebP, GIF</div>
+              <div>Cliquez ou glissez une image / GIF / video</div>
+              <div style="font-size:12px;color:#484f58;margin-top:6px;">JPG, PNG, WebP, GIF, MP4</div>
             </div>
             <div id="gds-ph-preview-img" style="display:none;text-align:center;">
               <img id="gds-ph-preview-src" style="max-width:100%;max-height:200px;border-radius:8px;border:1px solid #30363d;">
@@ -601,7 +601,7 @@
           </div>
           <div id="gds-ph-url-area" class="gds-ph-area" style="display:none;">
             <input type="url" id="gds-ph-url-input" placeholder="https://example.com/image.jpg" style="width:100%;padding:10px 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:14px;">
-            <div style="margin-top:8px;font-size:12px;color:#8b949e;">URL directe vers une image (JPG, PNG, WebP, GIF)</div>
+            <div style="margin-top:8px;font-size:12px;color:#8b949e;">URL directe vers une image ou video (JPG, PNG, WebP, GIF, MP4)</div>
             <div id="gds-ph-url-preview" style="display:none;margin-top:12px;text-align:center;">
               <img id="gds-ph-url-preview-img" style="max-width:100%;max-height:200px;border-radius:8px;border:1px solid #30363d;">
             </div>
@@ -649,12 +649,25 @@
       if (fileInput.files[0]) {
         selectedFile = fileInput.files[0];
         selectedUrl = '';
+        const isVid = selectedFile.type.startsWith('video/');
         // Show preview
         const reader = new FileReader();
         reader.onload = (e) => {
-          document.getElementById('gds-ph-preview-src').src = e.target.result;
+          const previewContainer = document.getElementById('gds-ph-preview-img');
+          const previewEl = document.getElementById('gds-ph-preview-src');
+          if (isVid) {
+            // Replace img with video for preview
+            const vid = document.createElement('video');
+            vid.src = e.target.result;
+            vid.autoplay = true; vid.loop = true; vid.muted = true;
+            vid.style.cssText = 'max-width:100%;max-height:200px;border-radius:8px;border:1px solid #30363d;';
+            vid.id = 'gds-ph-preview-src';
+            previewEl.replaceWith(vid);
+          } else {
+            previewEl.src = e.target.result;
+          }
           document.getElementById('gds-ph-file-name').textContent = selectedFile.name + ' (' + (selectedFile.size / 1024).toFixed(0) + ' KB)';
-          document.getElementById('gds-ph-preview-img').style.display = 'block';
+          previewContainer.style.display = 'block';
           dropzone.style.display = 'none';
         };
         reader.readAsDataURL(selectedFile);
@@ -698,7 +711,7 @@
         if (selectedFile) {
           // Upload image
           const formData = new FormData();
-          formData.append('image', selectedFile);
+          formData.append('images', selectedFile);
           formData.append('slug', currentSlug);
 
           const res = await Auth.apiFetch('/api/media/upload', {
@@ -707,24 +720,38 @@
           });
           if (!res.ok) throw new Error('Upload echoue');
           const data = await res.json();
-          imgSrc = data.url || data.path || '';
+          // upload returns { uploaded: [{ path, name, ... }] }
+          imgSrc = (data.uploaded && data.uploaded[0] && data.uploaded[0].path) || data.url || data.path || '';
         } else if (selectedUrl) {
           imgSrc = selectedUrl;
         }
 
         if (!imgSrc) throw new Error('Aucune image');
 
-        // Replace placeholder with img tag
+        // Replace placeholder with img or video tag
         const parent = placeholderEl.parentElement;
         const caption = parent.querySelector('.bento-caption span');
         const altText = caption ? caption.textContent : 'Image';
+        const isVideo = imgSrc.match(/\.(mp4|webm|mov)(\?|$)/i) || (selectedFile && selectedFile.type.startsWith('video/'));
 
-        const img = document.createElement('img');
-        img.src = imgSrc;
-        img.alt = altText;
-        img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+        let mediaEl;
+        if (isVideo) {
+          mediaEl = document.createElement('video');
+          mediaEl.src = imgSrc;
+          mediaEl.autoplay = true;
+          mediaEl.loop = true;
+          mediaEl.muted = true;
+          mediaEl.playsInline = true;
+          mediaEl.setAttribute('playsinline', '');
+          mediaEl.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+        } else {
+          mediaEl = document.createElement('img');
+          mediaEl.src = imgSrc;
+          mediaEl.alt = altText;
+          mediaEl.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+        }
 
-        placeholderEl.replaceWith(img);
+        placeholderEl.replaceWith(mediaEl);
 
         // Save the section file with the new content
         const wrapper = parent.closest('.gds-section-wrapper');
