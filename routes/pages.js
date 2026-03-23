@@ -719,11 +719,14 @@ router.get('/:slug/preview', verifyToken, async (req, res) => {
       if (nameLower.includes('header') || nameLower.includes('footer')) continue;
       let content = fs.readFileSync(path.join(previewDir, section.file), 'utf-8');
 
-      // If the section is a standalone HTML doc, extract body + head styles
-      const bodyMatch = content.match(/<body[^>]*>([\s\S]*)<\/body>/i);
-      let headCSS = '';
-      if (bodyMatch) {
-        // Extract <style> from <head>
+      // Check if this is a standalone HTML doc (has <body>) or a fragment
+      const isStandalone = /<body[^>]*>/i.test(content);
+
+      if (isStandalone) {
+        // Standalone HTML doc: extract body, collect head+inline CSS, scope it
+        const bodyMatch = content.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+        let headCSS = '';
+
         const headMatch = content.match(/<head[^>]*>([\s\S]*)<\/head>/i);
         if (headMatch) {
           const headStyles = headMatch[1].match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
@@ -734,46 +737,46 @@ router.get('/:slug/preview', verifyToken, async (req, res) => {
             }).join('\n');
           }
         }
-        content = bodyMatch[1].trim();
-      }
+        content = bodyMatch ? bodyMatch[1].trim() : content;
 
-      // Extract <script> blocks from content and collect them separately
-      content = content.replace(/<script[^>]*>([\s\S]*?)<\/script>/gi, (match, js) => {
-        if (js.trim()) {
-          sectionScripts += `<script>${js}</script>\n`;
-        }
-        return '';
-      });
+        // Extract scripts
+        content = content.replace(/<script[^>]*>([\s\S]*?)<\/script>/gi, (match, js) => {
+          if (js.trim()) sectionScripts += `<script>${js}</script>\n`;
+          return '';
+        });
 
-      // Collect all inline <style> blocks from body content too
-      let inlineCSS = '';
-      content = content.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, (match, css) => {
-        inlineCSS += css + '\n';
-        return '';
-      });
+        // Collect inline <style> from body
+        let inlineCSS = '';
+        content = content.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, (match, css) => {
+          inlineCSS += css + '\n';
+          return '';
+        });
 
-      // Combine all CSS for this section and scope it
-      let allCSS = (headCSS + '\n' + inlineCSS).trim();
-      if (allCSS) {
-        // Remove body{}, html{}, and global * resets
+        // Combine, clean, and scope CSS
+        let allCSS = (headCSS + '\n' + inlineCSS).trim();
         allCSS = allCSS.replace(/body\s*\{[^}]*\}/gi, '');
         allCSS = allCSS.replace(/html\s*\{[^}]*\}/gi, '');
         allCSS = allCSS.replace(/\*\s*,\s*\*::before\s*,\s*\*::after\s*\{[^}]*\}/gi, '');
-        // Remove duplicate :root declarations (keep CSS vars but scope won't help with :root)
-        // Instead, just let them through — they won't conflict as they set the same vars
+        // Strip CSS comments before scoping
+        allCSS = allCSS.replace(/\/\*[\s\S]*?\*\//g, '');
+
+        const scopeId = 'gds-s-' + section.file.replace(/[^a-z0-9]/gi, '');
+        if (allCSS.trim()) {
+          allCSS = scopeCSS(allCSS, scopeId);
+        }
+
+        bodyContent += `<div class="gds-section-wrapper" id="${scopeId}" data-gds-file="${section.file}" style="position:relative;">\n`;
+        if (allCSS.trim()) bodyContent += `<style>${allCSS}</style>\n`;
+        bodyContent += `${content}\n</div>\n`;
+      } else {
+        // Fragment HTML: keep <style> inline as-is, just extract scripts
+        content = content.replace(/<script[^>]*>([\s\S]*?)<\/script>/gi, (match, js) => {
+          if (js.trim()) sectionScripts += `<script>${js}</script>\n`;
+          return '';
+        });
+
+        bodyContent += `<div class="gds-section-wrapper" data-gds-file="${section.file}" style="position:relative;">\n${content}\n</div>\n`;
       }
-
-      // Generate a unique scope ID for this section
-      const scopeId = 'gds-s-' + section.file.replace(/[^a-z0-9]/gi, '');
-
-      // Scope CSS: prefix each top-level selector with the scope ID
-      if (allCSS) {
-        allCSS = scopeCSS(allCSS, scopeId);
-      }
-
-      bodyContent += `<div class="gds-section-wrapper" id="${scopeId}" data-gds-file="${section.file}" style="position:relative;">\n`;
-      if (allCSS) bodyContent += `<style>${allCSS}</style>\n`;
-      bodyContent += `${content}\n</div>\n`;
     }
 
     bodyContent += '</main>\n';
