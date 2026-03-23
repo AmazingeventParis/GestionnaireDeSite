@@ -753,13 +753,12 @@
 
         placeholderEl.replaceWith(mediaEl);
 
-        // Save the section file with the new content
+        // Save the section file with the new content (cleaned of admin UI)
         const wrapper = parent.closest('.gds-section-wrapper');
         if (wrapper) {
           const file = wrapper.getAttribute('data-gds-file');
           if (file) {
-            // Get full section HTML and save
-            const sectionHtml = wrapper.innerHTML;
+            const sectionHtml = cleanSectionHtml(wrapper);
             await Auth.apiFetch('/api/pages/' + currentSlug + '/section/' + encodeURIComponent(file), {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
@@ -1268,6 +1267,32 @@
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
+  }
+
+  // ===== CLEAN SECTION HTML (remove admin UI before saving) =====
+  function cleanSectionHtml(wrapper) {
+    const clone = wrapper.cloneNode(true);
+    // Remove admin UI elements
+    clone.querySelectorAll('.gds-tag-select, .gds-section-actions, .gds-block-inserter, .gds-ph-overlay, .gds-img-toolbar, #gds-admin-bar').forEach(el => el.remove());
+    // Remove admin attributes
+    clone.querySelectorAll('[data-gds-edit]').forEach(el => {
+      el.removeAttribute('data-gds-edit');
+      el.removeAttribute('data-gds-section');
+      el.removeAttribute('data-gds-tag');
+      el.removeAttribute('data-gds-orig-tag');
+      el.removeAttribute('tabindex');
+      el.removeAttribute('contenteditable');
+      // Only remove position:relative if it was added by editor (not in original style)
+      if (el.style.position === 'relative' && !el.className) {
+        el.style.removeProperty('position');
+      }
+    });
+    // Remove contenteditable from any element
+    clone.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
+    // Remove gds-modified class
+    clone.querySelectorAll('.gds-modified').forEach(el => el.classList.remove('gds-modified'));
+    clone.querySelectorAll('.gds-img-hover').forEach(el => el.classList.remove('gds-img-hover'));
+    return clone.innerHTML;
   }
 
   // ===== BLOCK INSERTER =====

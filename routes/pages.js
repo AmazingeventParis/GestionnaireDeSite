@@ -717,7 +717,8 @@ router.get('/:slug/preview', verifyToken, async (req, res) => {
         });
 
         if (autoIdx > 0) {
-          bodyContent = $.html();
+          // Use $.html() on body content only, not the full document wrapper cheerio adds
+          bodyContent = $('body').html() || $.html();
           console.log(`[Pages] Preview: auto-tagged ${autoIdx} editable elements`);
         }
       } catch (e) {
