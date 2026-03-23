@@ -663,9 +663,15 @@ router.get('/:slug/preview', verifyToken, async (req, res) => {
         if (headMatch) {
           const headStyles = headMatch[1].match(/<style[^>]*>[\s\S]*?<\/style>/gi);
           if (headStyles) {
-            sectionStyles += headStyles.join('\n') + '\n';
+            let cleanedStyles = headStyles.join('\n');
+            // Remove body{} rules — they conflict with the assembled page layout
+            cleanedStyles = cleanedStyles.replace(/body\s*\{[^}]*\}/gi, '');
+            // Remove *,*::before,*::after box-sizing resets (already in page base)
+            cleanedStyles = cleanedStyles.replace(/\*\s*,\s*\*::before\s*,\s*\*::after\s*\{[^}]*\}/gi, '');
+            sectionStyles += cleanedStyles + '\n';
           }
         }
+        // Also strip inline body style from the body tag itself
         content = bodyMatch[1].trim();
       }
 
@@ -675,6 +681,13 @@ router.get('/:slug/preview', verifyToken, async (req, res) => {
           sectionScripts += `<script>${js}</script>\n`;
         }
         return '';
+      });
+
+      // Remove any remaining body{} styles from inline <style> blocks in body content
+      content = content.replace(/(<style[^>]*>)([\s\S]*?)(<\/style>)/gi, (match, open, css, close) => {
+        css = css.replace(/body\s*\{[^}]*\}/gi, '');
+        css = css.replace(/\*\s*,\s*\*::before\s*,\s*\*::after\s*\{[^}]*\}/gi, '');
+        return open + css + close;
       });
 
       bodyContent += `<div class="gds-section-wrapper" data-gds-file="${section.file}" style="position:relative;">\n${content}\n</div>\n`;
