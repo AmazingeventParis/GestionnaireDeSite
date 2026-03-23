@@ -53,6 +53,14 @@ app.use(cors({
   credentials: true
 }));
 
+// 8. Redirect handler (WordPress migration + custom redirects)
+try {
+  const { redirectHandler } = require('./middleware/redirectHandler');
+  app.use(redirectHandler);
+} catch (e) {
+  console.warn('Redirect handler not loaded:', e.message);
+}
+
 // ===== API ROUTES =====
 
 // Auth (no auth middleware needed — it handles its own)

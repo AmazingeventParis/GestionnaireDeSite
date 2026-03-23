@@ -633,6 +633,41 @@ body.gds-admin-mode .gds-page-content {
   outline-offset: -2px;
 }
 
+/* ===== SECTION DELETE BUTTON ===== */
+.gds-section-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 60;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.gds-section-wrapper:hover .gds-section-actions {
+  opacity: 1;
+}
+.gds-section-delete-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid rgba(248,81,73,0.3);
+  background: rgba(13,17,23,0.85);
+  backdrop-filter: blur(8px);
+  color: #f85149;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+.gds-section-delete-btn:hover {
+  background: #da3633;
+  color: #fff;
+  border-color: #da3633;
+  transform: scale(1.1);
+  box-shadow: 0 4px 16px rgba(248,81,73,0.5);
+}
+
 /* ===== BLOCK INSERTER ===== */
 .gds-block-inserter {
   position: relative;

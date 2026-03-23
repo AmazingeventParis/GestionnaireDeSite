@@ -4,18 +4,33 @@ const securityHeaders = helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "blob:", "https:"],
-      connectSrc: ["'self'"],
-      frameSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://www.googletagmanager.com", "https://www.google-analytics.com"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      fontSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "blob:", "https:", "https://i.ytimg.com"],
+      connectSrc: ["'self'", "https://www.google-analytics.com", "https://*.supabase.co"],
+      frameSrc: ["'self'", "https://www.youtube.com", "https://www.google.com"],
       objectSrc: ["'none'"],
-      baseUri: ["'self'"]
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+      frameAncestors: ["'self'"],
+      upgradeInsecureRequests: []
     }
   },
   crossOriginEmbedderPolicy: false,
-  hsts: { maxAge: 31536000, includeSubDomains: true }
+  hsts: {
+    maxAge: 63072000, // 2 years
+    includeSubDomains: true,
+    preload: true
+  },
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  permittedCrossDomainPolicies: { permittedPolicies: 'none' }
 });
 
-module.exports = securityHeaders;
+function securityMiddleware(req, res, next) {
+  // Permissions-Policy header (not handled by helmet)
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), interest-cohort=()');
+  securityHeaders(req, res, next);
+}
+
+module.exports = securityMiddleware;

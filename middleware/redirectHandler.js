@@ -1,99 +1,75 @@
 const supabase = require('../lib/supabase');
 
-// In-memory cache of redirections (refreshed every 5 minutes)
-let redirectCache = new Map();
-let lastCacheRefresh = 0;
+// In-memory cache of redirections
+let redirectCache = null;
+let cacheLoadedAt = 0;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-/**
- * Load all active redirections into the cache Map.
- * Key: source_path, Value: { target: target_path, code: status_code, id: id }
- */
-async function refreshRedirectCache() {
-  const now = Date.now();
-  if (now - lastCacheRefresh < CACHE_TTL) return;
-
+async function loadRedirects() {
   try {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('site_manager_redirections')
-      .select('id, source_path, target_path, status_code')
+      .select('source_path, target_path, status_code')
       .eq('is_active', true);
 
-    redirectCache = new Map();
-    if (data) {
-      for (const r of data) {
-        redirectCache.set(r.source_path, {
-          target: r.target_path,
-          code: r.status_code || 301,
-          id: r.id
-        });
-      }
+    if (error) {
+      console.error('[Redirects] Failed to load:', error.message);
+      return null;
     }
-    lastCacheRefresh = now;
+
+    const map = new Map();
+    for (const r of (data || [])) {
+      map.set(r.source_path, { target: r.target_path, code: r.status_code });
+    }
+    return map;
   } catch (err) {
-    console.error('[RedirectHandler] Cache refresh failed:', err.message);
+    console.error('[Redirects] Load error:', err.message);
+    return null;
   }
 }
 
-/**
- * Force cache invalidation (called after creating/updating/deleting redirections).
- */
 function invalidateRedirectCache() {
-  lastCacheRefresh = 0;
+  redirectCache = null;
+  cacheLoadedAt = 0;
 }
 
-/**
- * Middleware: check incoming request path against cached redirections.
- * If a match is found, send a 301/302 redirect and increment hit_count asynchronously.
- */
 async function redirectHandler(req, res, next) {
-  // Only handle GET/HEAD requests for redirects
-  if (req.method !== 'GET' && req.method !== 'HEAD') {
+  // Only handle GET requests on non-API paths
+  if (req.method !== 'GET' || req.path.startsWith('/api/')) {
     return next();
   }
 
-  // Skip API routes
-  if (req.path.startsWith('/api/')) {
-    return next();
+  // Load/refresh cache
+  const now = Date.now();
+  if (!redirectCache || (now - cacheLoadedAt) > CACHE_TTL) {
+    redirectCache = await loadRedirects();
+    cacheLoadedAt = now;
   }
 
-  await refreshRedirectCache();
+  if (!redirectCache) return next();
 
+  // Check exact match
   const match = redirectCache.get(req.path);
-  if (!match) {
-    return next();
+  if (match) {
+    // Increment hit count asynchronously (fire and forget)
+    supabase
+      .from('site_manager_redirections')
+      .update({ hit_count: supabase.raw('hit_count + 1'), last_hit_at: new Date().toISOString() })
+      .eq('source_path', req.path)
+      .then(() => {})
+      .catch(() => {});
+
+    return res.redirect(match.code, match.target);
   }
 
-  // Increment hit_count asynchronously (non-blocking)
-  supabase
-    .from('site_manager_redirections')
-    .update({ hit_count: supabase.rpc ? undefined : undefined })
-    .eq('id', match.id)
-    .then(() => {
-      // Use raw SQL increment via rpc or manual increment
-      return supabase.rpc('increment_redirect_hits', { redirect_id: match.id }).catch(() => {
-        // Fallback: read current count and increment
-        return supabase
-          .from('site_manager_redirections')
-          .select('hit_count')
-          .eq('id', match.id)
-          .single()
-          .then(({ data }) => {
-            if (data) {
-              return supabase
-                .from('site_manager_redirections')
-                .update({ hit_count: (data.hit_count || 0) + 1 })
-                .eq('id', match.id);
-            }
-          });
-      });
-    })
-    .catch(err => {
-      console.error('[RedirectHandler] Hit count update failed:', err.message);
-    });
+  // Check with/without trailing slash
+  const altPath = req.path.endsWith('/') ? req.path.slice(0, -1) : req.path + '/';
+  const altMatch = redirectCache.get(altPath);
+  if (altMatch) {
+    return res.redirect(altMatch.code, altMatch.target);
+  }
 
-  // Send redirect response
-  res.redirect(match.code, match.target);
+  next();
 }
 
 module.exports = { redirectHandler, invalidateRedirectCache };

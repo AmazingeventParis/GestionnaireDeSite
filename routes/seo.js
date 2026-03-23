@@ -84,6 +84,13 @@ router.get('/sitemap', async (req, res) => {
     const domain = config.deploy?.domain || 'https://example.com';
     const baseDomain = domain.startsWith('http') ? domain : 'https://' + domain;
 
+    // Page priorities and change frequencies
+    const pageConfig = {
+      '/': { priority: '1.0', changefreq: 'weekly' },
+      '/location-photobooth/': { priority: '0.9', changefreq: 'monthly' },
+      '/location-photobooth-entreprise/': { priority: '0.9', changefreq: 'monthly' },
+    };
+
     const pages = [];
 
     // Scan public/site/ for index.html files (published pages)
@@ -92,29 +99,24 @@ router.get('/sitemap', async (req, res) => {
       scanForPages(siteDir, siteDir, pages);
     }
 
-    // Also check public/ root for index.html
-    const rootIndex = path.join(PUBLIC_DIR, 'index.html');
-    if (fs.existsSync(rootIndex)) {
-      const stat = fs.statSync(rootIndex);
-      pages.push({ loc: '/', lastmod: stat.mtime.toISOString().split('T')[0] });
-    }
-
-    // Build XML
+    // Build XML with proper priorities
     let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
     xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
 
     for (const page of pages) {
+      const cfg = pageConfig[page.loc] || { priority: '0.7', changefreq: 'monthly' };
       xml += '  <url>\n';
       xml += `    <loc>${baseDomain}${page.loc}</loc>\n`;
       xml += `    <lastmod>${page.lastmod}</lastmod>\n`;
-      xml += '    <changefreq>weekly</changefreq>\n';
-      xml += '    <priority>0.8</priority>\n';
+      xml += `    <changefreq>${cfg.changefreq}</changefreq>\n`;
+      xml += `    <priority>${cfg.priority}</priority>\n`;
       xml += '  </url>\n';
     }
 
     xml += '</urlset>';
 
     res.setHeader('Content-Type', 'application/xml');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
     res.send(xml);
   } catch (err) {
     console.error('[SEO] Sitemap error:', err.message);
@@ -166,6 +168,62 @@ router.put('/robots', verifyToken, requireRole('admin'), async (req, res) => {
   } catch (err) {
     console.error('[SEO] Robots update error:', err.message);
     res.status(500).json({ error: 'Erreur lors de la mise a jour du robots.txt' });
+  }
+});
+
+/**
+ * POST /generate-sitemap — Generate and write sitemap.xml to public/site/
+ */
+router.post('/generate-sitemap', verifyToken, requireRole('admin'), async (req, res) => {
+  try {
+    const config = readConfig();
+    const domain = config.deploy?.domain || 'https://example.com';
+    const baseDomain = domain.startsWith('http') ? domain : 'https://' + domain;
+
+    const pageConfig = {
+      '/': { priority: '1.0', changefreq: 'weekly' },
+      '/location-photobooth/': { priority: '0.9', changefreq: 'monthly' },
+      '/location-photobooth-entreprise/': { priority: '0.9', changefreq: 'monthly' },
+    };
+
+    const pages = [];
+    const siteDir = path.join(PUBLIC_DIR, 'site');
+    if (fs.existsSync(siteDir)) {
+      scanForPages(siteDir, siteDir, pages);
+    }
+
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+
+    for (const page of pages) {
+      const cfg = pageConfig[page.loc] || { priority: '0.7', changefreq: 'monthly' };
+      xml += '  <url>\n';
+      xml += `    <loc>${baseDomain}${page.loc}</loc>\n`;
+      xml += `    <lastmod>${page.lastmod}</lastmod>\n`;
+      xml += `    <changefreq>${cfg.changefreq}</changefreq>\n`;
+      xml += `    <priority>${cfg.priority}</priority>\n`;
+      xml += '  </url>\n';
+    }
+
+    xml += '</urlset>';
+
+    const sitemapPath = path.join(PUBLIC_DIR, 'site', 'sitemap.xml');
+    fs.writeFileSync(sitemapPath, xml, 'utf-8');
+
+    await logAudit({
+      userId: req.user.id,
+      action: 'sitemap_generate',
+      entityType: 'seo',
+      entityId: 'sitemap',
+      details: { pages: pages.length },
+      ip: getClientIp(req),
+      userAgent: req.headers['user-agent']
+    });
+
+    res.json({ success: true, pages: pages.length, path: '/site/sitemap.xml' });
+  } catch (err) {
+    console.error('[SEO] Generate sitemap error:', err.message);
+    res.status(500).json({ error: 'Erreur lors de la generation du sitemap' });
   }
 });
 

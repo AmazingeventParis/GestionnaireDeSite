@@ -439,6 +439,67 @@ router.post('/:slug/add-section', verifyToken, requireRole('admin'), async (req,
 });
 
 /**
+ * DELETE /:slug/delete-section — Remove a section from a page
+ * Body: { file: "20-section.html" }
+ * RBAC: admin only
+ */
+router.delete('/:slug/delete-section', verifyToken, requireRole('admin'), async (req, res) => {
+  try {
+    const slug = req.params.slug.replace(/[^a-z0-9-]/gi, '');
+    const previewDir = getPreviewDir(slug);
+
+    if (!fs.existsSync(previewDir)) {
+      return res.status(404).json({ error: 'Page non trouvee' });
+    }
+
+    const { file } = req.body;
+    if (!file || typeof file !== 'string') {
+      return res.status(400).json({ error: 'Le champ "file" est requis' });
+    }
+
+    // Security: prevent path traversal
+    const sanitizedFile = path.basename(file);
+    if (!sanitizedFile.endsWith('.html')) {
+      return res.status(400).json({ error: 'Fichier invalide' });
+    }
+
+    const filePath = path.join(previewDir, sanitizedFile);
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'Section non trouvee' });
+    }
+
+    // Don't allow deleting the last section
+    const remainingFiles = fs.readdirSync(previewDir)
+      .filter(f => f.endsWith('.html') && !f.includes('header') && !f.includes('footer'));
+    if (remainingFiles.length <= 1) {
+      return res.status(400).json({ error: 'Impossible de supprimer la derniere section' });
+    }
+
+    // Read content before deleting (for audit)
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const contentSize = content.length;
+
+    // Delete the file
+    fs.unlinkSync(filePath);
+
+    await logAudit({
+      userId: req.user.id,
+      action: 'section_delete',
+      entityType: 'page',
+      entityId: slug,
+      details: { file: sanitizedFile, size: contentSize },
+      ip: getClientIp(req),
+      userAgent: req.headers['user-agent']
+    });
+
+    res.json({ success: true, message: 'Section supprimee', file: sanitizedFile });
+  } catch (err) {
+    console.error('[Pages] Delete section error:', err.message);
+    res.status(500).json({ error: 'Erreur lors de la suppression de la section' });
+  }
+});
+
+/**
  * POST /:slug/publish — Build and publish the site
  * RBAC: admin only
  */

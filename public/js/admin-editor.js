@@ -126,6 +126,7 @@
     }
 
     // Always init editing features regardless of page list loading
+    try { autoTagEditableElements(); } catch (e) { console.error('[GDS] autoTagEditableElements error:', e); }
     try { initEditableElements(); } catch (e) { console.error('[GDS] initEditableElements error:', e); }
     try { initEditableImages(); } catch (e) { console.error('[GDS] initEditableImages error:', e); }
     try { initBlockInserters(); } catch (e) { console.error('[GDS] initBlockInserters error:', e); }
@@ -143,6 +144,42 @@
       document.getElementById('gdsSeoOgTitle').value = seoData.ogTitle || '';
       document.getElementById('gdsSeoOgDesc').value = seoData.ogDescription || '';
     } catch (e) { /* ignore */ }
+  }
+
+  // ===== AUTO-TAG EDITABLE ELEMENTS IN NEW BLOCKS =====
+  function autoTagEditableElements() {
+    // Find all section wrappers
+    const wrappers = document.querySelectorAll('.gds-section-wrapper');
+    let autoIdx = 0;
+
+    wrappers.forEach(wrapper => {
+      const file = wrapper.getAttribute('data-gds-file') || 'custom';
+      const sectionName = file.replace(/^\d+-/, '').replace('.html', '');
+
+      // Find h1-h4 and p elements that DON'T already have data-gds-edit
+      const candidates = wrapper.querySelectorAll('h1, h2, h3, h4, p, .hero-subtitle, .hero-tagline');
+      candidates.forEach(el => {
+        // Skip if already tagged
+        if (el.hasAttribute('data-gds-edit')) return;
+        // Skip if inside admin UI elements
+        if (el.closest('#gds-admin-bar, #gds-seo-panel, .gds-block-inserter, .gds-section-actions')) return;
+        // Skip if it's an empty or whitespace-only element
+        if (!el.textContent.trim()) return;
+        // Skip tiny elements (likely labels or decorations)
+        if (el.textContent.trim().length < 2) return;
+
+        const tag = el.tagName.toLowerCase();
+        const editId = `${sectionName}:${autoIdx}:${tag}`;
+        el.setAttribute('data-gds-edit', editId);
+        el.setAttribute('data-gds-section', sectionName);
+        el.setAttribute('data-gds-tag', tag.toUpperCase());
+        autoIdx++;
+      });
+    });
+
+    if (autoIdx > 0) {
+      console.log('[GDS Admin] Auto-tagged', autoIdx, 'elements in new blocks');
+    }
   }
 
   // ===== INIT EDITABLE ELEMENTS =====
@@ -950,6 +987,26 @@
       wrapper.parentNode.insertBefore(inserter, wrapper.nextSibling);
     });
 
+    // Add delete button to each section wrapper
+    wrappers.forEach((wrapper) => {
+      const file = wrapper.getAttribute('data-gds-file');
+      if (!file) return;
+
+      const actions = document.createElement('div');
+      actions.className = 'gds-section-actions';
+      actions.innerHTML = `
+        <button class="gds-section-delete-btn" title="Supprimer ce bloc" data-file="${file}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+        </button>
+      `;
+      wrapper.appendChild(actions);
+
+      actions.querySelector('.gds-section-delete-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        openDeleteModal(file, wrapper);
+      });
+    });
+
     console.log('[GDS Admin] Inserted', wrappers.length + 1, 'block inserters');
   }
 
@@ -1155,6 +1212,76 @@
     }
   }
 
+  function openDeleteModal(file, wrapper) {
+    // Remove existing modal
+    const existing = document.getElementById('gds-delete-modal');
+    if (existing) existing.remove();
+
+    // Get a preview of the section content
+    const firstHeading = wrapper.querySelector('h1, h2, h3, h4');
+    const sectionLabel = firstHeading ? firstHeading.textContent.trim().substring(0, 60) : file;
+
+    const overlay = document.createElement('div');
+    overlay.id = 'gds-delete-modal';
+    overlay.className = 'gds-modal-overlay';
+    overlay.innerHTML = `
+      <div class="gds-modal" style="max-width:440px;">
+        <div class="gds-modal-header">
+          <h3>Supprimer le bloc</h3>
+          <button class="gds-modal-close" id="gds-delete-close">&times;</button>
+        </div>
+        <div class="gds-modal-body" style="text-align:center;padding:24px 20px;">
+          <div style="width:48px;height:48px;margin:0 auto 16px;background:rgba(248,81,73,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f85149" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </div>
+          <p style="color:#e6edf3;font-size:15px;margin:0 0 8px;font-weight:600;">Etes-vous sur de vouloir supprimer ce bloc ?</p>
+          <p style="color:#8b949e;font-size:13px;margin:0 0 4px;">${escapeHtml(sectionLabel)}</p>
+          <p style="color:#f85149;font-size:12px;margin:0;"><strong>Cette action est irreversible.</strong></p>
+        </div>
+        <div class="gds-modal-footer" style="justify-content:center;gap:12px;">
+          <button class="gds-modal-btn gds-modal-btn-cancel" id="gds-delete-cancel">Annuler</button>
+          <button class="gds-modal-btn" id="gds-delete-confirm" style="background:#da3633;border-color:#f8514933;color:#fff;">Supprimer</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    // Close handlers
+    const close = () => overlay.remove();
+    document.getElementById('gds-delete-close').addEventListener('click', close);
+    document.getElementById('gds-delete-cancel').addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+    // Confirm delete
+    document.getElementById('gds-delete-confirm').addEventListener('click', async () => {
+      const confirmBtn = document.getElementById('gds-delete-confirm');
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'Suppression...';
+
+      try {
+        const res = await Auth.apiFetch('/api/pages/' + currentSlug + '/delete-section', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ file: file })
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Erreur');
+        }
+
+        close();
+        showToast('Bloc supprime !', 'success');
+        // Reload page to reflect changes
+        setTimeout(() => window.location.reload(), 500);
+      } catch (err) {
+        showToast('Erreur: ' + err.message, 'error');
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Supprimer';
+      }
+    });
+  }
+
   function getPluginHtml(pluginId) {
     const plugins = {
       'google-reviews': `<section style="padding:60px 20px;background:#f8f9fa;">
@@ -1202,6 +1329,7 @@
   // ===== EMBEDDED MODE: direct init without admin bar =====
   function initEmbedded() {
     document.body.classList.add('gds-admin-mode');
+    try { autoTagEditableElements(); } catch (e) { console.error('[GDS] autoTagEditableElements error:', e); }
     try { initEditableElements(); } catch (e) { console.error('[GDS] initEditableElements error:', e); }
     try { initEditableImages(); } catch (e) { console.error('[GDS] initEditableImages error:', e); }
     try { initBlockInserters(); } catch (e) { console.error('[GDS] initBlockInserters error:', e); }

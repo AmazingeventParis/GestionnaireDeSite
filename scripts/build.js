@@ -8,6 +8,12 @@ const path = require('path');
 const projectRoot = path.join(__dirname, '..');
 const previewsDir = path.join(projectRoot, 'previews');
 
+// Read site-config.json for SEO data
+const siteConfigPath = path.join(projectRoot, 'site-config.json');
+const siteConfig = JSON.parse(fs.readFileSync(siteConfigPath, 'utf-8'));
+const SITE_DOMAIN = siteConfig.deploy?.domain ? `https://${siteConfig.deploy.domain}` : 'https://shootnbox.swipego.app';
+const PRODUCTION_DOMAIN = 'https://shootnbox.fr'; // Future production domain
+
 // ===== PAGES CONFIGURATION =====
 const pages = [
   {
@@ -20,6 +26,9 @@ const pages = [
     ogImage: 'https://shootnbox.swipego.app/images/vegas-hero-group.webp',
     ogUrl: 'https://shootnbox.swipego.app/',
     preloadImage: '/images/vegas-hero-group.webp',
+    schemaType: 'WebSite',
+    breadcrumbs: [],
+    hasFaq: false,
     sections: [
       'hero', 'trust', 'bento', 'stats', 'avis',
       'equipe', 'savoirfaire', 'mur', 'carte-france', 'blog'
@@ -36,6 +45,12 @@ const pages = [
     ogImage: 'https://shootnbox.swipego.app/images/vegas-hero-group.webp',
     ogUrl: 'https://shootnbox.swipego.app/location-photobooth/',
     preloadImage: '/images/location-hero-party.webp',
+    schemaType: 'Service',
+    breadcrumbs: [
+      { name: 'Accueil', url: '/' },
+      { name: 'Location Photobooth', url: '/location-photobooth/' }
+    ],
+    hasFaq: true,
     sections: ['hero', 'intro', 'bornes', 'avis', 'usages', 'service-v2', 'fabrication', 'comparatif', 'couverture', 'faq', 'blog'],
     previewDir: path.join(previewsDir, 'location-photobooth')
   },
@@ -49,6 +64,13 @@ const pages = [
     ogImage: 'https://shootnbox.swipego.app/images/location-hero-entreprise.webp',
     ogUrl: 'https://shootnbox.swipego.app/location-photobooth-entreprise/',
     preloadImage: '/images/location-hero-entreprise.webp',
+    schemaType: 'Service',
+    breadcrumbs: [
+      { name: 'Accueil', url: '/' },
+      { name: 'Location Photobooth', url: '/location-photobooth/' },
+      { name: 'Entreprise', url: '/location-photobooth-entreprise/' }
+    ],
+    hasFaq: false,
     sections: ['hero', 'trust', 'intro', 'bornes', 'modeles', 'service', 'usages'],
     previewDir: path.join(previewsDir, 'location-photobooth-entreprise')
   }
@@ -151,11 +173,12 @@ imageDimensions['/images/logos/logo ils nous font confiance_Plan de travail 1.we
 function readSection(filePath) {
   let content = fs.readFileSync(filePath, 'utf8');
   const bodyMatch = content.match(/<body[^>]*>([\s\S]*)<\/body>/i);
-  if (!bodyMatch) {
-    console.error(`ERROR: Could not extract <body> from ${filePath}`);
-    process.exit(1);
+  if (bodyMatch) {
+    content = bodyMatch[1].trim();
+  } else {
+    // Fragment file (no <body> wrapper) — use as-is
+    content = content.trim();
   }
-  content = bodyMatch[1].trim();
   // Fix image paths (both ../public/ and ../../public/ for subdirectories)
   // In GestionnaireDeSite, images are served from /site-images/
   content = content.replace(/src="(?:\.\.\/)+public\/images\//g, 'src="/site-images/');
@@ -169,8 +192,8 @@ function readSection(filePath) {
   return content;
 }
 
-const sharedHeader = readSection(path.join(previewsDir, 'header.html'));
-const sharedFooter = readSection(path.join(previewsDir, 'footer.html'));
+const sharedHeader = readSection(path.join(previewsDir, '_shared', 'header.html'));
+const sharedFooter = readSection(path.join(previewsDir, '_shared', 'footer.html'));
 
 // ===== POST-PROCESSING for Lighthouse =====
 function postProcess(html) {
@@ -439,6 +462,182 @@ function minifyHTML(html) {
   return html;
 }
 
+// ===== JSON-LD SCHEMA.ORG GENERATORS =====
+function generateOrganizationLD() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'LocalBusiness',
+    '@id': `${SITE_DOMAIN}/#organization`,
+    'name': siteConfig.identity?.name || 'Shootnbox',
+    'alternateName': "Shoot'n'Box",
+    'url': SITE_DOMAIN,
+    'logo': `${SITE_DOMAIN}/site-images/logo/shootnbox-logo-new-1.webp`,
+    'description': siteConfig.identity?.tagline || '',
+    'telephone': siteConfig.contact?.phone ? `+33${siteConfig.contact.phone.replace(/[^0-9]/g, '').replace(/^0/, '')}` : '',
+    'email': siteConfig.contact?.email || '',
+    'address': {
+      '@type': 'PostalAddress',
+      'addressLocality': 'Paris',
+      'addressRegion': 'Ile-de-France',
+      'addressCountry': 'FR'
+    },
+    'areaServed': { '@type': 'Country', 'name': 'France' },
+    'priceRange': '€€',
+    'sameAs': Object.values(siteConfig.footer?.socials || {}).filter(Boolean)
+  };
+}
+
+function generateServiceLD(page) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Service',
+    'name': page.ogTitle,
+    'serviceType': 'Photo Booth Rental',
+    'provider': { '@id': `${SITE_DOMAIN}/#organization` },
+    'areaServed': { '@type': 'Country', 'name': 'France' },
+    'description': page.description
+  };
+}
+
+function generateBreadcrumbLD(breadcrumbs) {
+  if (!breadcrumbs || breadcrumbs.length === 0) return null;
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    'itemListElement': breadcrumbs.map((item, i) => ({
+      '@type': 'ListItem',
+      'position': i + 1,
+      'name': item.name,
+      ...(item.url ? { 'item': SITE_DOMAIN + item.url } : {})
+    }))
+  };
+}
+
+function generateWebSiteLD() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    'name': siteConfig.identity?.name || 'Shootnbox',
+    'url': SITE_DOMAIN,
+    'publisher': { '@id': `${SITE_DOMAIN}/#organization` }
+  };
+}
+
+function buildJsonLdTags(page) {
+  const scripts = [];
+
+  // Always include Organization
+  scripts.push(`<script type="application/ld+json">${JSON.stringify(generateOrganizationLD())}</script>`);
+
+  // Page-specific schema
+  if (page.schemaType === 'WebSite') {
+    scripts.push(`<script type="application/ld+json">${JSON.stringify(generateWebSiteLD())}</script>`);
+  } else if (page.schemaType === 'Service') {
+    scripts.push(`<script type="application/ld+json">${JSON.stringify(generateServiceLD(page))}</script>`);
+  }
+
+  // Breadcrumbs
+  const breadcrumbLD = generateBreadcrumbLD(page.breadcrumbs);
+  if (breadcrumbLD) {
+    scripts.push(`<script type="application/ld+json">${JSON.stringify(breadcrumbLD)}</script>`);
+  }
+
+  return scripts.join('\n');
+}
+
+function extractFaqLD(html) {
+  const cheerio = require('cheerio');
+  const $ = cheerio.load(html, { decodeEntities: false });
+  const questions = [];
+
+  // Look for FAQ sections (details/summary or custom FAQ markup)
+  $('details').each((i, el) => {
+    const $el = $(el);
+    const question = $el.find('summary').text().trim();
+    const answer = $el.find('.snb-faq-ans, .faq-answer, p').first().text().trim();
+    if (question && answer) {
+      questions.push({ question, answer });
+    }
+  });
+
+  // Also look for custom FAQ markup
+  if (questions.length === 0) {
+    $('.snb-faq-q').each((i, el) => {
+      const question = $(el).text().trim();
+      const answer = $(el).parent().find('.snb-faq-ans').text().trim() ||
+                     $(el).next('.snb-faq-ans').text().trim();
+      if (question && answer) {
+        questions.push({ question, answer });
+      }
+    });
+  }
+
+  if (questions.length === 0) return null;
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    'mainEntity': questions.map(q => ({
+      '@type': 'Question',
+      'name': q.question,
+      'acceptedAnswer': {
+        '@type': 'Answer',
+        'text': q.answer
+      }
+    }))
+  };
+}
+
+// ===== SEO VALIDATION =====
+function validateSEO(html, page) {
+  const warnings = [];
+
+  // Check title length
+  const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
+  if (titleMatch) {
+    const titleText = titleMatch[1].replace(/&amp;/g, '&');
+    if (titleText.length > 60) warnings.push(`  SEO WARN: <title> too long (${titleText.length} chars, max 60)`);
+    if (titleText.length < 30) warnings.push(`  SEO WARN: <title> too short (${titleText.length} chars, min 30)`);
+  } else {
+    warnings.push('  SEO ERROR: No <title> tag found');
+  }
+
+  // Check meta description length
+  const descMatch = html.match(/<meta\s+name="description"\s+content="([^"]+)"/i);
+  if (descMatch) {
+    if (descMatch[1].length > 160) warnings.push(`  SEO WARN: meta description too long (${descMatch[1].length} chars, max 160)`);
+    if (descMatch[1].length < 50) warnings.push(`  SEO WARN: meta description too short (${descMatch[1].length} chars, min 50)`);
+  } else {
+    warnings.push('  SEO ERROR: No meta description found');
+  }
+
+  // Check h1 count
+  const h1Count = (html.match(/<h1[\s>]/gi) || []).length;
+  if (h1Count === 0) warnings.push('  SEO ERROR: No <h1> tag found');
+  if (h1Count > 1) warnings.push(`  SEO WARN: Multiple <h1> tags found (${h1Count}), should be exactly 1`);
+
+  // Check images without alt
+  const imgMatches = html.match(/<img\s[^>]*>/gi) || [];
+  let missingAlt = 0;
+  for (const img of imgMatches) {
+    if (!img.includes('alt=')) missingAlt++;
+    else {
+      const altMatch = img.match(/alt="([^"]*)"/);
+      if (altMatch && altMatch[1] === '' && !img.includes('role="presentation"')) {
+        // Empty alt is OK for decorative images, but warn for others
+      }
+    }
+  }
+  if (missingAlt > 0) warnings.push(`  SEO WARN: ${missingAlt} image(s) missing alt attribute`);
+
+  // Check canonical
+  if (!html.includes('rel="canonical"')) {
+    warnings.push('  SEO WARN: No canonical URL found (will be added automatically)');
+  }
+
+  return warnings;
+}
+
 // ===== BUILD EACH PAGE =====
 for (const page of pages) {
   console.log(`\n=== Building: ${page.slug} ===`);
@@ -471,6 +670,7 @@ for (const page of pages) {
 <meta name="robots" content="index, follow">
 <title>${page.title}</title>
 <meta name="description" content="${page.description}">
+<link rel="canonical" href="${page.ogUrl}">
 <meta property="og:type" content="website">
 <meta property="og:title" content="${page.ogTitle}">
 <meta property="og:description" content="${page.ogDescription}">
@@ -478,6 +678,12 @@ for (const page of pages) {
 <meta property="og:url" content="${page.ogUrl}">
 <meta property="og:locale" content="fr_FR">
 <meta name="twitter:card" content="summary_large_image">
+<meta property="og:site_name" content="${siteConfig.identity?.name || 'Shootnbox'}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:title" content="${page.ogTitle}">
+<meta name="twitter:description" content="${page.ogDescription}">
+<meta name="twitter:image" content="${page.ogImage}">
 ${preloadImg}
 <link rel="dns-prefetch" href="https://shootnbox.fr">
 <link rel="preload" as="font" type="font/woff2" href="/fonts/raleway-latin.woff2" crossorigin>
@@ -496,6 +702,7 @@ ul { list-style: none; padding: 0; margin: 0; }
 .snb-page-content { padding-top: 72px; }
 @media (max-width: 850px) { .snb-page-content { padding-top: 60px; } }
 </style>
+${buildJsonLdTags(page)}
 </head>
 <body>
 
@@ -512,6 +719,16 @@ ${sharedFooter}
 
   // Apply Lighthouse optimizations
   html = postProcess(html);
+
+  // Extract FAQ JSON-LD if page has FAQ
+  if (page.hasFaq) {
+    const faqLD = extractFaqLD(html);
+    if (faqLD) {
+      const faqScript = `<script type="application/ld+json">${JSON.stringify(faqLD)}</script>`;
+      html = html.replace('</head>', `${faqScript}\n</head>`);
+      console.log(`  FAQ Schema: ${faqLD.mainEntity.length} questions extracted`);
+    }
+  }
 
   // CSS extraction
   const cssResult = extractAndProcessCSS(html, page.inlineAllCSS);
@@ -544,6 +761,15 @@ ${sharedFooter}
   const sizeBefore = Buffer.byteLength(html);
   html = minifyHTML(html);
   const sizeAfter = Buffer.byteLength(html);
+
+  // SEO validation
+  const seoWarnings = validateSEO(html, page);
+  if (seoWarnings.length > 0) {
+    console.log('  SEO Issues:');
+    seoWarnings.forEach(w => console.log(w));
+  } else {
+    console.log('  SEO: All checks passed ✓');
+  }
 
   // Ensure output directory exists
   const outputPath = path.join(projectRoot, page.output);
