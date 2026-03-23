@@ -669,6 +669,28 @@ body.gds-admin-mode .gds-page-content {
   transform: scale(1.1);
   box-shadow: 0 4px 16px rgba(248,81,73,0.5);
 }
+.gds-section-save-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid rgba(63,185,80,0.3);
+  background: rgba(13,17,23,0.85);
+  backdrop-filter: blur(8px);
+  color: #3fb950;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+.gds-section-save-btn:hover {
+  background: #238636;
+  color: #fff;
+  border-color: #238636;
+  transform: scale(1.1);
+  box-shadow: 0 4px 16px rgba(35,134,54,0.5);
+}
 .gds-section-code-btn {
   width: 36px;
   height: 36px;
@@ -944,4 +966,51 @@ body.gds-admin-mode .gds-page-content {
 .gds-modal-btn-submit:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Block library in modal */
+.gds-block-library {
+  display: none;
+  max-height: 350px;
+  overflow-y: auto;
+}
+.gds-block-library.visible {
+  display: block;
+}
+.gds-library-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.gds-library-card {
+  padding: 14px 16px;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  background: #0d1117;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.gds-library-card:hover {
+  border-color: #58a6ff;
+  background: #21262d;
+}
+.gds-library-card.selected {
+  border-color: #E51981;
+  background: rgba(229,25,129,0.08);
+}
+.gds-library-card-name {
+  color: #e6edf3;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+.gds-library-card-desc {
+  color: #8b949e;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+.gds-library-card-size {
+  color: #484f58;
+  font-size: 11px;
 }

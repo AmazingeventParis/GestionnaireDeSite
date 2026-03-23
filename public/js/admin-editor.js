@@ -1078,6 +1078,9 @@
       const actions = document.createElement('div');
       actions.className = 'gds-section-actions';
       actions.innerHTML = `
+        <button class="gds-section-save-btn" title="Sauvegarder dans la bibliotheque" data-file="${file}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        </button>
         <button class="gds-section-code-btn" title="Modifier le code HTML" data-file="${file}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
         </button>
@@ -1086,6 +1089,11 @@
         </button>
       `;
       wrapper.appendChild(actions);
+
+      actions.querySelector('.gds-section-save-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        openSaveToLibraryModal(file, wrapper);
+      });
 
       actions.querySelector('.gds-section-code-btn').addEventListener('click', (e) => {
         e.stopPropagation();
@@ -1120,6 +1128,10 @@
         </div>
         <div class="gds-modal-body">
           <div class="gds-block-types">
+            <div class="gds-block-type" data-type="library">
+              <div class="gds-block-type-icon">&#128218;</div>
+              <div class="gds-block-type-label">Bibliotheque</div>
+            </div>
             <div class="gds-block-type" data-type="html">
               <div class="gds-block-type-icon">&lt;/&gt;</div>
               <div class="gds-block-type-label">Code HTML</div>
@@ -1132,6 +1144,9 @@
               <div class="gds-block-type-icon">&#9881;</div>
               <div class="gds-block-type-label">Plugin</div>
             </div>
+          </div>
+          <div class="gds-block-library" id="gds-block-library-area">
+            <div style="color:#8b949e;text-align:center;padding:20px;">Chargement...</div>
           </div>
           <div class="gds-block-code" id="gds-block-code-area">
             <textarea id="gds-block-html-input" placeholder="Collez votre code HTML ici..."></textarea>
@@ -1194,9 +1209,11 @@
         document.getElementById('gds-block-code-area').classList.toggle('visible', selectedType === 'html');
         document.getElementById('gds-block-upload-area').classList.toggle('visible', selectedType === 'image');
         document.getElementById('gds-block-plugins-area').classList.toggle('visible', selectedType === 'plugin');
-        document.getElementById('gds-block-submit').disabled = selectedType === 'plugin';
+        document.getElementById('gds-block-library-area').classList.toggle('visible', selectedType === 'library');
+        document.getElementById('gds-block-submit').disabled = selectedType === 'plugin' || selectedType === 'library';
         if (selectedType === 'html') document.getElementById('gds-block-submit').disabled = false;
         if (selectedType === 'image') document.getElementById('gds-block-submit').disabled = false;
+        if (selectedType === 'library') loadBlockLibrary(overlay);
       });
     });
 
@@ -1240,7 +1257,20 @@
   async function submitBlock(type, modal) {
     let htmlContent = '';
 
-    if (type === 'html') {
+    if (type === 'library') {
+      if (!selectedLibraryBlock) { showToast('Selectionnez un bloc', 'error'); return; }
+      // Fetch block content from API
+      try {
+        const res = await Auth.apiFetch('/api/blocks/' + selectedLibraryBlock);
+        if (!res.ok) throw new Error('Erreur chargement bloc');
+        const blockData = await res.json();
+        htmlContent = blockData.html || '';
+        if (!htmlContent) { showToast('Bloc vide', 'error'); return; }
+      } catch (err) {
+        showToast('Erreur: ' + err.message, 'error');
+        return;
+      }
+    } else if (type === 'html') {
       htmlContent = document.getElementById('gds-block-html-input').value;
       if (!htmlContent.trim()) {
         showToast('Le code HTML est vide', 'error');
@@ -1301,6 +1331,149 @@
       submitBtn.disabled = false;
       submitBtn.textContent = 'Inserer le bloc';
     }
+  }
+
+  // ===== BLOCK LIBRARY =====
+  let selectedLibraryBlock = null;
+
+  async function loadBlockLibrary(modal) {
+    const area = document.getElementById('gds-block-library-area');
+    area.innerHTML = '<div style="color:#8b949e;text-align:center;padding:20px;">Chargement...</div>';
+
+    try {
+      const res = await Auth.apiFetch('/api/blocks');
+      if (!res.ok) throw new Error('Erreur chargement');
+      const data = await res.json();
+      const blocks = data.blocks || [];
+
+      if (blocks.length === 0) {
+        area.innerHTML = '<div style="color:#8b949e;text-align:center;padding:30px;font-size:14px;">Aucun bloc sauvegarde.<br><span style="font-size:12px;margin-top:8px;display:block;">Utilisez le bouton &#128218; sur une section existante pour la sauvegarder.</span></div>';
+        return;
+      }
+
+      // Group by category
+      const cats = {};
+      blocks.forEach(b => {
+        const cat = b.category || 'custom';
+        if (!cats[cat]) cats[cat] = [];
+        cats[cat].push(b);
+      });
+
+      const catLabels = { section: 'Sections de page', custom: 'Blocs personnalises', plugin: 'Plugins' };
+
+      let html = '';
+      for (const [cat, items] of Object.entries(cats)) {
+        html += '<div style="margin-bottom:16px;">';
+        html += '<div style="font-size:11px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">' + (catLabels[cat] || cat) + '</div>';
+        html += '<div class="gds-library-grid">';
+        items.forEach(b => {
+          html += '<div class="gds-library-card" data-block-id="' + b.id + '">';
+          html += '<div class="gds-library-card-name">' + escapeHtml(b.name) + '</div>';
+          if (b.description) html += '<div class="gds-library-card-desc">' + escapeHtml(b.description) + '</div>';
+          html += '<div class="gds-library-card-size">' + (b.size / 1024).toFixed(1) + ' KB</div>';
+          html += '</div>';
+        });
+        html += '</div></div>';
+      }
+      area.innerHTML = html;
+
+      // Click handlers
+      area.querySelectorAll('.gds-library-card').forEach(card => {
+        card.addEventListener('click', () => {
+          area.querySelectorAll('.gds-library-card').forEach(c => c.classList.remove('selected'));
+          card.classList.add('selected');
+          selectedLibraryBlock = card.dataset.blockId;
+          document.getElementById('gds-block-submit').disabled = false;
+        });
+      });
+    } catch (err) {
+      area.innerHTML = '<div style="color:#f85149;text-align:center;padding:20px;">Erreur: ' + err.message + '</div>';
+    }
+  }
+
+  function openSaveToLibraryModal(file, wrapper) {
+    const existing = document.getElementById('gds-savelibrary-modal');
+    if (existing) existing.remove();
+
+    const firstHeading = wrapper.querySelector('h1, h2, h3, h4');
+    const defaultName = firstHeading ? firstHeading.textContent.trim().substring(0, 50) : file.replace(/^\d+-/, '').replace('.html', '');
+
+    const overlay = document.createElement('div');
+    overlay.id = 'gds-savelibrary-modal';
+    overlay.className = 'gds-modal-overlay';
+    overlay.innerHTML = `
+      <div class="gds-modal" style="max-width:440px;">
+        <div class="gds-modal-header">
+          <h3>Sauvegarder dans la bibliotheque</h3>
+          <button class="gds-modal-close" id="gds-sl-close">&times;</button>
+        </div>
+        <div class="gds-modal-body">
+          <div style="margin-bottom:14px;">
+            <label style="font-size:12px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px;">Nom du bloc</label>
+            <input type="text" id="gds-sl-name" value="${escapeHtml(defaultName)}" style="width:100%;padding:8px 12px;background:#0d1117;border:1px solid #30363d;border-radius:6px;color:#e6edf3;font-size:14px;">
+          </div>
+          <div style="margin-bottom:14px;">
+            <label style="font-size:12px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px;">Description (optionnel)</label>
+            <input type="text" id="gds-sl-desc" placeholder="Courte description du bloc" style="width:100%;padding:8px 12px;background:#0d1117;border:1px solid #30363d;border-radius:6px;color:#e6edf3;font-size:14px;">
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px;">Categorie</label>
+            <select id="gds-sl-cat" style="width:100%;padding:8px 12px;background:#0d1117;border:1px solid #30363d;border-radius:6px;color:#e6edf3;font-size:14px;">
+              <option value="section">Section de page</option>
+              <option value="custom">Bloc personnalise</option>
+              <option value="plugin">Plugin</option>
+            </select>
+          </div>
+        </div>
+        <div class="gds-modal-footer">
+          <button class="gds-modal-btn gds-modal-btn-cancel" id="gds-sl-cancel">Annuler</button>
+          <button class="gds-modal-btn gds-modal-btn-submit" id="gds-sl-save">Sauvegarder</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const close = () => overlay.remove();
+    document.getElementById('gds-sl-close').addEventListener('click', close);
+    document.getElementById('gds-sl-cancel').addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+    document.getElementById('gds-sl-name').focus();
+
+    document.getElementById('gds-sl-save').addEventListener('click', async () => {
+      const name = document.getElementById('gds-sl-name').value.trim();
+      if (!name) { showToast('Nom requis', 'error'); return; }
+
+      const btn = document.getElementById('gds-sl-save');
+      btn.disabled = true;
+      btn.textContent = 'Sauvegarde...';
+
+      try {
+        const res = await Auth.apiFetch('/api/blocks/from-section', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            slug: currentSlug,
+            file: file,
+            name: name,
+            description: document.getElementById('gds-sl-desc').value.trim(),
+            category: document.getElementById('gds-sl-cat').value
+          })
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Erreur');
+        }
+
+        close();
+        showToast('Bloc sauvegarde dans la bibliotheque !', 'success');
+      } catch (err) {
+        showToast('Erreur: ' + err.message, 'error');
+        btn.disabled = false;
+        btn.textContent = 'Sauvegarder';
+      }
+    });
   }
 
   // ===== CODE EDITOR MODAL =====

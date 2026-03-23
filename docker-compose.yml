@@ -18,6 +18,7 @@ services:
       - gds-backups:/app/backups
       - gds-previews:/app/previews
       - gds-site-images:/app/public/site-images
+      - gds-blocks:/app/blocks
     labels:
       - "traefik.enable=true"
       - "traefik.http.middlewares.gzip.compress=true"
@@ -42,6 +43,7 @@ volumes:
   gds-backups:
   gds-previews:
   gds-site-images:
+  gds-blocks:
 
 networks:
   coolify:

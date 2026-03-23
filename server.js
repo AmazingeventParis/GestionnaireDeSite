@@ -79,8 +79,9 @@ app.use('/api/stats', require('./routes/stats'));
 try { app.use('/api/pages', require('./routes/pages')); } catch {}
 try { app.use('/api/settings', require('./routes/settings')); } catch {}
 
-// Phase 3 routes (media, navigation, seo)
+// Phase 3 routes (media, navigation, seo, blocks)
 try { app.use('/api/media', require('./routes/media')); } catch {}
+try { app.use('/api/blocks', require('./routes/blocks')); } catch {}
 try { app.use('/api/navigation', require('./routes/navigation')); } catch {}
 try { app.use('/api/seo', require('./routes/seo')); } catch {}
 
