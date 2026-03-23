@@ -655,23 +655,21 @@ router.get('/:slug/preview', verifyToken, async (req, res) => {
       if (nameLower.includes('header') || nameLower.includes('footer')) continue;
       let content = fs.readFileSync(path.join(previewDir, section.file), 'utf-8');
 
-      // If the section is a standalone HTML doc, extract body content
+      // If the section is a standalone HTML doc, extract body + head styles
       const bodyMatch = content.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+      let headCSS = '';
       if (bodyMatch) {
-        // Extract <style> from <head> before stripping it
+        // Extract <style> from <head>
         const headMatch = content.match(/<head[^>]*>([\s\S]*)<\/head>/i);
         if (headMatch) {
-          const headStyles = headMatch[1].match(/<style[^>]*>[\s\S]*?<\/style>/gi);
+          const headStyles = headMatch[1].match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
           if (headStyles) {
-            let cleanedStyles = headStyles.join('\n');
-            // Remove body{} rules — they conflict with the assembled page layout
-            cleanedStyles = cleanedStyles.replace(/body\s*\{[^}]*\}/gi, '');
-            // Remove *,*::before,*::after box-sizing resets (already in page base)
-            cleanedStyles = cleanedStyles.replace(/\*\s*,\s*\*::before\s*,\s*\*::after\s*\{[^}]*\}/gi, '');
-            sectionStyles += cleanedStyles + '\n';
+            headCSS = headStyles.map(s => {
+              const m = s.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
+              return m ? m[1] : '';
+            }).join('\n');
           }
         }
-        // Also strip inline body style from the body tag itself
         content = bodyMatch[1].trim();
       }
 
@@ -683,14 +681,48 @@ router.get('/:slug/preview', verifyToken, async (req, res) => {
         return '';
       });
 
-      // Remove any remaining body{} styles from inline <style> blocks in body content
-      content = content.replace(/(<style[^>]*>)([\s\S]*?)(<\/style>)/gi, (match, open, css, close) => {
-        css = css.replace(/body\s*\{[^}]*\}/gi, '');
-        css = css.replace(/\*\s*,\s*\*::before\s*,\s*\*::after\s*\{[^}]*\}/gi, '');
-        return open + css + close;
+      // Collect all inline <style> blocks from body content too
+      let inlineCSS = '';
+      content = content.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, (match, css) => {
+        inlineCSS += css + '\n';
+        return '';
       });
 
-      bodyContent += `<div class="gds-section-wrapper" data-gds-file="${section.file}" style="position:relative;">\n${content}\n</div>\n`;
+      // Combine all CSS for this section and scope it
+      let allCSS = (headCSS + '\n' + inlineCSS).trim();
+      if (allCSS) {
+        // Remove body{}, html{}, and global * resets
+        allCSS = allCSS.replace(/body\s*\{[^}]*\}/gi, '');
+        allCSS = allCSS.replace(/html\s*\{[^}]*\}/gi, '');
+        allCSS = allCSS.replace(/\*\s*,\s*\*::before\s*,\s*\*::after\s*\{[^}]*\}/gi, '');
+        // Remove duplicate :root declarations (keep CSS vars but scope won't help with :root)
+        // Instead, just let them through — they won't conflict as they set the same vars
+      }
+
+      // Generate a unique scope ID for this section
+      const scopeId = 'gds-s-' + section.file.replace(/[^a-z0-9]/gi, '');
+
+      // Scope CSS: prefix each selector with the scope ID
+      if (allCSS) {
+        allCSS = allCSS.replace(/(^|\})\s*([^@{}][^{]*)\{/gm, (match, before, selectors) => {
+          // Don't scope @keyframes, @media, :root, or empty selectors
+          const trimmed = selectors.trim();
+          if (!trimmed || trimmed.startsWith('@') || trimmed === ':root' || trimmed.startsWith('from') || trimmed.startsWith('to') || /^\d+%/.test(trimmed)) {
+            return match;
+          }
+          // Scope each comma-separated selector
+          const scoped = trimmed.split(',').map(s => {
+            s = s.trim();
+            if (!s || s.startsWith('@') || s === ':root' || s.startsWith('from') || s.startsWith('to') || /^\d+%/.test(s)) return s;
+            return `#${scopeId} ${s}`;
+          }).join(', ');
+          return `${before} ${scoped} {`;
+        });
+      }
+
+      bodyContent += `<div class="gds-section-wrapper" id="${scopeId}" data-gds-file="${section.file}" style="position:relative;">\n`;
+      if (allCSS) bodyContent += `<style>${allCSS}</style>\n`;
+      bodyContent += `${content}\n</div>\n`;
     }
 
     bodyContent += '</main>\n';
@@ -799,7 +831,6 @@ router.get('/:slug/preview', verifyToken, async (req, res) => {
     .container { max-width: var(--max-width); margin: 0 auto; padding: 0 20px; }
   </style>
   <link rel="stylesheet" href="/css/styles-${slug === 'home' ? 'home' : slug}.css">
-  ${sectionStyles}
   ${config.scripts?.headCustom || ''}
 </head>
 <body>
