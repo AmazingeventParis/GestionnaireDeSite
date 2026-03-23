@@ -682,6 +682,49 @@ router.get('/:slug/preview', verifyToken, async (req, res) => {
 
     bodyContent += '</main>\n';
 
+    // Auto-tag editable elements server-side (more reliable than client-side)
+    if (editMode) {
+      try {
+        const cheerio = require('cheerio');
+        const $ = cheerio.load(bodyContent, { decodeEntities: false });
+        let autoIdx = 0;
+
+        $('.gds-section-wrapper').each((wi, wrapper) => {
+          const $wrapper = $(wrapper);
+          const file = $wrapper.attr('data-gds-file') || 'custom';
+          const sectionName = file.replace(/^\d+-/, '').replace('.html', '');
+          let sectionIdx = 0;
+
+          $wrapper.find('h1, h2, h3, h4, p').each((i, el) => {
+            const $el = $(el);
+            // Skip if already tagged
+            if ($el.attr('data-gds-edit')) return;
+            // Skip if inside an element with onclick (FAQ, accordions)
+            if ($el.closest('[onclick]').length) return;
+            // Skip if empty
+            const text = $el.text().trim();
+            if (!text || text.length < 2) return;
+            // Skip if inside admin UI
+            if ($el.closest('.gds-section-actions, .gds-block-inserter').length) return;
+
+            const tag = el.tagName.toLowerCase();
+            $el.attr('data-gds-edit', `${sectionName}:${sectionIdx}:${tag}`);
+            $el.attr('data-gds-section', sectionName);
+            $el.attr('data-gds-tag', tag.toUpperCase());
+            sectionIdx++;
+            autoIdx++;
+          });
+        });
+
+        if (autoIdx > 0) {
+          bodyContent = $.html();
+          console.log(`[Pages] Preview: auto-tagged ${autoIdx} editable elements`);
+        }
+      } catch (e) {
+        console.error('[Pages] Auto-tag error:', e.message);
+      }
+    }
+
     // Inject shared footer
     const sharedFooterPath = path.join(SHARED_DIR, 'footer.html');
     if (fs.existsSync(sharedFooterPath)) {
