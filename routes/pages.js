@@ -816,8 +816,11 @@ router.get('/:slug/preview', verifyToken, async (req, res) => {
         });
 
         if (autoIdx > 0) {
-          // Use $.html() on body content only, not the full document wrapper cheerio adds
-          bodyContent = $('body').html() || $.html();
+          // $.html() wraps in <html><head><body>, $('body').html() loses <style> tags
+          // Solution: get full output and strip the cheerio wrappers
+          let out = $.html();
+          out = out.replace(/^<html><head>/, '').replace(/<\/head><body>/, '').replace(/<\/body><\/html>$/, '');
+          bodyContent = out;
           console.log(`[Pages] Preview: auto-tagged ${autoIdx} editable elements`);
         }
       } catch (e) {
