@@ -17,6 +17,7 @@ services:
       - gds-uploads:/app/uploads_tmp
       - gds-backups:/app/backups
       - gds-previews:/app/previews
+      - gds-site-images:/app/public/site-images
     networks:
       - coolify
 
@@ -24,6 +25,7 @@ volumes:
   gds-uploads:
   gds-backups:
   gds-previews:
+  gds-site-images:
 
 networks:
   coolify:
