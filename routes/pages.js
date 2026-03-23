@@ -2,7 +2,7 @@ const router = require('express').Router();
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
-const { verifyToken } = require('../middleware/auth');
+const { verifyToken, optionalAuth } = require('../middleware/auth');
 const { requireRole } = require('../middleware/rbac');
 const { logAudit } = require('../utils/audit');
 const { getClientIp } = require('../middleware/threatDetector');
@@ -683,10 +683,10 @@ router.post('/:slug/publish', verifyToken, requireRole('admin'), async (req, res
  * GET /:slug/preview — Serve the current draft HTML
  * Query: ?edit=1 to inject inline editor scripts
  */
-router.get('/:slug/preview', verifyToken, async (req, res) => {
+router.get('/:slug/preview', optionalAuth, async (req, res) => {
   try {
     const slug = req.params.slug.replace(/[^a-z0-9-]/gi, '');
-    const editMode = req.query.edit === '1';
+    const editMode = req.query.edit === '1' && req.user;
     const previewDir = getPreviewDir(slug);
 
     if (!fs.existsSync(previewDir)) {
