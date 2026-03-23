@@ -815,6 +815,27 @@ router.get('/:slug/preview', verifyToken, async (req, res) => {
           });
         });
 
+        // Also auto-tag images without data-gds-img
+        let imgIdx = 0;
+        $('.gds-section-wrapper').each((wi, wrapper) => {
+          const $wrapper = $(wrapper);
+          const file = $wrapper.attr('data-gds-file') || 'custom';
+          const sectionName = file.replace(/^\d+-/, '').replace('.html', '');
+
+          $wrapper.find('img').each((i, el) => {
+            const $el = $(el);
+            if ($el.attr('data-gds-img')) return;
+            const src = $el.attr('src');
+            if (!src) return;
+            // Skip logos, header/nav images, data URIs
+            if (src.includes('/logo/') || src.startsWith('data:')) return;
+            if ($el.closest('.snb-header, .snb-nav, nav, header').length) return;
+            $el.attr('data-gds-img', `${sectionName}:${imgIdx}:${src}`);
+            imgIdx++;
+            autoIdx++;
+          });
+        });
+
         if (autoIdx > 0) {
           // $.html() wraps in <html><head><body>, $('body').html() loses <style> tags
           // Solution: get full output and strip the cheerio wrappers

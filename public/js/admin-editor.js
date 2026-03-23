@@ -734,6 +734,11 @@
         const altText = caption ? caption.textContent : 'Image';
         const isVideo = imgSrc.match(/\.(mp4|webm|mov)(\?|$)/i) || (selectedFile && selectedFile.type.startsWith('video/'));
 
+        // Find section context for data-gds-img
+        const wrapper = parent.closest('.gds-section-wrapper');
+        const sectionFile = wrapper ? wrapper.getAttribute('data-gds-file') || 'custom' : 'custom';
+        const sectionName = sectionFile.replace(/^\d+-/, '').replace('.html', '');
+
         let mediaEl;
         if (isVideo) {
           mediaEl = document.createElement('video');
@@ -749,6 +754,8 @@
           mediaEl.src = imgSrc;
           mediaEl.alt = altText;
           mediaEl.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+          // Add data-gds-img so the existing image editor toolbar can handle replacement
+          mediaEl.setAttribute('data-gds-img', `${sectionName}:0:${imgSrc}`);
         }
 
         placeholderEl.replaceWith(mediaEl);
