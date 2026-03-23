@@ -915,7 +915,7 @@ router.get('/:slug/preview', verifyToken, async (req, res) => {
 <div class="snb-page-wrapper">
 ${bodyContent}
 </div>
-<script src="/js/site/scripts-${slug === 'home' ? 'home' : slug}.js" defer></script>
+${fs.existsSync(path.join(PUBLIC_DIR, slug === 'home' ? 'scripts.js' : `scripts-${slug}.js`)) ? `<script src="/js/site/scripts-${slug === 'home' ? 'home' : slug}.js" defer></script>` : ''}
 ${sectionScripts}
 ${editMode ? `<link rel="stylesheet" href="/css/admin-editor.css">
 <script>window.GDS_SLUG = '${slug}';</script>
