@@ -13,6 +13,70 @@ const PUBLIC_DIR = path.join(__dirname, '..', 'public', 'site');
 const BUILD_SCRIPT = path.join(__dirname, '..', 'scripts', 'build.js');
 
 /**
+ * Scope CSS selectors by prefixing with #scopeId.
+ * Handles @media, @keyframes, :root, and nested blocks correctly.
+ */
+function scopeCSS(css, scopeId) {
+  const result = [];
+  let i = 0;
+  const len = css.length;
+
+  while (i < len) {
+    // Skip whitespace
+    while (i < len && /\s/.test(css[i])) { result.push(css[i]); i++; }
+    if (i >= len) break;
+
+    // Find the next selector or at-rule
+    const start = i;
+    let braceDepth = 0;
+    let selector = '';
+
+    // Read until we hit an opening brace at depth 0
+    while (i < len && css[i] !== '{') {
+      selector += css[i];
+      i++;
+    }
+    if (i >= len) { result.push(selector); break; }
+
+    selector = selector.trim();
+    // Read the block content (matching braces)
+    let block = '';
+    braceDepth = 1;
+    i++; // skip opening {
+    while (i < len && braceDepth > 0) {
+      if (css[i] === '{') braceDepth++;
+      if (css[i] === '}') braceDepth--;
+      if (braceDepth > 0) block += css[i];
+      i++;
+    }
+
+    // Decide how to handle this block
+    if (selector.startsWith('@keyframes') || selector.startsWith('@-webkit-keyframes')) {
+      // Don't scope keyframes
+      result.push(`${selector}{${block}}`);
+    } else if (selector.startsWith('@media') || selector.startsWith('@supports')) {
+      // Recursively scope inside @media
+      result.push(`${selector}{${scopeCSS(block, scopeId)}}`);
+    } else if (selector === ':root') {
+      // Keep :root as-is
+      result.push(`:root{${block}}`);
+    } else if (!selector) {
+      // Empty selector, skip
+    } else {
+      // Regular selector — scope it
+      const scoped = selector.split(',').map(s => {
+        s = s.trim();
+        if (!s) return s;
+        return `#${scopeId} ${s}`;
+      }).join(', ');
+      result.push(`${scoped}{${block}}`);
+    }
+  }
+
+  return result.join('\n');
+}
+
+/**
  * Scan a directory for HTML section files and return metadata.
  * Files are expected to follow the pattern: section-name.html
  */
@@ -702,22 +766,9 @@ router.get('/:slug/preview', verifyToken, async (req, res) => {
       // Generate a unique scope ID for this section
       const scopeId = 'gds-s-' + section.file.replace(/[^a-z0-9]/gi, '');
 
-      // Scope CSS: prefix each selector with the scope ID
+      // Scope CSS: prefix each top-level selector with the scope ID
       if (allCSS) {
-        allCSS = allCSS.replace(/(^|\})\s*([^@{}][^{]*)\{/gm, (match, before, selectors) => {
-          // Don't scope @keyframes, @media, :root, or empty selectors
-          const trimmed = selectors.trim();
-          if (!trimmed || trimmed.startsWith('@') || trimmed === ':root' || trimmed.startsWith('from') || trimmed.startsWith('to') || /^\d+%/.test(trimmed)) {
-            return match;
-          }
-          // Scope each comma-separated selector
-          const scoped = trimmed.split(',').map(s => {
-            s = s.trim();
-            if (!s || s.startsWith('@') || s === ':root' || s.startsWith('from') || s.startsWith('to') || /^\d+%/.test(s)) return s;
-            return `#${scopeId} ${s}`;
-          }).join(', ');
-          return `${before} ${scoped} {`;
-        });
+        allCSS = scopeCSS(allCSS, scopeId);
       }
 
       bodyContent += `<div class="gds-section-wrapper" id="${scopeId}" data-gds-file="${section.file}" style="position:relative;">\n`;
