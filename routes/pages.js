@@ -822,7 +822,7 @@ router.get('/:slug/preview', verifyToken, async (req, res) => {
           const file = $wrapper.attr('data-gds-file') || 'custom';
           const sectionName = file.replace(/^\d+-/, '').replace('.html', '');
 
-          $wrapper.find('img').each((i, el) => {
+          $wrapper.find('img, video').each((i, el) => {
             const $el = $(el);
             if ($el.attr('data-gds-img')) return;
             const src = $el.attr('src');

@@ -285,7 +285,7 @@
     // Hidden file input
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
-    fileInput.accept = 'image/*';
+    fileInput.accept = 'image/*,video/mp4,video/webm';
     fileInput.style.display = 'none';
     document.body.appendChild(fileInput);
 
@@ -519,15 +519,38 @@
         const result = await res.json();
         console.log('[GDS] Upload result:', result);
 
+        const newSrc = result.newSrc + '?v=' + Date.now();
         if (isImg) {
-          el.src = result.newSrc + '?v=' + Date.now();
+          const isNewVideo = newSrc.match(/\.(mp4|webm|mov)/i);
+          const isCurrentVideo = el.tagName.toLowerCase() === 'video';
+
+          if (isNewVideo && !isCurrentVideo) {
+            // Replace <img> with <video>
+            const vid = document.createElement('video');
+            vid.src = newSrc;
+            vid.autoplay = true; vid.loop = true; vid.muted = true; vid.playsInline = true;
+            vid.setAttribute('playsinline', '');
+            vid.style.cssText = el.style.cssText || 'width:100%;height:100%;object-fit:cover;display:block;';
+            if (el.getAttribute('data-gds-img')) vid.setAttribute('data-gds-img', el.getAttribute('data-gds-img'));
+            el.replaceWith(vid);
+          } else if (!isNewVideo && isCurrentVideo) {
+            // Replace <video> with <img>
+            const img = document.createElement('img');
+            img.src = newSrc;
+            img.alt = 'Image';
+            img.style.cssText = el.style.cssText || 'width:100%;height:100%;object-fit:cover;display:block;';
+            if (el.getAttribute('data-gds-img')) img.setAttribute('data-gds-img', el.getAttribute('data-gds-img'));
+            el.replaceWith(img);
+          } else {
+            el.src = newSrc;
+          }
         } else {
           const currentStyle = el.getAttribute('style') || '';
-          el.setAttribute('style', currentStyle.replace(/url\([^)]+\)/, 'url(' + result.newSrc + '?v=' + Date.now() + ')'));
+          el.setAttribute('style', currentStyle.replace(/url\([^)]+\)/, 'url(' + newSrc + ')'));
         }
         imageChanges++;
         updateChangesCount();
-        showToast('Image mise a jour !', 'success');
+        showToast('Media mis a jour !', 'success');
       } catch (err) {
         showToast('Erreur: ' + err.message, 'error');
       }
@@ -761,11 +784,11 @@
         placeholderEl.replaceWith(mediaEl);
 
         // Save the section file with the new content (cleaned of admin UI)
-        const wrapper = parent.closest('.gds-section-wrapper');
-        if (wrapper) {
-          const file = wrapper.getAttribute('data-gds-file');
+        const saveWrapper = parent.closest('.gds-section-wrapper');
+        if (saveWrapper) {
+          const file = saveWrapper.getAttribute('data-gds-file');
           if (file) {
-            const sectionHtml = cleanSectionHtml(wrapper);
+            const sectionHtml = cleanSectionHtml(saveWrapper);
             await Auth.apiFetch('/api/pages/' + currentSlug + '/section/' + encodeURIComponent(file), {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
