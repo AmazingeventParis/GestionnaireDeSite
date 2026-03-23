@@ -895,6 +895,85 @@
     });
   }
 
+  // ===== SAVE WITHOUT PUBLISH =====
+  async function saveOnly() {
+    const changeCount = Object.keys(changes).length;
+    const hasSeoChanges = seoData._modified;
+    if (changeCount === 0 && !hasSeoChanges) return;
+
+    // Collect SEO changes
+    const seo = hasSeoChanges ? {
+      title: document.getElementById('gdsSeoTitle')?.value,
+      description: document.getElementById('gdsSeoDesc')?.value,
+      ogTitle: document.getElementById('gdsSeoOgTitle')?.value,
+      ogDescription: document.getElementById('gdsSeoOgDesc')?.value
+    } : null;
+
+    // Clean tag bar HTML from change texts
+    const cleanChanges = Object.values(changes).map(c => ({
+      ...c,
+      text: c.text.replace(/<div class="gds-tag-select"[\s\S]*?<\/div>/g, '')
+    }));
+
+    try {
+      const res = await Auth.apiFetch('/api/pages/' + currentSlug + '/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ changes: cleanChanges, seo })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Erreur sauvegarde');
+      }
+
+      // Reset state
+      changes = {};
+      seoData._modified = false;
+      imageChanges = 0;
+      document.querySelectorAll('.gds-modified').forEach(el => el.classList.remove('gds-modified'));
+      updateChangesCount();
+
+      // Update original texts to new values
+      document.querySelectorAll('[data-gds-edit]').forEach(el => {
+        originalTexts[el.getAttribute('data-gds-edit')] = el.innerHTML;
+      });
+
+      showToast('Sauvegarde OK', 'success');
+      notifyParent('saved', { slug: currentSlug });
+    } catch (err) {
+      showToast('Erreur: ' + err.message, 'error');
+    }
+  }
+
+  // ===== AUTO-SAVE =====
+  let autoSaveTimer = null;
+  function scheduleAutoSave() {
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(async () => {
+      const count = Object.keys(changes).length + (seoData._modified ? 1 : 0);
+      if (count > 0) {
+        console.log('[GDS Admin] Auto-saving', count, 'change(s)...');
+        await saveOnly();
+      }
+    }, 30000); // 30 seconds
+  }
+
+  // Hook auto-save into change tracking
+  const _origTrackChange = trackChange;
+  // We can't override trackChange directly since it's already defined,
+  // so we schedule auto-save from updateChangesCount instead
+
+  // Override updateChangesCount to also schedule auto-save
+  const _origUpdateChangesCount = updateChangesCount;
+  updateChangesCount = function() {
+    _origUpdateChangesCount();
+    const count = Object.keys(changes).length + (seoData._modified ? 1 : 0) + imageChanges;
+    if (count > 0) {
+      scheduleAutoSave();
+    }
+  };
+
   // ===== PARENT FRAME COMMUNICATION =====
   function notifyParent(type, data) {
     try {
@@ -927,7 +1006,11 @@
         });
         break;
       case 'save':
-        // Parent frame asks us to save
+        // Parent frame asks us to save (without publishing)
+        saveOnly();
+        break;
+      case 'publish':
+        // Parent frame asks us to save AND publish
         if (Object.keys(changes).length > 0 || seoData._modified) {
           publish();
         }

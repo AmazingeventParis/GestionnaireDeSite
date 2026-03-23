@@ -244,6 +244,11 @@
       line-height: 1.5;
     }
 
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
     @media (max-width: 768px) {
       .editor-topbar { padding: 0 8px; gap: 6px; }
       .topbar-btn span.btn-label { display: none; }
@@ -454,15 +459,15 @@
       }
 
       /**
-       * Save changes — sends save command to iframe, also saves SEO from parent.
+       * Save changes — saves text edits to preview files (no rebuild/deploy).
        */
       async function saveChanges() {
         var seo = collectSeoData();
         var btn = document.getElementById('btn-save');
         btn.disabled = true;
-        btn.textContent = 'Sauvegarde...';
+        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="animation:spin 1s linear infinite"><path d="M8 0a8 8 0 100 16A8 8 0 008 0zm0 14.5a6.5 6.5 0 110-13 6.5 6.5 0 010 13z" opacity=".3"/><path d="M8 0a8 8 0 018 8h-1.5A6.5 6.5 0 008 1.5V0z"/></svg><span class="btn-label">Sauvegarde...</span>';
 
-        // Tell iframe editor to save its changes
+        // Tell iframe editor to save its text changes to server
         sendToIframe('save');
 
         // Also save SEO data from the parent panel
@@ -478,10 +483,7 @@
           }
           changes = [];
           updateChangesBadge();
-          Components.showToast('Page sauvegardee', 'success');
-          // Reload preview
-          var frame = document.getElementById('editor-frame');
-          frame.src = frame.src;
+          Components.showToast('Brouillon sauvegarde', 'success');
         } catch (err) {
           Components.showToast('Erreur: ' + err.message, 'error');
         } finally {
@@ -491,17 +493,20 @@
       }
 
       /**
-       * Publish page.
+       * Publish page — save first, then rebuild and deploy.
        */
       async function publishPage() {
         if (!confirm('Publier cette page ? Les modifications seront visibles sur le site.')) return;
 
-        // Save first
+        // Save text changes first
         await saveChanges();
+
+        // Then tell iframe to publish (rebuild)
+        sendToIframe('publish');
 
         var btn = document.getElementById('btn-publish');
         btn.disabled = true;
-        btn.textContent = 'Publication...';
+        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="animation:spin 1s linear infinite"><path d="M8 0a8 8 0 100 16A8 8 0 008 0zm0 14.5a6.5 6.5 0 110-13 6.5 6.5 0 010 13z" opacity=".3"/><path d="M8 0a8 8 0 018 8h-1.5A6.5 6.5 0 008 1.5V0z"/></svg><span class="btn-label">Publication...</span>';
         try {
           var response = await Auth.apiFetch('/api/pages/' + encodeURIComponent(currentSlug) + '/publish', {
             method: 'POST',
@@ -561,7 +566,7 @@
         });
       });
 
-      // Listen for changes from iframe (postMessage API from admin-editor.js)
+      // Listen for messages from iframe (postMessage API from admin-editor.js)
       window.addEventListener('message', function(event) {
         if (!event.data || event.data.source !== 'gds-editor') return;
         if (event.data.type === 'changesCount') {
@@ -573,6 +578,16 @@
           } else {
             badge.classList.remove('visible');
           }
+        }
+        if (event.data.type === 'saved') {
+          changes = [];
+          updateChangesBadge();
+        }
+        if (event.data.type === 'published') {
+          Components.showToast('Page publiee avec succes', 'success');
+          var btn = document.getElementById('btn-publish');
+          btn.disabled = false;
+          btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M1 7.775V2.75C1 1.784 1.784 1 2.75 1h5.025c.464 0 .91.184 1.238.513l6.25 6.25a1.75 1.75 0 010 2.474l-5.026 5.026a1.75 1.75 0 01-2.474 0l-6.25-6.25A1.752 1.752 0 011 7.775zM5 5a1 1 0 100-2 1 1 0 000 2z"/></svg><span class="btn-label">Publier</span>';
         }
       });
 
