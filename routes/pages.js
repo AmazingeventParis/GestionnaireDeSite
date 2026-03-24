@@ -672,7 +672,7 @@ router.put('/:slug/section/:file', verifyToken, requireRole('admin', 'editor'), 
       return res.status(400).json({ error: 'Fichier invalide' });
     }
 
-    const { content } = req.body;
+    let { content } = req.body;
     if (typeof content !== 'string') {
       return res.status(400).json({ error: 'Le champ "content" est requis' });
     }
@@ -683,6 +683,22 @@ router.put('/:slug/section/:file', verifyToken, requireRole('admin', 'editor'), 
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({ error: 'Section non trouvee' });
     }
+
+    // Clean editor contamination before saving
+    // Remove scoped CSS prefixes (#gds-s-xxx) that leaked from preview rendering
+    content = content.replace(/#gds-s-\w+\s+/g, '');
+    // Remove admin UI elements
+    content = content.replace(/<div class="gds-tag-select">[\s\S]*?<\/div>/g, '');
+    content = content.replace(/<div class="gds-ph-overlay">[\s\S]*?<\/div>/g, '');
+    content = content.replace(/<div class="gds-section-actions">[\s\S]*?<\/div>/g, '');
+    // Remove admin attributes
+    content = content.replace(/\s*data-gds-edit="[^"]*"/g, '');
+    content = content.replace(/\s*data-gds-section="[^"]*"/g, '');
+    content = content.replace(/\s*data-gds-tag="[^"]*"/g, '');
+    content = content.replace(/\s*data-gds-orig-tag="[^"]*"/g, '');
+    content = content.replace(/\s*data-gds-img="[^"]*"/g, '');
+    content = content.replace(/\s*tabindex="0"/g, '');
+    content = content.replace(/\s*contenteditable="[^"]*"/g, '');
 
     fs.writeFileSync(filePath, content, 'utf-8');
 
