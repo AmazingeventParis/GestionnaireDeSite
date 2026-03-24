@@ -1377,29 +1377,103 @@
 
     console.log('[GDS Admin] Found', wrappers.length, 'section wrappers');
 
-    function createInserter(index) {
+    function createInserter(index, wrapperAbove, wrapperBelow) {
       const inserter = document.createElement('div');
       inserter.className = 'gds-block-inserter';
-      inserter.innerHTML = '<button class="gds-block-inserter-btn" title="Ajouter un bloc">+</button>';
+      inserter.innerHTML = `
+        <button class="gds-block-inserter-btn" title="Ajouter un bloc">+</button>
+        <div class="gds-spacing-control" style="display:none;">
+          <input type="range" min="0" max="120" value="60" class="gds-spacing-slider" title="Espacement">
+          <span class="gds-spacing-value">60px</span>
+        </div>
+      `;
       inserter.querySelector('.gds-block-inserter-btn').addEventListener('click', () => {
         openBlockModal(index);
       });
+
+      // Spacing control: click the line area (not the + button) to toggle
+      const slider = inserter.querySelector('.gds-spacing-slider');
+      const valueLabel = inserter.querySelector('.gds-spacing-value');
+      const controlDiv = inserter.querySelector('.gds-spacing-control');
+
+      // Read current spacing from the section below
+      if (wrapperBelow) {
+        const section = wrapperBelow.querySelector('section, [class*="section"]');
+        if (section) {
+          const cs = window.getComputedStyle(section);
+          const pt = parseInt(cs.paddingTop) || 60;
+          slider.value = pt;
+          valueLabel.textContent = pt + 'px';
+        }
+      }
+
+      // Toggle spacing control on inserter line click
+      inserter.addEventListener('click', (e) => {
+        if (e.target.closest('.gds-block-inserter-btn') || e.target.closest('.gds-spacing-control')) return;
+        controlDiv.style.display = controlDiv.style.display === 'none' ? 'flex' : 'none';
+      });
+
+      // Apply spacing live
+      slider.addEventListener('input', () => {
+        const val = slider.value;
+        valueLabel.textContent = val + 'px';
+        if (wrapperBelow) {
+          const section = wrapperBelow.querySelector('section, [class*="section"]');
+          if (section) section.style.paddingTop = val + 'px';
+        }
+        if (wrapperAbove) {
+          const section = wrapperAbove.querySelector('section, [class*="section"]');
+          if (section) section.style.paddingBottom = val + 'px';
+        }
+      });
+
+      // Save spacing on mouse up
+      slider.addEventListener('change', async () => {
+        const val = slider.value;
+        // Save to the section below by modifying its CSS
+        if (wrapperBelow) {
+          const file = wrapperBelow.getAttribute('data-gds-file');
+          if (file) {
+            try {
+              const res = await Auth.apiFetch('/api/pages/' + currentSlug + '/section/' + encodeURIComponent(file));
+              if (res.ok) {
+                let content = (await res.json()).content || '';
+                // Update padding-top in the main section CSS rule
+                content = content.replace(
+                  /(padding:\s*)\d+(px\s+\d+px)/,
+                  '$1' + val + '$2'
+                );
+                await Auth.apiFetch('/api/pages/' + currentSlug + '/section/' + encodeURIComponent(file), {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ content })
+                });
+                showToast('Espacement sauvegarde', 'success');
+              }
+            } catch (e) {
+              showToast('Erreur espacement', 'error');
+            }
+          }
+        }
+      });
+
       return inserter;
     }
 
     if (wrappers.length === 0) {
       // Empty page — single inserter
-      main.appendChild(createInserter(0));
+      main.appendChild(createInserter(0, null, null));
       console.log('[GDS Admin] Empty page — added 1 inserter');
       return;
     }
 
     // Before first wrapper
-    wrappers[0].parentNode.insertBefore(createInserter(0), wrappers[0]);
+    wrappers[0].parentNode.insertBefore(createInserter(0, null, wrappers[0]), wrappers[0]);
 
     // After each wrapper
     wrappers.forEach((wrapper, idx) => {
-      const inserter = createInserter(idx + 1);
+      const below = wrappers[idx + 1] || null;
+      const inserter = createInserter(idx + 1, wrapper, below);
       wrapper.parentNode.insertBefore(inserter, wrapper.nextSibling);
     });
 
