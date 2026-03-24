@@ -101,18 +101,19 @@ async function getImageDimensions(filePath) {
  */
 function getResizeWidth(usage) {
   const map = { hero: 1920, card: 1200, thumb: 400 };
-  return map[usage] || null;
+  return map[usage] || 1200; // Default: max 1200px wide for all uploads
 }
 
 /**
  * Read WebP quality from site-config or use default
+ * Aggressive compression: 75 by default (good balance size/quality)
  */
 function getWebpQuality() {
   try {
     const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
-    return config.media?.webpQuality || 85;
+    return config.media?.webpQuality || 75;
   } catch (e) {
-    return 85;
+    return 75;
   }
 }
 
