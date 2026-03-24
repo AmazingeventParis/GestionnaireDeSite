@@ -1174,7 +1174,7 @@
         }
 
         showToast(files.length + ' photo(s) ajoutee(s) — rechargement...', 'success');
-        setTimeout(() => window.location.reload(), 1500);
+        window.location.reload(true);
       });
     });
 
@@ -1713,8 +1713,8 @@
       }
       modal.remove();
       showToast('Bloc ajoute !', 'success');
-      // Reload page to show the new block
-      setTimeout(() => window.location.reload(), 500);
+      // Force reload to show the new block
+      window.location.reload(true);
     } catch (err) {
       showToast('Erreur: ' + err.message, 'error');
       submitBtn.disabled = false;
@@ -1958,7 +1958,7 @@
 
         close();
         showToast('Code sauvegarde !', 'success');
-        setTimeout(() => window.location.reload(), 500);
+        window.location.reload(true);
       } catch (err) {
         showToast('Erreur: ' + err.message, 'error');
         saveBtn.disabled = false;
@@ -2039,7 +2039,7 @@
         close();
         showToast('Bloc supprime !', 'success');
         // Reload page to reflect changes
-        setTimeout(() => window.location.reload(), 500);
+        window.location.reload(true);
       } catch (err) {
         showToast('Erreur: ' + err.message, 'error');
         confirmBtn.disabled = false;
