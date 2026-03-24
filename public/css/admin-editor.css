@@ -1031,14 +1031,12 @@ body.gds-admin-mode .gds-page-content {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
   opacity: 0;
   transition: opacity 0.2s;
-  z-index: 5;
+  z-index: 50;
   border-radius: inherit;
   cursor: pointer;
 }
-.bento-placeholder:hover .gds-ph-overlay,
-.image-placeholder:hover .gds-ph-overlay,
-[data-gds-placeholder]:hover .gds-ph-overlay,
-[class*="placeholder"]:hover > .gds-ph-overlay {
+[class*="placeholder"]:hover .gds-ph-overlay,
+[data-gds-placeholder]:hover .gds-ph-overlay {
   opacity: 1;
 }
 
