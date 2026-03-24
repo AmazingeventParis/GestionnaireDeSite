@@ -990,7 +990,8 @@ body.gds-admin-mode .gds-page-content {
 }
 .bento-placeholder:hover .gds-ph-overlay,
 .image-placeholder:hover .gds-ph-overlay,
-[data-gds-placeholder]:hover .gds-ph-overlay {
+[data-gds-placeholder]:hover .gds-ph-overlay,
+[class*="placeholder"]:hover > .gds-ph-overlay {
   opacity: 1;
 }
 

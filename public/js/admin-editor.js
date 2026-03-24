@@ -563,15 +563,47 @@
 
   // ===== PLACEHOLDER IMAGE REPLACEMENT =====
   function initPlaceholderImages() {
-    // Find placeholder elements by class, attribute, or pattern (dashed border + no img/video)
-    const selectors = '.bento-placeholder, .image-placeholder, [data-gds-placeholder], [class*="placeholder"]';
-    const placeholders = document.querySelectorAll(selectors);
-    console.log('[GDS Admin] Found', placeholders.length, 'image placeholders');
+    // Find placeholder elements by multiple strategies
+    const bySelector = document.querySelectorAll('.bento-placeholder, .image-placeholder, [data-gds-placeholder], [class*="placeholder"]');
+
+    // Also find elements with dashed borders that look like image placeholders
+    // (common pattern in blocks created by Claude)
+    const allDivs = document.querySelectorAll('.gds-section-wrapper div');
+    const extraPlaceholders = [];
+    allDivs.forEach(div => {
+      // Skip if already matched or has an image/video
+      if (div.matches('[class*="placeholder"], [data-gds-placeholder]')) return;
+      if (div.querySelector('img, video')) return;
+      if (div.closest('[class*="placeholder"]')) return;
+      // Check computed style for dashed border
+      const style = window.getComputedStyle(div);
+      if (style.borderStyle === 'dashed' && div.children.length <= 3 && div.offsetHeight > 50) {
+        extraPlaceholders.push(div);
+      }
+    });
+
+    const allPlaceholders = [...bySelector, ...extraPlaceholders];
+    // Deduplicate
+    const seen = new Set();
+    const placeholders = allPlaceholders.filter(el => {
+      if (seen.has(el)) return false;
+      seen.add(el);
+      // Skip elements that already have a real image inside
+      if (el.querySelector('img, video')) return false;
+      // Skip admin UI elements
+      if (el.closest('.gds-section-actions, .gds-block-inserter, #gds-admin-bar')) return false;
+      return true;
+    });
+
+    console.log('[GDS Admin] Found', placeholders.length, 'image placeholders (' + bySelector.length + ' by class, ' + extraPlaceholders.length + ' by dashed border)');
 
     placeholders.forEach(ph => {
       // Style as clickable
       ph.style.cursor = 'pointer';
       ph.style.transition = 'all 0.2s';
+      // Ensure position relative for overlay
+      const pos = window.getComputedStyle(ph).position;
+      if (pos === 'static') ph.style.position = 'relative';
 
       // Add hover overlay
       const overlay = document.createElement('div');
