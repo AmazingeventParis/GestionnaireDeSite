@@ -660,6 +660,36 @@ router.get('/:slug/section/:file', verifyToken, async (req, res) => {
 });
 
 /**
+ * POST /:slug/spacing — Save spacing between sections
+ * Body: { file: "30-section.html", spacing: 40 }
+ */
+router.post('/:slug/spacing', verifyToken, requireRole('admin', 'editor'), async (req, res) => {
+  try {
+    const slug = req.params.slug.replace(/[^a-z0-9-]/gi, '');
+    const { file, spacing } = req.body;
+    if (!file || spacing === undefined) {
+      return res.status(400).json({ error: 'file et spacing requis' });
+    }
+
+    const previewDir = getPreviewDir(slug);
+    const spacingPath = path.join(previewDir, '.spacing.json');
+
+    let spacingData = {};
+    if (fs.existsSync(spacingPath)) {
+      try { spacingData = JSON.parse(fs.readFileSync(spacingPath, 'utf-8')); } catch(e) {}
+    }
+
+    spacingData[file] = parseInt(spacing) || 0;
+    fs.writeFileSync(spacingPath, JSON.stringify(spacingData, null, 2), 'utf-8');
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[Pages] Spacing error:', err.message);
+    res.status(500).json({ error: 'Erreur' });
+  }
+});
+
+/**
  * PUT /:slug/section/:file — Update the raw HTML content of a section
  * Body: { content: "<style>...</style><section>...</section>" }
  * RBAC: admin + editor
@@ -893,6 +923,13 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
     }
     bodyContent += '<main class="snb-page-content">\n';
 
+    // Load spacing config
+    let spacingData = {};
+    const spacingPath = path.join(previewDir, '.spacing.json');
+    if (fs.existsSync(spacingPath)) {
+      try { spacingData = JSON.parse(fs.readFileSync(spacingPath, 'utf-8')); } catch(e) {}
+    }
+
     // Page-specific sections (skip any header/footer files that might remain)
     let sectionScripts = '';
     let sectionStyles = '';
@@ -963,7 +1000,8 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
           ? `position:relative;max-width:${wrapperMaxWidth};margin:0 auto;`
           : 'position:relative;';
 
-        bodyContent += `<div class="gds-section-wrapper" id="${scopeId}" data-gds-file="${section.file}" style="${wrapperStyle}">\n`;
+        const sectionSpacing = spacingData[section.file] ? `margin-top:${spacingData[section.file]}px;` : '';
+        bodyContent += `<div class="gds-section-wrapper" id="${scopeId}" data-gds-file="${section.file}" style="${wrapperStyle}${sectionSpacing}">\n`;
         if (allCSS.trim()) bodyContent += `<style>${allCSS}</style>\n`;
         bodyContent += `${content}\n</div>\n`;
       } else {
@@ -973,7 +1011,8 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
           return '';
         });
 
-        bodyContent += `<div class="gds-section-wrapper" data-gds-file="${section.file}" style="position:relative;">\n${content}\n</div>\n`;
+        const fragSpacing = spacingData[section.file] ? `margin-top:${spacingData[section.file]}px;` : '';
+        bodyContent += `<div class="gds-section-wrapper" data-gds-file="${section.file}" style="position:relative;${fragSpacing}">\n${content}\n</div>\n`;
       }
     }
 

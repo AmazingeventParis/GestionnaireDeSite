@@ -1383,73 +1383,55 @@
       inserter.innerHTML = `
         <button class="gds-block-inserter-btn" title="Ajouter un bloc">+</button>
         <div class="gds-spacing-control" style="display:none;">
-          <input type="range" min="0" max="120" value="60" class="gds-spacing-slider" title="Espacement">
-          <span class="gds-spacing-value">60px</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#E51981" stroke-width="2" style="flex-shrink:0"><path d="M12 5v14M5 12h14"/></svg>
+          <input type="range" min="0" max="200" value="0" class="gds-spacing-slider" title="Espacement">
+          <span class="gds-spacing-value">0px</span>
         </div>
       `;
       inserter.querySelector('.gds-block-inserter-btn').addEventListener('click', () => {
         openBlockModal(index);
       });
 
-      // Spacing control: click the line area (not the + button) to toggle
       const slider = inserter.querySelector('.gds-spacing-slider');
       const valueLabel = inserter.querySelector('.gds-spacing-value');
       const controlDiv = inserter.querySelector('.gds-spacing-control');
 
-      // Read current spacing from the section below
+      // Read current spacing from the wrapper below's margin-top
       if (wrapperBelow) {
-        const section = wrapperBelow.querySelector('section, [class*="section"]');
-        if (section) {
-          const cs = window.getComputedStyle(section);
-          const pt = parseInt(cs.paddingTop) || 60;
-          slider.value = pt;
-          valueLabel.textContent = pt + 'px';
-        }
+        const mt = parseInt(wrapperBelow.style.marginTop) || 0;
+        slider.value = mt;
+        valueLabel.textContent = mt + 'px';
+        if (mt > 0) inserter.style.height = mt + 'px';
       }
 
-      // Toggle spacing control on inserter line click
+      // Toggle on line click
       inserter.addEventListener('click', (e) => {
         if (e.target.closest('.gds-block-inserter-btn') || e.target.closest('.gds-spacing-control')) return;
         controlDiv.style.display = controlDiv.style.display === 'none' ? 'flex' : 'none';
       });
 
-      // Apply spacing live
+      // Apply spacing live by changing the inserter height
       slider.addEventListener('input', () => {
-        const val = slider.value;
+        const val = parseInt(slider.value);
         valueLabel.textContent = val + 'px';
-        if (wrapperBelow) {
-          const section = wrapperBelow.querySelector('section, [class*="section"]');
-          if (section) section.style.paddingTop = val + 'px';
-        }
-        if (wrapperAbove) {
-          const section = wrapperAbove.querySelector('section, [class*="section"]');
-          if (section) section.style.paddingBottom = val + 'px';
-        }
+        inserter.style.height = val + 'px';
       });
 
-      // Save spacing on mouse up
+      // Save: store spacing as margin-top on the wrapper below
       slider.addEventListener('change', async () => {
-        const val = slider.value;
-        // Save to the section below by modifying its CSS
+        const val = parseInt(slider.value);
         if (wrapperBelow) {
+          wrapperBelow.style.marginTop = val + 'px';
+          // Save to a per-page spacing config
           const file = wrapperBelow.getAttribute('data-gds-file');
           if (file) {
             try {
-              const res = await Auth.apiFetch('/api/pages/' + currentSlug + '/section/' + encodeURIComponent(file));
-              if (res.ok) {
-                let content = (await res.json()).content || '';
-                // Update padding-top in the main section CSS rule
-                content = content.replace(
-                  /(padding:\s*)\d+(px\s+\d+px)/,
-                  '$1' + val + '$2'
-                );
-                await Auth.apiFetch('/api/pages/' + currentSlug + '/section/' + encodeURIComponent(file), {
-                  method: 'PUT',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ content })
-                });
-                showToast('Espacement sauvegarde', 'success');
-              }
+              await Auth.apiFetch('/api/pages/' + currentSlug + '/spacing', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ file: file, spacing: val })
+              });
+              showToast('Espacement: ' + val + 'px', 'success');
             } catch (e) {
               showToast('Erreur espacement', 'error');
             }
