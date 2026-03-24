@@ -904,11 +904,25 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
         allCSS = allCSS.replace(/\/\*[\s\S]*?\*\//g, '');
 
         const scopeId = 'gds-s-' + section.file.replace(/[^a-z0-9]/gi, '');
+
+        // Auto-fix: if a section rule has max-width:1300px, move it to the wrapper
+        // so the section content is constrained without needing a manual inner div
+        let wrapperMaxWidth = '';
+        allCSS = allCSS.replace(/(\.[a-zA-Z][\w-]*section[^{]*\{[^}]*?)max-width:\s*(1[23]\d{2}px)\s*;([^}]*?)margin:\s*0 auto\s*;/gi, (match, before, mw, after) => {
+          wrapperMaxWidth = mw;
+          return before + after;
+        });
+
         if (allCSS.trim()) {
           allCSS = scopeCSS(allCSS, scopeId);
         }
 
-        bodyContent += `<div class="gds-section-wrapper" id="${scopeId}" data-gds-file="${section.file}" style="position:relative;">\n`;
+        // Apply max-width to the wrapper div itself
+        const wrapperStyle = wrapperMaxWidth
+          ? `position:relative;max-width:${wrapperMaxWidth};margin:0 auto;`
+          : 'position:relative;';
+
+        bodyContent += `<div class="gds-section-wrapper" id="${scopeId}" data-gds-file="${section.file}" style="${wrapperStyle}">\n`;
         if (allCSS.trim()) bodyContent += `<style>${allCSS}</style>\n`;
         bodyContent += `${content}\n</div>\n`;
       } else {
