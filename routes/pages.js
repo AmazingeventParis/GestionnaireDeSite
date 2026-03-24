@@ -92,7 +92,11 @@ function scopeCSS(css, scopeId) {
  */
 function scanSections(dirPath) {
   if (!fs.existsSync(dirPath)) return [];
-  const files = fs.readdirSync(dirPath).filter(f => f.endsWith('.html'));
+  const files = fs.readdirSync(dirPath).filter(f => f.endsWith('.html')).sort((a, b) => {
+    const na = parseInt(a.match(/^(\d+)/)?.[1] || '0');
+    const nb = parseInt(b.match(/^(\d+)/)?.[1] || '0');
+    return na - nb;
+  });
   return files.map(f => {
     const stat = fs.statSync(path.join(dirPath, f));
     return {
@@ -483,10 +487,14 @@ router.post('/:slug/add-section', verifyToken, requireRole('admin'), async (req,
       return res.status(400).json({ error: 'Le champ "html" est requis' });
     }
 
-    // Get existing section files (sorted)
+    // Get existing section files (sorted numerically by prefix)
     const existingFiles = fs.readdirSync(previewDir)
       .filter(f => f.endsWith('.html'))
-      .sort();
+      .sort((a, b) => {
+        const na = parseInt(a.match(/^(\d+)/)?.[1] || '0');
+        const nb = parseInt(b.match(/^(\d+)/)?.[1] || '0');
+        return na - nb;
+      });
 
     // Determine the new file name based on position
     // Find the highest number prefix
