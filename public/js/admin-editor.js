@@ -563,8 +563,9 @@
 
   // ===== PLACEHOLDER IMAGE REPLACEMENT =====
   function initPlaceholderImages() {
-    // Find placeholder elements (bento-placeholder, or any div with placeholder-like content)
-    const placeholders = document.querySelectorAll('.bento-placeholder, .image-placeholder, [data-gds-placeholder]');
+    // Find placeholder elements by class, attribute, or pattern (dashed border + no img/video)
+    const selectors = '.bento-placeholder, .image-placeholder, [data-gds-placeholder], [class*="placeholder"]';
+    const placeholders = document.querySelectorAll(selectors);
     console.log('[GDS Admin] Found', placeholders.length, 'image placeholders');
 
     placeholders.forEach(ph => {
