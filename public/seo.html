@@ -302,6 +302,7 @@
         <div class="seo-tabs">
             <button class="seo-tab active" data-tab="global">Global</button>
             <button class="seo-tab" data-tab="pages">Par page</button>
+            <button class="seo-tab" data-tab="injection">Injection de code</button>
         </div>
 
         <!-- Global tab -->
@@ -395,6 +396,48 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- Injection tab -->
+        <div class="seo-panel" id="panel-injection">
+            <div class="seo-form">
+                <div class="seo-field">
+                    <label for="inj-gtm">Google Tag Manager ID</label>
+                    <div class="field-hint">Ex: GTM-XXXXXXX — charge uniquement apres consentement cookies</div>
+                    <input type="text" class="seo-input" id="inj-gtm" placeholder="GTM-XXXXXXX">
+                </div>
+                <div class="seo-field">
+                    <label for="inj-theme-color">Theme color</label>
+                    <input type="text" class="seo-input" id="inj-theme-color" placeholder="#E51981" style="max-width:200px">
+                </div>
+                <div class="seo-field">
+                    <label for="inj-head">Scripts &lt;head&gt; (toutes les pages)</label>
+                    <div class="field-hint">Code injecte avant &lt;/head&gt; — analytics, meta tags, etc.</div>
+                    <textarea class="seo-textarea" id="inj-head" style="font-family:monospace;min-height:120px;" placeholder="<!-- Scripts head -->"></textarea>
+                </div>
+                <div class="seo-field">
+                    <label for="inj-body-start">Scripts debut &lt;body&gt;</label>
+                    <div class="field-hint">Code injecte juste apres &lt;body&gt; — GTM noscript, etc.</div>
+                    <textarea class="seo-textarea" id="inj-body-start" style="font-family:monospace;min-height:80px;" placeholder="<!-- Scripts body start -->"></textarea>
+                </div>
+                <div class="seo-field">
+                    <label for="inj-body-end">Scripts fin &lt;body&gt;</label>
+                    <div class="field-hint">Code injecte avant &lt;/body&gt; — widgets, chat, etc.</div>
+                    <textarea class="seo-textarea" id="inj-body-end" style="font-family:monospace;min-height:80px;" placeholder="<!-- Scripts body end -->"></textarea>
+                </div>
+                <div class="seo-field">
+                    <label>Banniere cookies</label>
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                        <input type="checkbox" id="inj-cookie-enabled">
+                        <label for="inj-cookie-enabled" style="font-size:13px;color:#8b949e;">Activer la banniere de consentement RGPD</label>
+                    </div>
+                </div>
+                <div class="seo-field">
+                    <label for="inj-chat">Widget chat</label>
+                    <textarea class="seo-textarea" id="inj-chat" style="font-family:monospace;min-height:60px;" placeholder="<!-- Code widget chat -->"></textarea>
+                </div>
+                <button class="seo-save" id="save-injection">Sauvegarder l'injection</button>
+            </div>
+        </div>
     </div>
 
     <script src="/js/auth.js"></script>
@@ -412,6 +455,7 @@
             loadSeoGlobal();
             loadRobots();
             loadPages();
+            loadInjection();
         }
 
         function setupTabs() {
@@ -429,6 +473,7 @@
         function setupEvents() {
             document.getElementById('btn-save-seo').addEventListener('click', saveSeoGlobal);
             document.getElementById('btn-save-robots').addEventListener('click', saveRobots);
+            document.getElementById('save-injection').addEventListener('click', saveInjection);
 
             // Character count for description
             var descField = document.getElementById('seo-description');
@@ -629,6 +674,49 @@
             score += 20;
 
             return Math.min(score, 100);
+        }
+
+        // ===== INJECTION TAB =====
+        async function loadInjection() {
+            try {
+                var res = await Auth.apiFetch('/api/seo/scripts');
+                if (!res.ok) return;
+                var data = await res.json();
+                document.getElementById('inj-gtm').value = data.gtmId || '';
+                document.getElementById('inj-theme-color').value = data.themeColor || '#E51981';
+                document.getElementById('inj-head').value = data.headCustom || '';
+                document.getElementById('inj-body-start').value = data.bodyStartCustom || '';
+                document.getElementById('inj-body-end').value = data.bodyEndCustom || '';
+                document.getElementById('inj-cookie-enabled').checked = !!(data.cookieConsent && data.cookieConsent.enabled);
+                document.getElementById('inj-chat').value = data.chatWidget || '';
+            } catch(e) {}
+        }
+
+        async function saveInjection() {
+            var btn = document.getElementById('save-injection');
+            btn.disabled = true;
+            btn.textContent = 'Sauvegarde...';
+            try {
+                var res = await Auth.apiFetch('/api/seo/scripts', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        gtmId: document.getElementById('inj-gtm').value,
+                        themeColor: document.getElementById('inj-theme-color').value,
+                        headCustom: document.getElementById('inj-head').value,
+                        bodyStartCustom: document.getElementById('inj-body-start').value,
+                        bodyEndCustom: document.getElementById('inj-body-end').value,
+                        cookieConsent: { enabled: document.getElementById('inj-cookie-enabled').checked },
+                        chatWidget: document.getElementById('inj-chat').value
+                    })
+                });
+                if (!res.ok) throw new Error('Erreur');
+                Components.showToast('Injection sauvegardee', 'success');
+            } catch(e) {
+                Components.showToast('Erreur: ' + e.message, 'error');
+            }
+            btn.disabled = false;
+            btn.textContent = 'Sauvegarder l\'injection';
         }
 
         init();

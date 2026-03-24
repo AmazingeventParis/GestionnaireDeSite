@@ -166,6 +166,35 @@
       padding: 40px;
       color: #8b949e;
     }
+    .page-card-btn {
+      padding: 6px 10px;
+      font-size: 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .page-card-btn-code {
+      background: #21262d;
+      color: #58a6ff;
+      border: 1px solid #388bfd44;
+    }
+    .page-card-btn-code:hover {
+      background: #388bfd22;
+      text-decoration: none;
+    }
+    .page-card-btn-redir {
+      background: #21262d;
+      color: #d2a8ff;
+      border: 1px solid #8b5cf644;
+    }
+    .page-card-btn-redir:hover {
+      background: #8b5cf622;
+      text-decoration: none;
+    }
     @media (max-width: 768px) {
       .pages-header {
         flex-direction: column;
@@ -290,6 +319,12 @@
           html += '<a href="/api/pages/' + encodeURIComponent(page.slug) + '/preview?edit=1" target="_blank" class="btn-sm btn-edit">';
           html += '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M11.013 1.427a1.75 1.75 0 012.474 0l1.086 1.086a1.75 1.75 0 010 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 01-.927-.928l.929-3.25a1.75 1.75 0 01.445-.758l8.61-8.61zm1.414 1.06a.25.25 0 00-.354 0L3.463 11.098a.25.25 0 00-.064.108l-.631 2.208 2.208-.63a.25.25 0 00.108-.064l8.61-8.61a.25.25 0 000-.354z"/></svg>';
           html += 'Editer</a>';
+          html += '<a href="/page-code.html?slug=' + encodeURIComponent(page.slug) + '" class="page-card-btn page-card-btn-code" title="Code &amp; Meta">';
+          html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>';
+          html += ' Code</a>';
+          html += '<a href="/redirections.html?source=/' + encodeURIComponent(page.slug) + '/" class="page-card-btn page-card-btn-redir" title="Redirections">';
+          html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
+          html += ' Redir</a>';
           html += '</div>';
           html += '</div>';
         }

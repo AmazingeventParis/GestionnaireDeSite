@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code & SEO - Gestionnaire de Site</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .page-code-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    .page-code-header h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #e6edf3;
+      margin: 0;
+    }
+    .page-code-header .slug-label {
+      font-size: 14px;
+      color: #8b949e;
+      margin-top: 4px;
+    }
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .btn-back {
+      background: #21262d;
+      border: 1px solid #30363d;
+      color: #e6edf3;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn-back:hover {
+      background: #30363d;
+      border-color: #8b949e;
+    }
+
+    /* Tabs */
+    .tabs-nav {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid #30363d;
+      margin-bottom: 24px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .tab-btn {
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: #8b949e;
+      padding: 12px 18px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .tab-btn:hover {
+      color: #e6edf3;
+      border-bottom-color: #30363d;
+    }
+    .tab-btn.active {
+      color: #e6edf3;
+      border-bottom-color: #58a6ff;
+    }
+    .tab-panel {
+      display: none;
+    }
+    .tab-panel.active {
+      display: block;
+    }
+
+    /* Form elements */
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #e6edf3;
+      margin-bottom: 6px;
+    }
+    .form-group .form-hint {
+      font-size: 12px;
+      color: #8b949e;
+      margin-top: 4px;
+    }
+    .form-input,
+    .form-select,
+    .form-textarea {
+      width: 100%;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      color: #e6edf3;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      box-sizing: border-box;
+    }
+    .form-input:focus,
+    .form-select:focus,
+    .form-textarea:focus {
+      border-color: #58a6ff;
+      outline: none;
+      box-shadow: 0 0 0 2px #58a6ff33;
+    }
+    .form-select {
+      cursor: pointer;
+    }
+    .form-select option {
+      background: #0d1117;
+    }
+    .form-textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    .form-textarea.code-textarea {
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      min-height: 160px;
+      background: #010409;
+      tab-size: 2;
+    }
+
+    /* Character counter */
+    .char-counter {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .char-counter label {
+      margin-bottom: 0;
+    }
+    .char-count {
+      font-size: 12px;
+      color: #8b949e;
+      font-weight: 400;
+    }
+    .char-count.warning {
+      color: #d29922;
+    }
+    .char-count.danger {
+      color: #f85149;
+    }
+
+    /* Google preview */
+    .google-preview {
+      background: #fff;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-top: 16px;
+    }
+    .google-preview-title {
+      font-size: 18px;
+      color: #1a0dab;
+      font-family: Arial, sans-serif;
+      line-height: 1.3;
+      margin-bottom: 2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .google-preview-url {
+      font-size: 13px;
+      color: #006621;
+      font-family: Arial, sans-serif;
+      margin-bottom: 4px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .google-preview-desc {
+      font-size: 13px;
+      color: #545454;
+      font-family: Arial, sans-serif;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* OG Image preview */
+    .og-image-preview {
+      margin-top: 10px;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      overflow: hidden;
+      max-width: 400px;
+      display: none;
+    }
+    .og-image-preview img {
+      width: 100%;
+      display: block;
+    }
+    .og-image-preview.visible {
+      display: block;
+    }
+
+    /* Toggle switch */
+    .toggle-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: #30363d;
+      border-radius: 24px;
+      transition: 0.2s;
+    }
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background: #e6edf3;
+      border-radius: 50%;
+      transition: 0.2s;
+    }
+    .toggle-switch input:checked + .toggle-slider {
+      background: #238636;
+    }
+    .toggle-switch input:checked + .toggle-slider::before {
+      transform: translateX(20px);
+    }
+
+    /* List editor (breadcrumbs, preload, preconnect) */
+    .list-editor {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .list-editor-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .list-editor-row .form-input {
+      flex: 1;
+    }
+    .btn-remove-row {
+      background: none;
+      border: 1px solid #f8514933;
+      color: #f85149;
+      width: 32px;
+      height: 34px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.2s;
+    }
+    .btn-remove-row:hover {
+      background: #f8514922;
+      border-color: #f85149;
+    }
+    .btn-add-row {
+      background: #21262d;
+      border: 1px dashed #30363d;
+      color: #8b949e;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      align-self: flex-start;
+      transition: all 0.2s;
+    }
+    .btn-add-row:hover {
+      background: #30363d;
+      color: #e6edf3;
+      border-color: #8b949e;
+    }
+
+    /* Card section */
+    .card-section {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .card-section h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #e6edf3;
+      margin: 0 0 16px 0;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #30363d;
+    }
+
+    /* Validate button */
+    .btn-validate {
+      background: #21262d;
+      border: 1px solid #30363d;
+      color: #e6edf3;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 8px;
+    }
+    .btn-validate:hover {
+      background: #30363d;
+      border-color: #8b949e;
+    }
+    .validation-result {
+      margin-top: 8px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      display: none;
+    }
+    .validation-result.success {
+      display: block;
+      background: #23863622;
+      color: #3fb950;
+      border: 1px solid #23863633;
+    }
+    .validation-result.error {
+      display: block;
+      background: #f8514922;
+      color: #f85149;
+      border: 1px solid #f8514933;
+    }
+
+    /* History */
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .history-item {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .history-item-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .history-item-date {
+      font-size: 14px;
+      color: #e6edf3;
+      font-weight: 500;
+    }
+    .history-item-meta {
+      font-size: 12px;
+      color: #8b949e;
+    }
+    .btn-restore {
+      background: #21262d;
+      border: 1px solid #30363d;
+      color: #e6edf3;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-restore:hover {
+      background: #30363d;
+      border-color: #58a6ff;
+      color: #58a6ff;
+    }
+    .history-empty {
+      text-align: center;
+      color: #8b949e;
+      padding: 40px 20px;
+      font-size: 14px;
+    }
+
+    /* Save bar */
+    .save-bar {
+      position: sticky;
+      bottom: 0;
+      background: #161b22;
+      border-top: 1px solid #30363d;
+      padding: 16px 24px;
+      margin: 24px -24px -24px -24px;
+      border-radius: 0 0 8px 8px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      align-items: center;
+    }
+    .btn-save {
+      background: #238636;
+      border: 1px solid #238636;
+      color: #fff;
+      padding: 10px 24px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-save:hover {
+      background: #2ea043;
+      border-color: #2ea043;
+    }
+    .btn-save:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Loading */
+    .page-loading {
+      text-align: center;
+      padding: 60px 20px;
+      color: #8b949e;
+      font-size: 14px;
+    }
+
+    /* Two-column layout for wider screens */
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 768px) {
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+      .tabs-nav {
+        gap: 0;
+      }
+      .tab-btn {
+        padding: 10px 12px;
+        font-size: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="navbar"></div>
+
+  <div class="container" style="max-width: 900px; margin: 0 auto; padding: 24px;">
+    <div id="page-loading" class="page-loading">
+      <p>Chargement...</p>
+    </div>
+
+    <div id="page-content" style="display: none;">
+      <div class="page-code-header">
+        <div>
+          <h1 id="page-title">Code & SEO</h1>
+          <div class="slug-label" id="page-slug-label">/slug</div>
+        </div>
+        <div class="header-actions">
+          <a id="btn-back" href="/pages.html" class="btn-back">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M7.78 12.53a.75.75 0 01-1.06 0L2.47 8.28a.75.75 0 010-1.06l4.25-4.25a.75.75 0 011.06 1.06L4.81 7h7.44a.75.75 0 010 1.5H4.81l2.97 2.97a.75.75 0 010 1.06z"/></svg>
+            Retour
+          </a>
+        </div>
+      </div>
+
+      <!-- Tabs Navigation -->
+      <div class="tabs-nav">
+        <button class="tab-btn active" data-tab="meta-seo">Meta & SEO</button>
+        <button class="tab-btn" data-tab="open-graph">Open Graph</button>
+        <button class="tab-btn" data-tab="code-injection">Code Injection</button>
+        <button class="tab-btn" data-tab="schema">Schema.org</button>
+        <button class="tab-btn" data-tab="sitemap">Sitemap</button>
+        <button class="tab-btn" data-tab="performance">Performance</button>
+        <button class="tab-btn" data-tab="history">Historique</button>
+      </div>
+
+      <!-- Tab 1: Meta & SEO -->
+      <div class="tab-panel active" id="tab-meta-seo">
+        <div class="card-section">
+          <h3>Meta & SEO</h3>
+
+          <div class="form-group">
+            <div class="char-counter">
+              <label for="seo-title">Titre de la page</label>
+              <span class="char-count" id="seo-title-count">0 / 60</span>
+            </div>
+            <input type="text" id="seo-title" class="form-input" placeholder="Titre de la page" maxlength="60">
+          </div>
+
+          <div class="form-group">
+            <div class="char-counter">
+              <label for="seo-desc">Meta description</label>
+              <span class="char-count" id="seo-desc-count">0 / 160</span>
+            </div>
+            <textarea id="seo-desc" class="form-textarea" placeholder="Description de la page pour les moteurs de recherche..." maxlength="160" rows="3"></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="seo-canonical">URL canonique</label>
+              <input type="url" id="seo-canonical" class="form-input" placeholder="https://example.com/page">
+              <div class="form-hint">Laissez vide pour utiliser l'URL par defaut</div>
+            </div>
+
+            <div class="form-group">
+              <label for="seo-robots">Robots</label>
+              <select id="seo-robots" class="form-select">
+                <option value="index,follow">index, follow</option>
+                <option value="noindex,follow">noindex, follow</option>
+                <option value="index,nofollow">index, nofollow</option>
+                <option value="noindex,nofollow">noindex, nofollow</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Apercu Google</label>
+            <div class="google-preview">
+              <div class="google-preview-title" id="google-preview-title">Titre de la page</div>
+              <div class="google-preview-url" id="google-preview-url">https://example.com/page</div>
+              <div class="google-preview-desc" id="google-preview-desc">Description de la page pour les moteurs de recherche...</div>
+            </div>
+          </div>
+
+          <div class="save-bar">
+            <button class="btn-save" id="btn-save-meta" type="button">Enregistrer</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 2: Open Graph -->
+      <div class="tab-panel" id="tab-open-graph">
+        <div class="card-section">
+          <h3>Open Graph</h3>
+
+          <div class="form-group">
+            <label for="og-title">OG Title</label>
+            <input type="text" id="og-title" class="form-input" placeholder="Titre pour les reseaux sociaux">
+            <div class="form-hint">Laissez vide pour utiliser le titre SEO</div>
+          </div>
+
+          <div class="form-group">
+            <label for="og-desc">OG Description</label>
+            <textarea id="og-desc" class="form-textarea" placeholder="Description pour les reseaux sociaux..." rows="3"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="og-image">OG Image URL</label>
+            <input type="url" id="og-image" class="form-input" placeholder="https://example.com/image.jpg">
+            <div class="og-image-preview" id="og-image-preview">
+              <img id="og-image-preview-img" src="" alt="OG Image preview">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="twitter-card">Twitter Card</label>
+            <select id="twitter-card" class="form-select">
+              <option value="summary">summary</option>
+              <option value="summary_large_image">summary_large_image</option>
+            </select>
+          </div>
+
+          <div class="save-bar">
+            <button class="btn-save" id="btn-save-og" type="button">Enregistrer</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: Code Injection -->
+      <div class="tab-panel" id="tab-code-injection">
+        <div class="card-section">
+          <h3>Code Injection</h3>
+          <div class="form-hint" style="margin-bottom: 16px;">Ces elements sont injectes dans le &lt;head&gt; de cette page uniquement.</div>
+
+          <div class="form-group">
+            <label for="head-css">CSS personnalise (head)</label>
+            <textarea id="head-css" class="form-textarea code-textarea" placeholder="/* Custom CSS for this page */&#10;.my-class {&#10;  color: red;&#10;}" rows="8"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="head-scripts">Scripts personnalises (head)</label>
+            <textarea id="head-scripts" class="form-textarea code-textarea" placeholder="<!-- Custom scripts -->&#10;<script>&#10;  console.log('Hello');&#10;</script>" rows="8"></textarea>
+          </div>
+
+          <div class="save-bar">
+            <button class="btn-save" id="btn-save-code" type="button">Enregistrer</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 4: Schema.org -->
+      <div class="tab-panel" id="tab-schema">
+        <div class="card-section">
+          <h3>Schema.org</h3>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="schema-type">Type de schema</label>
+              <select id="schema-type" class="form-select">
+                <option value="none">Aucun</option>
+                <option value="WebSite">WebSite</option>
+                <option value="Service">Service</option>
+                <option value="Product">Product</option>
+                <option value="Article">Article</option>
+                <option value="LocalBusiness">LocalBusiness</option>
+                <option value="FAQPage">FAQPage</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>&nbsp;</label>
+              <div class="toggle-group" style="height: 38px;">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="schema-faq">
+                  <span class="toggle-slider"></span>
+                </label>
+                <span style="font-size: 14px; color: #e6edf3;">Auto-detecter FAQ</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Breadcrumbs</label>
+            <div class="list-editor" id="breadcrumbs-list">
+              <!-- rows added dynamically -->
+            </div>
+            <button class="btn-add-row" id="btn-add-breadcrumb" type="button">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M7.75 2a.75.75 0 01.75.75V7h4.25a.75.75 0 010 1.5H8.5v4.25a.75.75 0 01-1.5 0V8.5H2.75a.75.75 0 010-1.5H7V2.75A.75.75 0 017.75 2z"/></svg>
+              Ajouter un breadcrumb
+            </button>
+          </div>
+
+          <div class="form-group">
+            <label for="schema-jsonld">JSON-LD personnalise</label>
+            <textarea id="schema-jsonld" class="form-textarea code-textarea" placeholder='{"@context": "https://schema.org", "@type": "WebSite", ...}' rows="8"></textarea>
+            <button class="btn-validate" id="btn-validate-jsonld" type="button">Valider JSON</button>
+            <div class="validation-result" id="jsonld-validation"></div>
+          </div>
+
+          <div class="save-bar">
+            <button class="btn-save" id="btn-save-schema" type="button">Enregistrer</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 5: Sitemap -->
+      <div class="tab-panel" id="tab-sitemap">
+        <div class="card-section">
+          <h3>Sitemap</h3>
+
+          <div class="form-group">
+            <div class="toggle-group">
+              <label class="toggle-switch">
+                <input type="checkbox" id="sitemap-include" checked>
+                <span class="toggle-slider"></span>
+              </label>
+              <span style="font-size: 14px; color: #e6edf3;">Inclure dans le sitemap</span>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="sitemap-priority">Priorite</label>
+              <select id="sitemap-priority" class="form-select">
+                <option value="1.0">1.0</option>
+                <option value="0.9">0.9</option>
+                <option value="0.8" selected>0.8</option>
+                <option value="0.7">0.7</option>
+                <option value="0.6">0.6</option>
+                <option value="0.5">0.5</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="sitemap-changefreq">Frequence de mise a jour</label>
+              <select id="sitemap-changefreq" class="form-select">
+                <option value="always">always</option>
+                <option value="hourly">hourly</option>
+                <option value="daily">daily</option>
+                <option value="weekly" selected>weekly</option>
+                <option value="monthly">monthly</option>
+                <option value="yearly">yearly</option>
+                <option value="never">never</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="save-bar">
+            <button class="btn-save" id="btn-save-sitemap" type="button">Enregistrer</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 6: Performance -->
+      <div class="tab-panel" id="tab-performance">
+        <div class="card-section">
+          <h3>Performance</h3>
+
+          <div class="form-group">
+            <label>Preload images</label>
+            <div class="form-hint" style="margin-bottom: 8px;">Images critiques a precharger pour un affichage plus rapide.</div>
+            <div class="list-editor" id="preload-images">
+              <!-- rows added dynamically -->
+            </div>
+            <button class="btn-add-row" id="btn-add-preload" type="button">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M7.75 2a.75.75 0 01.75.75V7h4.25a.75.75 0 010 1.5H8.5v4.25a.75.75 0 01-1.5 0V8.5H2.75a.75.75 0 010-1.5H7V2.75A.75.75 0 017.75 2z"/></svg>
+              Ajouter une image
+            </button>
+          </div>
+
+          <div class="form-group">
+            <label>DNS Preconnect</label>
+            <div class="form-hint" style="margin-bottom: 8px;">Domaines externes auxquels se connecter en avance.</div>
+            <div class="list-editor" id="preconnect-domains">
+              <!-- rows added dynamically -->
+            </div>
+            <button class="btn-add-row" id="btn-add-preconnect" type="button">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M7.75 2a.75.75 0 01.75.75V7h4.25a.75.75 0 010 1.5H8.5v4.25a.75.75 0 01-1.5 0V8.5H2.75a.75.75 0 010-1.5H7V2.75A.75.75 0 017.75 2z"/></svg>
+              Ajouter un domaine
+            </button>
+          </div>
+
+          <div class="save-bar">
+            <button class="btn-save" id="btn-save-perf" type="button">Enregistrer</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 7: Historique -->
+      <div class="tab-panel" id="tab-history">
+        <div class="card-section">
+          <h3>Historique des snapshots</h3>
+          <div id="history-loading" class="page-loading">
+            <p>Chargement de l'historique...</p>
+          </div>
+          <div id="history-list" class="history-list" style="display: none;"></div>
+          <div id="history-empty" class="history-empty" style="display: none;">
+            <p>Aucun historique disponible pour cette page.</p>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /page-content -->
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="/js/auth.js"></script>
+  <script src="/js/components.js"></script>
+  <script>
+    (function() {
+      'use strict';
+
+      var slug = new URLSearchParams(window.location.search).get('slug');
+      if (!slug) {
+        window.location.href = '/pages.html';
+        return;
+      }
+
+      // --- Tab switching ---
+      var tabBtns = document.querySelectorAll('.tab-btn');
+      var tabPanels = document.querySelectorAll('.tab-panel');
+
+      tabBtns.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var target = btn.getAttribute('data-tab');
+          tabBtns.forEach(function(b) { b.classList.remove('active'); });
+          tabPanels.forEach(function(p) { p.classList.remove('active'); });
+          btn.classList.add('active');
+          document.getElementById('tab-' + target).classList.add('active');
+
+          if (target === 'history') {
+            loadHistory();
+          }
+        });
+      });
+
+      // --- Character counters ---
+      function setupCharCounter(inputId, countId, max) {
+        var input = document.getElementById(inputId);
+        var counter = document.getElementById(countId);
+        function update() {
+          var len = input.value.length;
+          counter.textContent = len + ' / ' + max;
+          counter.className = 'char-count';
+          if (len > max) {
+            counter.classList.add('danger');
+          } else if (len > max * 0.85) {
+            counter.classList.add('warning');
+          }
+        }
+        input.addEventListener('input', update);
+        update();
+      }
+
+      setupCharCounter('seo-title', 'seo-title-count', 60);
+      setupCharCounter('seo-desc', 'seo-desc-count', 160);
+
+      // --- Google preview ---
+      function updateGooglePreview() {
+        var title = document.getElementById('seo-title').value || 'Titre de la page';
+        var desc = document.getElementById('seo-desc').value || 'Description de la page pour les moteurs de recherche...';
+        var canonical = document.getElementById('seo-canonical').value || ('https://example.com/' + slug);
+        document.getElementById('google-preview-title').textContent = title;
+        document.getElementById('google-preview-url').textContent = canonical;
+        document.getElementById('google-preview-desc').textContent = desc;
+      }
+
+      document.getElementById('seo-title').addEventListener('input', updateGooglePreview);
+      document.getElementById('seo-desc').addEventListener('input', updateGooglePreview);
+      document.getElementById('seo-canonical').addEventListener('input', updateGooglePreview);
+
+      // --- OG Image preview ---
+      var ogImageInput = document.getElementById('og-image');
+      var ogPreview = document.getElementById('og-image-preview');
+      var ogPreviewImg = document.getElementById('og-image-preview-img');
+
+      ogImageInput.addEventListener('input', function() {
+        var url = ogImageInput.value.trim();
+        if (url) {
+          ogPreviewImg.src = url;
+          ogPreview.classList.add('visible');
+          ogPreviewImg.onerror = function() {
+            ogPreview.classList.remove('visible');
+          };
+        } else {
+          ogPreview.classList.remove('visible');
+        }
+      });
+
+      // --- JSON-LD Validation ---
+      document.getElementById('btn-validate-jsonld').addEventListener('click', function() {
+        var val = document.getElementById('schema-jsonld').value.trim();
+        var result = document.getElementById('jsonld-validation');
+        if (!val) {
+          result.className = 'validation-result';
+          result.style.display = 'none';
+          return;
+        }
+        try {
+          JSON.parse(val);
+          result.className = 'validation-result success';
+          result.textContent = 'JSON valide';
+        } catch (e) {
+          result.className = 'validation-result error';
+          result.textContent = 'JSON invalide : ' + e.message;
+        }
+      });
+
+      // --- List helpers ---
+      function addListRow(containerId, placeholder, value) {
+        var container = document.getElementById(containerId);
+        var row = document.createElement('div');
+        row.className = 'list-editor-row';
+        row.innerHTML =
+          '<input type="text" class="form-input" placeholder="' + placeholder + '" value="' + (value ? escapeAttr(value) : '') + '">' +
+          '<button class="btn-remove-row" type="button" title="Supprimer">' +
+            '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"/></svg>' +
+          '</button>';
+        row.querySelector('.btn-remove-row').addEventListener('click', function() {
+          row.remove();
+        });
+        container.appendChild(row);
+      }
+
+      function addBreadcrumbRow(name, url) {
+        var container = document.getElementById('breadcrumbs-list');
+        var row = document.createElement('div');
+        row.className = 'list-editor-row';
+        row.innerHTML =
+          '<input type="text" class="form-input" placeholder="Nom" value="' + (name ? escapeAttr(name) : '') + '" data-field="name">' +
+          '<input type="text" class="form-input" placeholder="URL" value="' + (url ? escapeAttr(url) : '') + '" data-field="url">' +
+          '<button class="btn-remove-row" type="button" title="Supprimer">' +
+            '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"/></svg>' +
+          '</button>';
+        row.querySelector('.btn-remove-row').addEventListener('click', function() {
+          row.remove();
+        });
+        container.appendChild(row);
+      }
+
+      function escapeAttr(str) {
+        return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      }
+
+      document.getElementById('btn-add-breadcrumb').addEventListener('click', function() {
+        addBreadcrumbRow('', '');
+      });
+      document.getElementById('btn-add-preload').addEventListener('click', function() {
+        addListRow('preload-images', 'https://example.com/image.webp');
+      });
+      document.getElementById('btn-add-preconnect').addEventListener('click', function() {
+        addListRow('preconnect-domains', 'https://fonts.googleapis.com');
+      });
+
+      // --- Collect data ---
+      function collectBreadcrumbs() {
+        var rows = document.querySelectorAll('#breadcrumbs-list .list-editor-row');
+        var result = [];
+        rows.forEach(function(row) {
+          var name = row.querySelector('[data-field="name"]').value.trim();
+          var url = row.querySelector('[data-field="url"]').value.trim();
+          if (name || url) {
+            result.push({ name: name, url: url });
+          }
+        });
+        return result;
+      }
+
+      function collectList(containerId) {
+        var rows = document.querySelectorAll('#' + containerId + ' .list-editor-row');
+        var result = [];
+        rows.forEach(function(row) {
+          var val = row.querySelector('.form-input').value.trim();
+          if (val) {
+            result.push(val);
+          }
+        });
+        return result;
+      }
+
+      // --- Save ---
+      async function savePageCode() {
+        var seo = {
+          title: document.getElementById('seo-title').value,
+          description: document.getElementById('seo-desc').value,
+          canonical: document.getElementById('seo-canonical').value,
+          robots: document.getElementById('seo-robots').value,
+          ogTitle: document.getElementById('og-title').value,
+          ogDescription: document.getElementById('og-desc').value,
+          ogImage: document.getElementById('og-image').value,
+          twitterCard: document.getElementById('twitter-card').value,
+          customHeadCSS: document.getElementById('head-css').value,
+          customHeadScripts: document.getElementById('head-scripts').value,
+          schema: {
+            type: document.getElementById('schema-type').value,
+            hasFaq: document.getElementById('schema-faq').checked,
+            breadcrumbs: collectBreadcrumbs(),
+            customJsonLd: document.getElementById('schema-jsonld').value
+          },
+          sitemap: {
+            include: document.getElementById('sitemap-include').checked,
+            priority: document.getElementById('sitemap-priority').value,
+            changefreq: document.getElementById('sitemap-changefreq').value
+          },
+          performance: {
+            preloadImages: collectList('preload-images'),
+            preconnect: collectList('preconnect-domains')
+          }
+        };
+
+        var saveBtns = document.querySelectorAll('.btn-save');
+        saveBtns.forEach(function(b) { b.disabled = true; b.textContent = 'Enregistrement...'; });
+
+        try {
+          var res = await Auth.apiFetch('/api/pages/' + encodeURIComponent(slug) + '/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ changes: [], seo: seo })
+          });
+
+          var data = await res.json();
+          if (!res.ok || data.error) {
+            throw new Error(data.error || 'Erreur ' + res.status);
+          }
+          Components.showToast('Modifications enregistrees', 'success');
+        } catch (err) {
+          Components.showToast('Erreur : ' + err.message, 'error');
+        } finally {
+          saveBtns.forEach(function(b) { b.disabled = false; b.textContent = 'Enregistrer'; });
+        }
+      }
+
+      // Attach save to all save buttons
+      document.querySelectorAll('.btn-save').forEach(function(btn) {
+        btn.addEventListener('click', savePageCode);
+      });
+
+      // --- Populate form from API data ---
+      function populateForm(page) {
+        var seo = page.seo || {};
+
+        document.getElementById('page-title').textContent = 'Code & SEO : ' + (page.name || slug);
+        document.getElementById('page-slug-label').textContent = page.slug === 'home' ? '/' : '/' + page.slug;
+
+        document.getElementById('seo-title').value = seo.title || page.name || '';
+        document.getElementById('seo-desc').value = seo.description || '';
+        document.getElementById('seo-canonical').value = seo.canonical || '';
+        if (seo.robots) document.getElementById('seo-robots').value = seo.robots;
+
+        document.getElementById('og-title').value = seo.ogTitle || '';
+        document.getElementById('og-desc').value = seo.ogDescription || '';
+        document.getElementById('og-image').value = seo.ogImage || '';
+        if (seo.twitterCard) document.getElementById('twitter-card').value = seo.twitterCard;
+
+        document.getElementById('head-css').value = seo.customHeadCSS || '';
+        document.getElementById('head-scripts').value = seo.customHeadScripts || '';
+
+        // Schema
+        var schema = seo.schema || {};
+        if (schema.type) document.getElementById('schema-type').value = schema.type;
+        document.getElementById('schema-faq').checked = !!schema.hasFaq;
+        document.getElementById('schema-jsonld').value = schema.customJsonLd || '';
+
+        if (schema.breadcrumbs && schema.breadcrumbs.length > 0) {
+          schema.breadcrumbs.forEach(function(bc) {
+            addBreadcrumbRow(bc.name, bc.url);
+          });
+        }
+
+        // Sitemap
+        var sitemap = seo.sitemap || {};
+        document.getElementById('sitemap-include').checked = sitemap.include !== false;
+        if (sitemap.priority) document.getElementById('sitemap-priority').value = sitemap.priority;
+        if (sitemap.changefreq) document.getElementById('sitemap-changefreq').value = sitemap.changefreq;
+
+        // Performance
+        var perf = seo.performance || {};
+        if (perf.preloadImages) {
+          perf.preloadImages.forEach(function(url) {
+            addListRow('preload-images', 'https://example.com/image.webp', url);
+          });
+        }
+        if (perf.preconnect) {
+          perf.preconnect.forEach(function(domain) {
+            addListRow('preconnect-domains', 'https://fonts.googleapis.com', domain);
+          });
+        }
+
+        // Trigger updates
+        document.getElementById('seo-title').dispatchEvent(new Event('input'));
+        document.getElementById('seo-desc').dispatchEvent(new Event('input'));
+        document.getElementById('og-image').dispatchEvent(new Event('input'));
+        updateGooglePreview();
+      }
+
+      // --- History ---
+      async function loadHistory() {
+        var loading = document.getElementById('history-loading');
+        var list = document.getElementById('history-list');
+        var empty = document.getElementById('history-empty');
+
+        loading.style.display = 'block';
+        list.style.display = 'none';
+        empty.style.display = 'none';
+
+        try {
+          var res = await Auth.apiFetch('/api/pages/' + encodeURIComponent(slug) + '/history');
+          if (!res.ok) throw new Error('Erreur ' + res.status);
+          var data = await res.json();
+          var snapshots = data.snapshots || data.history || [];
+
+          loading.style.display = 'none';
+
+          if (snapshots.length === 0) {
+            empty.style.display = 'block';
+            return;
+          }
+
+          list.style.display = 'flex';
+          var html = '';
+          snapshots.forEach(function(snap) {
+            var date = formatDate(snap.date || snap.createdAt || snap.timestamp);
+            var sections = snap.sectionsCount || (snap.sections ? snap.sections.length : '?');
+            html += '<div class="history-item">';
+            html += '<div class="history-item-info">';
+            html += '<span class="history-item-date">' + Components.escapeHtml(date) + '</span>';
+            html += '<span class="history-item-meta">' + sections + ' sections</span>';
+            html += '</div>';
+            html += '<button class="btn-restore" data-id="' + (snap.id || snap._id || '') + '" type="button">Restaurer</button>';
+            html += '</div>';
+          });
+          list.innerHTML = html;
+
+          list.querySelectorAll('.btn-restore').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+              var id = btn.getAttribute('data-id');
+              restoreSnapshot(id);
+            });
+          });
+        } catch (err) {
+          loading.style.display = 'none';
+          empty.style.display = 'block';
+          empty.innerHTML = '<p>Erreur : ' + Components.escapeHtml(err.message) + '</p>';
+        }
+      }
+
+      async function restoreSnapshot(id) {
+        if (!confirm('Restaurer cette version ? Les modifications non enregistrees seront perdues.')) return;
+
+        try {
+          var res = await Auth.apiFetch('/api/pages/' + encodeURIComponent(slug) + '/history/' + encodeURIComponent(id) + '/restore', {
+            method: 'POST'
+          });
+
+          if (!res.ok) {
+            var data = await res.json();
+            throw new Error(data.error || 'Erreur ' + res.status);
+          }
+
+          Components.showToast('Version restauree', 'success');
+          window.location.reload();
+        } catch (err) {
+          Components.showToast('Erreur : ' + err.message, 'error');
+        }
+      }
+
+      function formatDate(isoString) {
+        if (!isoString) return '—';
+        var d = new Date(isoString);
+        var day = String(d.getDate()).padStart(2, '0');
+        var month = String(d.getMonth() + 1).padStart(2, '0');
+        var year = d.getFullYear();
+        var hours = String(d.getHours()).padStart(2, '0');
+        var minutes = String(d.getMinutes()).padStart(2, '0');
+        return day + '/' + month + '/' + year + ' ' + hours + ':' + minutes;
+      }
+
+      // --- Init ---
+      Components.initPage().then(function(user) {
+        if (!user) return;
+
+        Auth.apiFetch('/api/pages/' + encodeURIComponent(slug))
+          .then(function(res) {
+            if (!res.ok) throw new Error('Page non trouvee');
+            return res.json();
+          })
+          .then(function(data) {
+            document.getElementById('page-loading').style.display = 'none';
+            document.getElementById('page-content').style.display = 'block';
+            populateForm(data.page || data);
+          })
+          .catch(function(err) {
+            document.getElementById('page-loading').innerHTML =
+              '<p style="color: #f85149;">Erreur : ' + Components.escapeHtml(err.message) + '</p>';
+            Components.showToast('Impossible de charger la page', 'error');
+          });
+      });
+
+    })();
+  </script>
+</body>
+</html>

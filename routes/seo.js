@@ -76,6 +76,70 @@ router.put('/global', verifyToken, requireRole('admin'), async (req, res) => {
 });
 
 /**
+ * GET /scripts — Return global scripts/injection config
+ */
+router.get('/scripts', verifyToken, async (req, res) => {
+  try {
+    const config = readConfig();
+    const scripts = config.scripts || {};
+    const seo = config.seo || {};
+    res.json({
+      gtmId: seo.gtmId || '',
+      headCustom: scripts.headCustom || '',
+      bodyStartCustom: scripts.bodyStartCustom || '',
+      bodyEndCustom: scripts.bodyEndCustom || '',
+      cookieConsent: scripts.cookieConsent || { enabled: false, text: '' },
+      chatWidget: scripts.chatWidget || '',
+      metaAuthor: seo.metaAuthor || '',
+      themeColor: seo.themeColor || '#E51981',
+      favicon: config.identity?.favicon || ''
+    });
+  } catch (err) {
+    console.error('[SEO] Get scripts error:', err.message);
+    res.status(500).json({ error: 'Erreur' });
+  }
+});
+
+/**
+ * PUT /scripts — Update global scripts/injection config (admin only)
+ */
+router.put('/scripts', verifyToken, requireRole('admin'), async (req, res) => {
+  try {
+    const { gtmId, headCustom, bodyStartCustom, bodyEndCustom, cookieConsent, chatWidget, metaAuthor, themeColor } = req.body;
+    const config = readConfig();
+
+    if (!config.scripts) config.scripts = {};
+    if (!config.seo) config.seo = {};
+
+    if (gtmId !== undefined) config.seo.gtmId = gtmId;
+    if (metaAuthor !== undefined) config.seo.metaAuthor = metaAuthor;
+    if (themeColor !== undefined) config.seo.themeColor = themeColor;
+    if (headCustom !== undefined) config.scripts.headCustom = headCustom;
+    if (bodyStartCustom !== undefined) config.scripts.bodyStartCustom = bodyStartCustom;
+    if (bodyEndCustom !== undefined) config.scripts.bodyEndCustom = bodyEndCustom;
+    if (cookieConsent !== undefined) config.scripts.cookieConsent = cookieConsent;
+    if (chatWidget !== undefined) config.scripts.chatWidget = chatWidget;
+
+    writeConfig(config);
+
+    await logAudit({
+      userId: req.user.id,
+      action: 'scripts_update',
+      entityType: 'seo',
+      entityId: 'scripts',
+      details: { gtmId: config.seo.gtmId, cookieConsentEnabled: config.scripts.cookieConsent?.enabled },
+      ip: getClientIp(req),
+      userAgent: req.headers['user-agent']
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[SEO] Update scripts error:', err.message);
+    res.status(500).json({ error: 'Erreur' });
+  }
+});
+
+/**
  * GET /sitemap — Auto-generate sitemap XML from published pages
  */
 router.get('/sitemap', async (req, res) => {
@@ -84,7 +148,7 @@ router.get('/sitemap', async (req, res) => {
     const domain = config.deploy?.domain || 'https://example.com';
     const baseDomain = domain.startsWith('http') ? domain : 'https://' + domain;
 
-    // Page priorities and change frequencies
+    // Default page priorities and change frequencies
     const pageConfig = {
       '/': { priority: '1.0', changefreq: 'weekly' },
       '/location-photobooth/': { priority: '0.9', changefreq: 'monthly' },
@@ -99,17 +163,37 @@ router.get('/sitemap', async (req, res) => {
       scanForPages(siteDir, siteDir, pages);
     }
 
+    // Try to read per-page seo.json for sitemap config
+    for (const page of pages) {
+      const slug = page.loc === '/' ? 'home' : page.loc.replace(/^\/|\/$/g, '');
+      const seoPath = slug === 'home'
+        ? path.join(PREVIEWS_DIR, 'seo-home.json')
+        : path.join(PREVIEWS_DIR, slug, 'seo.json');
+      if (fs.existsSync(seoPath)) {
+        try {
+          const seoData = JSON.parse(fs.readFileSync(seoPath, 'utf-8'));
+          if (seoData.sitemap) {
+            if (seoData.sitemap.include === false) { page.exclude = true; continue; }
+            if (seoData.sitemap.priority) page.priority = seoData.sitemap.priority;
+            if (seoData.sitemap.changefreq) page.changefreq = seoData.sitemap.changefreq;
+          }
+        } catch(e) {}
+      }
+    }
+    // Filter excluded pages
+    const includedPages = pages.filter(p => !p.exclude);
+
     // Build XML with proper priorities
     let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
     xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
 
-    for (const page of pages) {
+    for (const page of includedPages) {
       const cfg = pageConfig[page.loc] || { priority: '0.7', changefreq: 'monthly' };
       xml += '  <url>\n';
       xml += `    <loc>${baseDomain}${page.loc}</loc>\n`;
       xml += `    <lastmod>${page.lastmod}</lastmod>\n`;
-      xml += `    <changefreq>${cfg.changefreq}</changefreq>\n`;
-      xml += `    <priority>${cfg.priority}</priority>\n`;
+      xml += `    <changefreq>${page.changefreq || cfg.changefreq}</changefreq>\n`;
+      xml += `    <priority>${page.priority || cfg.priority}</priority>\n`;
       xml += '  </url>\n';
     }
 
@@ -192,16 +276,36 @@ router.post('/generate-sitemap', verifyToken, requireRole('admin'), async (req, 
       scanForPages(siteDir, siteDir, pages);
     }
 
+    // Try to read per-page seo.json for sitemap config
+    for (const page of pages) {
+      const slug = page.loc === '/' ? 'home' : page.loc.replace(/^\/|\/$/g, '');
+      const seoPath = slug === 'home'
+        ? path.join(PREVIEWS_DIR, 'seo-home.json')
+        : path.join(PREVIEWS_DIR, slug, 'seo.json');
+      if (fs.existsSync(seoPath)) {
+        try {
+          const seoData = JSON.parse(fs.readFileSync(seoPath, 'utf-8'));
+          if (seoData.sitemap) {
+            if (seoData.sitemap.include === false) { page.exclude = true; continue; }
+            if (seoData.sitemap.priority) page.priority = seoData.sitemap.priority;
+            if (seoData.sitemap.changefreq) page.changefreq = seoData.sitemap.changefreq;
+          }
+        } catch(e) {}
+      }
+    }
+    // Filter excluded pages
+    const includedPages = pages.filter(p => !p.exclude);
+
     let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
     xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
 
-    for (const page of pages) {
+    for (const page of includedPages) {
       const cfg = pageConfig[page.loc] || { priority: '0.7', changefreq: 'monthly' };
       xml += '  <url>\n';
       xml += `    <loc>${baseDomain}${page.loc}</loc>\n`;
       xml += `    <lastmod>${page.lastmod}</lastmod>\n`;
-      xml += `    <changefreq>${cfg.changefreq}</changefreq>\n`;
-      xml += `    <priority>${cfg.priority}</priority>\n`;
+      xml += `    <changefreq>${page.changefreq || cfg.changefreq}</changefreq>\n`;
+      xml += `    <priority>${page.priority || cfg.priority}</priority>\n`;
       xml += '  </url>\n';
     }
 
@@ -215,7 +319,7 @@ router.post('/generate-sitemap', verifyToken, requireRole('admin'), async (req, 
       action: 'sitemap_generate',
       entityType: 'seo',
       entityId: 'sitemap',
-      details: { pages: pages.length },
+      details: { pages: includedPages.length },
       ip: getClientIp(req),
       userAgent: req.headers['user-agent']
     });

@@ -187,6 +187,7 @@ router.get('/', verifyToken, async (req, res) => {
     for (const entry of entries) {
       if (!entry.isDirectory()) continue;
       if (entry.name.startsWith('_')) continue; // Skip _shared and other internal dirs
+      if (entry.name.startsWith('.')) continue; // Skip .history and other hidden dirs
       const slug = entry.name;
       const previewDir = path.join(PREVIEWS_DIR, slug);
       const sections = scanSections(previewDir);
@@ -308,16 +309,22 @@ router.get('/:slug', verifyToken, async (req, res) => {
     const status = getPageStatus(previewDir, publicDir);
 
     // Try to read SEO data from a seo.json file in the page directory
-    let seo = { title: '', description: '', ogTitle: '', ogDescription: '' };
+    let seo = {
+      title: '', description: '', ogTitle: '', ogDescription: '',
+      ogImage: '', canonical: '', robots: 'index, follow',
+      customHeadScripts: '', customHeadCSS: '',
+      schema: { type: '', customJsonLd: '', breadcrumbs: [], hasFaq: false },
+      sitemap: { include: true, priority: '0.8', changefreq: 'monthly' },
+      performance: { preloadImages: [], preconnect: [] }
+    };
     const seoPath = slug === 'home'
       ? path.join(PREVIEWS_DIR, 'seo-home.json')
       : path.join(previewDir, 'seo.json');
     if (fs.existsSync(seoPath)) {
       try {
-        seo = JSON.parse(fs.readFileSync(seoPath, 'utf-8'));
-      } catch (e) {
-        // Invalid JSON, use defaults
-      }
+        const saved = JSON.parse(fs.readFileSync(seoPath, 'utf-8'));
+        seo = { ...seo, ...saved, schema: { ...seo.schema, ...(saved.schema || {}) }, sitemap: { ...seo.sitemap, ...(saved.sitemap || {}) }, performance: { ...seo.performance, ...(saved.performance || {}) } };
+      } catch (e) { /* ignore */ }
     }
 
     // Read section contents
@@ -357,6 +364,36 @@ router.post('/:slug/save', verifyToken, requireRole('admin', 'editor'), async (r
 
     if (!fs.existsSync(previewDir)) {
       return res.status(404).json({ error: 'Page non trouvee' });
+    }
+
+    // Create history snapshot before applying changes
+    try {
+      const historyDir = path.join(previewDir, '.history');
+      if (!fs.existsSync(historyDir)) fs.mkdirSync(historyDir, { recursive: true });
+
+      const snapshot = { timestamp: new Date().toISOString(), userId: req.user.id };
+      // Capture current sections
+      snapshot.sections = {};
+      const sectionFiles = fs.readdirSync(previewDir).filter(f => f.endsWith('.html'));
+      for (const f of sectionFiles) {
+        snapshot.sections[f] = fs.readFileSync(path.join(previewDir, f), 'utf-8');
+      }
+      // Capture current SEO
+      const currentSeoPath = slug === 'home' ? path.join(PREVIEWS_DIR, 'seo-home.json') : path.join(previewDir, 'seo.json');
+      if (fs.existsSync(currentSeoPath)) {
+        try { snapshot.seo = JSON.parse(fs.readFileSync(currentSeoPath, 'utf-8')); } catch(e) {}
+      }
+
+      const snapshotFile = Date.now() + '.json';
+      fs.writeFileSync(path.join(historyDir, snapshotFile), JSON.stringify(snapshot), 'utf-8');
+
+      // Prune: keep only last 30 snapshots
+      const snapshots = fs.readdirSync(historyDir).filter(f => f.endsWith('.json')).sort();
+      while (snapshots.length > 30) {
+        fs.unlinkSync(path.join(historyDir, snapshots.shift()));
+      }
+    } catch (histErr) {
+      console.error('[Pages] History snapshot error:', histErr.message);
     }
 
     // Apply text changes
@@ -640,6 +677,102 @@ router.put('/:slug/section/:file', verifyToken, requireRole('admin', 'editor'), 
   } catch (err) {
     console.error('[Pages] Update section error:', err.message);
     res.status(500).json({ error: 'Erreur lors de la mise a jour de la section' });
+  }
+});
+
+/**
+ * GET /:slug/history — List snapshots
+ */
+router.get('/:slug/history', verifyToken, async (req, res) => {
+  try {
+    const slug = req.params.slug.replace(/[^a-z0-9-]/gi, '');
+    const previewDir = getPreviewDir(slug);
+    const historyDir = path.join(previewDir, '.history');
+
+    if (!fs.existsSync(historyDir)) {
+      return res.json({ history: [] });
+    }
+
+    const files = fs.readdirSync(historyDir).filter(f => f.endsWith('.json')).sort().reverse();
+    const history = files.map(f => {
+      try {
+        const data = JSON.parse(fs.readFileSync(path.join(historyDir, f), 'utf-8'));
+        return {
+          id: f.replace('.json', ''),
+          timestamp: data.timestamp,
+          userId: data.userId,
+          sectionsCount: Object.keys(data.sections || {}).length
+        };
+      } catch(e) { return null; }
+    }).filter(Boolean);
+
+    res.json({ history });
+  } catch (err) {
+    console.error('[Pages] History list error:', err.message);
+    res.status(500).json({ error: 'Erreur' });
+  }
+});
+
+/**
+ * POST /:slug/history/:id/restore — Restore a snapshot
+ * RBAC: admin only
+ */
+router.post('/:slug/history/:id/restore', verifyToken, requireRole('admin'), async (req, res) => {
+  try {
+    const slug = req.params.slug.replace(/[^a-z0-9-]/gi, '');
+    const snapshotId = req.params.id.replace(/[^0-9]/g, '');
+    const previewDir = getPreviewDir(slug);
+    const historyDir = path.join(previewDir, '.history');
+    const snapshotPath = path.join(historyDir, snapshotId + '.json');
+
+    if (!fs.existsSync(snapshotPath)) {
+      return res.status(404).json({ error: 'Snapshot non trouve' });
+    }
+
+    const snapshot = JSON.parse(fs.readFileSync(snapshotPath, 'utf-8'));
+
+    // Create a snapshot of current state before restoring
+    const currentSnapshot = { timestamp: new Date().toISOString(), userId: req.user.id, sections: {} };
+    const currentFiles = fs.readdirSync(previewDir).filter(f => f.endsWith('.html'));
+    for (const f of currentFiles) {
+      currentSnapshot.sections[f] = fs.readFileSync(path.join(previewDir, f), 'utf-8');
+    }
+    fs.writeFileSync(path.join(historyDir, Date.now() + '.json'), JSON.stringify(currentSnapshot), 'utf-8');
+
+    // Restore sections
+    if (snapshot.sections) {
+      // Delete current sections (except header/footer)
+      for (const f of currentFiles) {
+        if (!f.includes('header') && !f.includes('footer')) {
+          fs.unlinkSync(path.join(previewDir, f));
+        }
+      }
+      // Write snapshot sections
+      for (const [file, content] of Object.entries(snapshot.sections)) {
+        fs.writeFileSync(path.join(previewDir, file), content, 'utf-8');
+      }
+    }
+
+    // Restore SEO
+    if (snapshot.seo) {
+      const seoPath = slug === 'home' ? path.join(PREVIEWS_DIR, 'seo-home.json') : path.join(previewDir, 'seo.json');
+      fs.writeFileSync(seoPath, JSON.stringify(snapshot.seo, null, 2), 'utf-8');
+    }
+
+    await logAudit({
+      userId: req.user.id,
+      action: 'page_restore',
+      entityType: 'page',
+      entityId: slug,
+      details: { snapshotId, timestamp: snapshot.timestamp },
+      ip: getClientIp(req),
+      userAgent: req.headers['user-agent']
+    });
+
+    res.json({ success: true, message: 'Page restauree', restoredFrom: snapshot.timestamp });
+  } catch (err) {
+    console.error('[Pages] Restore error:', err.message);
+    res.status(500).json({ error: 'Erreur lors de la restauration' });
   }
 });
 
