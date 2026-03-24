@@ -99,8 +99,9 @@ try { app.use('/api/schedule', require('./routes/schedule')); } catch {}
 try { app.use('/api/users', require('./routes/users')); } catch {}
 
 // ===== STATIC FILES =====
+// No cache on admin JS/CSS (they change frequently during development)
 app.use(express.static(path.join(__dirname, 'public'), {
-  maxAge: process.env.NODE_ENV === 'production' ? '1d' : 0,
+  maxAge: 0,
   etag: true
 }));
 
