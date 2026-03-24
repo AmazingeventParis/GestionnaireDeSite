@@ -39,6 +39,14 @@ function scopeCSS(css, scopeId) {
     if (i >= len) { result.push(selector); break; }
 
     selector = selector.trim();
+    // Clean up broken selectors: if selector contains a line that ends with -
+    // followed by another selector on the next line, keep only the last valid selector
+    if (selector.includes('\n')) {
+      const lines = selector.split('\n').map(l => l.trim()).filter(l => l);
+      // If a line ends with - (orphan), remove it
+      const cleaned = lines.filter(l => !(/^[.#][\w-]*-$/.test(l)));
+      selector = cleaned.join(', ');
+    }
     // Read the block content (matching braces)
     let block = '';
     braceDepth = 1;
@@ -67,9 +75,11 @@ function scopeCSS(css, scopeId) {
       const scoped = selector.split(',').map(s => {
         s = s.trim();
         if (!s) return s;
+        // Skip broken/orphan selectors (ending with - or containing only a fragment)
+        if (/^[.#][\w-]*-$/.test(s)) return '';
         return `#${scopeId} ${s}`;
-      }).join(', ');
-      result.push(`${scoped}{${block}}`);
+      }).filter(s => s).join(', ');
+      if (scoped) result.push(`${scoped}{${block}}`);
     }
   }
 
