@@ -925,6 +925,8 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
         allCSS = allCSS.replace(/\*\s*,\s*\*::before\s*,\s*\*::after\s*\{[^}]*\}/gi, '');
         // Strip CSS comments before scoping
         allCSS = allCSS.replace(/\/\*[\s\S]*?\*\//g, '');
+        // Strip @import rules (no braces, breaks the scope parser)
+        allCSS = allCSS.replace(/@import\s+[^;]+;/gi, '');
 
         const scopeId = 'gds-s-' + section.file.replace(/[^a-z0-9]/gi, '');
 
