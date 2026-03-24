@@ -585,13 +585,20 @@
     const allDivs = document.querySelectorAll('.gds-section-wrapper div');
     const extraPlaceholders = [];
     allDivs.forEach(div => {
-      // Skip if already matched or has an image/video
+      // Skip if already matched
       if (div.matches('[class*="placeholder"], [data-gds-placeholder]')) return;
+      if (div.closest('[class*="placeholder"], [data-gds-placeholder]')) return;
+      // Skip if has a real image/video inside
       if (div.querySelector('img, video')) return;
-      if (div.closest('[class*="placeholder"]')) return;
-      // Check computed style for dashed border
+      // Skip admin UI
+      if (div.closest('.gds-section-actions, .gds-block-inserter, #gds-admin-bar, .gds-spacing-control')) return;
+
       const style = window.getComputedStyle(div);
-      if (style.borderStyle === 'dashed' && div.children.length <= 3 && div.offsetHeight > 50) {
+      const isDashed = style.borderTopStyle === 'dashed' || style.borderStyle === 'dashed' || style.borderStyle.includes('dashed');
+      const isEmptyish = div.children.length <= 5 && div.offsetHeight > 40;
+      const hasOnlySvgOrText = !div.querySelector('img, video, iframe, canvas');
+
+      if (isDashed && isEmptyish && hasOnlySvgOrText) {
         extraPlaceholders.push(div);
       }
     });
