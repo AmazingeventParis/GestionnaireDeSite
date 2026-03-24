@@ -517,18 +517,33 @@ router.post('/:slug/add-section', verifyToken, requireRole('admin'), async (req,
       renumberPlan.push({ file: null, num: newNum, isNew: true });
     }
 
-    // Execute renaming and create new file
+    // Execute renaming safely: first rename to temp names, then to final names
+    // This prevents overwriting when names overlap (e.g., 20→30 while 30 still exists)
     let newFileName = '';
+    const tempSuffix = '.__gds_temp__';
+
+    // Step 1: rename existing files to temp names
+    for (const item of renumberPlan) {
+      if (!item.isNew && item.file) {
+        const numStr = String(item.num).padStart(2, '0');
+        const finalName = numStr + '-' + item.file.replace(/^\d+-/, '');
+        if (finalName !== item.file) {
+          const tempName = item.file + tempSuffix;
+          fs.renameSync(path.join(previewDir, item.file), path.join(previewDir, tempName));
+          item._tempName = tempName;
+          item._finalName = finalName;
+        }
+      }
+    }
+
+    // Step 2: rename temp files to final names + create new file
     for (const item of renumberPlan) {
       const numStr = String(item.num).padStart(2, '0');
       if (item.isNew) {
         newFileName = numStr + '-section.html';
         fs.writeFileSync(path.join(previewDir, newFileName), html, 'utf-8');
-      } else {
-        const newName = numStr + '-' + item.file.replace(/^\d+-/, '');
-        if (newName !== item.file) {
-          fs.renameSync(path.join(previewDir, item.file), path.join(previewDir, newName));
-        }
+      } else if (item._tempName) {
+        fs.renameSync(path.join(previewDir, item._tempName), path.join(previewDir, item._finalName));
       }
     }
 
