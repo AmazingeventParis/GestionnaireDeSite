@@ -1550,7 +1550,7 @@
         <button class="gds-block-inserter-btn" title="Ajouter un bloc">+</button>
         <div class="gds-spacing-control" style="display:none;">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#E51981" stroke-width="2" style="flex-shrink:0"><path d="M12 5v14M5 12h14"/></svg>
-          <input type="range" min="0" max="200" value="0" class="gds-spacing-slider" title="Espacement">
+          <input type="range" min="-100" max="200" value="0" class="gds-spacing-slider" title="Espacement">
           <span class="gds-spacing-value">0px</span>
         </div>
       `;
@@ -1576,11 +1576,15 @@
         controlDiv.style.display = controlDiv.style.display === 'none' ? 'flex' : 'none';
       });
 
-      // Apply spacing live by changing the inserter height
+      // Apply spacing live
       slider.addEventListener('input', () => {
         const val = parseInt(slider.value);
         valueLabel.textContent = val + 'px';
-        inserter.style.height = val + 'px';
+        // Visual: inserter height for positive, margin-top for negative
+        inserter.style.height = Math.max(val, 24) + 'px';
+        if (wrapperBelow) {
+          wrapperBelow.style.marginTop = val + 'px';
+        }
       });
 
       // Save: store spacing as margin-top on the wrapper below
