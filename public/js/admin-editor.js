@@ -282,6 +282,20 @@
     const bgEls = document.querySelectorAll('[data-gds-bg]');
     console.log('[GDS Admin] Found', imgEls.length, 'editable images +', bgEls.length, 'editable backgrounds');
 
+    // Double-click on any image/video in a section to open replacement modal
+    document.querySelectorAll('.gds-section-wrapper img, .gds-section-wrapper video').forEach(el => {
+      // Skip logos and header images
+      if (el.closest('.snb-header, .snb-nav, nav, header, .snb-footer, footer')) return;
+      if (el.src && el.src.includes('/logo/')) return;
+
+      el.style.cursor = 'pointer';
+      el.addEventListener('dblclick', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openImageReplaceModal(el);
+      });
+    });
+
     // Hidden file input
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
@@ -616,6 +630,158 @@
         e.stopPropagation();
         openPlaceholderModal(ph);
       });
+    });
+  }
+
+  // ===== IMAGE REPLACE MODAL (double-click on any image) =====
+  function openImageReplaceModal(imgEl) {
+    const existing = document.getElementById('gds-imgreplace-modal');
+    if (existing) existing.remove();
+
+    const isVideo = imgEl.tagName.toLowerCase() === 'video';
+    const currentSrc = imgEl.src || '';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'gds-imgreplace-modal';
+    overlay.className = 'gds-modal-overlay';
+    overlay.innerHTML = `
+      <div class="gds-modal" style="max-width:500px;">
+        <div class="gds-modal-header">
+          <h3>Remplacer ${isVideo ? 'la video' : "l'image"}</h3>
+          <button class="gds-modal-close" id="gds-ir-close">&times;</button>
+        </div>
+        <div class="gds-modal-body">
+          <div style="margin-bottom:16px;text-align:center;">
+            <${isVideo ? 'video autoplay loop muted playsinline' : 'img'} src="${escapeHtml(currentSrc)}" style="max-width:100%;max-height:150px;border-radius:8px;border:1px solid #30363d;">
+          </div>
+          <div style="display:flex;gap:12px;margin-bottom:16px;">
+            <button class="gds-ph-tab" id="gds-ir-tab-upload" style="flex:1;padding:10px;border:1px solid #30363d;border-radius:8px;background:#21262d;color:#e6edf3;font-size:13px;font-weight:600;cursor:pointer;">Uploader</button>
+            <button class="gds-ph-tab" id="gds-ir-tab-url" style="flex:1;padding:10px;border:1px solid #30363d;border-radius:8px;background:#0d1117;color:#8b949e;font-size:13px;font-weight:600;cursor:pointer;">URL</button>
+          </div>
+          <div id="gds-ir-upload-area">
+            <div class="gds-block-upload visible" id="gds-ir-dropzone" style="display:block;">
+              <input type="file" id="gds-ir-file" accept="image/*,video/mp4" style="display:none;">
+              <div style="font-size:24px;margin-bottom:6px;">&#128247;</div>
+              <div style="font-size:13px;">Cliquez pour choisir un fichier</div>
+            </div>
+          </div>
+          <div id="gds-ir-url-area" style="display:none;">
+            <input type="url" id="gds-ir-url-input" placeholder="https://example.com/image.jpg" style="width:100%;padding:10px 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:14px;">
+          </div>
+        </div>
+        <div class="gds-modal-footer">
+          <button class="gds-modal-btn gds-modal-btn-cancel" id="gds-ir-cancel">Annuler</button>
+          <button class="gds-modal-btn gds-modal-btn-submit" id="gds-ir-submit" disabled>Appliquer</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const close = () => overlay.remove();
+    document.getElementById('gds-ir-close').addEventListener('click', close);
+    document.getElementById('gds-ir-cancel').addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+    // Tab switching
+    document.getElementById('gds-ir-tab-upload').addEventListener('click', () => {
+      document.getElementById('gds-ir-upload-area').style.display = 'block';
+      document.getElementById('gds-ir-url-area').style.display = 'none';
+      document.getElementById('gds-ir-tab-upload').style.background = '#21262d';
+      document.getElementById('gds-ir-tab-upload').style.color = '#e6edf3';
+      document.getElementById('gds-ir-tab-url').style.background = '#0d1117';
+      document.getElementById('gds-ir-tab-url').style.color = '#8b949e';
+    });
+    document.getElementById('gds-ir-tab-url').addEventListener('click', () => {
+      document.getElementById('gds-ir-upload-area').style.display = 'none';
+      document.getElementById('gds-ir-url-area').style.display = 'block';
+      document.getElementById('gds-ir-tab-url').style.background = '#21262d';
+      document.getElementById('gds-ir-tab-url').style.color = '#e6edf3';
+      document.getElementById('gds-ir-tab-upload').style.background = '#0d1117';
+      document.getElementById('gds-ir-tab-upload').style.color = '#8b949e';
+    });
+
+    // Upload
+    const fileInput = document.getElementById('gds-ir-file');
+    let selectedFile = null;
+    document.getElementById('gds-ir-dropzone').addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) {
+        selectedFile = fileInput.files[0];
+        document.getElementById('gds-ir-dropzone').innerHTML = '<div style="color:#3fb950;font-size:13px;">&#10003; ' + selectedFile.name + '</div>';
+        document.getElementById('gds-ir-submit').disabled = false;
+      }
+    });
+
+    // URL input
+    document.getElementById('gds-ir-url-input').addEventListener('input', () => {
+      const url = document.getElementById('gds-ir-url-input').value.trim();
+      document.getElementById('gds-ir-submit').disabled = !url.startsWith('http');
+    });
+
+    // Submit
+    document.getElementById('gds-ir-submit').addEventListener('click', async () => {
+      const btn = document.getElementById('gds-ir-submit');
+      btn.disabled = true;
+      btn.textContent = 'Application...';
+
+      try {
+        let newSrc = '';
+
+        if (selectedFile) {
+          const formData = new FormData();
+          formData.append('images', selectedFile);
+          formData.append('slug', currentSlug);
+          const res = await Auth.apiFetch('/api/media/upload', { method: 'POST', body: formData });
+          if (!res.ok) throw new Error('Upload echoue');
+          const data = await res.json();
+          newSrc = (data.uploaded && data.uploaded[0] && data.uploaded[0].path) || '';
+        } else {
+          newSrc = document.getElementById('gds-ir-url-input').value.trim();
+        }
+
+        if (!newSrc) throw new Error('Aucune source');
+
+        const isNewVideo = newSrc.match(/\.(mp4|webm|mov)(\?|$)/i);
+
+        if (isNewVideo && !isVideo) {
+          const vid = document.createElement('video');
+          vid.src = newSrc;
+          vid.autoplay = true; vid.loop = true; vid.muted = true; vid.playsInline = true;
+          vid.style.cssText = imgEl.style.cssText || 'width:100%;height:100%;object-fit:cover;';
+          imgEl.replaceWith(vid);
+        } else if (!isNewVideo && isVideo) {
+          const img = document.createElement('img');
+          img.src = newSrc;
+          img.alt = 'Image';
+          img.style.cssText = imgEl.style.cssText || 'width:100%;height:100%;object-fit:cover;';
+          imgEl.replaceWith(img);
+        } else {
+          imgEl.src = newSrc;
+        }
+
+        // Save the section
+        const wrapper = imgEl.closest('.gds-section-wrapper') || (imgEl.parentElement && imgEl.parentElement.closest('.gds-section-wrapper'));
+        if (wrapper) {
+          const file = wrapper.getAttribute('data-gds-file');
+          if (file) {
+            const sectionHtml = cleanSectionHtml(wrapper);
+            await Auth.apiFetch('/api/pages/' + currentSlug + '/section/' + encodeURIComponent(file), {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ content: sectionHtml })
+            });
+          }
+        }
+
+        close();
+        showToast('Media remplace !', 'success');
+        imageChanges++;
+        updateChangesCount();
+      } catch (err) {
+        showToast('Erreur: ' + err.message, 'error');
+        btn.disabled = false;
+        btn.textContent = 'Appliquer';
+      }
     });
   }
 
