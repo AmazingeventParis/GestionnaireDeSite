@@ -541,17 +541,7 @@ router.post('/:slug/rename', verifyToken, requireRole('admin'), async (req, res)
       return res.status(400).json({ error: 'Impossible de renommer la page d\'accueil' });
     }
 
-    if (oldSlug === newSlug && (!newName || newName === oldSlug.replace(/-/g, ' ').replace(/^\w/, c => c.toUpperCase()))) {
-      // Check if name actually changed by reading seo.json
-      const checkSeoPath = path.join(PREVIEWS_DIR, oldSlug, 'seo.json');
-      let currentTitle = oldSlug;
-      if (fs.existsSync(checkSeoPath)) {
-        try { currentTitle = JSON.parse(fs.readFileSync(checkSeoPath, 'utf-8')).title || oldSlug; } catch(e) {}
-      }
-      if (newName === currentTitle) {
-        return res.status(400).json({ error: 'Aucun changement' });
-      }
-    }
+    // No-op check removed — always allow rename even if only name changes
 
     const oldPreviewDir = path.join(PREVIEWS_DIR, oldSlug);
     if (!fs.existsSync(oldPreviewDir)) {
@@ -684,18 +674,18 @@ router.post('/:slug/rename', verifyToken, requireRole('admin'), async (req, res)
       }
     }
 
-    // 7. Update SEO title/name in seo.json
+    // 7. Update SEO title/name in seo.json (create if missing)
     const targetDir = path.join(PREVIEWS_DIR, slugChanged ? newSlug : oldSlug);
     if (newName) {
       const seoPath = path.join(targetDir, 'seo.json');
+      let seo = {};
       if (fs.existsSync(seoPath)) {
-        try {
-          const seo = JSON.parse(fs.readFileSync(seoPath, 'utf-8'));
-          seo.title = newName;
-          if (seo.ogTitle) seo.ogTitle = newName;
-          fs.writeFileSync(seoPath, JSON.stringify(seo, null, 2), 'utf-8');
-        } catch (_) {}
+        try { seo = JSON.parse(fs.readFileSync(seoPath, 'utf-8')); } catch (_) {}
       }
+      seo.title = newName;
+      if (!seo.ogTitle || seo.ogTitle === seo.title) seo.ogTitle = newName;
+      fs.writeFileSync(seoPath, JSON.stringify(seo, null, 2), 'utf-8');
+      console.log('[Pages] Rename: updated seo.json title to', newName, 'at', seoPath);
     }
 
     // 8. Regenerate sitemap
