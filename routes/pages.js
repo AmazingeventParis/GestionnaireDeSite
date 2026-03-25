@@ -227,7 +227,7 @@ router.post('/fix-villes-urls', verifyToken, requireRole('admin'), async (req, r
             .from('site_manager_redirections')
             .select('id')
             .eq('source_path', '/' + oldUrlPath + '/')
-            .single();
+            .maybeSingle();
           if (existing) {
             await supabase
               .from('site_manager_redirections')
@@ -284,12 +284,6 @@ router.get('/', verifyToken, async (req, res) => {
         new Date(s.lastModified) > new Date(max) ? s.lastModified : max,
         sections[0]?.lastModified || new Date().toISOString()
       );
-      // Read urlPath from seo
-      let homeSeo = {};
-      const homeSeoPath = path.join(PREVIEWS_DIR, 'seo-home.json');
-      if (fs.existsSync(homeSeoPath)) {
-        try { homeSeo = JSON.parse(fs.readFileSync(homeSeoPath, 'utf-8')); } catch(e) {}
-      }
       pages.push({
         slug: 'home',
         name: 'Accueil',
@@ -327,7 +321,7 @@ router.get('/', verifyToken, async (req, res) => {
       pages.push({
         slug,
         name: pageSeo.title || slug.replace(/-/g, ' ').replace(/^\w/, c => c.toUpperCase()),
-        urlPath: pageSeo.urlPath || '/' + slug,
+        urlPath: pageSeo.urlPath ? '/' + pageSeo.urlPath.replace(/^\//, '') : '/' + slug,
         sections: sections.map(s => s.name),
         lastModified: latestModified,
         status: getPageStatus(previewDir, getPublicDir(slug))
@@ -547,8 +541,16 @@ router.post('/:slug/rename', verifyToken, requireRole('admin'), async (req, res)
       return res.status(400).json({ error: 'Impossible de renommer la page d\'accueil' });
     }
 
-    if (oldSlug === newSlug && !newName) {
-      return res.status(400).json({ error: 'Aucun changement' });
+    if (oldSlug === newSlug && (!newName || newName === oldSlug.replace(/-/g, ' ').replace(/^\w/, c => c.toUpperCase()))) {
+      // Check if name actually changed by reading seo.json
+      const checkSeoPath = path.join(PREVIEWS_DIR, oldSlug, 'seo.json');
+      let currentTitle = oldSlug;
+      if (fs.existsSync(checkSeoPath)) {
+        try { currentTitle = JSON.parse(fs.readFileSync(checkSeoPath, 'utf-8')).title || oldSlug; } catch(e) {}
+      }
+      if (newName === currentTitle) {
+        return res.status(400).json({ error: 'Aucun changement' });
+      }
     }
 
     const oldPreviewDir = path.join(PREVIEWS_DIR, oldSlug);
@@ -618,7 +620,7 @@ router.post('/:slug/rename', verifyToken, requireRole('admin'), async (req, res)
           .from('site_manager_redirections')
           .select('id')
           .eq('source_path', oldPath)
-          .single();
+          .maybeSingle();
 
         if (existing) {
           // Update existing redirect
@@ -645,7 +647,7 @@ router.post('/:slug/rename', verifyToken, requireRole('admin'), async (req, res)
           .from('site_manager_redirections')
           .select('id')
           .eq('source_path', `/${oldSlug}`)
-          .single();
+          .maybeSingle();
 
         if (existingNoSlash) {
           await supabase
@@ -778,7 +780,7 @@ router.post('/:slug/url', verifyToken, requireRole('admin'), async (req, res) =>
           .from('site_manager_redirections')
           .select('id')
           .eq('source_path', oldPath)
-          .single();
+          .maybeSingle();
 
         if (existing) {
           await supabase

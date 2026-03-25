@@ -649,18 +649,42 @@
       }
 
       function handleRename(oldSlug, oldName) {
-        var newName = prompt('Nouveau nom de la page :', oldName);
-        if (!newName) return;
-        var newSlug = newName.toLowerCase()
-          .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-          .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-        if (!newSlug) { Components.showToast('Slug invalide', 'error'); return; }
-        var slugChanged = newSlug !== oldSlug;
-        var msg = 'Renommer "' + oldName + '" en "' + newName + '"';
-        if (slugChanged) msg += ' ?\n\nL\'URL changera de /' + oldSlug + '/ vers /' + newSlug + '/\nUne redirection 301 sera creee automatiquement.';
-        else msg += ' ? (l\'URL ne changera pas)';
-        Components.showConfirm(msg).then(function(confirmed) {
-          if (!confirmed) return;
+        // Modal for rename with separate name and slug fields
+        var overlay = document.createElement('div');
+        overlay.className = 'import-modal-overlay';
+        var html = '<h3>Renommer la page</h3>';
+        html += '<div class="create-modal-field"><label>Nom de la page</label>';
+        html += '<input type="text" id="rename-name" value="' + Components.escapeHtml(oldName) + '"></div>';
+        html += '<div class="create-modal-field"><label>Slug interne (nom du dossier)</label>';
+        html += '<input type="text" id="rename-slug" value="' + Components.escapeHtml(oldSlug) + '"></div>';
+        html += '<p style="color:#d29922;font-size:12px;margin:4px 0 16px;">Si le slug change, une redirection 301 sera creee automatiquement.</p>';
+        html += '<div class="create-modal-actions">';
+        html += '<button type="button" class="btn-create-cancel">Annuler</button>';
+        html += '<button type="button" class="btn-create-confirm">Renommer</button>';
+        html += '</div>';
+        var modal = document.createElement('div');
+        modal.className = 'import-modal';
+        modal.innerHTML = html;
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        var nameInput = modal.querySelector('#rename-name');
+        var slugInput = modal.querySelector('#rename-slug');
+        setTimeout(function() { nameInput.focus(); nameInput.select(); }, 50);
+
+        function close() { overlay.remove(); }
+        overlay.addEventListener('click', function(e) { if (e.target === overlay) close(); });
+        modal.querySelector('.btn-create-cancel').addEventListener('click', close);
+
+        modal.querySelector('.btn-create-confirm').addEventListener('click', function() {
+          var newName = nameInput.value.trim();
+          var newSlug = slugInput.value.trim().toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+          if (!newName) { Components.showToast('Le nom est requis', 'error'); return; }
+          if (!newSlug) { Components.showToast('Slug invalide', 'error'); return; }
+          if (newName === oldName && newSlug === oldSlug) { close(); return; }
+          close();
           Auth.apiFetch('/api/pages/' + encodeURIComponent(oldSlug) + '/rename', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -668,7 +692,7 @@
           }).then(function(r) { return r.json(); })
             .then(function(data) {
               if (data.error) { Components.showToast(data.error, 'error'); return; }
-              if (slugChanged && folderMap[oldSlug]) {
+              if (newSlug !== oldSlug && folderMap[oldSlug]) {
                 folderMap[newSlug] = folderMap[oldSlug];
                 delete folderMap[oldSlug];
                 saveFolderMap();
@@ -679,6 +703,13 @@
               cachedPages = [];
               loadPages();
             }).catch(function(err) { Components.showToast('Erreur: ' + err.message, 'error'); });
+        });
+
+        nameInput.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') modal.querySelector('.btn-create-confirm').click();
+        });
+        slugInput.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') modal.querySelector('.btn-create-confirm').click();
         });
       }
 
