@@ -195,6 +195,24 @@
       background: #8b5cf622;
       text-decoration: none;
     }
+    .page-card-btn-dup {
+      background: #21262d;
+      color: #3fb950;
+      border: 1px solid #16a34a44;
+    }
+    .page-card-btn-dup:hover {
+      background: #16a34a22;
+      text-decoration: none;
+    }
+    .page-card-btn-copy {
+      background: #21262d;
+      color: #f0883e;
+      border: 1px solid #f0883e44;
+    }
+    .page-card-btn-copy:hover {
+      background: #f0883e22;
+      text-decoration: none;
+    }
     @media (max-width: 768px) {
       .pages-header {
         flex-direction: column;
@@ -325,6 +343,14 @@
           html += '<a href="/redirections.html?source=/' + encodeURIComponent(page.slug) + '/" class="page-card-btn page-card-btn-redir" title="Redirections">';
           html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
           html += ' Redir</a>';
+          if (currentUser && currentUser.role === 'admin') {
+            html += '<button type="button" class="page-card-btn page-card-btn-dup" title="Dupliquer" onclick="window.__duplicatePage(\'' + Components.escapeHtml(page.slug) + '\',\'' + Components.escapeHtml(page.name) + '\')">';
+            html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+            html += ' Dupliquer</button>';
+            html += '<button type="button" class="page-card-btn page-card-btn-copy" title="Copier le contenu" onclick="window.__copyPageContent(\'' + Components.escapeHtml(page.slug) + '\')">';
+            html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>';
+            html += ' Copier</button>';
+          }
           html += '</div>';
           html += '</div>';
         }
@@ -348,6 +374,63 @@
           Components.showToast('Erreur lors du chargement des pages', 'error');
         }
       }
+
+      window.__copyPageContent = function(slug) {
+        Auth.apiFetch('/api/pages/' + encodeURIComponent(slug) + '/content')
+          .then(function(res) { return res.json(); })
+          .then(function(data) {
+            if (data.error) {
+              Components.showToast(data.error, 'error');
+              return;
+            }
+            var blocks = data.blocks || [];
+            if (blocks.length === 0) {
+              Components.showToast('Aucun contenu a copier', 'warning');
+              return;
+            }
+            // Assemble: each block separated by a comment with filename + spacing info
+            var assembled = '';
+            for (var i = 0; i < blocks.length; i++) {
+              var b = blocks[i];
+              var spacingInfo = b.spacing ? ' (spacing: ' + b.spacing + 'px)' : '';
+              assembled += '<!-- ===== ' + b.file + spacingInfo + ' ===== -->\n';
+              assembled += b.html.trim() + '\n\n';
+            }
+            return navigator.clipboard.writeText(assembled.trim()).then(function() {
+              Components.showToast(blocks.length + ' bloc(s) copie(s) dans le presse-papier', 'success');
+            });
+          }).catch(function(err) {
+            Components.showToast('Erreur: ' + err.message, 'error');
+          });
+      };
+
+      window.__duplicatePage = function(slug, name) {
+        var newName = prompt('Nom de la copie :', name + ' (copie)');
+        if (!newName) return;
+        var newSlug = newName.toLowerCase()
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        if (!newSlug) {
+          Components.showToast('Slug invalide', 'error');
+          return;
+        }
+        Auth.apiFetch('/api/pages/' + encodeURIComponent(slug) + '/duplicate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ newSlug: newSlug, newName: newName })
+        }).then(function(res) {
+          return res.json();
+        }).then(function(data) {
+          if (data.error) {
+            Components.showToast(data.error, 'error');
+            return;
+          }
+          Components.showToast('Page "' + newName + '" dupliquee avec succes', 'success');
+          loadPages();
+        }).catch(function(err) {
+          Components.showToast('Erreur: ' + err.message, 'error');
+        });
+      };
 
       // Init
       Components.initPage().then(function(user) {

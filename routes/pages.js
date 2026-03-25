@@ -297,6 +297,115 @@ router.post('/create', verifyToken, requireRole('admin'), async (req, res) => {
 });
 
 /**
+ * POST /:slug/duplicate — Duplicate a page with a new slug/name
+ */
+router.post('/:slug/duplicate', verifyToken, requireRole('admin'), async (req, res) => {
+  try {
+    const sourceSlug = req.params.slug.replace(/[^a-z0-9-]/gi, '');
+    const { newSlug, newName } = req.body;
+
+    if (!newSlug || !newSlug.match(/^[a-z0-9-]+$/)) {
+      return res.status(400).json({ error: 'Slug invalide (lettres minuscules, chiffres et tirets uniquement)' });
+    }
+
+    const sourceDir = path.join(PREVIEWS_DIR, sourceSlug);
+    if (!fs.existsSync(sourceDir)) {
+      return res.status(404).json({ error: 'Page source introuvable' });
+    }
+
+    const destDir = path.join(PREVIEWS_DIR, newSlug);
+    if (fs.existsSync(destDir)) {
+      return res.status(409).json({ error: 'Une page avec ce slug existe deja' });
+    }
+
+    // Copy the entire directory
+    fs.mkdirSync(destDir, { recursive: true });
+    const files = fs.readdirSync(sourceDir);
+    for (const file of files) {
+      const srcFile = path.join(sourceDir, file);
+      const destFile = path.join(destDir, file);
+      const stat = fs.statSync(srcFile);
+      if (stat.isFile()) {
+        fs.copyFileSync(srcFile, destFile);
+      } else if (stat.isDirectory() && file !== '.history') {
+        // Copy subdirectories (except history)
+        fs.cpSync(srcFile, destFile, { recursive: true });
+      }
+    }
+
+    // Update SEO title if seo.json exists
+    const seoPath = path.join(destDir, 'seo.json');
+    if (fs.existsSync(seoPath)) {
+      try {
+        const seo = JSON.parse(fs.readFileSync(seoPath, 'utf-8'));
+        seo.title = newName || newSlug;
+        fs.writeFileSync(seoPath, JSON.stringify(seo, null, 2), 'utf-8');
+      } catch (_) {}
+    }
+
+    await logAudit({
+      userId: req.user.id,
+      action: 'page_duplicate',
+      entityType: 'page',
+      entityId: newSlug,
+      details: { source: sourceSlug, name: newName || newSlug },
+      ip: getClientIp(req),
+      userAgent: req.headers['user-agent']
+    });
+
+    res.status(201).json({ success: true, slug: newSlug, name: newName || newSlug });
+  } catch (err) {
+    console.error('[Pages] Duplicate error:', err.message);
+    res.status(500).json({ error: 'Erreur lors de la duplication de la page' });
+  }
+});
+
+/**
+ * GET /:slug/content — Return assembled page content (all sections in order, no header/footer)
+ */
+router.get('/:slug/content', verifyToken, async (req, res) => {
+  try {
+    const slug = req.params.slug.replace(/[^a-z0-9-]/gi, '');
+    const previewDir = getPreviewDir(slug);
+
+    if (!fs.existsSync(previewDir)) {
+      return res.status(404).json({ error: 'Page non trouvee' });
+    }
+
+    const sections = scanSections(previewDir);
+
+    // Load spacing
+    let spacingData = {};
+    const spacingPath = path.join(previewDir, '.spacing.json');
+    if (fs.existsSync(spacingPath)) {
+      try { spacingData = JSON.parse(fs.readFileSync(spacingPath, 'utf-8')); } catch(e) {}
+    }
+
+    // Assemble sections (skip header/footer files)
+    const blocks = [];
+    for (const section of sections) {
+      const nameLower = section.file.toLowerCase();
+      if (nameLower.includes('header') || nameLower.includes('footer')) continue;
+
+      const content = fs.readFileSync(path.join(previewDir, section.file), 'utf-8');
+      const spacing = spacingData[section.file] || 0;
+
+      blocks.push({
+        file: section.file,
+        name: section.name,
+        spacing: spacing,
+        html: content
+      });
+    }
+
+    res.json({ slug, blocks });
+  } catch (err) {
+    console.error('[Pages] Content error:', err.message);
+    res.status(500).json({ error: 'Erreur lors de la lecture du contenu' });
+  }
+});
+
+/**
  * GET /:slug — Get page details (sections, SEO data)
  */
 router.get('/:slug', verifyToken, async (req, res) => {
