@@ -405,6 +405,204 @@ router.delete('/:slug', verifyToken, requireRole('admin'), async (req, res) => {
 });
 
 /**
+ * POST /:slug/rename — Rename a page (slug + name)
+ * Updates: directories, seo.json, build.js config, redirections (301), sitemap, scheduled publishes
+ * RBAC: admin only
+ */
+router.post('/:slug/rename', verifyToken, requireRole('admin'), async (req, res) => {
+  try {
+    const oldSlug = req.params.slug.replace(/[^a-z0-9-]/gi, '');
+    const { newSlug, newName } = req.body;
+
+    if (!newSlug || !newSlug.match(/^[a-z0-9-]+$/)) {
+      return res.status(400).json({ error: 'Slug invalide (lettres minuscules, chiffres et tirets uniquement)' });
+    }
+
+    if (oldSlug === 'home') {
+      return res.status(400).json({ error: 'Impossible de renommer la page d\'accueil' });
+    }
+
+    if (oldSlug === newSlug && !newName) {
+      return res.status(400).json({ error: 'Aucun changement' });
+    }
+
+    const oldPreviewDir = path.join(PREVIEWS_DIR, oldSlug);
+    if (!fs.existsSync(oldPreviewDir)) {
+      return res.status(404).json({ error: 'Page non trouvee' });
+    }
+
+    const slugChanged = oldSlug !== newSlug;
+
+    if (slugChanged) {
+      const newPreviewDir = path.join(PREVIEWS_DIR, newSlug);
+      if (fs.existsSync(newPreviewDir)) {
+        return res.status(409).json({ error: 'Une page avec ce slug existe deja' });
+      }
+
+      // 1. Rename preview directory
+      fs.renameSync(oldPreviewDir, newPreviewDir);
+
+      // 2. Rename published directory if exists
+      const oldPublicDir = path.join(PUBLIC_DIR, oldSlug);
+      const newPublicDir = path.join(PUBLIC_DIR, newSlug);
+      if (fs.existsSync(oldPublicDir)) {
+        fs.renameSync(oldPublicDir, newPublicDir);
+      }
+
+      // 3. Clean up old CSS/JS files from public/site/
+      const oldCss = path.join(PUBLIC_DIR, `styles-${oldSlug}.css`);
+      const oldJs = path.join(PUBLIC_DIR, `scripts-${oldSlug}.js`);
+      if (fs.existsSync(oldCss)) fs.unlinkSync(oldCss);
+      if (fs.existsSync(oldJs)) fs.unlinkSync(oldJs);
+
+      // 4. Update build.js — replace old slug references with new slug
+      const buildPath = path.join(__dirname, '..', 'scripts', 'build.js');
+      if (fs.existsSync(buildPath)) {
+        let buildContent = fs.readFileSync(buildPath, 'utf-8');
+        // Replace slug in page config
+        buildContent = buildContent.replace(
+          new RegExp(`slug:\\s*'${oldSlug}'`, 'g'),
+          `slug: '${newSlug}'`
+        );
+        // Replace output path
+        buildContent = buildContent.replace(
+          new RegExp(`public/site/${oldSlug}/`, 'g'),
+          `public/site/${newSlug}/`
+        );
+        // Replace ogUrl
+        buildContent = buildContent.replace(
+          new RegExp(`/${oldSlug}/`, 'g'),
+          `/${newSlug}/`
+        );
+        // Replace previewDir path
+        buildContent = buildContent.replace(
+          new RegExp(`'${oldSlug}'\\)`, 'g'),
+          `'${newSlug}')`
+        );
+        fs.writeFileSync(buildPath, buildContent, 'utf-8');
+      }
+
+      // 5. Create 301 redirect from old URL to new URL
+      try {
+        const supabase = require('../lib/supabase');
+        const oldPath = `/${oldSlug}/`;
+        const newPath = `/${newSlug}/`;
+
+        // Check if redirect already exists for this source
+        const { data: existing } = await supabase
+          .from('site_manager_redirections')
+          .select('id')
+          .eq('source_path', oldPath)
+          .single();
+
+        if (existing) {
+          // Update existing redirect
+          await supabase
+            .from('site_manager_redirections')
+            .update({ target_path: newPath, status_code: 301, is_active: true })
+            .eq('id', existing.id);
+        } else {
+          // Create new redirect
+          await supabase
+            .from('site_manager_redirections')
+            .insert({
+              source_path: oldPath,
+              target_path: newPath,
+              status_code: 301,
+              is_active: true,
+              hit_count: 0,
+              created_by: req.user.id
+            });
+        }
+
+        // Also redirect without trailing slash
+        const { data: existingNoSlash } = await supabase
+          .from('site_manager_redirections')
+          .select('id')
+          .eq('source_path', `/${oldSlug}`)
+          .single();
+
+        if (existingNoSlash) {
+          await supabase
+            .from('site_manager_redirections')
+            .update({ target_path: newPath, status_code: 301, is_active: true })
+            .eq('id', existingNoSlash.id);
+        } else {
+          await supabase
+            .from('site_manager_redirections')
+            .insert({
+              source_path: `/${oldSlug}`,
+              target_path: newPath,
+              status_code: 301,
+              is_active: true,
+              hit_count: 0,
+              created_by: req.user.id
+            });
+        }
+      } catch (dbErr) {
+        console.error('[Pages] Redirect creation warning:', dbErr.message);
+        // Non-blocking: page is renamed even if redirect fails
+      }
+
+      // 6. Update scheduled publishes in DB
+      try {
+        const supabase = require('../lib/supabase');
+        await supabase
+          .from('site_manager_scheduled_publishes')
+          .update({ page_slug: newSlug })
+          .eq('page_slug', oldSlug)
+          .eq('status', 'pending');
+      } catch (dbErr) {
+        console.error('[Pages] Scheduled publish update warning:', dbErr.message);
+      }
+    }
+
+    // 7. Update SEO title/name in seo.json
+    const targetDir = path.join(PREVIEWS_DIR, slugChanged ? newSlug : oldSlug);
+    if (newName) {
+      const seoPath = path.join(targetDir, 'seo.json');
+      if (fs.existsSync(seoPath)) {
+        try {
+          const seo = JSON.parse(fs.readFileSync(seoPath, 'utf-8'));
+          seo.title = newName;
+          if (seo.ogTitle) seo.ogTitle = newName;
+          fs.writeFileSync(seoPath, JSON.stringify(seo, null, 2), 'utf-8');
+        } catch (_) {}
+      }
+    }
+
+    // 8. Regenerate sitemap
+    try {
+      execSync(`node -e "
+        const http = require('http');
+        http.get('http://localhost:${process.env.PORT || 3000}/api/seo/sitemap', () => {});
+      "`);
+    } catch (_) {}
+
+    await logAudit({
+      userId: req.user.id,
+      action: 'page_rename',
+      entityType: 'page',
+      entityId: newSlug,
+      details: { oldSlug, newSlug, newName, slugChanged, redirect301: slugChanged },
+      ip: getClientIp(req),
+      userAgent: req.headers['user-agent']
+    });
+
+    res.json({
+      success: true,
+      oldSlug,
+      newSlug,
+      newName: newName || newSlug,
+      redirect301: slugChanged
+    });
+  } catch (err) {
+    console.error('[Pages] Rename error:', err.message);
+    res.status(500).json({ error: 'Erreur lors du renommage: ' + err.message });
+  }
+});
+
+/**
  * POST /:slug/import-content — Import all sections from a source page into target page
  * Body: { sourceSlug, replace: true|false }
  * replace=true removes existing sections first, replace=false appends after existing ones
