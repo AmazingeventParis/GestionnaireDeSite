@@ -361,6 +361,50 @@ router.post('/:slug/duplicate', verifyToken, requireRole('admin'), async (req, r
 });
 
 /**
+ * DELETE /:slug — Delete an entire page (preview + published)
+ * RBAC: admin only
+ */
+router.delete('/:slug', verifyToken, requireRole('admin'), async (req, res) => {
+  try {
+    const slug = req.params.slug.replace(/[^a-z0-9-]/gi, '');
+
+    if (slug === 'home') {
+      return res.status(400).json({ error: 'Impossible de supprimer la page d\'accueil' });
+    }
+
+    const previewDir = path.join(PREVIEWS_DIR, slug);
+    const publicDir = path.join(PUBLIC_DIR, slug);
+
+    if (!fs.existsSync(previewDir)) {
+      return res.status(404).json({ error: 'Page non trouvee' });
+    }
+
+    // Remove preview directory
+    fs.rmSync(previewDir, { recursive: true, force: true });
+
+    // Remove published directory if exists
+    if (fs.existsSync(publicDir)) {
+      fs.rmSync(publicDir, { recursive: true, force: true });
+    }
+
+    await logAudit({
+      userId: req.user.id,
+      action: 'page_delete',
+      entityType: 'page',
+      entityId: slug,
+      details: {},
+      ip: getClientIp(req),
+      userAgent: req.headers['user-agent']
+    });
+
+    res.json({ success: true, message: 'Page supprimee' });
+  } catch (err) {
+    console.error('[Pages] Delete page error:', err.message);
+    res.status(500).json({ error: 'Erreur lors de la suppression de la page' });
+  }
+});
+
+/**
  * GET /:slug/content — Return assembled page content (all sections in order, no header/footer)
  */
 router.get('/:slug/content', verifyToken, async (req, res) => {

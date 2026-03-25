@@ -214,6 +214,15 @@
       background: #f0883e22;
       text-decoration: none;
     }
+    .page-card-btn-del {
+      background: #21262d;
+      color: #f85149;
+      border: 1px solid #f8514944;
+    }
+    .page-card-btn-del:hover {
+      background: #f8514922;
+      text-decoration: none;
+    }
     @media (max-width: 768px) {
       .pages-header {
         flex-direction: column;
@@ -351,6 +360,11 @@
             html += '<button type="button" class="page-card-btn page-card-btn-copy" title="Copier le contenu" data-copy-slug="' + Components.escapeHtml(page.slug) + '">';
             html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>';
             html += ' Copier</button>';
+            if (page.slug !== 'home') {
+              html += '<button type="button" class="page-card-btn page-card-btn-del" title="Supprimer" data-del-slug="' + Components.escapeHtml(page.slug) + '" data-del-name="' + Components.escapeHtml(page.name) + '">';
+              html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
+              html += ' Supprimer</button>';
+            }
           }
           html += '</div>';
           html += '</div>';
@@ -432,7 +446,27 @@
           });
       }
 
-      // Delegated click handler for duplicate/copy buttons
+      function handleDelete(slug, name) {
+        Components.showConfirm('Supprimer la page "' + name + '" ? Cette action est irreversible.').then(function(confirmed) {
+          if (!confirmed) return;
+          Auth.apiFetch('/api/pages/' + encodeURIComponent(slug), {
+            method: 'DELETE'
+          }).then(function(res) {
+            return res.json();
+          }).then(function(data) {
+            if (data.error) {
+              Components.showToast(data.error, 'error');
+              return;
+            }
+            Components.showToast('Page "' + name + '" supprimee', 'success');
+            loadPages();
+          }).catch(function(err) {
+            Components.showToast('Erreur: ' + err.message, 'error');
+          });
+        });
+      }
+
+      // Delegated click handler for duplicate/copy/delete buttons
       document.getElementById('pages-grid').addEventListener('click', function(e) {
         var dupBtn = e.target.closest('[data-dup-slug]');
         if (dupBtn) {
@@ -442,6 +476,11 @@
         var copyBtn = e.target.closest('[data-copy-slug]');
         if (copyBtn) {
           handleCopyContent(copyBtn.getAttribute('data-copy-slug'));
+          return;
+        }
+        var delBtn = e.target.closest('[data-del-slug]');
+        if (delBtn) {
+          handleDelete(delBtn.getAttribute('data-del-slug'), delBtn.getAttribute('data-del-name'));
           return;
         }
       });
