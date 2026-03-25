@@ -161,6 +161,31 @@ function getPublicDir(slug) {
 /**
  * GET / — List all pages
  */
+// ===== Folder management (page categorization) =====
+const FOLDERS_PATH = path.join(PREVIEWS_DIR, '_folders.json');
+
+function readFolders() {
+  if (!fs.existsSync(FOLDERS_PATH)) return {};
+  try { return JSON.parse(fs.readFileSync(FOLDERS_PATH, 'utf-8')); } catch(e) { return {}; }
+}
+
+function writeFolders(folders) {
+  fs.writeFileSync(FOLDERS_PATH, JSON.stringify(folders, null, 2), 'utf-8');
+}
+
+router.get('/folders', verifyToken, (req, res) => {
+  res.json({ folders: readFolders() });
+});
+
+router.put('/folders', verifyToken, requireRole('admin'), (req, res) => {
+  const { folders } = req.body;
+  if (!folders || typeof folders !== 'object') {
+    return res.status(400).json({ error: 'Objet folders requis' });
+  }
+  writeFolders(folders);
+  res.json({ success: true });
+});
+
 router.get('/', verifyToken, async (req, res) => {
   try {
     if (!fs.existsSync(PREVIEWS_DIR)) {

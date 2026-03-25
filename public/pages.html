@@ -10,8 +10,99 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 24px;
+      margin-bottom: 16px;
     }
+    /* Search bar */
+    .pages-search {
+      position: relative;
+      margin-bottom: 16px;
+    }
+    .pages-search input {
+      width: 100%;
+      padding: 10px 14px 10px 38px;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      color: #e6edf3;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+      box-sizing: border-box;
+    }
+    .pages-search input:focus {
+      border-color: #58a6ff;
+    }
+    .pages-search input::placeholder { color: #484f58; }
+    .pages-search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #484f58;
+      pointer-events: none;
+    }
+    .pages-search-count {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #484f58;
+      font-size: 12px;
+    }
+    /* Folder tabs */
+    .folder-tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .folder-tab {
+      padding: 6px 14px;
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 20px;
+      color: #8b949e;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .folder-tab:hover {
+      border-color: #58a6ff;
+      color: #e6edf3;
+    }
+    .folder-tab.active {
+      background: #58a6ff22;
+      border-color: #58a6ff;
+      color: #58a6ff;
+    }
+    .folder-tab-count {
+      background: #30363d;
+      color: #8b949e;
+      font-size: 11px;
+      padding: 1px 6px;
+      border-radius: 10px;
+      min-width: 18px;
+      text-align: center;
+    }
+    .folder-tab.active .folder-tab-count {
+      background: #58a6ff33;
+      color: #58a6ff;
+    }
+    /* Page card folder badge */
+    .page-card-folder {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      background: #21262d;
+      color: #8b949e;
+      border: 1px solid #30363d;
+      margin-left: 6px;
+    }
+    /* Grid */
     .pages-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
@@ -28,6 +119,7 @@
       border-color: #58a6ff;
       box-shadow: 0 0 0 1px #58a6ff33;
     }
+    .page-card.hidden { display: none; }
     .page-card-header {
       display: flex;
       justify-content: space-between;
@@ -55,21 +147,9 @@
       letter-spacing: 0.5px;
       white-space: nowrap;
     }
-    .status-published {
-      background: #16a34a22;
-      color: #3fb950;
-      border: 1px solid #16a34a44;
-    }
-    .status-draft {
-      background: #d2992222;
-      color: #d29922;
-      border: 1px solid #d2992244;
-    }
-    .status-modified {
-      background: #ff7a0022;
-      color: #ff7a00;
-      border: 1px solid #ff7a0044;
-    }
+    .status-published { background: #16a34a22; color: #3fb950; border: 1px solid #16a34a44; }
+    .status-draft { background: #d2992222; color: #d29922; border: 1px solid #d2992244; }
+    .status-modified { background: #ff7a0022; color: #ff7a00; border: 1px solid #ff7a0044; }
     .page-card-meta {
       display: flex;
       flex-wrap: wrap;
@@ -114,23 +194,10 @@
       align-items: center;
       gap: 4px;
     }
-    .btn-view {
-      background: #21262d;
-      color: #e6edf3;
-    }
-    .btn-view:hover {
-      background: #30363d;
-      text-decoration: none;
-    }
-    .btn-edit {
-      background: #58a6ff22;
-      color: #58a6ff;
-      border-color: #58a6ff44;
-    }
-    .btn-edit:hover {
-      background: #58a6ff33;
-      text-decoration: none;
-    }
+    .btn-view { background: #21262d; color: #e6edf3; }
+    .btn-view:hover { background: #30363d; text-decoration: none; }
+    .btn-edit { background: #58a6ff22; color: #58a6ff; border-color: #58a6ff44; }
+    .btn-edit:hover { background: #58a6ff33; text-decoration: none; }
     .btn-new-page {
       background: #238636;
       color: #ffffff;
@@ -143,30 +210,11 @@
       transition: background 0.2s;
       display: none;
     }
-    .btn-new-page:hover {
-      background: #2ea043;
-      text-decoration: none;
-    }
-    .btn-new-page.visible {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .empty-state {
-      text-align: center;
-      padding: 60px 20px;
-      color: #8b949e;
-    }
-    .empty-state h3 {
-      color: #e6edf3;
-      margin-bottom: 8px;
-    }
-    .loading-spinner {
-      display: flex;
-      justify-content: center;
-      padding: 40px;
-      color: #8b949e;
-    }
+    .btn-new-page:hover { background: #2ea043; text-decoration: none; }
+    .btn-new-page.visible { display: inline-flex; align-items: center; gap: 6px; }
+    .empty-state { text-align: center; padding: 60px 20px; color: #8b949e; }
+    .empty-state h3 { color: #e6edf3; margin-bottom: 8px; }
+    .loading-spinner { display: flex; justify-content: center; padding: 40px; color: #8b949e; }
     .page-card-btn {
       padding: 6px 10px;
       font-size: 12px;
@@ -178,69 +226,23 @@
       align-items: center;
       gap: 4px;
     }
-    .page-card-btn-code {
-      background: #21262d;
-      color: #58a6ff;
-      border: 1px solid #388bfd44;
-    }
-    .page-card-btn-code:hover {
-      background: #388bfd22;
-      text-decoration: none;
-    }
-    .page-card-btn-redir {
-      background: #21262d;
-      color: #d2a8ff;
-      border: 1px solid #8b5cf644;
-    }
-    .page-card-btn-redir:hover {
-      background: #8b5cf622;
-      text-decoration: none;
-    }
-    .page-card-btn-dup {
-      background: #21262d;
-      color: #3fb950;
-      border: 1px solid #16a34a44;
-    }
-    .page-card-btn-dup:hover {
-      background: #16a34a22;
-      text-decoration: none;
-    }
-    .page-card-btn-copy {
-      background: #21262d;
-      color: #f0883e;
-      border: 1px solid #f0883e44;
-    }
-    .page-card-btn-copy:hover {
-      background: #f0883e22;
-      text-decoration: none;
-    }
-    .page-card-btn-del {
-      background: #21262d;
-      color: #f85149;
-      border: 1px solid #f8514944;
-    }
-    .page-card-btn-del:hover {
-      background: #f8514922;
-      text-decoration: none;
-    }
-    .page-card-btn-import {
-      background: #21262d;
-      color: #79c0ff;
-      border: 1px solid #79c0ff44;
-    }
-    .page-card-btn-import:hover {
-      background: #79c0ff22;
-      text-decoration: none;
-    }
-    .page-card-btn-rename {
-      background: #21262d;
-      color: #d2a8ff;
-      border: 1px solid #d2a8ff44;
-    }
-    .page-card-btn-rename:hover {
-      background: #d2a8ff22;
-      text-decoration: none;
-    }
+    .page-card-btn-code { background: #21262d; color: #58a6ff; border: 1px solid #388bfd44; }
+    .page-card-btn-code:hover { background: #388bfd22; text-decoration: none; }
+    .page-card-btn-redir { background: #21262d; color: #d2a8ff; border: 1px solid #8b5cf644; }
+    .page-card-btn-redir:hover { background: #8b5cf622; text-decoration: none; }
+    .page-card-btn-dup { background: #21262d; color: #3fb950; border: 1px solid #16a34a44; }
+    .page-card-btn-dup:hover { background: #16a34a22; text-decoration: none; }
+    .page-card-btn-copy { background: #21262d; color: #f0883e; border: 1px solid #f0883e44; }
+    .page-card-btn-copy:hover { background: #f0883e22; text-decoration: none; }
+    .page-card-btn-del { background: #21262d; color: #f85149; border: 1px solid #f8514944; }
+    .page-card-btn-del:hover { background: #f8514922; text-decoration: none; }
+    .page-card-btn-import { background: #21262d; color: #79c0ff; border: 1px solid #79c0ff44; }
+    .page-card-btn-import:hover { background: #79c0ff22; text-decoration: none; }
+    .page-card-btn-rename { background: #21262d; color: #d2a8ff; border: 1px solid #d2a8ff44; }
+    .page-card-btn-rename:hover { background: #d2a8ff22; text-decoration: none; }
+    .page-card-btn-folder { background: #21262d; color: #8b949e; border: 1px solid #30363d; }
+    .page-card-btn-folder:hover { background: #30363d22; text-decoration: none; color: #e6edf3; }
+    /* Import modal */
     .import-modal-overlay {
       position: fixed; top:0; left:0; right:0; bottom:0;
       background: rgba(0,0,0,0.6); z-index: 9999;
@@ -252,45 +254,55 @@
     }
     .import-modal h3 { color: #e6edf3; margin: 0 0 8px; font-size: 18px; }
     .import-modal p { color: #8b949e; font-size: 13px; margin: 0 0 16px; }
-    .import-page-list {
-      max-height: 300px; overflow-y: auto; margin-bottom: 16px;
-    }
+    .import-page-list { max-height: 300px; overflow-y: auto; margin-bottom: 16px; }
     .import-page-item {
       display: flex; align-items: center; justify-content: space-between;
       padding: 10px 12px; border: 1px solid #30363d; border-radius: 6px;
       margin-bottom: 6px; cursor: pointer; transition: all 0.15s;
     }
-    .import-page-item:hover {
-      border-color: #58a6ff; background: #58a6ff11;
-    }
+    .import-page-item:hover { border-color: #58a6ff; background: #58a6ff11; }
     .import-page-item-name { color: #e6edf3; font-size: 14px; font-weight: 500; }
     .import-page-item-info { color: #8b949e; font-size: 12px; }
-    .import-mode-toggle {
-      display: flex; gap: 8px; margin-bottom: 16px;
-    }
+    .import-mode-toggle { display: flex; gap: 8px; margin-bottom: 16px; }
     .import-mode-btn {
       flex: 1; padding: 8px; border: 1px solid #30363d; border-radius: 6px;
       background: #21262d; color: #8b949e; cursor: pointer; font-size: 12px;
       text-align: center; transition: all 0.15s;
     }
-    .import-mode-btn.active {
-      border-color: #58a6ff; color: #58a6ff; background: #58a6ff11;
-    }
+    .import-mode-btn.active { border-color: #58a6ff; color: #58a6ff; background: #58a6ff11; }
     .import-modal-close {
       background: #21262d; color: #8b949e; border: 1px solid #30363d;
       padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px;
       width: 100%; margin-top: 4px;
     }
     .import-modal-close:hover { background: #30363d; color: #e6edf3; }
+    /* Create page modal */
+    .create-modal-field { margin-bottom: 14px; }
+    .create-modal-field label {
+      display: block; color: #8b949e; font-size: 13px; margin-bottom: 4px;
+    }
+    .create-modal-field input,
+    .create-modal-field select {
+      width: 100%; padding: 8px 12px; background: #0d1117; border: 1px solid #30363d;
+      border-radius: 6px; color: #e6edf3; font-size: 14px; outline: none;
+      box-sizing: border-box;
+    }
+    .create-modal-field input:focus,
+    .create-modal-field select:focus { border-color: #58a6ff; }
+    .create-modal-actions { display: flex; gap: 8px; margin-top: 16px; }
+    .create-modal-actions button {
+      flex: 1; padding: 8px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600;
+    }
+    .btn-create-cancel {
+      background: #21262d; color: #8b949e; border: 1px solid #30363d;
+    }
+    .btn-create-confirm {
+      background: #238636; color: #fff; border: 1px solid #2ea04366;
+    }
+    .btn-create-confirm:hover { background: #2ea043; }
     @media (max-width: 768px) {
-      .pages-header {
-        flex-direction: column;
-        gap: 12px;
-        align-items: flex-start;
-      }
-      .pages-grid {
-        grid-template-columns: 1fr;
-      }
+      .pages-header { flex-direction: column; gap: 12px; align-items: flex-start; }
+      .pages-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -308,6 +320,14 @@
         Nouvelle page
       </button>
     </div>
+
+    <div class="pages-search">
+      <svg class="pages-search-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M11.5 7a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zm-.82 4.74a6 6 0 111.06-1.06l3.04 3.04a.75.75 0 11-1.06 1.06l-3.04-3.04z"/></svg>
+      <input type="text" id="search-input" placeholder="Rechercher une page par nom, slug ou dossier..." autocomplete="off">
+      <span class="pages-search-count" id="search-count"></span>
+    </div>
+
+    <div class="folder-tabs" id="folder-tabs"></div>
 
     <div id="pages-loading" class="loading-spinner">Chargement des pages...</div>
 
@@ -327,10 +347,15 @@
     (function() {
       'use strict';
 
+      var FOLDERS = ['Bornes', 'Evenements', 'Villes', 'Blog', 'Autres'];
       var currentUser = null;
+      var allPages = [];
+      var folderMap = {}; // slug -> folder name
+      var activeFolder = null; // null = all
+      var searchQuery = '';
 
       function formatDate(isoString) {
-        if (!isoString) return '—';
+        if (!isoString) return '\u2014';
         var d = new Date(isoString);
         var day = String(d.getDate()).padStart(2, '0');
         var month = String(d.getMonth() + 1).padStart(2, '0');
@@ -346,16 +371,99 @@
         return '<span class="status-badge status-' + Components.escapeHtml(status) + '">' + Components.escapeHtml(label) + '</span>';
       }
 
+      function getPageFolder(slug) {
+        return folderMap[slug] || 'Autres';
+      }
+
+      // ===== Folder map persistence =====
+      function loadFolderMap() {
+        return Auth.apiFetch('/api/pages/folders')
+          .then(function(r) { return r.json(); })
+          .then(function(data) { folderMap = data.folders || {}; })
+          .catch(function() { folderMap = {}; });
+      }
+
+      function saveFolderMap() {
+        return Auth.apiFetch('/api/pages/folders', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ folders: folderMap })
+        }).catch(function() {});
+      }
+
+      // ===== Render folder tabs =====
+      function renderFolderTabs() {
+        var counts = { _all: allPages.length };
+        for (var f = 0; f < FOLDERS.length; f++) counts[FOLDERS[f]] = 0;
+        for (var i = 0; i < allPages.length; i++) {
+          var folder = getPageFolder(allPages[i].slug);
+          counts[folder] = (counts[folder] || 0) + 1;
+        }
+
+        var html = '<button type="button" class="folder-tab' + (activeFolder === null ? ' active' : '') + '" data-folder="">';
+        html += 'Toutes <span class="folder-tab-count">' + counts._all + '</span></button>';
+        for (var f = 0; f < FOLDERS.length; f++) {
+          var isActive = activeFolder === FOLDERS[f];
+          html += '<button type="button" class="folder-tab' + (isActive ? ' active' : '') + '" data-folder="' + FOLDERS[f] + '">';
+          html += Components.escapeHtml(FOLDERS[f]) + ' <span class="folder-tab-count">' + (counts[FOLDERS[f]] || 0) + '</span></button>';
+        }
+        document.getElementById('folder-tabs').innerHTML = html;
+      }
+
+      // ===== Filter + search =====
+      function applyFilters() {
+        var q = searchQuery.toLowerCase();
+        var visibleCount = 0;
+        var cards = document.querySelectorAll('.page-card[data-slug]');
+        for (var i = 0; i < cards.length; i++) {
+          var card = cards[i];
+          var slug = card.getAttribute('data-slug');
+          var name = card.getAttribute('data-name').toLowerCase();
+          var folder = getPageFolder(slug);
+
+          var matchFolder = !activeFolder || folder === activeFolder;
+          var matchSearch = !q || name.indexOf(q) !== -1 || slug.indexOf(q) !== -1 || folder.toLowerCase().indexOf(q) !== -1;
+
+          if (matchFolder && matchSearch) {
+            card.classList.remove('hidden');
+            visibleCount++;
+          } else {
+            card.classList.add('hidden');
+          }
+        }
+
+        var countEl = document.getElementById('search-count');
+        if (q || activeFolder) {
+          countEl.textContent = visibleCount + '/' + allPages.length;
+        } else {
+          countEl.textContent = '';
+        }
+
+        var empty = document.getElementById('pages-empty');
+        var grid = document.getElementById('pages-grid');
+        if (visibleCount === 0 && allPages.length > 0) {
+          empty.style.display = 'block';
+          empty.innerHTML = '<h3>Aucun resultat</h3><p>Aucune page ne correspond a votre recherche.</p>';
+        } else if (allPages.length === 0) {
+          empty.style.display = 'block';
+        } else {
+          empty.style.display = 'none';
+        }
+      }
+
+      // ===== Render pages =====
       function renderPages(pages) {
         var loading = document.getElementById('pages-loading');
         var grid = document.getElementById('pages-grid');
         var empty = document.getElementById('pages-empty');
 
         loading.style.display = 'none';
+        allPages = pages;
 
         if (!pages || pages.length === 0) {
           empty.style.display = 'block';
           grid.style.display = 'none';
+          renderFolderTabs();
           return;
         }
 
@@ -366,11 +474,14 @@
         for (var i = 0; i < pages.length; i++) {
           var page = pages[i];
           var urlPath = page.slug === 'home' ? '/' : '/' + page.slug;
+          var folder = getPageFolder(page.slug);
 
-          html += '<div class="page-card">';
+          html += '<div class="page-card" data-slug="' + Components.escapeHtml(page.slug) + '" data-name="' + Components.escapeHtml(page.name) + '">';
           html += '<div class="page-card-header">';
           html += '<div>';
-          html += '<h3 class="page-card-name">' + Components.escapeHtml(page.name) + '</h3>';
+          html += '<h3 class="page-card-name">' + Components.escapeHtml(page.name);
+          html += '<span class="page-card-folder">' + Components.escapeHtml(folder) + '</span>';
+          html += '</h3>';
           html += '<div class="page-card-slug">' + Components.escapeHtml(urlPath) + '</div>';
           html += '</div>';
           html += getStatusBadge(page.status);
@@ -427,6 +538,9 @@
             html += '<button type="button" class="page-card-btn page-card-btn-copy" title="Copier le contenu" data-copy-slug="' + Components.escapeHtml(page.slug) + '">';
             html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>';
             html += ' Copier</button>';
+            html += '<button type="button" class="page-card-btn page-card-btn-folder" title="Changer de dossier" data-folder-slug="' + Components.escapeHtml(page.slug) + '">';
+            html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>';
+            html += ' Dossier</button>';
             if (page.slug !== 'home') {
               html += '<button type="button" class="page-card-btn page-card-btn-del" title="Supprimer" data-del-slug="' + Components.escapeHtml(page.slug) + '" data-del-name="' + Components.escapeHtml(page.name) + '">';
               html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
@@ -438,14 +552,14 @@
         }
 
         grid.innerHTML = html;
+        renderFolderTabs();
+        applyFilters();
       }
 
       async function loadPages() {
         try {
           var response = await Auth.apiFetch('/api/pages');
-          if (!response.ok) {
-            throw new Error('Erreur ' + response.status);
-          }
+          if (!response.ok) throw new Error('Erreur ' + response.status);
           var data = await response.json();
           renderPages(data.pages || []);
         } catch (err) {
@@ -457,47 +571,37 @@
         }
       }
 
+      // ===== Action handlers =====
+
       function handleDuplicate(slug, name) {
         var newName = prompt('Nom de la copie :', name + ' (copie)');
         if (!newName) return;
         var newSlug = newName.toLowerCase()
           .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
           .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-        if (!newSlug) {
-          Components.showToast('Slug invalide', 'error');
-          return;
-        }
+        if (!newSlug) { Components.showToast('Slug invalide', 'error'); return; }
         Auth.apiFetch('/api/pages/' + encodeURIComponent(slug) + '/duplicate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ newSlug: newSlug, newName: newName })
-        }).then(function(res) {
-          return res.json();
-        }).then(function(data) {
-          if (data.error) {
-            Components.showToast(data.error, 'error');
-            return;
-          }
-          Components.showToast('Page "' + newName + '" dupliquee avec succes', 'success');
-          loadPages();
-        }).catch(function(err) {
-          Components.showToast('Erreur: ' + err.message, 'error');
-        });
+        }).then(function(res) { return res.json(); })
+          .then(function(data) {
+            if (data.error) { Components.showToast(data.error, 'error'); return; }
+            // Copy folder assignment
+            folderMap[newSlug] = getPageFolder(slug);
+            saveFolderMap();
+            Components.showToast('Page "' + newName + '" dupliquee', 'success');
+            loadPages();
+          }).catch(function(err) { Components.showToast('Erreur: ' + err.message, 'error'); });
       }
 
       function handleCopyContent(slug) {
         Auth.apiFetch('/api/pages/' + encodeURIComponent(slug) + '/content')
           .then(function(res) { return res.json(); })
           .then(function(data) {
-            if (data.error) {
-              Components.showToast(data.error, 'error');
-              return;
-            }
+            if (data.error) { Components.showToast(data.error, 'error'); return; }
             var blocks = data.blocks || [];
-            if (blocks.length === 0) {
-              Components.showToast('Aucun contenu a copier', 'warning');
-              return;
-            }
+            if (blocks.length === 0) { Components.showToast('Aucun contenu a copier', 'warning'); return; }
             var assembled = '';
             for (var i = 0; i < blocks.length; i++) {
               var b = blocks[i];
@@ -506,52 +610,37 @@
               assembled += b.html.trim() + '\n\n';
             }
             return navigator.clipboard.writeText(assembled.trim()).then(function() {
-              Components.showToast(blocks.length + ' bloc(s) copie(s) dans le presse-papier', 'success');
+              Components.showToast(blocks.length + ' bloc(s) copie(s)', 'success');
             });
-          }).catch(function(err) {
-            Components.showToast('Erreur: ' + err.message, 'error');
-          });
+          }).catch(function(err) { Components.showToast('Erreur: ' + err.message, 'error'); });
       }
 
       function handleDelete(slug, name) {
         Components.showConfirm('Supprimer la page "' + name + '" ? Cette action est irreversible.').then(function(confirmed) {
           if (!confirmed) return;
-          Auth.apiFetch('/api/pages/' + encodeURIComponent(slug), {
-            method: 'DELETE'
-          }).then(function(res) {
-            return res.json();
-          }).then(function(data) {
-            if (data.error) {
-              Components.showToast(data.error, 'error');
-              return;
-            }
-            Components.showToast('Page "' + name + '" supprimee', 'success');
-            loadPages();
-          }).catch(function(err) {
-            Components.showToast('Erreur: ' + err.message, 'error');
-          });
+          Auth.apiFetch('/api/pages/' + encodeURIComponent(slug), { method: 'DELETE' })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+              if (data.error) { Components.showToast(data.error, 'error'); return; }
+              delete folderMap[slug];
+              saveFolderMap();
+              Components.showToast('Page "' + name + '" supprimee', 'success');
+              loadPages();
+            }).catch(function(err) { Components.showToast('Erreur: ' + err.message, 'error'); });
         });
       }
 
       function handleRename(oldSlug, oldName) {
         var newName = prompt('Nouveau nom de la page :', oldName);
-        if (!newName || newName === oldName) {
-          if (!newName) return;
-        }
+        if (!newName) return;
         var newSlug = newName.toLowerCase()
           .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
           .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-        if (!newSlug) {
-          Components.showToast('Slug invalide', 'error');
-          return;
-        }
+        if (!newSlug) { Components.showToast('Slug invalide', 'error'); return; }
         var slugChanged = newSlug !== oldSlug;
         var msg = 'Renommer "' + oldName + '" en "' + newName + '"';
-        if (slugChanged) {
-          msg += ' ?\n\nL\'URL changera de /' + oldSlug + '/ vers /' + newSlug + '/\nUne redirection 301 sera creee automatiquement.';
-        } else {
-          msg += ' ? (l\'URL ne changera pas)';
-        }
+        if (slugChanged) msg += ' ?\n\nL\'URL changera de /' + oldSlug + '/ vers /' + newSlug + '/\nUne redirection 301 sera creee automatiquement.';
+        else msg += ' ? (l\'URL ne changera pas)';
         Components.showConfirm(msg).then(function(confirmed) {
           if (!confirmed) return;
           Auth.apiFetch('/api/pages/' + encodeURIComponent(oldSlug) + '/rename', {
@@ -560,44 +649,72 @@
             body: JSON.stringify({ newSlug: newSlug, newName: newName })
           }).then(function(r) { return r.json(); })
             .then(function(data) {
-              if (data.error) {
-                Components.showToast(data.error, 'error');
-                return;
+              if (data.error) { Components.showToast(data.error, 'error'); return; }
+              if (slugChanged && folderMap[oldSlug]) {
+                folderMap[newSlug] = folderMap[oldSlug];
+                delete folderMap[oldSlug];
+                saveFolderMap();
               }
               var toast = 'Page renommee en "' + newName + '"';
               if (data.redirect301) toast += ' (redirection 301 creee)';
               Components.showToast(toast, 'success');
               cachedPages = [];
               loadPages();
-            }).catch(function(err) {
-              Components.showToast('Erreur: ' + err.message, 'error');
-            });
+            }).catch(function(err) { Components.showToast('Erreur: ' + err.message, 'error'); });
+        });
+      }
+
+      function handleChangeFolder(slug) {
+        var current = getPageFolder(slug);
+        var overlay = document.createElement('div');
+        overlay.className = 'import-modal-overlay';
+        var html = '<h3>Changer de dossier</h3>';
+        html += '<p>Page : <strong>' + Components.escapeHtml(slug) + '</strong></p>';
+        html += '<div class="import-page-list">';
+        for (var i = 0; i < FOLDERS.length; i++) {
+          var isActive = FOLDERS[i] === current;
+          html += '<div class="import-page-item' + (isActive ? '" style="border-color:#58a6ff;background:#58a6ff11' : '') + '" data-folder-choice="' + FOLDERS[i] + '">';
+          html += '<span class="import-page-item-name">' + Components.escapeHtml(FOLDERS[i]) + '</span>';
+          if (isActive) html += '<span class="import-page-item-info">actuel</span>';
+          html += '</div>';
+        }
+        html += '</div>';
+        html += '<button type="button" class="import-modal-close">Annuler</button>';
+        var modal = document.createElement('div');
+        modal.className = 'import-modal';
+        modal.innerHTML = html;
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        function close() { overlay.remove(); }
+        overlay.addEventListener('click', function(e) { if (e.target === overlay) close(); });
+        modal.querySelector('.import-modal-close').addEventListener('click', close);
+        modal.querySelectorAll('[data-folder-choice]').forEach(function(item) {
+          item.addEventListener('click', function() {
+            var choice = item.getAttribute('data-folder-choice');
+            folderMap[slug] = choice;
+            saveFolderMap();
+            close();
+            Components.showToast('Page deplacee dans "' + choice + '"', 'success');
+            renderPages(allPages);
+          });
         });
       }
 
       var cachedPages = [];
 
       function handleImport(targetSlug) {
-        // Fetch all pages to show selection
         var pagesPromise = cachedPages.length > 0
           ? Promise.resolve(cachedPages)
           : Auth.apiFetch('/api/pages').then(function(r) { return r.json(); }).then(function(d) {
-              cachedPages = d.pages || [];
-              return cachedPages;
+              cachedPages = d.pages || []; return cachedPages;
             });
-
         pagesPromise.then(function(pages) {
           var sources = pages.filter(function(p) { return p.slug !== targetSlug; });
-          if (sources.length === 0) {
-            Components.showToast('Aucune autre page disponible', 'warning');
-            return;
-          }
-
-          // Build modal
+          if (sources.length === 0) { Components.showToast('Aucune autre page disponible', 'warning'); return; }
           var overlay = document.createElement('div');
           overlay.className = 'import-modal-overlay';
           var replaceMode = true;
-
           var modalHtml = '<h3>Importer le contenu</h3>';
           modalHtml += '<p>Choisissez la page source et le mode d\'import dans <strong>' + Components.escapeHtml(targetSlug) + '</strong></p>';
           modalHtml += '<div class="import-mode-toggle">';
@@ -607,22 +724,18 @@
           modalHtml += '<div class="import-page-list">';
           for (var i = 0; i < sources.length; i++) {
             var s = sources[i];
-            var secCount = s.sections ? s.sections.length : 0;
             modalHtml += '<div class="import-page-item" data-source="' + Components.escapeHtml(s.slug) + '">';
             modalHtml += '<span class="import-page-item-name">' + Components.escapeHtml(s.name) + '</span>';
-            modalHtml += '<span class="import-page-item-info">' + secCount + ' sections</span>';
+            modalHtml += '<span class="import-page-item-info">' + (s.sections ? s.sections.length : 0) + ' sections</span>';
             modalHtml += '</div>';
           }
           modalHtml += '</div>';
           modalHtml += '<button type="button" class="import-modal-close">Annuler</button>';
-
           var modal = document.createElement('div');
           modal.className = 'import-modal';
           modal.innerHTML = modalHtml;
           overlay.appendChild(modal);
           document.body.appendChild(overlay);
-
-          // Mode toggle
           modal.querySelectorAll('.import-mode-btn').forEach(function(btn) {
             btn.addEventListener('click', function() {
               modal.querySelectorAll('.import-mode-btn').forEach(function(b) { b.classList.remove('active'); });
@@ -630,21 +743,16 @@
               replaceMode = btn.getAttribute('data-mode') === 'replace';
             });
           });
-
-          // Close
           function closeModal() { overlay.remove(); }
           overlay.addEventListener('click', function(e) { if (e.target === overlay) closeModal(); });
           modal.querySelector('.import-modal-close').addEventListener('click', closeModal);
-
-          // Select source page
           modal.querySelectorAll('.import-page-item').forEach(function(item) {
             item.addEventListener('click', function() {
               var sourceSlug = item.getAttribute('data-source');
               var sourceName = item.querySelector('.import-page-item-name').textContent;
               var action = replaceMode ? 'Remplacer' : 'Ajouter';
-              var msg = action + ' le contenu de "' + targetSlug + '" avec celui de "' + sourceName + '" ?';
               closeModal();
-              Components.showConfirm(msg).then(function(confirmed) {
+              Components.showConfirm(action + ' le contenu de "' + targetSlug + '" avec celui de "' + sourceName + '" ?').then(function(confirmed) {
                 if (!confirmed) return;
                 Auth.apiFetch('/api/pages/' + encodeURIComponent(targetSlug) + '/import-content', {
                   method: 'POST',
@@ -652,97 +760,125 @@
                   body: JSON.stringify({ sourceSlug: sourceSlug, replace: replaceMode })
                 }).then(function(r) { return r.json(); })
                   .then(function(data) {
-                    if (data.error) {
-                      Components.showToast(data.error, 'error');
-                      return;
-                    }
-                    Components.showToast(data.count + ' section(s) importee(s) depuis "' + sourceName + '"', 'success');
+                    if (data.error) { Components.showToast(data.error, 'error'); return; }
+                    Components.showToast(data.count + ' section(s) importee(s)', 'success');
                     loadPages();
-                  }).catch(function(err) {
-                    Components.showToast('Erreur: ' + err.message, 'error');
-                  });
+                  }).catch(function(err) { Components.showToast('Erreur: ' + err.message, 'error'); });
               });
             });
           });
-        }).catch(function(err) {
-          Components.showToast('Erreur: ' + err.message, 'error');
+        }).catch(function(err) { Components.showToast('Erreur: ' + err.message, 'error'); });
+      }
+
+      // ===== Create page with folder =====
+      function showCreateModal() {
+        var overlay = document.createElement('div');
+        overlay.className = 'import-modal-overlay';
+        var html = '<h3>Nouvelle page</h3>';
+        html += '<div class="create-modal-field"><label>Nom de la page</label>';
+        html += '<input type="text" id="create-page-name" placeholder="Ex: Location Photobooth Mariage" autofocus></div>';
+        html += '<div class="create-modal-field"><label>Dossier</label>';
+        html += '<select id="create-page-folder">';
+        for (var i = 0; i < FOLDERS.length; i++) {
+          html += '<option value="' + FOLDERS[i] + '">' + Components.escapeHtml(FOLDERS[i]) + '</option>';
+        }
+        html += '</select></div>';
+        html += '<div class="create-modal-actions">';
+        html += '<button type="button" class="btn-create-cancel">Annuler</button>';
+        html += '<button type="button" class="btn-create-confirm">Creer</button>';
+        html += '</div>';
+        var modal = document.createElement('div');
+        modal.className = 'import-modal';
+        modal.innerHTML = html;
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        function close() { overlay.remove(); }
+        overlay.addEventListener('click', function(e) { if (e.target === overlay) close(); });
+        modal.querySelector('.btn-create-cancel').addEventListener('click', close);
+
+        // Auto-focus
+        setTimeout(function() { modal.querySelector('#create-page-name').focus(); }, 50);
+
+        modal.querySelector('.btn-create-confirm').addEventListener('click', function() {
+          var name = modal.querySelector('#create-page-name').value.trim();
+          var folder = modal.querySelector('#create-page-folder').value;
+          if (!name) { Components.showToast('Le nom est requis', 'error'); return; }
+          var slug = name.toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+          if (!slug) { Components.showToast('Slug invalide', 'error'); return; }
+          close();
+          var editWindow = window.open('about:blank', '_blank');
+          Auth.apiFetch('/api/pages/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ slug: slug, name: name })
+          }).then(function(res) { return res.json(); })
+            .then(function(data) {
+              if (data.error) {
+                Components.showToast(data.error, 'error');
+                if (editWindow) editWindow.close();
+                return;
+              }
+              folderMap[slug] = folder;
+              saveFolderMap();
+              Components.showToast('Page "' + (data.name || slug) + '" creee dans ' + folder, 'success');
+              if (editWindow) editWindow.location.href = '/editor.html?slug=' + encodeURIComponent(slug);
+              loadPages();
+            }).catch(function(err) {
+              Components.showToast('Erreur: ' + err.message, 'error');
+              if (editWindow) editWindow.close();
+            });
+        });
+
+        // Enter key to submit
+        modal.querySelector('#create-page-name').addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') modal.querySelector('.btn-create-confirm').click();
         });
       }
 
-      // Delegated click handler for duplicate/copy/delete/import buttons
+      // ===== Delegated click handler =====
       document.getElementById('pages-grid').addEventListener('click', function(e) {
         var dupBtn = e.target.closest('[data-dup-slug]');
-        if (dupBtn) {
-          handleDuplicate(dupBtn.getAttribute('data-dup-slug'), dupBtn.getAttribute('data-dup-name'));
-          return;
-        }
+        if (dupBtn) { handleDuplicate(dupBtn.getAttribute('data-dup-slug'), dupBtn.getAttribute('data-dup-name')); return; }
         var copyBtn = e.target.closest('[data-copy-slug]');
-        if (copyBtn) {
-          handleCopyContent(copyBtn.getAttribute('data-copy-slug'));
-          return;
-        }
+        if (copyBtn) { handleCopyContent(copyBtn.getAttribute('data-copy-slug')); return; }
         var delBtn = e.target.closest('[data-del-slug]');
-        if (delBtn) {
-          handleDelete(delBtn.getAttribute('data-del-slug'), delBtn.getAttribute('data-del-name'));
-          return;
-        }
+        if (delBtn) { handleDelete(delBtn.getAttribute('data-del-slug'), delBtn.getAttribute('data-del-name')); return; }
         var renameBtn = e.target.closest('[data-rename-slug]');
-        if (renameBtn) {
-          handleRename(renameBtn.getAttribute('data-rename-slug'), renameBtn.getAttribute('data-rename-name'));
-          return;
-        }
+        if (renameBtn) { handleRename(renameBtn.getAttribute('data-rename-slug'), renameBtn.getAttribute('data-rename-name')); return; }
         var importBtn = e.target.closest('[data-import-slug]');
-        if (importBtn) {
-          handleImport(importBtn.getAttribute('data-import-slug'));
-          return;
-        }
+        if (importBtn) { handleImport(importBtn.getAttribute('data-import-slug')); return; }
+        var folderBtn = e.target.closest('[data-folder-slug]');
+        if (folderBtn) { handleChangeFolder(folderBtn.getAttribute('data-folder-slug')); return; }
       });
 
-      // Init
+      // ===== Folder tab clicks =====
+      document.getElementById('folder-tabs').addEventListener('click', function(e) {
+        var tab = e.target.closest('.folder-tab');
+        if (!tab) return;
+        var folder = tab.getAttribute('data-folder');
+        activeFolder = folder || null;
+        renderFolderTabs();
+        applyFilters();
+      });
+
+      // ===== Search =====
+      document.getElementById('search-input').addEventListener('input', function(e) {
+        searchQuery = e.target.value;
+        applyFilters();
+      });
+
+      // ===== Init =====
       Components.initPage().then(function(user) {
         currentUser = user;
-        if (user && (user.role === 'admin')) {
+        if (user && user.role === 'admin') {
           var btn = document.getElementById('btn-new-page');
           btn.classList.add('visible');
-          btn.addEventListener('click', function() {
-            try {
-              var name = prompt('Nom de la nouvelle page :');
-              if (!name) return;
-              var slug = name.toLowerCase()
-                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-                .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-              if (!slug) {
-                Components.showToast('Slug invalide', 'error');
-                return;
-              }
-              var editWindow = window.open('about:blank', '_blank');
-              Auth.apiFetch('/api/pages/create', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ slug: slug, name: name })
-              }).then(function(res) {
-                return res.json();
-              }).then(function(data) {
-                if (data.error) {
-                  Components.showToast(data.error, 'error');
-                  if (editWindow) editWindow.close();
-                  return;
-                }
-                Components.showToast('Page "' + (data.name || slug) + '" creee', 'success');
-                if (editWindow) {
-                  editWindow.location.href = '/editor.html?slug=' + encodeURIComponent(slug);
-                }
-                loadPages();
-              }).catch(function(err) {
-                Components.showToast('Erreur: ' + err.message, 'error');
-                if (editWindow) editWindow.close();
-              });
-            } catch (e) {
-              alert('Erreur: ' + e.message);
-            }
-          });
+          btn.addEventListener('click', showCreateModal);
         }
-        loadPages();
+        loadFolderMap().then(loadPages);
       });
     })();
   </script>
