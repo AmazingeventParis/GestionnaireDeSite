@@ -202,9 +202,16 @@ router.get('/', verifyToken, async (req, res) => {
         new Date(s.lastModified) > new Date(max) ? s.lastModified : max,
         sections[0]?.lastModified || new Date().toISOString()
       );
+      // Read urlPath from seo
+      let homeSeo = {};
+      const homeSeoPath = path.join(PREVIEWS_DIR, 'seo-home.json');
+      if (fs.existsSync(homeSeoPath)) {
+        try { homeSeo = JSON.parse(fs.readFileSync(homeSeoPath, 'utf-8')); } catch(e) {}
+      }
       pages.push({
         slug: 'home',
         name: 'Accueil',
+        urlPath: '/',
         sections: sections.map(s => s.name),
         lastModified: latestModified,
         status: getPageStatus(PREVIEWS_DIR, PUBLIC_DIR)
@@ -228,9 +235,17 @@ router.get('/', verifyToken, async (req, res) => {
         sections[0]?.lastModified || new Date().toISOString()
       );
 
+      // Read urlPath from seo.json
+      let pageSeo = {};
+      const pageSeoPath = path.join(previewDir, 'seo.json');
+      if (fs.existsSync(pageSeoPath)) {
+        try { pageSeo = JSON.parse(fs.readFileSync(pageSeoPath, 'utf-8')); } catch(e) {}
+      }
+
       pages.push({
         slug,
-        name: slug.replace(/-/g, ' ').replace(/^\w/, c => c.toUpperCase()),
+        name: pageSeo.title || slug.replace(/-/g, ' ').replace(/^\w/, c => c.toUpperCase()),
+        urlPath: pageSeo.urlPath || '/' + slug,
         sections: sections.map(s => s.name),
         lastModified: latestModified,
         status: getPageStatus(previewDir, getPublicDir(slug))
@@ -251,7 +266,7 @@ router.get('/', verifyToken, async (req, res) => {
  */
 router.post('/create', verifyToken, requireRole('admin'), async (req, res) => {
   try {
-    const { slug, name } = req.body;
+    const { slug, name, urlPath } = req.body;
     if (!slug || !slug.match(/^[a-z0-9-]+$/)) {
       return res.status(400).json({ error: 'Slug invalide (lettres minuscules, chiffres et tirets uniquement)' });
     }
@@ -300,8 +315,11 @@ router.post('/create', verifyToken, requireRole('admin'), async (req, res) => {
 `;
     fs.writeFileSync(path.join(pageDir, '01-hero.html'), heroHtml, 'utf-8');
 
-    // Create default SEO
+    // Create default SEO (with optional custom URL path)
     const seoData = { title: pageName, description: '', ogTitle: '', ogDescription: '' };
+    if (urlPath) {
+      seoData.urlPath = urlPath.replace(/^\/+|\/+$/g, '').toLowerCase();
+    }
     fs.writeFileSync(path.join(pageDir, 'seo.json'), JSON.stringify(seoData, null, 2), 'utf-8');
 
     await logAudit({
@@ -624,6 +642,123 @@ router.post('/:slug/rename', verifyToken, requireRole('admin'), async (req, res)
   } catch (err) {
     console.error('[Pages] Rename error:', err.message);
     res.status(500).json({ error: 'Erreur lors du renommage: ' + err.message });
+  }
+});
+
+/**
+ * POST /:slug/url — Change the public URL path of a page
+ * Body: { urlPath: "location-photobooth/paris" }
+ * Creates 301 redirect from old URL to new URL
+ * RBAC: admin only
+ */
+router.post('/:slug/url', verifyToken, requireRole('admin'), async (req, res) => {
+  try {
+    const slug = req.params.slug.replace(/[^a-z0-9-]/gi, '');
+    let { urlPath } = req.body;
+
+    if (!urlPath || typeof urlPath !== 'string') {
+      return res.status(400).json({ error: 'urlPath requis' });
+    }
+
+    // Normalize: remove leading/trailing slashes, validate chars
+    urlPath = urlPath.replace(/^\/+|\/+$/g, '').toLowerCase();
+    if (!urlPath.match(/^[a-z0-9][a-z0-9\/-]*[a-z0-9]$/) && urlPath.length > 1) {
+      return res.status(400).json({ error: 'URL invalide (lettres minuscules, chiffres, tirets et slashes)' });
+    }
+
+    const previewDir = slug === 'home' ? PREVIEWS_DIR : path.join(PREVIEWS_DIR, slug);
+    if (!fs.existsSync(previewDir)) {
+      return res.status(404).json({ error: 'Page non trouvee' });
+    }
+
+    // Read current seo.json
+    const seoPath = slug === 'home'
+      ? path.join(PREVIEWS_DIR, 'seo-home.json')
+      : path.join(previewDir, 'seo.json');
+
+    let seo = {};
+    if (fs.existsSync(seoPath)) {
+      try { seo = JSON.parse(fs.readFileSync(seoPath, 'utf-8')); } catch(e) {}
+    }
+
+    const oldUrlPath = seo.urlPath || (slug === 'home' ? '' : slug);
+    seo.urlPath = urlPath;
+    fs.writeFileSync(seoPath, JSON.stringify(seo, null, 2), 'utf-8');
+
+    // Create 301 redirect if URL changed
+    if (oldUrlPath && oldUrlPath !== urlPath) {
+      try {
+        const supabase = require('../lib/supabase');
+        const oldPath = '/' + oldUrlPath + '/';
+        const newPath = '/' + urlPath + '/';
+
+        const { data: existing } = await supabase
+          .from('site_manager_redirections')
+          .select('id')
+          .eq('source_path', oldPath)
+          .single();
+
+        if (existing) {
+          await supabase
+            .from('site_manager_redirections')
+            .update({ target_path: newPath, status_code: 301, is_active: true })
+            .eq('id', existing.id);
+        } else {
+          await supabase
+            .from('site_manager_redirections')
+            .insert({
+              source_path: oldPath,
+              target_path: newPath,
+              status_code: 301,
+              is_active: true,
+              hit_count: 0,
+              created_by: req.user.id
+            });
+        }
+      } catch (dbErr) {
+        console.error('[Pages] URL redirect warning:', dbErr.message);
+      }
+    }
+
+    // Update build.js if page has an entry there
+    const buildPath = path.join(__dirname, '..', 'scripts', 'build.js');
+    if (fs.existsSync(buildPath) && oldUrlPath !== urlPath) {
+      let buildContent = fs.readFileSync(buildPath, 'utf-8');
+      // Update output path
+      if (oldUrlPath && oldUrlPath !== 'home') {
+        const oldOutput = `public/site/${oldUrlPath.replace(/\//g, '/')}/`;
+        const newOutput = `public/site/${urlPath}/`;
+        buildContent = buildContent.replace(
+          new RegExp(oldOutput.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'),
+          newOutput
+        );
+        // Update ogUrl
+        buildContent = buildContent.replace(
+          new RegExp(`/${oldUrlPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/`, 'g'),
+          `/${urlPath}/`
+        );
+      }
+      fs.writeFileSync(buildPath, buildContent, 'utf-8');
+    }
+
+    await logAudit({
+      userId: req.user.id,
+      action: 'page_url_change',
+      entityType: 'page',
+      entityId: slug,
+      details: { oldUrlPath: '/' + oldUrlPath, newUrlPath: '/' + urlPath },
+      ip: getClientIp(req),
+      userAgent: req.headers['user-agent']
+    });
+
+    res.json({
+      success: true,
+      urlPath: '/' + urlPath,
+      redirect301: oldUrlPath !== urlPath && !!oldUrlPath
+    });
+  } catch (err) {
+    console.error('[Pages] URL change error:', err.message);
+    res.status(500).json({ error: 'Erreur lors du changement d\'URL' });
   }
 });
 

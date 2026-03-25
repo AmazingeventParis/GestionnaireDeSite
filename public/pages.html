@@ -482,7 +482,8 @@
           html += '<h3 class="page-card-name">' + Components.escapeHtml(page.name);
           html += '<span class="page-card-folder">' + Components.escapeHtml(folder) + '</span>';
           html += '</h3>';
-          html += '<div class="page-card-slug">' + Components.escapeHtml(urlPath) + '</div>';
+          var displayUrl = page.urlPath || urlPath;
+          html += '<div class="page-card-slug">' + Components.escapeHtml(displayUrl) + '/</div>';
           html += '</div>';
           html += getStatusBadge(page.status);
           html += '</div>';
@@ -538,6 +539,9 @@
             html += '<button type="button" class="page-card-btn page-card-btn-copy" title="Copier le contenu" data-copy-slug="' + Components.escapeHtml(page.slug) + '">';
             html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>';
             html += ' Copier</button>';
+            html += '<button type="button" class="page-card-btn page-card-btn-code" title="Changer l\'URL" data-url-slug="' + Components.escapeHtml(page.slug) + '" data-url-path="' + Components.escapeHtml(page.urlPath || urlPath) + '">';
+            html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>';
+            html += ' URL</button>';
             html += '<button type="button" class="page-card-btn page-card-btn-folder" title="Changer de dossier" data-folder-slug="' + Components.escapeHtml(page.slug) + '">';
             html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>';
             html += ' Dossier</button>';
@@ -664,6 +668,58 @@
         });
       }
 
+      function handleChangeUrl(slug, currentUrl) {
+        var overlay = document.createElement('div');
+        overlay.className = 'import-modal-overlay';
+        var html = '<h3>Changer l\'URL</h3>';
+        html += '<p>Page : <strong>' + Components.escapeHtml(slug) + '</strong></p>';
+        html += '<div class="create-modal-field"><label>URL publique (sans domaine, sans / initial)</label>';
+        html += '<input type="text" id="url-input" value="' + Components.escapeHtml(currentUrl.replace(/^\//, '')) + '" placeholder="ex: location-photobooth/paris"></div>';
+        html += '<p style="color:#484f58;font-size:12px;margin:8px 0 16px;">Resultat : <span id="url-preview" style="color:#58a6ff;">/' + Components.escapeHtml(currentUrl.replace(/^\//, '')) + '/</span></p>';
+        html += '<p style="color:#d29922;font-size:12px;margin:0 0 16px;">Une redirection 301 sera creee depuis l\'ancienne URL.</p>';
+        html += '<div class="create-modal-actions">';
+        html += '<button type="button" class="btn-create-cancel">Annuler</button>';
+        html += '<button type="button" class="btn-create-confirm">Enregistrer</button>';
+        html += '</div>';
+        var modal = document.createElement('div');
+        modal.className = 'import-modal';
+        modal.innerHTML = html;
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        var input = modal.querySelector('#url-input');
+        var preview = modal.querySelector('#url-preview');
+        input.addEventListener('input', function() {
+          var val = input.value.replace(/^\/+|\/+$/g, '').toLowerCase();
+          preview.textContent = '/' + val + '/';
+        });
+        setTimeout(function() { input.focus(); input.select(); }, 50);
+
+        function close() { overlay.remove(); }
+        overlay.addEventListener('click', function(e) { if (e.target === overlay) close(); });
+        modal.querySelector('.btn-create-cancel').addEventListener('click', close);
+        modal.querySelector('.btn-create-confirm').addEventListener('click', function() {
+          var val = input.value.replace(/^\/+|\/+$/g, '').toLowerCase();
+          if (!val) { Components.showToast('URL requise', 'error'); return; }
+          close();
+          Auth.apiFetch('/api/pages/' + encodeURIComponent(slug) + '/url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ urlPath: val })
+          }).then(function(r) { return r.json(); })
+            .then(function(data) {
+              if (data.error) { Components.showToast(data.error, 'error'); return; }
+              var msg = 'URL changee en ' + data.urlPath;
+              if (data.redirect301) msg += ' (redirection 301 creee)';
+              Components.showToast(msg, 'success');
+              loadPages();
+            }).catch(function(err) { Components.showToast('Erreur: ' + err.message, 'error'); });
+        });
+        input.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') modal.querySelector('.btn-create-confirm').click();
+        });
+      }
+
       function handleChangeFolder(slug) {
         var current = getPageFolder(slug);
         var overlay = document.createElement('div');
@@ -783,6 +839,10 @@
           html += '<option value="' + FOLDERS[i] + '">' + Components.escapeHtml(FOLDERS[i]) + '</option>';
         }
         html += '</select></div>';
+        html += '<div class="create-modal-field"><label>URL publique (auto-generee, modifiable)</label>';
+        html += '<input type="text" id="create-page-url" placeholder="sera genere automatiquement">';
+        html += '<p style="color:#484f58;font-size:11px;margin:4px 0 0;">Resultat : <span id="create-url-preview" style="color:#58a6ff;">/...</span></p>';
+        html += '</div>';
         html += '<div class="create-modal-actions">';
         html += '<button type="button" class="btn-create-cancel">Annuler</button>';
         html += '<button type="button" class="btn-create-confirm">Creer</button>';
@@ -797,23 +857,55 @@
         overlay.addEventListener('click', function(e) { if (e.target === overlay) close(); });
         modal.querySelector('.btn-create-cancel').addEventListener('click', close);
 
-        // Auto-focus
-        setTimeout(function() { modal.querySelector('#create-page-name').focus(); }, 50);
+        var nameInput = modal.querySelector('#create-page-name');
+        var folderSelect = modal.querySelector('#create-page-folder');
+        var urlInput = modal.querySelector('#create-page-url');
+        var urlPreview = modal.querySelector('#create-url-preview');
+        var urlManuallyEdited = false;
 
-        modal.querySelector('.btn-create-confirm').addEventListener('click', function() {
-          var name = modal.querySelector('#create-page-name').value.trim();
-          var folder = modal.querySelector('#create-page-folder').value;
-          if (!name) { Components.showToast('Le nom est requis', 'error'); return; }
-          var slug = name.toLowerCase()
+        function slugify(str) {
+          return str.toLowerCase()
             .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
             .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        }
+
+        function updateUrlSuggestion() {
+          if (urlManuallyEdited) {
+            urlPreview.textContent = '/' + urlInput.value.replace(/^\/+|\/+$/g, '') + '/';
+            return;
+          }
+          var s = slugify(nameInput.value);
+          var folder = folderSelect.value;
+          var url = s;
+          if (folder === 'Villes' && s) {
+            url = 'location-photobooth/' + s;
+          }
+          urlInput.value = url;
+          urlPreview.textContent = url ? '/' + url + '/' : '/...';
+        }
+
+        nameInput.addEventListener('input', updateUrlSuggestion);
+        folderSelect.addEventListener('change', function() { urlManuallyEdited = false; updateUrlSuggestion(); });
+        urlInput.addEventListener('input', function() {
+          urlManuallyEdited = true;
+          urlPreview.textContent = '/' + urlInput.value.replace(/^\/+|\/+$/g, '') + '/';
+        });
+
+        setTimeout(function() { nameInput.focus(); }, 50);
+
+        modal.querySelector('.btn-create-confirm').addEventListener('click', function() {
+          var name = nameInput.value.trim();
+          var folder = folderSelect.value;
+          var customUrl = urlInput.value.replace(/^\/+|\/+$/g, '').toLowerCase();
+          if (!name) { Components.showToast('Le nom est requis', 'error'); return; }
+          var slug = slugify(name);
           if (!slug) { Components.showToast('Slug invalide', 'error'); return; }
           close();
           var editWindow = window.open('about:blank', '_blank');
           Auth.apiFetch('/api/pages/create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ slug: slug, name: name })
+            body: JSON.stringify({ slug: slug, name: name, urlPath: customUrl || slug })
           }).then(function(res) { return res.json(); })
             .then(function(data) {
               if (data.error) {
@@ -850,6 +942,8 @@
         if (renameBtn) { handleRename(renameBtn.getAttribute('data-rename-slug'), renameBtn.getAttribute('data-rename-name')); return; }
         var importBtn = e.target.closest('[data-import-slug]');
         if (importBtn) { handleImport(importBtn.getAttribute('data-import-slug')); return; }
+        var urlBtn = e.target.closest('[data-url-slug]');
+        if (urlBtn) { handleChangeUrl(urlBtn.getAttribute('data-url-slug'), urlBtn.getAttribute('data-url-path')); return; }
         var folderBtn = e.target.closest('[data-folder-slug]');
         if (folderBtn) { handleChangeFolder(folderBtn.getAttribute('data-folder-slug')); return; }
       });
