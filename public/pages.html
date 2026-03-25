@@ -345,10 +345,10 @@
           html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
           html += ' Redir</a>';
           if (currentUser && currentUser.role === 'admin') {
-            html += '<button type="button" class="page-card-btn page-card-btn-dup" title="Dupliquer" onclick="window.__duplicatePage(\'' + Components.escapeHtml(page.slug) + '\',\'' + Components.escapeHtml(page.name) + '\')">';
+            html += '<button type="button" class="page-card-btn page-card-btn-dup" title="Dupliquer" data-dup-slug="' + Components.escapeHtml(page.slug) + '" data-dup-name="' + Components.escapeHtml(page.name) + '">';
             html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
             html += ' Dupliquer</button>';
-            html += '<button type="button" class="page-card-btn page-card-btn-copy" title="Copier le contenu" onclick="window.__copyPageContent(\'' + Components.escapeHtml(page.slug) + '\')">';
+            html += '<button type="button" class="page-card-btn page-card-btn-copy" title="Copier le contenu" data-copy-slug="' + Components.escapeHtml(page.slug) + '">';
             html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>';
             html += ' Copier</button>';
           }
@@ -376,36 +376,7 @@
         }
       }
 
-      window.__copyPageContent = function(slug) {
-        Auth.apiFetch('/api/pages/' + encodeURIComponent(slug) + '/content')
-          .then(function(res) { return res.json(); })
-          .then(function(data) {
-            if (data.error) {
-              Components.showToast(data.error, 'error');
-              return;
-            }
-            var blocks = data.blocks || [];
-            if (blocks.length === 0) {
-              Components.showToast('Aucun contenu a copier', 'warning');
-              return;
-            }
-            // Assemble: each block separated by a comment with filename + spacing info
-            var assembled = '';
-            for (var i = 0; i < blocks.length; i++) {
-              var b = blocks[i];
-              var spacingInfo = b.spacing ? ' (spacing: ' + b.spacing + 'px)' : '';
-              assembled += '<!-- ===== ' + b.file + spacingInfo + ' ===== -->\n';
-              assembled += b.html.trim() + '\n\n';
-            }
-            return navigator.clipboard.writeText(assembled.trim()).then(function() {
-              Components.showToast(blocks.length + ' bloc(s) copie(s) dans le presse-papier', 'success');
-            });
-          }).catch(function(err) {
-            Components.showToast('Erreur: ' + err.message, 'error');
-          });
-      };
-
-      window.__duplicatePage = function(slug, name) {
+      function handleDuplicate(slug, name) {
         var newName = prompt('Nom de la copie :', name + ' (copie)');
         if (!newName) return;
         var newSlug = newName.toLowerCase()
@@ -431,7 +402,49 @@
         }).catch(function(err) {
           Components.showToast('Erreur: ' + err.message, 'error');
         });
-      };
+      }
+
+      function handleCopyContent(slug) {
+        Auth.apiFetch('/api/pages/' + encodeURIComponent(slug) + '/content')
+          .then(function(res) { return res.json(); })
+          .then(function(data) {
+            if (data.error) {
+              Components.showToast(data.error, 'error');
+              return;
+            }
+            var blocks = data.blocks || [];
+            if (blocks.length === 0) {
+              Components.showToast('Aucun contenu a copier', 'warning');
+              return;
+            }
+            var assembled = '';
+            for (var i = 0; i < blocks.length; i++) {
+              var b = blocks[i];
+              var spacingInfo = b.spacing ? ' (spacing: ' + b.spacing + 'px)' : '';
+              assembled += '<!-- ===== ' + b.file + spacingInfo + ' ===== -->\n';
+              assembled += b.html.trim() + '\n\n';
+            }
+            return navigator.clipboard.writeText(assembled.trim()).then(function() {
+              Components.showToast(blocks.length + ' bloc(s) copie(s) dans le presse-papier', 'success');
+            });
+          }).catch(function(err) {
+            Components.showToast('Erreur: ' + err.message, 'error');
+          });
+      }
+
+      // Delegated click handler for duplicate/copy buttons
+      document.getElementById('pages-grid').addEventListener('click', function(e) {
+        var dupBtn = e.target.closest('[data-dup-slug]');
+        if (dupBtn) {
+          handleDuplicate(dupBtn.getAttribute('data-dup-slug'), dupBtn.getAttribute('data-dup-name'));
+          return;
+        }
+        var copyBtn = e.target.closest('[data-copy-slug]');
+        if (copyBtn) {
+          handleCopyContent(copyBtn.getAttribute('data-copy-slug'));
+          return;
+        }
+      });
 
       // Init
       Components.initPage().then(function(user) {
