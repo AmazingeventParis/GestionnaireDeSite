@@ -223,6 +223,56 @@
       background: #f8514922;
       text-decoration: none;
     }
+    .page-card-btn-import {
+      background: #21262d;
+      color: #79c0ff;
+      border: 1px solid #79c0ff44;
+    }
+    .page-card-btn-import:hover {
+      background: #79c0ff22;
+      text-decoration: none;
+    }
+    .import-modal-overlay {
+      position: fixed; top:0; left:0; right:0; bottom:0;
+      background: rgba(0,0,0,0.6); z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .import-modal {
+      background: #161b22; border: 1px solid #30363d; border-radius: 12px;
+      padding: 24px; width: 420px; max-width: 90vw; max-height: 80vh;
+    }
+    .import-modal h3 { color: #e6edf3; margin: 0 0 8px; font-size: 18px; }
+    .import-modal p { color: #8b949e; font-size: 13px; margin: 0 0 16px; }
+    .import-page-list {
+      max-height: 300px; overflow-y: auto; margin-bottom: 16px;
+    }
+    .import-page-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 12px; border: 1px solid #30363d; border-radius: 6px;
+      margin-bottom: 6px; cursor: pointer; transition: all 0.15s;
+    }
+    .import-page-item:hover {
+      border-color: #58a6ff; background: #58a6ff11;
+    }
+    .import-page-item-name { color: #e6edf3; font-size: 14px; font-weight: 500; }
+    .import-page-item-info { color: #8b949e; font-size: 12px; }
+    .import-mode-toggle {
+      display: flex; gap: 8px; margin-bottom: 16px;
+    }
+    .import-mode-btn {
+      flex: 1; padding: 8px; border: 1px solid #30363d; border-radius: 6px;
+      background: #21262d; color: #8b949e; cursor: pointer; font-size: 12px;
+      text-align: center; transition: all 0.15s;
+    }
+    .import-mode-btn.active {
+      border-color: #58a6ff; color: #58a6ff; background: #58a6ff11;
+    }
+    .import-modal-close {
+      background: #21262d; color: #8b949e; border: 1px solid #30363d;
+      padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px;
+      width: 100%; margin-top: 4px;
+    }
+    .import-modal-close:hover { background: #30363d; color: #e6edf3; }
     @media (max-width: 768px) {
       .pages-header {
         flex-direction: column;
@@ -354,6 +404,9 @@
           html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
           html += ' Redir</a>';
           if (currentUser && currentUser.role === 'admin') {
+            html += '<button type="button" class="page-card-btn page-card-btn-import" title="Importer le contenu d\'une autre page" data-import-slug="' + Components.escapeHtml(page.slug) + '">';
+            html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+            html += ' Importer</button>';
             html += '<button type="button" class="page-card-btn page-card-btn-dup" title="Dupliquer" data-dup-slug="' + Components.escapeHtml(page.slug) + '" data-dup-name="' + Components.escapeHtml(page.name) + '">';
             html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
             html += ' Dupliquer</button>';
@@ -466,7 +519,101 @@
         });
       }
 
-      // Delegated click handler for duplicate/copy/delete buttons
+      var cachedPages = [];
+
+      function handleImport(targetSlug) {
+        // Fetch all pages to show selection
+        var pagesPromise = cachedPages.length > 0
+          ? Promise.resolve(cachedPages)
+          : Auth.apiFetch('/api/pages').then(function(r) { return r.json(); }).then(function(d) {
+              cachedPages = d.pages || [];
+              return cachedPages;
+            });
+
+        pagesPromise.then(function(pages) {
+          var sources = pages.filter(function(p) { return p.slug !== targetSlug; });
+          if (sources.length === 0) {
+            Components.showToast('Aucune autre page disponible', 'warning');
+            return;
+          }
+
+          // Build modal
+          var overlay = document.createElement('div');
+          overlay.className = 'import-modal-overlay';
+          var replaceMode = true;
+
+          var modalHtml = '<h3>Importer le contenu</h3>';
+          modalHtml += '<p>Choisissez la page source et le mode d\'import dans <strong>' + Components.escapeHtml(targetSlug) + '</strong></p>';
+          modalHtml += '<div class="import-mode-toggle">';
+          modalHtml += '<button type="button" class="import-mode-btn active" data-mode="replace">Remplacer le contenu</button>';
+          modalHtml += '<button type="button" class="import-mode-btn" data-mode="append">Ajouter a la suite</button>';
+          modalHtml += '</div>';
+          modalHtml += '<div class="import-page-list">';
+          for (var i = 0; i < sources.length; i++) {
+            var s = sources[i];
+            var secCount = s.sections ? s.sections.length : 0;
+            modalHtml += '<div class="import-page-item" data-source="' + Components.escapeHtml(s.slug) + '">';
+            modalHtml += '<span class="import-page-item-name">' + Components.escapeHtml(s.name) + '</span>';
+            modalHtml += '<span class="import-page-item-info">' + secCount + ' sections</span>';
+            modalHtml += '</div>';
+          }
+          modalHtml += '</div>';
+          modalHtml += '<button type="button" class="import-modal-close">Annuler</button>';
+
+          var modal = document.createElement('div');
+          modal.className = 'import-modal';
+          modal.innerHTML = modalHtml;
+          overlay.appendChild(modal);
+          document.body.appendChild(overlay);
+
+          // Mode toggle
+          modal.querySelectorAll('.import-mode-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+              modal.querySelectorAll('.import-mode-btn').forEach(function(b) { b.classList.remove('active'); });
+              btn.classList.add('active');
+              replaceMode = btn.getAttribute('data-mode') === 'replace';
+            });
+          });
+
+          // Close
+          function closeModal() { overlay.remove(); }
+          overlay.addEventListener('click', function(e) { if (e.target === overlay) closeModal(); });
+          modal.querySelector('.import-modal-close').addEventListener('click', closeModal);
+
+          // Select source page
+          modal.querySelectorAll('.import-page-item').forEach(function(item) {
+            item.addEventListener('click', function() {
+              var sourceSlug = item.getAttribute('data-source');
+              var sourceName = item.querySelector('.import-page-item-name').textContent;
+              var action = replaceMode ? 'Remplacer' : 'Ajouter';
+              var msg = action + ' le contenu de "' + targetSlug + '" avec celui de "' + sourceName + '" ?';
+              closeModal();
+              Components.showConfirm(msg).then(function(confirmed) {
+                if (!confirmed) return;
+                Auth.apiFetch('/api/pages/' + encodeURIComponent(targetSlug) + '/import-content', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ sourceSlug: sourceSlug, replace: replaceMode })
+                }).then(function(r) { return r.json(); })
+                  .then(function(data) {
+                    if (data.error) {
+                      Components.showToast(data.error, 'error');
+                      return;
+                    }
+                    Components.showToast(data.count + ' section(s) importee(s) depuis "' + sourceName + '"', 'success');
+                    loadPages();
+                  }).catch(function(err) {
+                    Components.showToast('Erreur: ' + err.message, 'error');
+                  });
+              });
+            });
+          });
+        }).catch(function(err) {
+          Components.showToast('Erreur: ' + err.message, 'error');
+        });
+      }
+
+      // Delegated click handler for duplicate/copy/delete/import buttons
       document.getElementById('pages-grid').addEventListener('click', function(e) {
         var dupBtn = e.target.closest('[data-dup-slug]');
         if (dupBtn) {
@@ -481,6 +628,11 @@
         var delBtn = e.target.closest('[data-del-slug]');
         if (delBtn) {
           handleDelete(delBtn.getAttribute('data-del-slug'), delBtn.getAttribute('data-del-name'));
+          return;
+        }
+        var importBtn = e.target.closest('[data-import-slug]');
+        if (importBtn) {
+          handleImport(importBtn.getAttribute('data-import-slug'));
           return;
         }
       });

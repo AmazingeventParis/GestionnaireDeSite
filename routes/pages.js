@@ -405,6 +405,114 @@ router.delete('/:slug', verifyToken, requireRole('admin'), async (req, res) => {
 });
 
 /**
+ * POST /:slug/import-content — Import all sections from a source page into target page
+ * Body: { sourceSlug, replace: true|false }
+ * replace=true removes existing sections first, replace=false appends after existing ones
+ * RBAC: admin only
+ */
+router.post('/:slug/import-content', verifyToken, requireRole('admin'), async (req, res) => {
+  try {
+    const targetSlug = req.params.slug.replace(/[^a-z0-9-]/gi, '');
+    const { sourceSlug, replace } = req.body;
+
+    if (!sourceSlug) {
+      return res.status(400).json({ error: 'sourceSlug requis' });
+    }
+
+    const sourceDir = path.join(PREVIEWS_DIR, sourceSlug.replace(/[^a-z0-9-]/gi, ''));
+    const targetDir = path.join(PREVIEWS_DIR, targetSlug);
+
+    if (!fs.existsSync(sourceDir)) {
+      return res.status(404).json({ error: 'Page source introuvable' });
+    }
+    if (!fs.existsSync(targetDir)) {
+      return res.status(404).json({ error: 'Page cible introuvable' });
+    }
+
+    // Get source sections (exclude header/footer)
+    const sourceSections = scanSections(sourceDir).filter(s => {
+      const n = s.file.toLowerCase();
+      return !n.includes('header') && !n.includes('footer');
+    });
+
+    if (sourceSections.length === 0) {
+      return res.status(400).json({ error: 'La page source n\'a aucune section a importer' });
+    }
+
+    // If replace mode, remove existing HTML sections from target
+    if (replace) {
+      const existingFiles = fs.readdirSync(targetDir).filter(f => f.endsWith('.html'));
+      for (const f of existingFiles) {
+        fs.unlinkSync(path.join(targetDir, f));
+      }
+    }
+
+    // Determine starting number for new sections
+    let startNum = 1;
+    if (!replace) {
+      const existingFiles = fs.readdirSync(targetDir).filter(f => f.endsWith('.html'));
+      for (const f of existingFiles) {
+        const num = parseInt(f.match(/^(\d+)/)?.[1] || '0');
+        if (num >= startNum) startNum = num + 1;
+      }
+    }
+
+    // Copy each source section with renumbered filenames
+    const imported = [];
+    for (let i = 0; i < sourceSections.length; i++) {
+      const src = sourceSections[i];
+      const srcNum = parseInt(src.file.match(/^(\d+)/)?.[1] || '0');
+      const suffix = src.file.replace(/^\d+-?/, '');
+      const newNum = String((startNum + i) * 10).padStart(2, '0');
+      const newFile = newNum + '-' + suffix;
+
+      fs.copyFileSync(path.join(sourceDir, src.file), path.join(targetDir, newFile));
+      imported.push(newFile);
+    }
+
+    // Copy spacing data
+    const sourceSpacingPath = path.join(sourceDir, '.spacing.json');
+    if (fs.existsSync(sourceSpacingPath)) {
+      let sourceSpacing = {};
+      try { sourceSpacing = JSON.parse(fs.readFileSync(sourceSpacingPath, 'utf-8')); } catch(e) {}
+
+      let targetSpacing = {};
+      const targetSpacingPath = path.join(targetDir, '.spacing.json');
+      if (!replace && fs.existsSync(targetSpacingPath)) {
+        try { targetSpacing = JSON.parse(fs.readFileSync(targetSpacingPath, 'utf-8')); } catch(e) {}
+      }
+
+      // Map source spacing to new filenames
+      for (let i = 0; i < sourceSections.length; i++) {
+        const oldFile = sourceSections[i].file;
+        if (sourceSpacing[oldFile]) {
+          const suffix = oldFile.replace(/^\d+-?/, '');
+          const newNum = String((startNum + i) * 10).padStart(2, '0');
+          targetSpacing[newNum + '-' + suffix] = sourceSpacing[oldFile];
+        }
+      }
+
+      fs.writeFileSync(path.join(targetDir, '.spacing.json'), JSON.stringify(targetSpacing, null, 2), 'utf-8');
+    }
+
+    await logAudit({
+      userId: req.user.id,
+      action: 'page_import_content',
+      entityType: 'page',
+      entityId: targetSlug,
+      details: { source: sourceSlug, sections: imported, replace: !!replace },
+      ip: getClientIp(req),
+      userAgent: req.headers['user-agent']
+    });
+
+    res.json({ success: true, imported: imported, count: imported.length });
+  } catch (err) {
+    console.error('[Pages] Import content error:', err.message);
+    res.status(500).json({ error: 'Erreur lors de l\'import du contenu' });
+  }
+});
+
+/**
  * GET /:slug/content — Return assembled page content (all sections in order, no header/footer)
  */
 router.get('/:slug/content', verifyToken, async (req, res) => {
