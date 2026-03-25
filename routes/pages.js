@@ -186,6 +186,88 @@ router.put('/folders', verifyToken, requireRole('admin'), (req, res) => {
   res.json({ success: true });
 });
 
+/**
+ * POST /fix-villes-urls — Batch update all pages in the "Villes" folder
+ * Sets urlPath to location-photobooth/{slug} if not already set
+ */
+router.post('/fix-villes-urls', verifyToken, requireRole('admin'), async (req, res) => {
+  try {
+    const folders = readFolders();
+    const updated = [];
+
+    for (const [slug, folder] of Object.entries(folders)) {
+      if (folder !== 'Villes') continue;
+      const previewDir = path.join(PREVIEWS_DIR, slug);
+      if (!fs.existsSync(previewDir)) continue;
+
+      const seoPath = path.join(previewDir, 'seo.json');
+      let seo = {};
+      if (fs.existsSync(seoPath)) {
+        try { seo = JSON.parse(fs.readFileSync(seoPath, 'utf-8')); } catch(e) {}
+      }
+
+      // Extract city name from slug (remove common prefixes)
+      const city = slug
+        .replace(/^location-photobooth-/, '')
+        .replace(/^photobooth-/, '')
+        .replace(/^borne-photo-/, '');
+      const newUrlPath = 'location-photobooth/' + city;
+
+      if (seo.urlPath === newUrlPath) continue; // Already set
+
+      const oldUrlPath = seo.urlPath || slug;
+      seo.urlPath = newUrlPath;
+      fs.writeFileSync(seoPath, JSON.stringify(seo, null, 2), 'utf-8');
+
+      // Create 301 redirect from old URL
+      if (oldUrlPath !== newUrlPath) {
+        try {
+          const supabase = require('../lib/supabase');
+          const { data: existing } = await supabase
+            .from('site_manager_redirections')
+            .select('id')
+            .eq('source_path', '/' + oldUrlPath + '/')
+            .single();
+          if (existing) {
+            await supabase
+              .from('site_manager_redirections')
+              .update({ target_path: '/' + newUrlPath + '/', status_code: 301, is_active: true })
+              .eq('id', existing.id);
+          } else {
+            await supabase
+              .from('site_manager_redirections')
+              .insert({
+                source_path: '/' + oldUrlPath + '/',
+                target_path: '/' + newUrlPath + '/',
+                status_code: 301,
+                is_active: true,
+                hit_count: 0,
+                created_by: req.user.id
+              });
+          }
+        } catch(e) { console.error('[Pages] Redirect for', slug, e.message); }
+      }
+
+      updated.push({ slug, oldUrl: '/' + oldUrlPath + '/', newUrl: '/' + newUrlPath + '/' });
+    }
+
+    await logAudit({
+      userId: req.user.id,
+      action: 'batch_fix_villes_urls',
+      entityType: 'page',
+      entityId: 'villes',
+      details: { count: updated.length, updated },
+      ip: getClientIp(req),
+      userAgent: req.headers['user-agent']
+    });
+
+    res.json({ success: true, updated, count: updated.length });
+  } catch (err) {
+    console.error('[Pages] Fix villes URLs error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/', verifyToken, async (req, res) => {
   try {
     if (!fs.existsSync(PREVIEWS_DIR)) {
