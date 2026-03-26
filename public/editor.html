@@ -467,23 +467,27 @@
         btn.disabled = true;
         btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="animation:spin 1s linear infinite"><path d="M8 0a8 8 0 100 16A8 8 0 008 0zm0 14.5a6.5 6.5 0 110-13 6.5 6.5 0 010 13z" opacity=".3"/><path d="M8 0a8 8 0 018 8h-1.5A6.5 6.5 0 008 1.5V0z"/></svg><span class="btn-label">Sauvegarde...</span>';
 
-        // Tell iframe editor to save its text changes to server
         sendToIframe('save');
 
-        // Also save SEO data from the parent panel
         try {
           var response = await Auth.apiFetch('/api/pages/' + encodeURIComponent(currentSlug) + '/save', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ changes: [], seo: seo })
           });
+          var data = await response.json();
           if (!response.ok) {
-            var err = await response.json();
-            throw new Error(err.error || 'Erreur');
+            throw new Error(data.error || 'Erreur ' + response.status);
           }
           changes = [];
           updateChangesBadge();
-          Components.showToast('Brouillon sauvegarde', 'success');
+
+          // Guardian 1: Show SEO warnings from save response
+          if (data.seoWarnings && data.seoWarnings.length > 0) {
+            showSeoNotification('Sauvegarde OK — Warnings SEO detectes', data.seoWarnings, 'warning');
+          } else {
+            Components.showToast('Brouillon sauvegarde', 'success');
+          }
         } catch (err) {
           Components.showToast('Erreur: ' + err.message, 'error');
         } finally {
@@ -495,34 +499,105 @@
       /**
        * Publish page — save first, then rebuild and deploy.
        */
-      async function publishPage() {
-        if (!confirm('Publier cette page ? Les modifications seront visibles sur le site.')) return;
+      async function publishPage(forcePublish) {
+        if (!forcePublish && !confirm('Publier cette page ? Les modifications seront visibles sur le site.')) return;
 
-        // Save text changes first
         await saveChanges();
-
-        // Then tell iframe to publish (rebuild)
         sendToIframe('publish');
 
         var btn = document.getElementById('btn-publish');
         btn.disabled = true;
         btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="animation:spin 1s linear infinite"><path d="M8 0a8 8 0 100 16A8 8 0 008 0zm0 14.5a6.5 6.5 0 110-13 6.5 6.5 0 010 13z" opacity=".3"/><path d="M8 0a8 8 0 018 8h-1.5A6.5 6.5 0 008 1.5V0z"/></svg><span class="btn-label">Publication...</span>';
         try {
-          var response = await Auth.apiFetch('/api/pages/' + encodeURIComponent(currentSlug) + '/publish', {
+          var url = '/api/pages/' + encodeURIComponent(currentSlug) + '/publish' + (forcePublish ? '?force=true' : '');
+          var response = await Auth.apiFetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' }
           });
-          if (!response.ok) {
-            var err = await response.json();
-            throw new Error(err.error || 'Erreur');
+          var data = await response.json();
+
+          if (response.status === 409 && data.canForce) {
+            // Guardian 2: SEO errors block publish — show notification with force option
+            showSeoNotification(
+              'Publication bloquee — Erreurs SEO',
+              (data.publishErrors || []).concat(data.publishWarnings || []),
+              'error',
+              function() { publishPage(true); } // Force callback
+            );
+            return;
           }
-          Components.showToast('Page publiee avec succes', 'success');
+
+          if (!response.ok) {
+            // Build error or other server error — show detailed notification
+            var details = [];
+            if (data.details) details.push(typeof data.details === 'string' ? data.details : JSON.stringify(data.details));
+            if (data.buildOutput) details.push(data.buildOutput.slice(-500));
+            showSeoNotification(data.error || 'Erreur de publication', details.length ? details : [data.error || 'Erreur inconnue'], 'error');
+            return;
+          }
+
+          // Success — show warnings if any
+          var allWarnings = (data.publishWarnings || []).concat(data.buildWarnings || []);
+          if (allWarnings.length > 0) {
+            showSeoNotification('Page publiee — Warnings detectes', allWarnings, 'warning');
+          } else {
+            Components.showToast('Page publiee avec succes', 'success');
+          }
         } catch (err) {
-          Components.showToast('Erreur: ' + err.message, 'error');
+          Components.showToast('Erreur reseau: ' + err.message, 'error');
         } finally {
           btn.disabled = false;
           btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M1 7.775V2.75C1 1.784 1.784 1 2.75 1h5.025c.464 0 .91.184 1.238.513l6.25 6.25a1.75 1.75 0 010 2.474l-5.026 5.026a1.75 1.75 0 01-2.474 0l-6.25-6.25A1.752 1.752 0 011 7.775zM5 5a1 1 0 100-2 1 1 0 000 2z"/></svg><span class="btn-label">Publier</span>';
         }
+      }
+
+      // ==================== SEO Notification Modal ====================
+      function showSeoNotification(title, items, type, forceCallback) {
+        // Remove existing notification
+        var existing = document.getElementById('seo-notification');
+        if (existing) existing.remove();
+
+        var overlay = document.createElement('div');
+        overlay.id = 'seo-notification';
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px';
+
+        var borderColor = type === 'error' ? '#f85149' : type === 'warning' ? '#d29922' : '#3fb950';
+        var iconSvg = type === 'error'
+          ? '<svg width="24" height="24" viewBox="0 0 16 16" fill="#f85149"><path d="M2.343 13.657A8 8 0 1113.657 2.343 8 8 0 012.343 13.657zM6.03 4.97a.75.75 0 00-1.06 1.06L6.94 8 4.97 9.97a.75.75 0 101.06 1.06L8 9.06l1.97 1.97a.75.75 0 101.06-1.06L9.06 8l1.97-1.97a.75.75 0 10-1.06-1.06L8 6.94 6.03 4.97z"/></svg>'
+          : '<svg width="24" height="24" viewBox="0 0 16 16" fill="#d29922"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0114.082 15H1.918a1.75 1.75 0 01-1.543-2.575L6.457 1.047zM8 5a.75.75 0 00-.75.75v2.5a.75.75 0 001.5 0v-2.5A.75.75 0 008 5zm1 6a1 1 0 11-2 0 1 1 0 012 0z"/></svg>';
+
+        var html = '<div style="background:#161b22;border:2px solid ' + borderColor + ';border-radius:12px;max-width:600px;width:100%;max-height:80vh;overflow-y:auto">' +
+          '<div style="padding:20px 24px;border-bottom:1px solid #21262d;display:flex;align-items:center;gap:12px">' +
+          iconSvg +
+          '<h3 style="color:#e6edf3;font-size:16px;font-weight:600;margin:0;flex:1">' + title + '</h3>' +
+          '<button id="seo-notif-close" style="background:none;border:none;color:#8b949e;font-size:20px;cursor:pointer;padding:4px">&times;</button></div>' +
+          '<div style="padding:16px 24px">';
+
+        for (var i = 0; i < items.length; i++) {
+          var isError = items[i].toLowerCase && (items[i].toLowerCase().startsWith('critique') || items[i].toLowerCase().startsWith('aucun'));
+          var itemColor = isError ? '#f85149' : '#d29922';
+          var itemIcon = isError ? '&#10007;' : '&#9888;';
+          html += '<div style="display:flex;align-items:flex-start;gap:8px;padding:8px 12px;background:' + (isError ? '#f8514912' : '#d2992212') + ';border-radius:6px;margin-bottom:6px;border:1px solid #21262d">' +
+            '<span style="color:' + itemColor + ';font-weight:700;flex-shrink:0">' + itemIcon + '</span>' +
+            '<span style="color:#e6edf3;font-size:13px;line-height:1.5">' + items[i] + '</span></div>';
+        }
+
+        html += '</div><div style="padding:12px 24px 20px;display:flex;justify-content:flex-end;gap:8px;border-top:1px solid #21262d">';
+        if (forceCallback) {
+          html += '<button id="seo-notif-force" style="padding:8px 20px;background:#d29922;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Publier quand meme</button>';
+        }
+        html += '<button id="seo-notif-ok" style="padding:8px 20px;background:#21262d;color:#e6edf3;border:1px solid #30363d;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Corriger</button>';
+        html += '</div></div>';
+
+        overlay.innerHTML = html;
+        document.body.appendChild(overlay);
+
+        document.getElementById('seo-notif-close').addEventListener('click', function() { overlay.remove(); });
+        document.getElementById('seo-notif-ok').addEventListener('click', function() { overlay.remove(); });
+        if (forceCallback) {
+          document.getElementById('seo-notif-force').addEventListener('click', function() { overlay.remove(); forceCallback(); });
+        }
+        overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
       }
 
       // ==================== Event Listeners ====================

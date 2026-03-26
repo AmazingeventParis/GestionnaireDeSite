@@ -1088,9 +1088,24 @@
 
           var data = await res.json();
           if (!res.ok || data.error) {
+            if (data.details && Array.isArray(data.details)) {
+              throw new Error(data.details.join(', '));
+            }
             throw new Error(data.error || 'Erreur ' + res.status);
           }
-          Components.showToast('Modifications enregistrees', 'success');
+          // Show SEO warnings if any
+          if (data.seoWarnings && data.seoWarnings.length > 0) {
+            var warnHtml = '<div style="background:#d2992218;border:1px solid #d29922;border-radius:8px;padding:12px;margin-top:8px">' +
+              '<div style="color:#d29922;font-weight:700;font-size:12px;margin-bottom:8px">WARNINGS SEO</div>' +
+              data.seoWarnings.map(function(w) { return '<div style="color:#e6edf3;font-size:12px;padding:4px 0">&#9888; ' + w + '</div>'; }).join('') +
+              '</div>';
+            Components.showToast('Sauvegarde OK — ' + data.seoWarnings.length + ' warning(s) SEO', 'warning');
+            // Also display inline if audit tab exists
+            var auditList = document.getElementById('seo-checks-list');
+            if (auditList) auditList.innerHTML = warnHtml + auditList.innerHTML;
+          } else {
+            Components.showToast('Modifications enregistrees', 'success');
+          }
         } catch (err) {
           Components.showToast('Erreur : ' + err.message, 'error');
         } finally {

@@ -1172,7 +1172,8 @@ router.post('/:slug/save', verifyToken, requireRole('admin', 'editor'), async (r
       }
     }
 
-    // Save SEO data with validation (Point 8)
+    // Save SEO data with validation (Point 8) — Guardian 1: Save
+    const seoWarnings = [];
     if (seo) {
       const seoErrors = validateSeoData(seo);
       if (seoErrors.length > 0) {
@@ -1181,7 +1182,6 @@ router.post('/:slug/save', verifyToken, requireRole('admin', 'editor'), async (r
       const seoPath = slug === 'home'
         ? path.join(PREVIEWS_DIR, 'seo-home.json')
         : path.join(previewDir, 'seo.json');
-      // Preserve status and audit fields
       let existing = {};
       if (fs.existsSync(seoPath)) {
         try { existing = JSON.parse(fs.readFileSync(seoPath, 'utf-8')); } catch {}
@@ -1189,7 +1189,31 @@ router.post('/:slug/save', verifyToken, requireRole('admin', 'editor'), async (r
       const merged = { ...existing, ...seo, lastModifiedAt: new Date().toISOString() };
       if (req.user) merged.lastModifiedBy = req.user.username || req.user.email || 'admin';
       fs.writeFileSync(seoPath, JSON.stringify(merged, null, 2), 'utf-8');
+
+      // Guardian 1: Coherence checks after save
+      if (merged.title && merged.title.length > 60) seoWarnings.push(`Title trop long (${merged.title.length}/60 chars)`);
+      if (merged.title && merged.title.length < 20) seoWarnings.push(`Title trop court (${merged.title.length} chars)`);
+      if (merged.description && merged.description.length > 160) seoWarnings.push(`Description trop longue (${merged.description.length}/160 chars)`);
+      if (!merged.description || merged.description.length < 20) seoWarnings.push('Description SEO manquante ou trop courte');
+      if (!merged.ogTitle) seoWarnings.push('OG Title manquant');
+      if (!merged.ogDescription) seoWarnings.push('OG Description manquante');
+      if (!merged.ogImage) seoWarnings.push('OG Image manquante');
+      if (!merged.schemaType) seoWarnings.push('Type de schema JSON-LD non defini');
     }
+
+    // Guardian 1: Content checks
+    const htmlFiles = fs.readdirSync(previewDir).filter(f => f.endsWith('.html'));
+    let allContent = '';
+    for (const f of htmlFiles) allContent += fs.readFileSync(path.join(previewDir, f), 'utf-8');
+    const h1Count = (allContent.match(/<h1[\s>]/gi) || []).length;
+    if (h1Count === 0) seoWarnings.push('CRITIQUE : Aucun H1 dans la page — Google ne pourra pas identifier le sujet principal');
+    if (h1Count > 1) seoWarnings.push(`${h1Count} balises H1 detectees — il doit y en avoir exactement 1`);
+    const imgs = allContent.match(/<img\s[^>]*>/gi) || [];
+    const noAlt = imgs.filter(i => !i.includes('alt=')).length;
+    if (noAlt > 0) seoWarnings.push(`${noAlt} image(s) sans attribut alt`);
+    const textContent = allContent.replace(/<style[\s\S]*?<\/style>/gi, '').replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    const wordCount = textContent.split(/\s+/).filter(w => w.length > 1).length;
+    if (wordCount < 100) seoWarnings.push(`Contenu tres faible (${wordCount} mots) — risque de page "thin content"`);
 
     await logAudit({
       userId: req.user.id,
@@ -1204,7 +1228,7 @@ router.post('/:slug/save', verifyToken, requireRole('admin', 'editor'), async (r
       userAgent: req.headers['user-agent']
     });
 
-    res.json({ success: true, message: 'Page sauvegardee' });
+    res.json({ success: true, message: 'Page sauvegardee', seoWarnings });
   } catch (err) {
     console.error('[Pages] Save error:', err.message);
     res.status(500).json({ error: 'Erreur lors de la sauvegarde' });
@@ -1857,9 +1881,55 @@ router.post('/:slug/publish', verifyToken, requireRole('admin'), async (req, res
   try {
     const slug = req.params.slug.replace(/[^a-z0-9-]/gi, '');
     const previewDir = getPreviewDir(slug);
+    const forcePublish = req.query.force === 'true' || req.body.force === true;
 
     if (!fs.existsSync(previewDir)) {
       return res.status(404).json({ error: 'Page non trouvee' });
+    }
+
+    // ── Guardian 2: Pre-publish SEO audit ──
+    const seoPath = slug === 'home' ? path.join(PREVIEWS_DIR, 'seo-home.json') : path.join(previewDir, 'seo.json');
+    let seoData = {};
+    if (fs.existsSync(seoPath)) {
+      try { seoData = JSON.parse(fs.readFileSync(seoPath, 'utf-8')); } catch {}
+    }
+
+    const htmlFiles = fs.readdirSync(previewDir).filter(f => f.endsWith('.html'));
+    let allContent = '';
+    for (const f of htmlFiles) allContent += fs.readFileSync(path.join(previewDir, f), 'utf-8');
+
+    const publishErrors = [];
+    const publishWarnings = [];
+
+    // Critical errors (block publish unless forced)
+    const h1Count = (allContent.match(/<h1[\s>]/gi) || []).length;
+    if (h1Count === 0) publishErrors.push('Aucun H1 dans la page');
+    if (h1Count > 1) publishErrors.push(`${h1Count} balises H1 (1 seule autorisee)`);
+    if (!seoData.title || seoData.title.length < 10) publishErrors.push('Title SEO manquant ou trop court');
+    if (!seoData.description || seoData.description.length < 20) publishErrors.push('Meta description manquante ou trop courte');
+
+    // Warnings (shown but don't block)
+    if (seoData.title && seoData.title.length > 60) publishWarnings.push(`Title trop long (${seoData.title.length}/60)`);
+    if (seoData.description && seoData.description.length > 160) publishWarnings.push(`Description trop longue (${seoData.description.length}/160)`);
+    if (!seoData.ogTitle) publishWarnings.push('OG Title manquant');
+    if (!seoData.ogImage) publishWarnings.push('OG Image manquante');
+    if (!seoData.schemaType) publishWarnings.push('Schema JSON-LD non defini');
+    const imgs = allContent.match(/<img\s[^>]*>/gi) || [];
+    const noAlt = imgs.filter(i => !i.includes('alt=')).length;
+    if (noAlt > 0) publishWarnings.push(`${noAlt} image(s) sans alt`);
+    const textOnly = allContent.replace(/<style[\s\S]*?<\/style>/gi, '').replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    const wordCount = textOnly.split(/\s+/).filter(w => w.length > 1).length;
+    if (wordCount < 300) publishWarnings.push(`Contenu faible (${wordCount} mots, recommande 300+)`);
+
+    // Block if critical errors and not forced
+    if (publishErrors.length > 0 && !forcePublish) {
+      return res.status(409).json({
+        error: 'Publication bloquee — erreurs SEO critiques',
+        publishErrors,
+        publishWarnings,
+        message: 'Corrigez les erreurs ou utilisez "Publier quand meme" pour ignorer.',
+        canForce: true
+      });
     }
 
     // Run the build script
@@ -1868,30 +1938,51 @@ router.post('/:slug/publish', verifyToken, requireRole('admin'), async (req, res
       buildOutput = execSync(`node ${BUILD_SCRIPT}`, {
         cwd: path.join(__dirname, '..'),
         encoding: 'utf-8',
-        timeout: 30000
+        timeout: 60000
       });
     } catch (buildErr) {
       console.error('[Pages] Build error:', buildErr.message);
+      // Extract useful info from build output
+      const stderr = buildErr.stderr || '';
+      const stdout = buildErr.stdout || '';
+      const buildReport = (stdout + stderr).split('\n').filter(l => l.includes('ERROR') || l.includes('WARN') || l.includes('SCORE')).join('\n');
       return res.status(500).json({
-        error: 'Erreur lors du build',
-        details: buildErr.stderr || buildErr.message
+        error: 'Le build a echoue',
+        details: buildReport || buildErr.message,
+        buildOutput: (stdout + stderr).slice(-2000)
       });
     }
+
+    // Extract SEO score from build output
+    const scoreMatch = buildOutput.match(/SEO SCORE: (\d+)\/100/g) || [];
+    const buildWarnings = (buildOutput.match(/SEO WARN: .+/g) || []).map(w => w.replace('SEO WARN: ', ''));
 
     await logAudit({
       userId: req.user.id,
       action: 'page_publish',
       entityType: 'page',
       entityId: slug,
-      details: { buildOutput: buildOutput.slice(0, 500) },
+      details: {
+        forced: forcePublish,
+        errorsIgnored: publishErrors.length,
+        warningsCount: publishWarnings.length
+      },
       ip: getClientIp(req),
       userAgent: req.headers['user-agent']
     });
 
-    res.json({ success: true, message: 'Page publiee avec succes', buildOutput });
+    res.json({
+      success: true,
+      message: forcePublish && publishErrors.length ? 'Page publiee avec warnings ignores' : 'Page publiee avec succes',
+      publishErrors: forcePublish ? publishErrors : [],
+      publishWarnings,
+      buildWarnings,
+      seoScores: scoreMatch,
+      buildOutput: buildOutput.slice(-1500)
+    });
   } catch (err) {
     console.error('[Pages] Publish error:', err.message);
-    res.status(500).json({ error: 'Erreur lors de la publication' });
+    res.status(500).json({ error: 'Erreur lors de la publication: ' + err.message });
   }
 });
 
