@@ -525,7 +525,8 @@
           var publicPath = (page.urlPath || urlPath);
           if (!publicPath.startsWith('/')) publicPath = '/' + publicPath;
           if (!publicPath.endsWith('/')) publicPath += '/';
-          var publicUrl = (SITE_DOMAIN || '') + publicPath;
+          // Point to local built site (/site/slug/)
+          var publicUrl = page.slug === 'home' ? '/site/' : '/site' + publicPath;
           html += '<a href="' + publicUrl + '" target="_blank" class="btn-sm btn-view" title="URL publique : ' + Components.escapeHtml(publicUrl) + '" style="color:#3fb950;border-color:#16a34a44;">';
           html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
           html += 'Voir</a>';
