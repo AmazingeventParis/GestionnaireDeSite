@@ -387,9 +387,9 @@
             '<span class="blog-card-status ' + (a.status || 'draft') + '">' + (a.status === 'published' ? 'Publie' : 'Brouillon') + '</span>' +
           '</div>' +
           '<div class="blog-card-actions">' +
-            '<button class="btn btn-sm btn-secondary" onclick="editArticle(\'' + a.slug + '\')">Modifier</button>' +
+            '<button class="btn btn-sm btn-secondary blog-btn-edit" data-slug="' + a.slug + '">Modifier</button>' +
             '<a class="btn btn-sm btn-secondary" href="/api/pages/' + a.slug + '/preview" target="_blank">Preview</a>' +
-            '<button class="btn btn-sm btn-danger" onclick="deleteArticle(\'' + a.slug + '\')">Supprimer</button>' +
+            '<button class="btn btn-sm btn-danger blog-btn-delete" data-slug="' + a.slug + '">Supprimer</button>' +
           '</div>' +
         '</div>' +
       '</div>';
@@ -397,6 +397,14 @@
   }
 
   function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+  // Event delegation for blog card buttons
+  document.getElementById('blog-grid').addEventListener('click', function(e) {
+    var btn = e.target.closest('.blog-btn-edit');
+    if (btn) { e.preventDefault(); editArticle(btn.dataset.slug); return; }
+    var del = e.target.closest('.blog-btn-delete');
+    if (del) { e.preventDefault(); deleteArticle(del.dataset.slug); return; }
+  });
 
   // ── Modal ──
   window.openCreateModal = function() {
