@@ -1,0 +1,16 @@
+{
+  "title": "Shootnbox - Location Photobooth & Borne Photo Paris | Evenements",
+  "description": "Shootnbox, specialiste de la location de photobooth et borne photo a Paris et en Ile-de-France. Mariages, entreprises, soirees : des souvenirs inoubliables.",
+  "ogTitle": "Shootnbox - Location Photobooth & Borne Photo Paris",
+  "ogDescription": "Specialiste de la location de photobooth et borne photo a Paris. Mariages, entreprises, soirees.",
+  "ogImage": "/site-images/vegas-hero-group.webp",
+  "schemaType": "WebSite",
+  "noindex": false,
+  "status": "published",
+  "sitemap": {
+    "include": true,
+    "priority": "1.0",
+    "changefreq": "weekly"
+  },
+  "lastModifiedAt": "2026-03-26T12:00:00.000Z"
+}
