@@ -257,7 +257,7 @@ router.get('/:slug', verifyToken, (req, res) => {
  */
 router.post('/create', verifyToken, requireRole('admin'), async (req, res) => {
   try {
-    const { title, titleHTML, metaDescription, category, author, date, heroImage, heroAlt, tags, bodyHTML } = req.body;
+    const { title, titleHTML, metaDescription, category, author, date, scheduledTime, heroImage, heroAlt, tags, bodyHTML, status } = req.body;
 
     if (!title) return res.status(400).json({ error: 'Titre requis' });
 
@@ -277,11 +277,12 @@ router.post('/create', verifyToken, requireRole('admin'), async (req, res) => {
       author: author || 'mathilde',
       authorName: (AUTHORS[author] || AUTHORS.mathilde).name,
       date: date || new Date().toISOString().split('T')[0],
+      scheduledTime: scheduledTime || '',
       heroImage: heroImage || '',
       heroAlt: heroAlt || title,
       tags: tags || [],
       bodyHTML: bodyHTML || '',
-      status: 'draft',
+      status: status || 'draft',
       createdAt: new Date().toISOString()
     };
 
@@ -332,7 +333,7 @@ router.put('/:slug', verifyToken, requireRole('admin'), async (req, res) => {
     if (idx === -1) return res.status(404).json({ error: 'Article non trouv\u00e9' });
 
     const article = index.articles[idx];
-    const fields = ['title', 'titleHTML', 'metaDescription', 'category', 'author', 'date', 'heroImage', 'heroAlt', 'tags', 'bodyHTML', 'status'];
+    const fields = ['title', 'titleHTML', 'metaDescription', 'category', 'author', 'date', 'scheduledTime', 'heroImage', 'heroAlt', 'tags', 'bodyHTML', 'status'];
 
     for (const f of fields) {
       if (req.body[f] !== undefined) article[f] = req.body[f];

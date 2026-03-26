@@ -11,7 +11,6 @@
     .blog-stat { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 16px; text-align: center; }
     .blog-stat-value { font-size: 28px; font-weight: 700; color: #e6edf3; }
     .blog-stat-label { font-size: 12px; color: #8b949e; margin-top: 2px; }
-
     .blog-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
     .blog-card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; overflow: hidden; transition: border-color 0.2s, box-shadow 0.2s; }
     .blog-card:hover { border-color: #58a6ff; box-shadow: 0 0 0 1px #58a6ff33; }
@@ -24,14 +23,12 @@
     .blog-card-status { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
     .blog-card-status.draft { background: #d2992222; color: #d29922; }
     .blog-card-status.published { background: #23863622; color: #3fb950; }
+    .blog-card-status.scheduled { background: #0250FF22; color: #4d8aff; }
     .blog-card-actions { display: flex; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #21262d; }
     .blog-card-actions .btn { flex: 1; }
-
     .blog-empty { text-align: center; padding: 80px 20px; color: #8b949e; }
     .blog-empty-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.5; }
     .blog-empty h3 { color: #e6edf3; margin-bottom: 8px; }
-
-    /* Modal */
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: flex-start; justify-content: center; padding: 40px 20px; overflow-y: auto; }
     .modal-overlay.active { display: flex; }
     .modal { background: #161b22; border: 1px solid #30363d; border-radius: 12px; width: 100%; max-width: 900px; }
@@ -40,11 +37,10 @@
     .modal-close { background: none; border: none; color: #8b949e; font-size: 20px; cursor: pointer; padding: 4px 8px; border-radius: 6px; }
     .modal-close:hover { background: #21262d; color: #e6edf3; }
     .modal-body { padding: 20px; }
-    .modal-footer { padding: 16px 20px; border-top: 1px solid #21262d; display: flex; justify-content: flex-end; gap: 8px; }
-
-    /* Form */
+    .modal-footer { padding: 16px 20px; border-top: 1px solid #21262d; display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
     .form-row.full { grid-template-columns: 1fr; }
+    .form-row.triple { grid-template-columns: 1fr 1fr 1fr; }
     .form-group { display: flex; flex-direction: column; gap: 4px; }
     .form-group label { font-size: 12px; font-weight: 600; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; }
     .form-group input, .form-group select, .form-group textarea {
@@ -54,10 +50,8 @@
     .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #58a6ff; }
     .form-group textarea { resize: vertical; min-height: 60px; }
     .form-hint { font-size: 11px; color: #484f58; margin-top: 2px; }
-
-    /* HTML editor */
     .html-editor-wrap { margin-top: 20px; border-top: 1px solid #21262d; padding-top: 16px; }
-    .html-editor-wrap label { font-size: 13px; font-weight: 600; color: #e6edf3; margin-bottom: 8px; display: block; }
+    .html-editor-wrap > label { font-size: 13px; font-weight: 600; color: #e6edf3; margin-bottom: 8px; display: block; }
     .html-editor-wrap textarea {
       width: 100%; min-height: 400px; background: #0d1117; border: 1px solid #30363d; border-radius: 8px;
       padding: 14px; color: #e6edf3; font-size: 13px; font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
@@ -65,18 +59,16 @@
     }
     .html-editor-wrap textarea:focus { border-color: #58a6ff; }
     .html-editor-hint { font-size: 11px; color: #484f58; margin-top: 6px; line-height: 1.5; }
-
-    /* Tags input */
     .tags-input-wrap { display: flex; flex-wrap: wrap; gap: 6px; background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 6px 10px; min-height: 38px; align-items: center; cursor: text; }
     .tags-input-wrap:focus-within { border-color: #58a6ff; }
-    .tags-input-wrap .tag-pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 12px; background: #388bfd22; color: #58a6ff; font-size: 12px; font-weight: 600; }
-    .tags-input-wrap .tag-pill button { background: none; border: none; color: #58a6ff; cursor: pointer; font-size: 14px; padding: 0; line-height: 1; }
+    .tag-pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 12px; background: #388bfd22; color: #58a6ff; font-size: 12px; font-weight: 600; }
+    .tag-pill .tag-rm { background: none; border: none; color: #58a6ff; cursor: pointer; font-size: 14px; padding: 0; line-height: 1; }
     .tags-input-wrap input { border: none; background: none; color: #e6edf3; font-size: 13px; outline: none; flex: 1; min-width: 80px; padding: 2px 0; }
-
-    @media (max-width: 768px) {
-      .blog-stats { grid-template-columns: repeat(2, 1fr); }
-      .form-row { grid-template-columns: 1fr; }
-    }
+    .btn-publish { background: #238636; color: #fff; border-color: #238636; }
+    .btn-publish:hover { background: #2ea043; }
+    .btn-schedule { background: #0250FF22; color: #4d8aff; border-color: #0250FF44; }
+    .btn-schedule:hover { background: #0250FF33; }
+    @media (max-width: 768px) { .blog-stats { grid-template-columns: repeat(2, 1fr); } .form-row, .form-row.triple { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
@@ -89,132 +81,66 @@
       </div>
       <button class="btn btn-primary" id="btn-new-article">+ Nouvel article</button>
     </div>
-
     <div class="blog-stats" id="blog-stats"></div>
-
-    <div id="blog-loading" class="loading-spinner" style="display:none">
-      <div class="spinner"></div>
-      <p>Chargement des articles...</p>
-    </div>
-
+    <div id="blog-loading" class="loading-spinner" style="display:none"><div class="spinner"></div><p>Chargement...</p></div>
     <div id="blog-empty" class="blog-empty" style="display:none">
       <div class="blog-empty-icon">&#x1F4DD;</div>
       <h3>Aucun article</h3>
       <p>Creez votre premier article de blog pour commencer.</p>
-      <button class="btn btn-primary" onclick="openCreateModal()" style="margin-top:12px">+ Creer un article</button>
     </div>
-
     <div class="blog-grid" id="blog-grid"></div>
   </div>
 
-  <!-- Create / Edit Modal -->
   <div class="modal-overlay" id="article-modal">
     <div class="modal">
       <div class="modal-header">
         <h3 id="modal-title">Nouvel article</h3>
-        <button class="modal-close" onclick="closeModal()">&times;</button>
+        <button class="modal-close" id="modal-close-x">&times;</button>
       </div>
       <div class="modal-body">
         <input type="hidden" id="edit-slug">
-
         <div class="form-row">
-          <div class="form-group">
-            <label>Titre de l'article</label>
-            <input type="text" id="f-title" placeholder="10 idees pour animer votre mariage">
-          </div>
-          <div class="form-group">
-            <label>Titre HTML (avec accent rose)</label>
-            <input type="text" id="f-titlehtml" placeholder='Titre avec &lt;span class="accent"&gt;mot-cle&lt;/span&gt;'>
-            <span class="form-hint">Utiliser &lt;span class="accent"&gt; pour le mot-cle en rose</span>
-          </div>
+          <div class="form-group"><label>Titre de l'article</label><input type="text" id="f-title" placeholder="10 idees pour animer votre mariage"></div>
+          <div class="form-group"><label>Titre HTML (accent rose)</label><input type="text" id="f-titlehtml" placeholder='Avec &lt;span class="accent"&gt;mot-cle&lt;/span&gt;'><span class="form-hint">&lt;span class="accent"&gt; pour le mot-cle rose</span></div>
         </div>
-        <div class="form-row full">
-          <div class="form-group">
-            <label>Meta description (155 chars max)</label>
-            <textarea id="f-meta" maxlength="155" rows="2" placeholder="Description SEO de l'article..."></textarea>
-          </div>
-        </div>
+        <div class="form-row full"><div class="form-group"><label>Meta description (155 chars max)</label><textarea id="f-meta" maxlength="155" rows="2" placeholder="Description SEO..."></textarea></div></div>
         <div class="form-row">
-          <div class="form-group">
-            <label>Categorie</label>
-            <div style="display:flex;gap:6px">
-              <select id="f-category" style="flex:1"></select>
-              <button type="button" class="btn btn-sm btn-secondary" id="btn-add-cat" title="Ajouter une categorie" style="padding:6px 12px;white-space:nowrap">+</button>
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Auteur</label>
-            <select id="f-author">
-              <option value="mathilde">Mathilde Sehault</option>
-              <option value="elise">Elise Durant</option>
-            </select>
-          </div>
+          <div class="form-group"><label>Categorie</label><div style="display:flex;gap:6px"><select id="f-category" style="flex:1"></select><button type="button" class="btn btn-sm btn-secondary" id="btn-add-cat" style="padding:6px 12px;white-space:nowrap">+</button></div></div>
+          <div class="form-group"><label>Auteur</label><select id="f-author"><option value="mathilde">Mathilde Sehault</option><option value="elise">Elise Durant</option></select></div>
         </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Date de publication</label>
-            <input type="date" id="f-date">
-          </div>
-          <div class="form-group">
-            <label>Image hero (URL ou /site-images/...)</label>
-            <input type="text" id="f-hero" placeholder="/site-images/blog/hero.webp">
-          </div>
+        <div class="form-row triple">
+          <div class="form-group"><label>Date de publication</label><input type="date" id="f-date"></div>
+          <div class="form-group"><label>Heure (planification)</label><input type="time" id="f-time" value="09:00"></div>
+          <div class="form-group"><label>Image hero</label><input type="text" id="f-hero" placeholder="/site-images/blog/hero.webp"></div>
         </div>
-        <div class="form-row full">
-          <div class="form-group">
-            <label>Alt image hero</label>
-            <input type="text" id="f-heroalt" placeholder="Description de l'image hero">
-          </div>
-        </div>
-        <div class="form-row full">
-          <div class="form-group">
-            <label>Tags</label>
-            <div class="tags-input-wrap" id="tags-wrap">
-              <input type="text" id="f-tags-input" placeholder="Tapez un tag + Entree">
-            </div>
-          </div>
-        </div>
-
-        <!-- HTML body editor -->
+        <div class="form-row full"><div class="form-group"><label>Alt image hero</label><input type="text" id="f-heroalt" placeholder="Description de l'image"></div></div>
+        <div class="form-row full"><div class="form-group"><label>Tags</label><div class="tags-input-wrap" id="tags-wrap"><input type="text" id="f-tags-input" placeholder="Tapez un tag + Entree"></div></div></div>
         <div class="html-editor-wrap">
           <label>Contenu HTML de l'article</label>
           <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
             <select id="block-insert-select" style="flex:1;background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:7px 10px;color:#e6edf3;font-size:13px">
               <option value="">-- Inserer un bloc --</option>
               <option value="intro">Introduction (chapeau)</option>
-              <option value="h2">Titre H2 — Section</option>
-              <option value="h3">Titre H3 — Sous-section</option>
-              <option value="h4">Titre H4 — Question FAQ</option>
-              <option value="paragraph">Paragraphe</option>
-              <option value="list">Liste a puces</option>
-              <option value="image">Image + legende</option>
-              <option value="conseil">Conseil Shootnbox (rose)</option>
-              <option value="conseil-blue">Astuce technique (bleu)</option>
-              <option value="conseil-orange">Attention (orange)</option>
-              <option value="conseil-green">Bon a savoir (vert)</option>
-              <option value="highlight">Citation / Mise en avant</option>
-              <option value="table">Tableau</option>
-              <option value="cta-product">CTA Produit inline</option>
-              <option value="faq">FAQ (question/reponse)</option>
-              <option value="separator">Separateur</option>
+              <option value="h2">Titre H2</option><option value="h3">Titre H3</option><option value="h4">Titre H4 / FAQ</option>
+              <option value="paragraph">Paragraphe</option><option value="list">Liste a puces</option><option value="image">Image + legende</option>
+              <option value="conseil">Conseil (rose)</option><option value="conseil-blue">Astuce (bleu)</option><option value="conseil-orange">Attention (orange)</option><option value="conseil-green">Bon a savoir (vert)</option>
+              <option value="highlight">Citation</option><option value="table">Tableau</option><option value="cta-product">CTA Produit</option><option value="faq">FAQ</option><option value="separator">Separateur</option>
             </select>
             <button type="button" class="btn btn-sm btn-primary" id="btn-insert-block">Inserer</button>
           </div>
-          <textarea id="f-bodyhtml" placeholder="Collez le HTML complet ou inserez des blocs ci-dessus..."></textarea>
-          <div class="html-editor-hint">
-            Collez le HTML complet ou construisez bloc par bloc. Le template gere : breadcrumb, hero, auteur, sidebar TOC, CTA footer, articles lies.<br>
-            <strong>Le sommaire (TOC)</strong> est auto-genere depuis les &lt;h2 id="..."&gt; et &lt;h3 id="..."&gt; du contenu.
-          </div>
+          <textarea id="f-bodyhtml" placeholder="Collez le HTML complet ou inserez des blocs..."></textarea>
+          <div class="html-editor-hint">Le template gere : breadcrumb, hero, auteur, sidebar, CTA footer, articles lies. Le <strong>sommaire</strong> est auto-genere depuis les &lt;h2 id="..."&gt; et &lt;h3 id="..."&gt;.</div>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+        <button class="btn btn-secondary" id="modal-cancel">Annuler</button>
+        <button class="btn btn-schedule" id="btn-schedule-article" style="display:none">Planifier</button>
+        <button class="btn btn-publish" id="btn-publish-article" style="display:none">Publier</button>
         <button class="btn btn-primary" id="btn-save-article">Creer l'article</button>
       </div>
     </div>
   </div>
 
-  <!-- Toast -->
   <div id="toast-container" style="position:fixed;top:20px;right:20px;z-index:2000"></div>
 
   <script src="/js/auth.js"></script>
@@ -223,10 +149,26 @@
 (function() {
   'use strict';
 
-  var articles = [];
-  var categories = [];
-  var currentTags = [];
-  var editMode = false;
+  var articles = [], categories = [], currentTags = [], editMode = false;
+
+  var BLOCK_SNIPPETS = {
+    'intro': '<p class="snb-article-intro">\n  [Accroche forte. <strong>X idees</strong> qui suivent.]\n</p>',
+    'h2': '<h2 id="section-x">[Titre H2]</h2>',
+    'h3': '<h3 id="sous-section-x">[Titre H3]</h3>',
+    'h4': '<h4>[Question ou titre H4]</h4>',
+    'paragraph': '<p>[Contenu. <strong>Gras</strong>, <a href="/">lien</a>.]</p>',
+    'list': '<ul>\n  <li><strong>Point 1 :</strong> Explication.</li>\n  <li><strong>Point 2 :</strong> Explication.</li>\n  <li><strong>Point 3 :</strong> Explication.</li>\n</ul>',
+    'image': '<div class="snb-img-wrap">\n  <img src="/site-images/[image.webp]" alt="[Description]" loading="lazy" width="820" height="460">\n  <p class="snb-img-caption">Legende</p>\n</div>',
+    'conseil': '<div class="snb-conseil">\n  <div class="snb-conseil-icon">\uD83D\uDCA1</div>\n  <div class="snb-conseil-body">\n    <span class="snb-conseil-label">Le conseil Shootnbox</span>\n    <p class="snb-conseil-text">[Conseil. <strong>Points cles.</strong>]</p>\n  </div>\n</div>',
+    'conseil-blue': '<div class="snb-conseil v-blue">\n  <div class="snb-conseil-icon">\uD83D\uDD27</div>\n  <div class="snb-conseil-body">\n    <span class="snb-conseil-label">Astuce technique</span>\n    <p class="snb-conseil-text">[Conseil technique.]</p>\n  </div>\n</div>',
+    'conseil-orange': '<div class="snb-conseil v-orange">\n  <div class="snb-conseil-icon">\u26A0\uFE0F</div>\n  <div class="snb-conseil-body">\n    <span class="snb-conseil-label">A ne pas oublier</span>\n    <p class="snb-conseil-text">[Attention.]</p>\n  </div>\n</div>',
+    'conseil-green': '<div class="snb-conseil v-green">\n  <div class="snb-conseil-icon">\u2705</div>\n  <div class="snb-conseil-body">\n    <span class="snb-conseil-label">Bon a savoir</span>\n    <p class="snb-conseil-text">[Info utile.]</p>\n  </div>\n</div>',
+    'highlight': '<div class="snb-highlight">\n  <p>[Citation. <strong>Important.</strong>]</p>\n</div>',
+    'table': '<div class="snb-table-wrap">\n  <table>\n    <thead><tr><th>Col 1</th><th>Col 2</th><th>Col 3</th></tr></thead>\n    <tbody>\n      <tr><td>A</td><td>Detail</td><td>Info</td></tr>\n      <tr><td>B</td><td>Detail</td><td>Info</td></tr>\n    </tbody>\n  </table>\n</div>',
+    'cta-product': '<div class="snb-cta-card">\n  <div class="snb-cta-card-badge">Promo -100\u20AC</div>\n  <div class="snb-cta-card-img"><img src="/site-images/[produit.webp]" alt="[Produit]" loading="lazy"></div>\n  <div class="snb-cta-card-content">\n    <span class="snb-cta-card-label">[Categorie]</span>\n    <div class="snb-cta-card-title">[Titre]</div>\n    <p class="snb-cta-card-desc">[Description.]</p>\n    <a href="https://shootnbox.fr/reservation/" class="snb-cta-card-btn">Reserver \uD83D\uDCF8<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>\n  </div>\n</div>',
+    'faq': '<h4>[Question ?]</h4>\n<p>[Reponse concise.]</p>',
+    'separator': '<div class="snb-sep"></div>'
+  };
 
   Components.initPage().then(function() {
     loadArticles();
@@ -234,30 +176,18 @@
   });
 
   function bindEvents() {
-    document.getElementById('btn-new-article').addEventListener('click', openCreateModal);
-    document.getElementById('btn-save-article').addEventListener('click', saveArticle);
+    // New article
+    document.getElementById('btn-new-article').addEventListener('click', function() { openModal(false); });
 
-    // Tags input
-    document.getElementById('f-tags-input').addEventListener('keydown', function(e) {
-      if (e.key === 'Enter' && this.value.trim()) {
-        e.preventDefault();
-        addTag(this.value.trim());
-        this.value = '';
-      }
-    });
-    document.getElementById('tags-wrap').addEventListener('click', function() {
-      document.getElementById('f-tags-input').focus();
-    });
+    // Modal close
+    document.getElementById('modal-close-x').addEventListener('click', closeModal);
+    document.getElementById('modal-cancel').addEventListener('click', closeModal);
+    document.getElementById('article-modal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
 
-    // Tab key in HTML textarea
-    document.getElementById('f-bodyhtml').addEventListener('keydown', function(e) {
-      if (e.key === 'Tab') {
-        e.preventDefault();
-        var start = this.selectionStart, end = this.selectionEnd;
-        this.value = this.value.substring(0, start) + '  ' + this.value.substring(end);
-        this.selectionStart = this.selectionEnd = start + 2;
-      }
-    });
+    // Save / Publish / Schedule
+    document.getElementById('btn-save-article').addEventListener('click', function() { saveArticle('draft'); });
+    document.getElementById('btn-publish-article').addEventListener('click', function() { saveArticle('published'); });
+    document.getElementById('btn-schedule-article').addEventListener('click', function() { saveArticle('scheduled'); });
 
     // Add category
     document.getElementById('btn-add-cat').addEventListener('click', function() {
@@ -265,28 +195,20 @@
       if (!name || !name.trim()) return;
       name = name.trim();
       api('POST', '/categories', { name: name }).then(function(r) {
-        if (r.success) {
-          categories = r.categories || categories;
-          updateCategorySelect();
-          document.getElementById('f-category').value = name;
-          toast('Categorie "' + name + '" ajoutee', 'success');
-        } else {
-          toast(r.error || 'Erreur', 'error');
-        }
+        if (r.success) { categories = r.categories || categories; updateCategorySelect(); document.getElementById('f-category').value = name; toast('Categorie ajoutee', 'success'); }
+        else toast(r.error || 'Erreur', 'error');
       });
     });
 
     // Insert block
     document.getElementById('btn-insert-block').addEventListener('click', function() {
       var sel = document.getElementById('block-insert-select');
-      var type = sel.value;
-      if (!type) return;
-      var snippet = BLOCK_SNIPPETS[type] || '';
+      if (!sel.value) return;
+      var snippet = BLOCK_SNIPPETS[sel.value] || '';
       if (!snippet) return;
       var ta = document.getElementById('f-bodyhtml');
       var pos = ta.selectionStart;
-      var before = ta.value.substring(0, pos);
-      var after = ta.value.substring(pos);
+      var before = ta.value.substring(0, pos), after = ta.value.substring(pos);
       var nl = (before && !before.endsWith('\n')) ? '\n\n' : (before ? '\n' : '');
       ta.value = before + nl + snippet + '\n' + after;
       ta.focus();
@@ -294,33 +216,31 @@
       sel.value = '';
     });
 
-    // Close modal on overlay click
-    document.getElementById('article-modal').addEventListener('click', function(e) {
-      if (e.target === this) closeModal();
+    // Tags
+    document.getElementById('f-tags-input').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && this.value.trim()) { e.preventDefault(); addTag(this.value.trim()); this.value = ''; }
+    });
+    document.getElementById('tags-wrap').addEventListener('click', function(e) {
+      if (e.target.classList.contains('tag-rm')) { removeTag(e.target.dataset.tag); return; }
+      document.getElementById('f-tags-input').focus();
+    });
+
+    // Tab in textarea
+    document.getElementById('f-bodyhtml').addEventListener('keydown', function(e) {
+      if (e.key === 'Tab') { e.preventDefault(); var s = this.selectionStart, en = this.selectionEnd; this.value = this.value.substring(0, s) + '  ' + this.value.substring(en); this.selectionStart = this.selectionEnd = s + 2; }
+    });
+
+    // Card buttons (delegation)
+    document.getElementById('blog-grid').addEventListener('click', function(e) {
+      var edit = e.target.closest('.blog-btn-edit');
+      if (edit) { e.preventDefault(); editArticle(edit.dataset.slug); return; }
+      var del = e.target.closest('.blog-btn-delete');
+      if (del) { e.preventDefault(); deleteArticle(del.dataset.slug); return; }
+      var pub = e.target.closest('.blog-btn-publish');
+      if (pub) { e.preventDefault(); publishArticle(pub.dataset.slug); return; }
     });
   }
 
-  // Block HTML snippets
-  var BLOCK_SNIPPETS = {
-    'intro': '<p class="snb-article-intro">\n  [Phrase d\'accroche forte. Presenter le probleme, annoncer les <strong>X idees</strong> qui suivent.]\n</p>',
-    'h2': '<h2 id="section-x">[Titre de la section H2]</h2>',
-    'h3': '<h3 id="sous-section-x">[Titre H3 — sous-partie]</h3>',
-    'h4': '<h4>[Question ou titre H4]</h4>',
-    'paragraph': '<p>[Contenu du paragraphe. <strong>Texte en gras</strong>, <a href="/">lien interne</a>.]</p>',
-    'list': '<ul>\n  <li><strong>Point 1 :</strong> Explication.</li>\n  <li><strong>Point 2 :</strong> Explication.</li>\n  <li><strong>Point 3 :</strong> Explication.</li>\n</ul>',
-    'image': '<div class="snb-img-wrap">\n  <img src="/site-images/[image.webp]" alt="[Description]" loading="lazy" width="820" height="460">\n  <p class="snb-img-caption">Legende de l\'image</p>\n</div>',
-    'conseil': '<div class="snb-conseil">\n  <div class="snb-conseil-icon">\uD83D\uDCA1</div>\n  <div class="snb-conseil-body">\n    <span class="snb-conseil-label">Le conseil Shootnbox</span>\n    <p class="snb-conseil-text">[Conseil court et actionnable. <strong>Points cles en gras.</strong>]</p>\n  </div>\n</div>',
-    'conseil-blue': '<div class="snb-conseil v-blue">\n  <div class="snb-conseil-icon">\uD83D\uDD27</div>\n  <div class="snb-conseil-body">\n    <span class="snb-conseil-label">Astuce technique</span>\n    <p class="snb-conseil-text">[Conseil technique ou logistique.]</p>\n  </div>\n</div>',
-    'conseil-orange': '<div class="snb-conseil v-orange">\n  <div class="snb-conseil-icon">\u26A0\uFE0F</div>\n  <div class="snb-conseil-body">\n    <span class="snb-conseil-label">A ne pas oublier</span>\n    <p class="snb-conseil-text">[Mise en garde ou point d\'attention important.]</p>\n  </div>\n</div>',
-    'conseil-green': '<div class="snb-conseil v-green">\n  <div class="snb-conseil-icon">\u2705</div>\n  <div class="snb-conseil-body">\n    <span class="snb-conseil-label">Bon a savoir</span>\n    <p class="snb-conseil-text">[Information utile.]</p>\n  </div>\n</div>',
-    'highlight': '<div class="snb-highlight">\n  <p>[Citation memorable ou chiffre cle. <strong>Texte important en gras.</strong>]</p>\n</div>',
-    'table': '<div class="snb-table-wrap">\n  <table>\n    <thead><tr>\n      <th>Colonne 1</th>\n      <th>Colonne 2</th>\n      <th>Colonne 3</th>\n    </tr></thead>\n    <tbody>\n      <tr><td>Element A</td><td>Detail</td><td>Info</td></tr>\n      <tr><td>Element B</td><td>Detail</td><td>Info</td></tr>\n    </tbody>\n  </table>\n</div>',
-    'cta-product': '<div class="snb-cta-card">\n  <div class="snb-cta-card-badge">Promo -100\u20AC</div>\n  <div class="snb-cta-card-img"><img src="/site-images/[produit.webp]" alt="[Produit]" loading="lazy"></div>\n  <div class="snb-cta-card-content">\n    <span class="snb-cta-card-label">[Categorie]</span>\n    <div class="snb-cta-card-title">[Titre promo]</div>\n    <p class="snb-cta-card-desc">[Description courte du produit.]</p>\n    <a href="https://shootnbox.fr/reservation/" class="snb-cta-card-btn">\n      Reserver (-100\u20AC) \uD83D\uDCF8\n      <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>\n    </a>\n  </div>\n</div>',
-    'faq': '<h4>[Question frequente ?]</h4>\n<p>[Reponse directe et concise — 2-4 phrases max.]</p>',
-    'separator': '<div class="snb-sep"></div>'
-  };
-
-  // ── API ──
   function api(method, url, body) {
     var opts = { method: method, headers: { 'Content-Type': 'application/json' }, credentials: 'include' };
     if (body) opts.body = JSON.stringify(body);
@@ -331,177 +251,121 @@
     document.getElementById('blog-loading').style.display = 'block';
     api('GET', '/').then(function(data) {
       document.getElementById('blog-loading').style.display = 'none';
-      articles = data.articles || [];
-      categories = data.categories || [];
-      updateCategorySelect();
-      renderStats();
-      renderGrid();
-    }).catch(function() {
-      document.getElementById('blog-loading').style.display = 'none';
-      toast('Erreur de chargement', 'error');
-    });
+      articles = data.articles || []; categories = data.categories || [];
+      updateCategorySelect(); renderStats(); renderGrid();
+    }).catch(function() { document.getElementById('blog-loading').style.display = 'none'; toast('Erreur de chargement', 'error'); });
   }
 
   function updateCategorySelect() {
-    var sel = document.getElementById('f-category');
-    var current = sel.value;
+    var sel = document.getElementById('f-category'), cur = sel.value;
     sel.innerHTML = categories.map(function(c) { return '<option value="' + esc(c) + '">' + esc(c) + '</option>'; }).join('');
-    if (current && sel.querySelector('option[value="' + current + '"]')) sel.value = current;
+    if (cur) { for (var i = 0; i < sel.options.length; i++) { if (sel.options[i].value.toLowerCase() === cur.toLowerCase()) { sel.selectedIndex = i; break; } } }
   }
 
   function renderStats() {
-    var total = articles.length;
-    var published = articles.filter(function(a) { return a.status === 'published'; }).length;
-    var drafts = total - published;
-    var cats = {};
-    articles.forEach(function(a) { cats[a.category] = (cats[a.category] || 0) + 1; });
-    var topCat = Object.keys(cats).sort(function(a, b) { return cats[b] - cats[a]; })[0] || '-';
-
+    var total = articles.length, pub = articles.filter(function(a) { return a.status === 'published'; }).length;
+    var sched = articles.filter(function(a) { return a.status === 'scheduled'; }).length;
     document.getElementById('blog-stats').innerHTML =
       '<div class="blog-stat"><div class="blog-stat-value">' + total + '</div><div class="blog-stat-label">Articles</div></div>' +
-      '<div class="blog-stat"><div class="blog-stat-value">' + published + '</div><div class="blog-stat-label">Publies</div></div>' +
-      '<div class="blog-stat"><div class="blog-stat-value">' + drafts + '</div><div class="blog-stat-label">Brouillons</div></div>' +
-      '<div class="blog-stat"><div class="blog-stat-value" style="font-size:16px;text-transform:capitalize">' + topCat + '</div><div class="blog-stat-label">Categorie principale</div></div>';
+      '<div class="blog-stat"><div class="blog-stat-value">' + pub + '</div><div class="blog-stat-label">Publies</div></div>' +
+      '<div class="blog-stat"><div class="blog-stat-value">' + sched + '</div><div class="blog-stat-label">Planifies</div></div>' +
+      '<div class="blog-stat"><div class="blog-stat-value">' + (total - pub - sched) + '</div><div class="blog-stat-label">Brouillons</div></div>';
   }
 
   function renderGrid() {
-    var grid = document.getElementById('blog-grid');
-    var empty = document.getElementById('blog-empty');
-    if (!articles.length) {
-      grid.innerHTML = '';
-      empty.style.display = 'block';
-      return;
-    }
+    var grid = document.getElementById('blog-grid'), empty = document.getElementById('blog-empty');
+    if (!articles.length) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
     empty.style.display = 'none';
-
     grid.innerHTML = articles.map(function(a) {
       var img = a.heroImage ? '<img src="' + esc(a.heroImage) + '" alt="' + esc(a.title) + '">' : '<div style="width:100%;height:100%;background:#21262d;display:flex;align-items:center;justify-content:center;color:#484f58;font-size:32px">&#x1F4F7;</div>';
+      var statusLabel = a.status === 'published' ? 'Publie' : a.status === 'scheduled' ? 'Planifie' : 'Brouillon';
+      var pubBtn = a.status !== 'published' ? '<button class="btn btn-sm btn-publish blog-btn-publish" data-slug="' + a.slug + '">Publier</button>' : '';
       return '<div class="blog-card" data-slug="' + a.slug + '">' +
-        '<div class="blog-card-img">' + img + '</div>' +
-        '<div class="blog-card-body">' +
-          '<span class="blog-card-cat">' + esc(a.category || 'Blog') + '</span>' +
-          '<div class="blog-card-title">' + esc(a.title) + '</div>' +
-          '<div class="blog-card-meta">' +
-            '<span>' + esc(a.authorName || a.author) + '</span>' +
-            '<span>' + (a.date || '') + '</span>' +
-            '<span class="blog-card-status ' + (a.status || 'draft') + '">' + (a.status === 'published' ? 'Publie' : 'Brouillon') + '</span>' +
-          '</div>' +
-          '<div class="blog-card-actions">' +
-            '<button class="btn btn-sm btn-secondary blog-btn-edit" data-slug="' + a.slug + '">Modifier</button>' +
-            '<a class="btn btn-sm btn-secondary" href="/api/pages/' + a.slug + '/preview" target="_blank">Preview</a>' +
-            '<button class="btn btn-sm btn-danger blog-btn-delete" data-slug="' + a.slug + '">Supprimer</button>' +
-          '</div>' +
-        '</div>' +
-      '</div>';
+        '<div class="blog-card-img">' + img + '</div><div class="blog-card-body">' +
+        '<span class="blog-card-cat">' + esc(a.category || 'Blog') + '</span>' +
+        '<div class="blog-card-title">' + esc(a.title) + '</div>' +
+        '<div class="blog-card-meta"><span>' + esc(a.authorName || a.author) + '</span><span>' + (a.date || '') + '</span>' +
+        '<span class="blog-card-status ' + (a.status || 'draft') + '">' + statusLabel + '</span></div>' +
+        '<div class="blog-card-actions">' +
+        '<button class="btn btn-sm btn-secondary blog-btn-edit" data-slug="' + a.slug + '">Modifier</button>' +
+        pubBtn +
+        '<a class="btn btn-sm btn-secondary" href="/api/pages/' + a.slug + '/preview" target="_blank">Preview</a>' +
+        '<button class="btn btn-sm btn-danger blog-btn-delete" data-slug="' + a.slug + '">Supprimer</button>' +
+        '</div></div></div>';
     }).join('');
   }
 
   function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
 
-  // Event delegation for blog card buttons
-  document.getElementById('blog-grid').addEventListener('click', function(e) {
-    var btn = e.target.closest('.blog-btn-edit');
-    if (btn) { e.preventDefault(); editArticle(btn.dataset.slug); return; }
-    var del = e.target.closest('.blog-btn-delete');
-    if (del) { e.preventDefault(); deleteArticle(del.dataset.slug); return; }
-  });
-
-  // ── Modal ──
-  window.openCreateModal = function() {
-    editMode = false;
-    document.getElementById('modal-title').textContent = 'Nouvel article';
-    document.getElementById('btn-save-article').textContent = 'Creer l\'article';
-    document.getElementById('edit-slug').value = '';
-    clearForm();
-    document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+  function openModal(isEdit) {
+    editMode = isEdit;
+    document.getElementById('modal-title').textContent = isEdit ? 'Modifier l\'article' : 'Nouvel article';
+    document.getElementById('btn-save-article').textContent = isEdit ? 'Enregistrer (brouillon)' : 'Creer (brouillon)';
+    document.getElementById('btn-publish-article').style.display = isEdit ? '' : 'none';
+    document.getElementById('btn-schedule-article').style.display = isEdit ? '' : 'none';
+    if (!isEdit) { document.getElementById('edit-slug').value = ''; clearForm(); document.getElementById('f-date').value = new Date().toISOString().split('T')[0]; }
     document.getElementById('article-modal').classList.add('active');
-  };
+  }
 
-  window.closeModal = function() {
-    document.getElementById('article-modal').classList.remove('active');
-  };
+  function closeModal() { document.getElementById('article-modal').classList.remove('active'); }
 
-  window.editArticle = function(slug) {
-    console.log('[Blog] editArticle called with slug:', slug);
-    api('GET', '/' + slug).then(function(article) {
-      console.log('[Blog] API response:', article);
-      if (article.error) return toast(article.error, 'error');
-      editMode = true;
-      document.getElementById('modal-title').textContent = 'Modifier l\'article';
-      document.getElementById('btn-save-article').textContent = 'Enregistrer';
+  function editArticle(slug) {
+    api('GET', '/' + slug).then(function(a) {
+      if (a.error) return toast(a.error, 'error');
       document.getElementById('edit-slug').value = slug;
+      document.getElementById('f-title').value = a.title || '';
+      document.getElementById('f-titlehtml').value = a.titleHTML || '';
+      document.getElementById('f-meta').value = a.metaDescription || '';
+      var catSel = document.getElementById('f-category'), cv = (a.category || '').toLowerCase();
+      for (var i = 0; i < catSel.options.length; i++) { if (catSel.options[i].value.toLowerCase() === cv) { catSel.selectedIndex = i; break; } }
+      document.getElementById('f-author').value = a.author || 'mathilde';
+      document.getElementById('f-date').value = a.date || '';
+      document.getElementById('f-time').value = a.scheduledTime || '09:00';
+      document.getElementById('f-hero').value = a.heroImage || '';
+      document.getElementById('f-heroalt').value = a.heroAlt || '';
+      document.getElementById('f-bodyhtml').value = a.bodyHTML || '';
+      currentTags = a.tags || []; renderTags();
+      openModal(true);
+    }).catch(function(err) { toast('Erreur: ' + (err.message || err), 'error'); });
+  }
 
-      document.getElementById('f-title').value = article.title || '';
-      document.getElementById('f-titlehtml').value = article.titleHTML || '';
-      document.getElementById('f-meta').value = article.metaDescription || '';
-      // Set category select — match by lowercase
-      var catSel = document.getElementById('f-category');
-      var catVal = (article.category || '').toLowerCase();
-      for (var i = 0; i < catSel.options.length; i++) {
-        if (catSel.options[i].value.toLowerCase() === catVal) { catSel.selectedIndex = i; break; }
-      }
-      document.getElementById('f-author').value = article.author || 'mathilde';
-      document.getElementById('f-date').value = article.date || '';
-      document.getElementById('f-hero').value = article.heroImage || '';
-      document.getElementById('f-heroalt').value = article.heroAlt || '';
-      document.getElementById('f-bodyhtml').value = article.bodyHTML || '';
-
-      currentTags = article.tags || [];
-      renderTags();
-
-      document.getElementById('article-modal').classList.add('active');
-    }).catch(function(err) {
-      console.error('[Blog] editArticle error:', err);
-      alert('Erreur editArticle: ' + (err.message || err));
-    });
-  };
-
-  window.deleteArticle = function(slug) {
-    if (!confirm('Supprimer cet article ? Cette action est irreversible.')) return;
+  function deleteArticle(slug) {
+    if (!confirm('Supprimer cet article ?')) return;
     api('DELETE', '/' + slug).then(function(r) {
-      if (r.success) { toast('Article supprime', 'success'); loadArticles(); }
-      else toast(r.error || 'Erreur', 'error');
+      if (r.success) { toast('Article supprime', 'success'); loadArticles(); } else toast(r.error || 'Erreur', 'error');
     });
-  };
+  }
+
+  function publishArticle(slug) {
+    if (!confirm('Publier cet article maintenant ?')) return;
+    api('PUT', '/' + slug, { status: 'published' }).then(function(r) {
+      if (r.success) { toast('Article publie', 'success'); loadArticles(); } else toast(r.error || 'Erreur', 'error');
+    });
+  }
 
   function clearForm() {
-    ['f-title','f-titlehtml','f-meta','f-hero','f-heroalt'].forEach(function(id) {
-      document.getElementById(id).value = '';
-    });
+    ['f-title','f-titlehtml','f-meta','f-hero','f-heroalt'].forEach(function(id) { document.getElementById(id).value = ''; });
     document.getElementById('f-bodyhtml').value = '';
     document.getElementById('f-author').value = 'mathilde';
-    var catSel = document.getElementById('f-category');
-    if (catSel.options.length) catSel.selectedIndex = 0;
-    currentTags = [];
-    renderTags();
+    document.getElementById('f-time').value = '09:00';
+    var cs = document.getElementById('f-category'); if (cs.options.length) cs.selectedIndex = 0;
+    currentTags = []; renderTags();
   }
 
-  // ── Tags ──
-  function addTag(tag) {
-    tag = tag.replace(/^#/, '');
-    if (!tag || currentTags.indexOf(tag) !== -1) return;
-    currentTags.push(tag);
-    renderTags();
-  }
+  function addTag(tag) { tag = tag.replace(/^#/, ''); if (!tag || currentTags.indexOf(tag) !== -1) return; currentTags.push(tag); renderTags(); }
+  function removeTag(tag) { currentTags = currentTags.filter(function(t) { return t !== tag; }); renderTags(); }
 
   function renderTags() {
-    var wrap = document.getElementById('tags-wrap');
-    var input = document.getElementById('f-tags-input');
+    var wrap = document.getElementById('tags-wrap'), input = document.getElementById('f-tags-input');
     wrap.querySelectorAll('.tag-pill').forEach(function(p) { p.remove(); });
     currentTags.forEach(function(t) {
-      var pill = document.createElement('span');
-      pill.className = 'tag-pill';
-      pill.innerHTML = '#' + esc(t) + ' <button onclick="this.parentElement.remove();window._removeTag(\'' + t + '\')">&times;</button>';
+      var pill = document.createElement('span'); pill.className = 'tag-pill';
+      pill.innerHTML = '#' + esc(t) + ' <button class="tag-rm" data-tag="' + esc(t) + '">&times;</button>';
       wrap.insertBefore(pill, input);
     });
   }
-  window._removeTag = function(t) {
-    currentTags = currentTags.filter(function(x) { return x !== t; });
-    renderTags();
-  };
 
-  // ── Save ──
-  function saveArticle() {
+  function saveArticle(status) {
     var title = document.getElementById('f-title').value.trim();
     if (!title) return toast('Le titre est requis', 'error');
 
@@ -512,46 +376,36 @@
       category: document.getElementById('f-category').value.trim() || 'Blog',
       author: document.getElementById('f-author').value,
       date: document.getElementById('f-date').value,
+      scheduledTime: document.getElementById('f-time').value,
       heroImage: document.getElementById('f-hero').value,
       heroAlt: document.getElementById('f-heroalt').value,
       tags: currentTags,
-      bodyHTML: document.getElementById('f-bodyhtml').value
+      bodyHTML: document.getElementById('f-bodyhtml').value,
+      status: status || 'draft'
     };
 
     var slug = document.getElementById('edit-slug').value;
     var btn = document.getElementById('btn-save-article');
     btn.disabled = true;
-    btn.textContent = 'Enregistrement...';
 
     var method = editMode ? 'PUT' : 'POST';
     var url = editMode ? '/' + slug : '/create';
 
     api(method, url, payload).then(function(r) {
       btn.disabled = false;
-      btn.textContent = editMode ? 'Enregistrer' : 'Creer l\'article';
       if (r.success || r.slug) {
-        toast(editMode ? 'Article mis a jour' : 'Article cree', 'success');
-        closeModal();
-        loadArticles();
-      } else {
-        toast(r.error || 'Erreur', 'error');
-      }
-    }).catch(function() {
-      btn.disabled = false;
-      btn.textContent = editMode ? 'Enregistrer' : 'Creer l\'article';
-      toast('Erreur reseau', 'error');
-    });
+        var msg = status === 'published' ? 'Article publie' : status === 'scheduled' ? 'Publication planifiee' : (editMode ? 'Article mis a jour' : 'Article cree');
+        toast(msg, 'success'); closeModal(); loadArticles();
+      } else toast(r.error || 'Erreur', 'error');
+    }).catch(function() { btn.disabled = false; toast('Erreur reseau', 'error'); });
   }
 
-  // ── Toast ──
   function toast(msg, type) {
-    var el = document.createElement('div');
-    el.textContent = msg;
-    el.style.cssText = 'background:#161b22;border:1px solid ' + (type === 'error' ? '#f85149' : type === 'success' ? '#3fb950' : '#58a6ff') + ';color:#e6edf3;padding:10px 16px;border-radius:8px;margin-bottom:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.3);animation:fadeIn .3s';
+    var el = document.createElement('div'); el.textContent = msg;
+    el.style.cssText = 'background:#161b22;border:1px solid ' + (type === 'error' ? '#f85149' : type === 'success' ? '#3fb950' : '#58a6ff') + ';color:#e6edf3;padding:10px 16px;border-radius:8px;margin-bottom:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.3)';
     document.getElementById('toast-container').appendChild(el);
     setTimeout(function() { el.remove(); }, 3000);
   }
-
 })();
   </script>
 </body>
