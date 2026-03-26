@@ -13,8 +13,6 @@ const Components = (function() {
         { label: 'Parametres',  href: '/settings.html',  icon: null, adminOnly: true },
         { label: 'Securite',    href: '/security.html',  icon: null, adminOnly: true },
         { label: 'Audit SEO',  href: '/audit.html',      icon: null, adminOnly: true },
-        { label: 'Monitoring',  href: '/monitoring.html', icon: null, adminOnly: false },
-        { label: 'Activite',    href: '/activity.html',  icon: null, adminOnly: false },
         { label: 'Utilisateurs', href: '/users.html',    icon: null, adminOnly: true }
     ];
 
