@@ -1249,10 +1249,27 @@ router.post('/:slug/add-section', verifyToken, requireRole('admin'), async (req,
       return res.status(404).json({ error: 'Page non trouvee' });
     }
 
-    const { html, position } = req.body;
+    let { html, position } = req.body;
     if (!html || typeof html !== 'string') {
       return res.status(400).json({ error: 'Le champ "html" est requis' });
     }
+
+    // Clean document wrappers if pasted as full HTML document
+    html = html.replace(/<!DOCTYPE[^>]*>/gi, '');
+    html = html.replace(/<\/?html[^>]*>/gi, '');
+    html = html.replace(/<head>[\s\S]*?<\/head>/gi, (match) => {
+      const styles = match.match(/<style[\s\S]*?<\/style>/gi) || [];
+      return styles.join('\n');
+    });
+    html = html.replace(/<\/?body[^>]*>/gi, '');
+    // Strip dangerous wildcard resets with !important on margin/padding
+    html = html.replace(/([\w.-]*\s*\*\s*,\s*[\w.-]*\s*\*::before\s*,\s*[\w.-]*\s*\*::after\s*\{)([^}]*)(\})/gi, (match, sel, rules, close) => {
+      const cleaned = rules
+        .replace(/margin\s*:\s*0\s*!important\s*;?/gi, '')
+        .replace(/padding\s*:\s*0\s*!important\s*;?/gi, '')
+        .trim();
+      return cleaned ? sel + ' ' + cleaned + ' ' + close : '';
+    });
 
     // Get existing section files (sorted numerically by prefix)
     const existingFiles = fs.readdirSync(previewDir)
@@ -1481,6 +1498,23 @@ router.put('/:slug/section/:file', verifyToken, requireRole('admin', 'editor'), 
       return res.status(404).json({ error: 'Section non trouvee' });
     }
 
+    // Clean document wrappers if pasted as full HTML document
+    content = content.replace(/<!DOCTYPE[^>]*>/gi, '');
+    content = content.replace(/<\/?html[^>]*>/gi, '');
+    content = content.replace(/<head>[\s\S]*?<\/head>/gi, (match) => {
+      // Extract only <style> blocks from <head>, discard the rest
+      const styles = match.match(/<style[\s\S]*?<\/style>/gi) || [];
+      return styles.join('\n');
+    });
+    content = content.replace(/<\/?body[^>]*>/gi, '');
+    // Strip dangerous wildcard resets with !important on margin/padding
+    content = content.replace(/([\w.-]*\s*\*\s*,\s*[\w.-]*\s*\*::before\s*,\s*[\w.-]*\s*\*::after\s*\{)([^}]*)(\})/gi, (match, sel, rules, close) => {
+      const cleaned = rules
+        .replace(/margin\s*:\s*0\s*!important\s*;?/gi, '')
+        .replace(/padding\s*:\s*0\s*!important\s*;?/gi, '')
+        .trim();
+      return cleaned ? sel + ' ' + cleaned + ' ' + close : '';
+    });
     // Clean editor contamination before saving
     // Remove scoped CSS prefixes (#gds-s-xxx) that leaked from preview rendering
     content = content.replace(/#gds-s-\w+\s+/g, '');
@@ -2071,6 +2105,23 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
         allCSS = allCSS.replace(/body\s*\{[^}]*\}/gi, '');
         allCSS = allCSS.replace(/html\s*\{[^}]*\}/gi, '');
         allCSS = allCSS.replace(/\*\s*,\s*\*::before\s*,\s*\*::after\s*\{[^}]*\}/gi, '');
+        // Strip scoped wildcard resets that use !important on margin/padding (breaks layout)
+        // e.g. .snb-steps *, .snb-steps *::before, .snb-steps *::after { margin:0!important; padding:0!important; }
+        allCSS = allCSS.replace(/[^{}]*\*\s*,\s*[^{}]*\*::before\s*,\s*[^{}]*\*::after\s*\{[^}]*\}/gi, (match) => {
+          if (/margin\s*:\s*0\s*!important/i.test(match) || /padding\s*:\s*0\s*!important/i.test(match)) {
+            // Keep only box-sizing from the rule, strip margin/padding !important
+            const inner = match.match(/\{([^}]*)\}/);
+            if (!inner) return '';
+            const cleaned = inner[1]
+              .replace(/margin\s*:\s*0\s*!important\s*;?/gi, '')
+              .replace(/padding\s*:\s*0\s*!important\s*;?/gi, '')
+              .trim();
+            if (!cleaned) return '';
+            const selector = match.match(/^([^{]*)\{/);
+            return selector ? selector[1] + '{ ' + cleaned + ' }' : '';
+          }
+          return match;
+        });
         // Strip CSS comments before scoping
         allCSS = allCSS.replace(/\/\*[\s\S]*?\*\//g, '');
         // Strip @import rules (no braces, breaks the scope parser)
