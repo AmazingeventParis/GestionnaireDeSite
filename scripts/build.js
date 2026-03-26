@@ -815,15 +815,32 @@ for (const page of pages) {
   }
 
   // Read page-specific sections
+  // Sections in config use short names (hero, trust, bento) but files are named with numeric prefixes (02-hero.html, 03-trust.html)
   const sectionContents = {};
-  for (const name of page.sections) {
-    let filePath = path.join(page.previewDir, `${name}.html`);
-    if (!fs.existsSync(filePath)) {
-      // Fallback to shared previews directory
-      filePath = path.join(previewsDir, `${name}.html`);
+
+  // Build a map of available section files: scan the directory for numbered HTML files
+  const availableFiles = {};
+  const scanDirs = [page.previewDir];
+  if (page.previewDir !== previewsDir) scanDirs.push(previewsDir);
+  for (const dir of scanDirs) {
+    if (!fs.existsSync(dir)) continue;
+    const files = fs.readdirSync(dir).filter(f => f.endsWith('.html') && !f.startsWith('_')).sort();
+    for (const f of files) {
+      // Extract section name: "02-hero.html" → "hero", "03-trust.html" → "trust"
+      const match = f.match(/^(?:\d+-)?(.+)\.html$/);
+      if (match) {
+        const sectionName = match[1];
+        if (!availableFiles[sectionName]) {
+          availableFiles[sectionName] = path.join(dir, f);
+        }
+      }
     }
-    if (!fs.existsSync(filePath)) {
-      console.warn(`  WARN: ${name}.html not found in ${page.previewDir} or ${previewsDir}, skipping`);
+  }
+
+  for (const name of page.sections) {
+    const filePath = availableFiles[name];
+    if (!filePath) {
+      console.warn(`  WARN: section "${name}" not found in ${page.previewDir}, skipping`);
       continue;
     }
     sectionContents[name] = readSection(filePath);
