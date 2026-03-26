@@ -110,8 +110,15 @@ app.use(express.static(path.join(__dirname, 'public'), {
 
 // ===== SITE PREVIEW (built pages served at /site/) =====
 app.use('/site', express.static(path.join(__dirname, 'public', 'site'), {
-  maxAge: 0, etag: true, extensions: ['html']
+  maxAge: 0, etag: true, extensions: ['html'], index: ['index.html']
 }));
+// Fallback for /site/slug/ paths — serve index.html from subdirectory
+app.use('/site', (req, res, next) => {
+  const fs = require('fs');
+  const sitePath = path.join(__dirname, 'public', 'site', req.path, 'index.html');
+  if (fs.existsSync(sitePath)) return res.sendFile(sitePath);
+  next();
+});
 // Serve site images
 app.use('/site-images', express.static(path.join(__dirname, 'public', 'site-images'), {
   maxAge: process.env.NODE_ENV === 'production' ? '365d' : 0, etag: true
