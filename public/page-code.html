@@ -499,7 +499,8 @@
 
       <!-- Tabs Navigation -->
       <div class="tabs-nav">
-        <button class="tab-btn active" data-tab="meta-seo">Meta & SEO</button>
+        <button class="tab-btn active" data-tab="seo-audit">Audit SEO</button>
+        <button class="tab-btn" data-tab="meta-seo">Meta & SEO</button>
         <button class="tab-btn" data-tab="open-graph">Open Graph</button>
         <button class="tab-btn" data-tab="code-injection">Code Injection</button>
         <button class="tab-btn" data-tab="schema">Schema.org</button>
@@ -508,8 +509,23 @@
         <button class="tab-btn" data-tab="history">Historique</button>
       </div>
 
+      <!-- Tab 0: Audit SEO -->
+      <div class="tab-panel active" id="tab-seo-audit">
+        <div class="card-section">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <h3>Audit SEO</h3>
+            <button class="btn-save" id="btn-run-audit" type="button" style="background:#238636">Lancer l'audit</button>
+          </div>
+          <div id="seo-score-wrap" style="text-align:center;padding:20px 0;display:none">
+            <div id="seo-score-circle" style="display:inline-flex;align-items:center;justify-content:center;width:100px;height:100px;border-radius:50%;font-size:32px;font-weight:700;border:4px solid #30363d;margin-bottom:12px"></div>
+            <div id="seo-score-label" style="font-size:14px;color:#8b949e"></div>
+          </div>
+          <div id="seo-checks-list" style="margin-top:12px"></div>
+        </div>
+      </div>
+
       <!-- Tab 1: Meta & SEO -->
-      <div class="tab-panel active" id="tab-meta-seo">
+      <div class="tab-panel" id="tab-meta-seo">
         <div class="card-section">
           <h3>Meta & SEO</h3>
 
@@ -805,6 +821,52 @@
 
           if (target === 'history') {
             loadHistory();
+          }
+        });
+      });
+
+      // --- SEO Audit ---
+      document.getElementById('btn-run-audit').addEventListener('click', runSeoAudit);
+
+      function runSeoAudit() {
+        var btn = document.getElementById('btn-run-audit');
+        btn.disabled = true; btn.textContent = 'Analyse...';
+        Auth.apiFetch('/api/pages/' + slug + '/seo-audit').then(function(r) { return r.json(); }).then(function(data) {
+          btn.disabled = false; btn.textContent = 'Lancer l\'audit';
+          if (data.error) { alert(data.error); return; }
+
+          // Score circle
+          var scoreWrap = document.getElementById('seo-score-wrap');
+          scoreWrap.style.display = 'block';
+          var circle = document.getElementById('seo-score-circle');
+          var label = document.getElementById('seo-score-label');
+          circle.textContent = data.score;
+          circle.style.color = data.score >= 80 ? '#3fb950' : data.score >= 50 ? '#d29922' : '#f85149';
+          circle.style.borderColor = data.score >= 80 ? '#23863644' : data.score >= 50 ? '#d2992244' : '#f8514944';
+          label.textContent = data.errors + ' erreur(s), ' + data.warnings + ' avertissement(s)';
+
+          // Checks list
+          var list = document.getElementById('seo-checks-list');
+          list.innerHTML = data.checks.map(function(c) {
+            var icon = c.pass ? '<span style="color:#3fb950;font-weight:700">&#10003;</span>' : c.severity === 'error' ? '<span style="color:#f85149;font-weight:700">&#10007;</span>' : c.severity === 'warning' ? '<span style="color:#d29922;font-weight:700">&#9888;</span>' : '<span style="color:#8b949e">&#8505;</span>';
+            var bg = c.pass ? '#23863612' : c.severity === 'error' ? '#f8514912' : c.severity === 'warning' ? '#d2992212' : '#161b22';
+            return '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;background:' + bg + ';margin-bottom:6px;border:1px solid #21262d">' +
+              '<span style="font-size:16px;flex-shrink:0">' + icon + '</span>' +
+              '<span style="font-weight:600;min-width:140px;color:#e6edf3;font-size:13px">' + c.rule + '</span>' +
+              '<span style="color:#8b949e;font-size:13px;flex:1">' + c.detail + '</span>' +
+              '</div>';
+          }).join('');
+        }).catch(function() {
+          btn.disabled = false; btn.textContent = 'Lancer l\'audit';
+          alert('Erreur reseau');
+        });
+      }
+
+      // Auto-run audit on tab open
+      document.querySelectorAll('.tab-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          if (this.dataset.tab === 'seo-audit' && !document.getElementById('seo-score-wrap').style.display) {
+            runSeoAudit();
           }
         });
       });

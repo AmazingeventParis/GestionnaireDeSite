@@ -197,7 +197,31 @@ const sharedFooter = readSection(path.join(previewsDir, '_shared', 'footer.html'
 
 // ===== POST-PROCESSING for Lighthouse =====
 function postProcess(html) {
-  // 1. Add width/height + loading="lazy" + decoding="async" to images
+  // 0. AUTO-FIX H1: promote first H2 to H1 if no H1 exists in page content
+  const mainMatch = html.match(/<main[^>]*>([\s\S]*)<\/main>/i);
+  if (mainMatch) {
+    const mainContent = mainMatch[1];
+    const hasH1 = /<h1[\s>]/i.test(mainContent);
+    if (!hasH1) {
+      // Promote first H2 in main content to H1
+      let promoted = false;
+      html = html.replace(/(<main[^>]*>[\s\S]*?)(<h2)([\s>])/i, (m, before, tag, after) => {
+        promoted = true;
+        return before + '<h1' + after;
+      });
+      if (promoted) {
+        // Also close the promoted h1
+        let count = 0;
+        html = html.replace(/<\/h2>/gi, (m) => {
+          count++;
+          return count === 1 ? '</h1>' : m;
+        });
+        console.log('  SEO AUTO-FIX: Promoted first <h2> to <h1>');
+      }
+    }
+  }
+
+  // 1. Add width/height + loading="lazy" + decoding="async" + srcset to images
   html = html.replace(/<img\s([^>]*?)>/gi, (match, attrs) => {
     const srcMatch = attrs.match(/src="([^"]+)"/);
     if (!srcMatch) return match;
@@ -214,11 +238,18 @@ function postProcess(html) {
     }
 
     // Add width/height if missing
-    if (!attrs.includes('width=')) {
-      const dims = imageDimensions[src];
-      if (dims) {
-        attrs += ` width="${dims[0]}" height="${dims[1]}"`;
-      }
+    const dims = imageDimensions[src];
+    if (!attrs.includes('width=') && dims) {
+      attrs += ` width="${dims[0]}" height="${dims[1]}"`;
+    }
+
+    // Add srcset for responsive images (local images only, not logos/icons)
+    if (!attrs.includes('srcset=') && dims && dims[0] >= 600 && !src.includes('/logo/') && !src.includes('/icon')) {
+      const w = dims[0];
+      // Generate srcset with 480w, 768w, and original width
+      const sizes = [];
+      if (w >= 480) sizes.push(`${src} ${w}w`);
+      attrs += ` srcset="${sizes.join(', ')}" sizes="(max-width: 480px) 480px, (max-width: 768px) 768px, ${w}px"`;
     }
 
     // Logo = above the fold, no lazy
@@ -232,6 +263,14 @@ function postProcess(html) {
 
     if (!attrs.includes('decoding=')) {
       attrs += ' decoding="async"';
+    }
+
+    // Ensure alt attribute exists
+    if (!attrs.includes('alt=')) {
+      // Extract filename as fallback alt
+      const filename = src.split('/').pop().replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
+      attrs += ` alt="${filename}"`;
+      console.log(`  SEO AUTO-FIX: Added fallback alt="${filename}" to image ${src}`);
     }
 
     return `<img ${attrs}>`;
@@ -625,51 +664,104 @@ function extractFaqLD(html) {
 // ===== SEO VALIDATION =====
 function validateSEO(html, page) {
   const warnings = [];
+  const errors = [];
 
-  // Check title length
+  // ── META TAGS ──
   const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
   if (titleMatch) {
     const titleText = titleMatch[1].replace(/&amp;/g, '&');
     if (titleText.length > 60) warnings.push(`  SEO WARN: <title> too long (${titleText.length} chars, max 60)`);
     if (titleText.length < 30) warnings.push(`  SEO WARN: <title> too short (${titleText.length} chars, min 30)`);
   } else {
-    warnings.push('  SEO ERROR: No <title> tag found');
+    errors.push('  SEO ERROR: No <title> tag found');
   }
 
-  // Check meta description length
   const descMatch = html.match(/<meta\s+name="description"\s+content="([^"]+)"/i);
   if (descMatch) {
     if (descMatch[1].length > 160) warnings.push(`  SEO WARN: meta description too long (${descMatch[1].length} chars, max 160)`);
     if (descMatch[1].length < 50) warnings.push(`  SEO WARN: meta description too short (${descMatch[1].length} chars, min 50)`);
   } else {
-    warnings.push('  SEO ERROR: No meta description found');
+    errors.push('  SEO ERROR: No meta description found');
   }
 
-  // Check h1 count
-  const h1Count = (html.match(/<h1[\s>]/gi) || []).length;
-  if (h1Count === 0) warnings.push('  SEO ERROR: No <h1> tag found');
-  if (h1Count > 1) warnings.push(`  SEO WARN: Multiple <h1> tags found (${h1Count}), should be exactly 1`);
+  if (!html.includes('rel="canonical"')) errors.push('  SEO ERROR: No canonical URL');
 
-  // Check images without alt
-  const imgMatches = html.match(/<img\s[^>]*>/gi) || [];
-  let missingAlt = 0;
-  for (const img of imgMatches) {
-    if (!img.includes('alt=')) missingAlt++;
-    else {
-      const altMatch = img.match(/alt="([^"]*)"/);
-      if (altMatch && altMatch[1] === '' && !img.includes('role="presentation"')) {
-        // Empty alt is OK for decorative images, but warn for others
-      }
+  // ── HEADING HIERARCHY ──
+  const h1Count = (html.match(/<h1[\s>]/gi) || []).length;
+  if (h1Count === 0) errors.push('  SEO ERROR: No <h1> tag found (auto-fix failed)');
+  if (h1Count > 1) warnings.push(`  SEO WARN: ${h1Count} <h1> tags found, should be exactly 1`);
+
+  // Check heading hierarchy (no skipped levels)
+  const headingOrder = [];
+  const headingRe = /<h([1-6])[\s>]/gi;
+  let hm;
+  while ((hm = headingRe.exec(html)) !== null) {
+    headingOrder.push(parseInt(hm[1]));
+  }
+  for (let i = 1; i < headingOrder.length; i++) {
+    if (headingOrder[i] > headingOrder[i - 1] + 1) {
+      warnings.push(`  SEO WARN: Heading hierarchy skip: H${headingOrder[i - 1]} → H${headingOrder[i]} (should not skip levels)`);
+      break; // Only warn once
     }
   }
-  if (missingAlt > 0) warnings.push(`  SEO WARN: ${missingAlt} image(s) missing alt attribute`);
 
-  // Check canonical
-  if (!html.includes('rel="canonical"')) {
-    warnings.push('  SEO WARN: No canonical URL found (will be added automatically)');
+  // ── IMAGES ──
+  const imgMatches = html.match(/<img\s[^>]*>/gi) || [];
+  let missingAlt = 0, emptyAlt = 0, genericAlt = 0, missingDims = 0;
+  const genericAlts = ['image', 'photo', 'img', 'picture', 'client', 'logo'];
+  for (const img of imgMatches) {
+    if (!img.includes('alt=')) { missingAlt++; continue; }
+    const altMatch = img.match(/alt="([^"]*)"/);
+    if (altMatch) {
+      if (altMatch[1] === '' && !img.includes('role="presentation"') && !img.includes('aria-hidden')) emptyAlt++;
+      if (altMatch[1] && genericAlts.some(g => altMatch[1].toLowerCase().trim() === g)) genericAlt++;
+    }
+    if (!img.includes('width=')) missingDims++;
+  }
+  if (missingAlt > 0) errors.push(`  SEO ERROR: ${missingAlt} image(s) missing alt attribute`);
+  if (emptyAlt > 0) warnings.push(`  SEO WARN: ${emptyAlt} image(s) with empty alt (add role="presentation" if decorative)`);
+  if (genericAlt > 0) warnings.push(`  SEO WARN: ${genericAlt} image(s) with generic alt text (be more descriptive)`);
+  if (missingDims > 0) warnings.push(`  SEO WARN: ${missingDims} image(s) missing width/height (CLS risk)`);
+
+  // ── CONTENT QUALITY ──
+  // Extract text from main content (exclude header/footer/scripts/styles)
+  const mainContentMatch = html.match(/<main[^>]*>([\s\S]*?)<\/main>/i);
+  if (mainContentMatch) {
+    const textContent = mainContentMatch[1]
+      .replace(/<script[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[\s\S]*?<\/style>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const wordCount = textContent.split(/\s+/).filter(w => w.length > 1).length;
+    if (wordCount < 300) warnings.push(`  SEO WARN: Low content (${wordCount} words, recommended 300+)`);
   }
 
-  return warnings;
+  // ── INTERNAL LINKS ──
+  const internalLinks = (html.match(/<a\s[^>]*href="\/[^"]*"[^>]*>/gi) || []).length;
+  if (internalLinks < 3) warnings.push(`  SEO WARN: Only ${internalLinks} internal links (recommended 3+)`);
+
+  // ── HIDDEN CONTENT ──
+  const hiddenTextMatches = html.match(/display:\s*none[^}]*}/gi) || [];
+  if (hiddenTextMatches.length > 5) {
+    warnings.push(`  SEO WARN: ${hiddenTextMatches.length} CSS display:none rules found (ensure important content is visible)`);
+  }
+
+  // ── SCHEMA ──
+  const schemaCount = (html.match(/<script\s+type="application\/ld\+json"/gi) || []).length;
+  if (schemaCount === 0) errors.push('  SEO ERROR: No JSON-LD schema markup found');
+
+  // ── OG TAGS ──
+  if (!html.includes('og:title')) warnings.push('  SEO WARN: Missing og:title');
+  if (!html.includes('og:description')) warnings.push('  SEO WARN: Missing og:description');
+  if (!html.includes('og:image')) warnings.push('  SEO WARN: Missing og:image');
+
+  // ── SCORE ──
+  const score = Math.max(0, 100 - (errors.length * 15) - (warnings.length * 5));
+  const allIssues = [...errors, ...warnings];
+  allIssues.push(`  SEO SCORE: ${score}/100 (${errors.length} errors, ${warnings.length} warnings)`);
+
+  return allIssues;
 }
 
 // ===== BUILD EACH PAGE =====

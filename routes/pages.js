@@ -354,7 +354,7 @@ router.post('/create', verifyToken, requireRole('admin'), async (req, res) => {
 
     fs.mkdirSync(pageDir, { recursive: true });
 
-    // Create a default hero section
+    // Create a default hero section with proper SEO structure
     const pageName = name || slug.replace(/-/g, ' ').replace(/^\w/, c => c.toUpperCase());
     const heroHtml = `<style>
 .new-page-hero {
@@ -371,6 +371,12 @@ router.post('/create', verifyToken, requireRole('admin'), async (req, res) => {
   line-height: 1.1;
   margin: 0 0 16px;
 }
+.new-page-hero h1 .accent {
+  background: linear-gradient(135deg, #E51981, #ff6eb4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 .new-page-hero p {
   font-size: 18px;
   color: rgba(255,255,255,0.7);
@@ -378,21 +384,54 @@ router.post('/create', verifyToken, requireRole('admin'), async (req, res) => {
   margin: 0 auto;
   line-height: 1.6;
 }
+.new-page-hero .hero-cta {
+  display: inline-block;
+  margin-top: 24px;
+  padding: 14px 36px;
+  background: linear-gradient(135deg, #E51981, #ff3fac);
+  color: #fff;
+  font-family: 'Raleway', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: 50px;
+  text-decoration: none;
+  box-shadow: 0 6px 24px rgba(229,25,129,0.35);
+  transition: all 0.3s ease;
+}
+.new-page-hero .hero-cta:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 32px rgba(229,25,129,0.5);
+}
 @media (max-width: 768px) {
   .new-page-hero { padding: 80px 20px 60px; }
   .new-page-hero h1 { font-size: 32px; }
   .new-page-hero p { font-size: 16px; }
 }
 </style>
-<section class="new-page-hero">
-  <h1 data-gds-edit="${slug}:0:h1" data-gds-section="${slug}" data-gds-tag="H1">${pageName}</h1>
-  <p data-gds-edit="${slug}:0:p" data-gds-section="${slug}" data-gds-tag="P">Description de la page. Cliquez pour modifier.</p>
+<section class="new-page-hero" aria-label="${pageName}">
+  <h1>${pageName}</h1>
+  <p>Description de la page. Cliquez pour modifier.</p>
+  <a href="/reservation/" class="hero-cta">Obtenir un devis gratuit</a>
 </section>
 `;
     fs.writeFileSync(path.join(pageDir, '01-hero.html'), heroHtml, 'utf-8');
 
-    // Create default SEO (with optional custom URL path)
-    const seoData = { title: pageName, description: '', ogTitle: '', ogDescription: '' };
+    // Create comprehensive SEO config
+    const cleanName = pageName.replace(/&amp;/g, '&');
+    const seoData = {
+      title: `${cleanName} | Shootnbox - Location Photobooth`,
+      description: `${cleanName} - Shootnbox, specialiste de la location de photobooth et borne photo pour vos evenements.`,
+      ogTitle: `${cleanName} - Shootnbox`,
+      ogDescription: `${cleanName} - Decouvrez nos solutions de location de photobooth pour mariages, entreprises et evenements.`,
+      ogImage: '/site-images/logo/shootnbox-logo-new-1.webp',
+      noindex: false,
+      schemaType: 'WebPage',
+      sitemap: {
+        include: true,
+        priority: '0.7',
+        changefreq: 'monthly'
+      }
+    };
     if (urlPath) {
       seoData.urlPath = urlPath.replace(/^\/+|\/+$/g, '').toLowerCase();
     }
@@ -1542,6 +1581,98 @@ router.post('/:slug/history/:id/restore', verifyToken, requireRole('admin'), asy
  * POST /:slug/publish — Build and publish the site
  * RBAC: admin only
  */
+/**
+ * GET /:slug/seo-audit — Run SEO validation on a page
+ */
+router.get('/:slug/seo-audit', verifyToken, async (req, res) => {
+  try {
+    const slug = req.params.slug.replace(/[^a-z0-9-]/gi, '');
+    const previewDir = getPreviewDir(slug);
+    if (!fs.existsSync(previewDir)) return res.status(404).json({ error: 'Page non trouvee' });
+
+    // Read all section files
+    const files = fs.readdirSync(previewDir).filter(f => f.endsWith('.html')).sort();
+    let allHtml = '';
+    for (const f of files) {
+      allHtml += fs.readFileSync(path.join(previewDir, f), 'utf-8') + '\n';
+    }
+
+    // Read seo.json
+    const seoPath = path.join(previewDir, 'seo.json');
+    let seoData = {};
+    if (fs.existsSync(seoPath)) {
+      try { seoData = JSON.parse(fs.readFileSync(seoPath, 'utf-8')); } catch (e) {}
+    }
+
+    const checks = [];
+
+    // H1
+    const h1s = (allHtml.match(/<h1[\s>]/gi) || []);
+    checks.push({ rule: 'H1 unique', pass: h1s.length === 1, detail: h1s.length === 0 ? 'Aucun H1 trouve' : h1s.length > 1 ? `${h1s.length} H1 trouves (1 seul autorise)` : 'OK', severity: 'error' });
+
+    // Heading hierarchy
+    const headings = [];
+    const hRe = /<h([1-6])[\s>]/gi;
+    let hm;
+    while ((hm = hRe.exec(allHtml)) !== null) headings.push(parseInt(hm[1]));
+    let hierOk = true;
+    for (let i = 1; i < headings.length; i++) {
+      if (headings[i] > headings[i-1] + 1) { hierOk = false; break; }
+    }
+    checks.push({ rule: 'Hierarchie headings', pass: hierOk, detail: hierOk ? 'OK' : 'Niveaux sautes (ex: H2 suivi de H4)', severity: 'warning' });
+
+    // Images alt
+    const imgs = allHtml.match(/<img\s[^>]*>/gi) || [];
+    const noAlt = imgs.filter(i => !i.includes('alt=')).length;
+    const emptyAlt = imgs.filter(i => { const m = i.match(/alt=""/); return m && !i.includes('role="presentation"'); }).length;
+    checks.push({ rule: 'Alt images', pass: noAlt === 0, detail: noAlt > 0 ? `${noAlt} image(s) sans alt` : emptyAlt > 0 ? `${emptyAlt} alt vides` : `${imgs.length} images OK`, severity: noAlt > 0 ? 'error' : 'warning' });
+
+    // Images dimensions
+    const noDims = imgs.filter(i => !i.includes('width=')).length;
+    checks.push({ rule: 'Dimensions images', pass: noDims === 0, detail: noDims > 0 ? `${noDims} image(s) sans width/height` : 'OK', severity: 'warning' });
+
+    // SEO meta
+    checks.push({ rule: 'Title SEO', pass: !!(seoData.title && seoData.title.length >= 30), detail: seoData.title ? `${seoData.title.length} chars` : 'Manquant', severity: 'error' });
+    checks.push({ rule: 'Meta description', pass: !!(seoData.description && seoData.description.length >= 50), detail: seoData.description ? `${seoData.description.length} chars` : 'Manquante', severity: 'error' });
+    checks.push({ rule: 'OG Title', pass: !!seoData.ogTitle, detail: seoData.ogTitle ? 'OK' : 'Manquant', severity: 'warning' });
+    checks.push({ rule: 'OG Description', pass: !!seoData.ogDescription, detail: seoData.ogDescription ? 'OK' : 'Manquante', severity: 'warning' });
+    checks.push({ rule: 'OG Image', pass: !!seoData.ogImage, detail: seoData.ogImage ? 'OK' : 'Manquante', severity: 'warning' });
+
+    // Semantic HTML
+    const hasSections = /<section[\s>]/i.test(allHtml) || /<article[\s>]/i.test(allHtml);
+    checks.push({ rule: 'HTML semantique', pass: hasSections, detail: hasSections ? 'Balises <section> ou <article> trouvees' : 'Aucune balise semantique (utiliser <section>, <article>, <figure>)', severity: 'warning' });
+
+    // Word count
+    const textOnly = allHtml.replace(/<style[\s\S]*?<\/style>/gi, '').replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    const wordCount = textOnly.split(/\s+/).filter(w => w.length > 1).length;
+    checks.push({ rule: 'Contenu texte', pass: wordCount >= 300, detail: `${wordCount} mots (${wordCount >= 300 ? 'OK' : 'recommande 300+' })`, severity: 'warning' });
+
+    // Internal links
+    const intLinks = (allHtml.match(/<a\s[^>]*href="\/[^"]*"/gi) || []).length;
+    checks.push({ rule: 'Liens internes', pass: intLinks >= 3, detail: `${intLinks} liens (${intLinks >= 3 ? 'OK' : 'recommande 3+'})`, severity: 'warning' });
+
+    // Hidden content
+    const hiddenRules = (allHtml.match(/display:\s*none/gi) || []).length;
+    checks.push({ rule: 'Contenu cache', pass: hiddenRules <= 3, detail: `${hiddenRules} regles display:none`, severity: hiddenRules > 5 ? 'warning' : 'info' });
+
+    // Schema type
+    checks.push({ rule: 'Schema type', pass: !!seoData.schemaType, detail: seoData.schemaType || 'Non defini', severity: 'info' });
+
+    // Sitemap
+    checks.push({ rule: 'Sitemap', pass: seoData.sitemap?.include !== false, detail: seoData.noindex ? 'Page noindex (exclue)' : 'Incluse', severity: 'info' });
+
+    // Score
+    const errors = checks.filter(c => !c.pass && c.severity === 'error').length;
+    const warnings = checks.filter(c => !c.pass && c.severity === 'warning').length;
+    const score = Math.max(0, 100 - (errors * 15) - (warnings * 5));
+
+    res.json({ slug, score, errors, warnings, checks, seoData });
+  } catch (err) {
+    console.error('[Pages] SEO audit error:', err.message);
+    res.status(500).json({ error: 'Erreur lors de l\'audit SEO' });
+  }
+});
+
 router.post('/:slug/publish', verifyToken, requireRole('admin'), async (req, res) => {
   try {
     const slug = req.params.slug.replace(/[^a-z0-9-]/gi, '');
