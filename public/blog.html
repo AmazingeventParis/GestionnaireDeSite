@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blog - Gestionnaire de Site</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .blog-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+    .blog-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+    .blog-stat { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 16px; text-align: center; }
+    .blog-stat-value { font-size: 28px; font-weight: 700; color: #e6edf3; }
+    .blog-stat-label { font-size: 12px; color: #8b949e; margin-top: 2px; }
+
+    .blog-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+    .blog-card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; overflow: hidden; transition: border-color 0.2s, box-shadow 0.2s; }
+    .blog-card:hover { border-color: #58a6ff; box-shadow: 0 0 0 1px #58a6ff33; }
+    .blog-card-img { width: 100%; aspect-ratio: 16/9; overflow: hidden; background: #0d1117; }
+    .blog-card-img img { width: 100%; height: 100%; object-fit: cover; }
+    .blog-card-body { padding: 16px; }
+    .blog-card-cat { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .blog-card-cat.cat-mariage { background: #E5198122; color: #ff6eb4; }
+    .blog-card-cat.cat-entreprise { background: #0250FF22; color: #4d8aff; }
+    .blog-card-cat.cat-anniversaire { background: #7828C822; color: #a855f7; }
+    .blog-card-cat.cat-conseils { background: #FF7A0022; color: #ff9a3c; }
+    .blog-card-title { font-size: 16px; font-weight: 600; color: #e6edf3; margin-bottom: 8px; line-height: 1.3; }
+    .blog-card-meta { font-size: 12px; color: #8b949e; display: flex; gap: 12px; margin-bottom: 12px; }
+    .blog-card-status { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+    .blog-card-status.draft { background: #d2992222; color: #d29922; }
+    .blog-card-status.published { background: #23863622; color: #3fb950; }
+    .blog-card-actions { display: flex; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #21262d; }
+    .blog-card-actions .btn { flex: 1; }
+
+    .blog-empty { text-align: center; padding: 80px 20px; color: #8b949e; }
+    .blog-empty-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.5; }
+    .blog-empty h3 { color: #e6edf3; margin-bottom: 8px; }
+
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: flex-start; justify-content: center; padding: 40px 20px; overflow-y: auto; }
+    .modal-overlay.active { display: flex; }
+    .modal { background: #161b22; border: 1px solid #30363d; border-radius: 12px; width: 100%; max-width: 900px; max-height: none; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #21262d; }
+    .modal-header h3 { font-size: 18px; font-weight: 600; color: #e6edf3; }
+    .modal-close { background: none; border: none; color: #8b949e; font-size: 20px; cursor: pointer; padding: 4px 8px; border-radius: 6px; }
+    .modal-close:hover { background: #21262d; color: #e6edf3; }
+    .modal-body { padding: 20px; }
+    .modal-footer { padding: 16px 20px; border-top: 1px solid #21262d; display: flex; justify-content: flex-end; gap: 8px; }
+
+    /* Form */
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+    .form-row.full { grid-template-columns: 1fr; }
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-group label { font-size: 12px; font-weight: 600; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; }
+    .form-group input, .form-group select, .form-group textarea {
+      background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 9px 12px;
+      color: #e6edf3; font-size: 14px; font-family: inherit; outline: none; transition: border-color 0.2s;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #58a6ff; }
+    .form-group textarea { resize: vertical; min-height: 60px; }
+    .form-hint { font-size: 11px; color: #484f58; margin-top: 2px; }
+
+    /* Block editor */
+    .blocks-editor { margin-top: 20px; border-top: 1px solid #21262d; padding-top: 16px; }
+    .blocks-editor-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .blocks-editor-header h4 { font-size: 14px; font-weight: 600; color: #e6edf3; }
+    .block-list { display: flex; flex-direction: column; gap: 8px; min-height: 40px; }
+    .block-item { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 12px; position: relative; }
+    .block-item:hover { border-color: #484f58; }
+    .block-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .block-type-badge { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; padding: 2px 8px; border-radius: 4px; background: #388bfd22; color: #58a6ff; }
+    .block-type-badge.t-h2 { background: #E5198122; color: #ff6eb4; }
+    .block-type-badge.t-h3 { background: #7828C822; color: #a855f7; }
+    .block-type-badge.t-conseil { background: #FF7A0022; color: #ff9a3c; }
+    .block-type-badge.t-image { background: #23863622; color: #3fb950; }
+    .block-type-badge.t-table { background: #0250FF22; color: #4d8aff; }
+    .block-type-badge.t-highlight { background: #d2992222; color: #d29922; }
+    .block-type-badge.t-cta { background: #E5198122; color: #E51981; }
+    .block-actions { display: flex; gap: 4px; }
+    .block-actions button { background: none; border: none; color: #8b949e; cursor: pointer; padding: 2px 6px; border-radius: 4px; font-size: 14px; }
+    .block-actions button:hover { background: #21262d; color: #e6edf3; }
+    .block-item input, .block-item textarea, .block-item select {
+      width: 100%; background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 7px 10px;
+      color: #e6edf3; font-size: 13px; font-family: inherit; outline: none; margin-bottom: 6px;
+    }
+    .block-item input:focus, .block-item textarea:focus { border-color: #58a6ff; }
+    .block-item textarea { resize: vertical; min-height: 50px; }
+    .block-sub-label { font-size: 10px; color: #484f58; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; display: block; }
+
+    /* Add block dropdown */
+    .add-block-wrap { position: relative; margin-top: 8px; }
+    .add-block-menu { display: none; position: absolute; bottom: 100%; left: 0; background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 6px; z-index: 10; min-width: 220px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+    .add-block-menu.open { display: block; }
+    .add-block-menu button { display: block; width: 100%; text-align: left; background: none; border: none; color: #e6edf3; padding: 8px 10px; border-radius: 6px; font-size: 13px; cursor: pointer; font-family: inherit; }
+    .add-block-menu button:hover { background: #21262d; }
+    .add-block-menu button span { color: #8b949e; font-size: 11px; margin-left: 6px; }
+
+    /* Tags input */
+    .tags-input-wrap { display: flex; flex-wrap: wrap; gap: 6px; background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 6px 10px; min-height: 38px; align-items: center; cursor: text; }
+    .tags-input-wrap:focus-within { border-color: #58a6ff; }
+    .tags-input-wrap .tag-pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 12px; background: #388bfd22; color: #58a6ff; font-size: 12px; font-weight: 600; }
+    .tags-input-wrap .tag-pill button { background: none; border: none; color: #58a6ff; cursor: pointer; font-size: 14px; padding: 0; line-height: 1; }
+    .tags-input-wrap input { border: none; background: none; color: #e6edf3; font-size: 13px; outline: none; flex: 1; min-width: 80px; padding: 2px 0; }
+
+    @media (max-width: 768px) {
+      .blog-stats { grid-template-columns: repeat(2, 1fr); }
+      .form-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div id="navbar"></div>
+  <div class="container">
+    <div class="blog-header">
+      <div>
+        <h1 class="page-title">Articles de <span>Blog</span></h1>
+        <p class="page-subtitle">Creez et gerez les articles du blog Shootnbox</p>
+      </div>
+      <button class="btn btn-primary" id="btn-new-article">+ Nouvel article</button>
+    </div>
+
+    <div class="blog-stats" id="blog-stats"></div>
+
+    <div id="blog-loading" class="loading-spinner" style="display:none">
+      <div class="spinner"></div>
+      <p>Chargement des articles...</p>
+    </div>
+
+    <div id="blog-empty" class="blog-empty" style="display:none">
+      <div class="blog-empty-icon">&#x1F4DD;</div>
+      <h3>Aucun article</h3>
+      <p>Creez votre premier article de blog pour commencer.</p>
+      <button class="btn btn-primary" onclick="openCreateModal()" style="margin-top:12px">+ Creer un article</button>
+    </div>
+
+    <div class="blog-grid" id="blog-grid"></div>
+  </div>
+
+  <!-- Create / Edit Modal -->
+  <div class="modal-overlay" id="article-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-title">Nouvel article</h3>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="edit-slug">
+
+        <!-- Metadata -->
+        <div class="form-row">
+          <div class="form-group">
+            <label>Titre de l'article</label>
+            <input type="text" id="f-title" placeholder="10 idees pour animer votre mariage">
+          </div>
+          <div class="form-group">
+            <label>Titre HTML (avec accent)</label>
+            <input type="text" id="f-titlehtml" placeholder='10 idees pour &lt;span class="accent"&gt;animer&lt;/span&gt; votre mariage'>
+            <span class="form-hint">Utiliser &lt;span class="accent"&gt; pour le mot-cle en rose</span>
+          </div>
+        </div>
+        <div class="form-row full">
+          <div class="form-group">
+            <label>Meta description (155 chars max)</label>
+            <textarea id="f-meta" maxlength="155" rows="2" placeholder="Description SEO de l'article..."></textarea>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Categorie</label>
+            <select id="f-category">
+              <option value="mariage">Mariage</option>
+              <option value="entreprise">Entreprise</option>
+              <option value="anniversaire">Anniversaire</option>
+              <option value="conseils">Conseils</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Auteur</label>
+            <select id="f-author">
+              <option value="mathilde">Mathilde Sehault</option>
+              <option value="elise">Elise Durant</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Date de publication</label>
+            <input type="date" id="f-date">
+          </div>
+          <div class="form-group">
+            <label>Image hero (URL ou /site-images/...)</label>
+            <input type="text" id="f-hero" placeholder="/site-images/blog/hero.webp">
+          </div>
+        </div>
+        <div class="form-row full">
+          <div class="form-group">
+            <label>Alt image hero</label>
+            <input type="text" id="f-heroalt" placeholder="Description de l'image hero">
+          </div>
+        </div>
+        <div class="form-row full">
+          <div class="form-group">
+            <label>Tags</label>
+            <div class="tags-input-wrap" id="tags-wrap">
+              <input type="text" id="f-tags-input" placeholder="Tapez un tag + Entree">
+            </div>
+          </div>
+        </div>
+
+        <!-- Block editor -->
+        <div class="blocks-editor">
+          <div class="blocks-editor-header">
+            <h4>Contenu de l'article</h4>
+          </div>
+          <div class="block-list" id="block-list"></div>
+          <div class="add-block-wrap">
+            <button class="btn btn-secondary" id="btn-add-block" type="button">+ Ajouter un bloc</button>
+            <div class="add-block-menu" id="add-block-menu">
+              <button onclick="addBlock('intro')">Introduction <span>Paragraphe chapeau</span></button>
+              <button onclick="addBlock('h2')">Titre H2 <span>Section principale</span></button>
+              <button onclick="addBlock('h3')">Titre H3 <span>Sous-section</span></button>
+              <button onclick="addBlock('h4')">Titre H4 <span>Question FAQ</span></button>
+              <button onclick="addBlock('paragraph')">Paragraphe <span>Texte</span></button>
+              <button onclick="addBlock('list')">Liste <span>a puces</span></button>
+              <button onclick="addBlock('ordered-list')">Liste <span>numerotee</span></button>
+              <button onclick="addBlock('image')">Image <span>+ legende</span></button>
+              <button onclick="addBlock('conseil')">Conseil <span>Box coloree</span></button>
+              <button onclick="addBlock('highlight')">Citation <span>Mise en avant</span></button>
+              <button onclick="addBlock('table')">Tableau <span>Colonnes/lignes</span></button>
+              <button onclick="addBlock('cta-product')">CTA Produit <span>Carte promo</span></button>
+              <button onclick="addBlock('faq')">FAQ <span>Question/Reponse</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+        <button class="btn btn-primary" id="btn-save-article">Creer l'article</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast-container" style="position:fixed;top:20px;right:20px;z-index:2000"></div>
+
+  <script src="/js/components.js"></script>
+  <script>
+(function() {
+  'use strict';
+
+  var articles = [];
+  var currentTags = [];
+  var editMode = false;
+
+  // ── Init ──
+  Components.initPage(function() {
+    loadArticles();
+    bindEvents();
+  });
+
+  function bindEvents() {
+    document.getElementById('btn-new-article').addEventListener('click', openCreateModal);
+    document.getElementById('btn-save-article').addEventListener('click', saveArticle);
+
+    // Add block menu toggle
+    document.getElementById('btn-add-block').addEventListener('click', function(e) {
+      e.stopPropagation();
+      document.getElementById('add-block-menu').classList.toggle('open');
+    });
+    document.addEventListener('click', function() {
+      document.getElementById('add-block-menu').classList.remove('open');
+    });
+
+    // Tags input
+    document.getElementById('f-tags-input').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && this.value.trim()) {
+        e.preventDefault();
+        addTag(this.value.trim());
+        this.value = '';
+      }
+    });
+    document.getElementById('tags-wrap').addEventListener('click', function() {
+      document.getElementById('f-tags-input').focus();
+    });
+
+    // Close modal on overlay click
+    document.getElementById('article-modal').addEventListener('click', function(e) {
+      if (e.target === this) closeModal();
+    });
+  }
+
+  // ── API ──
+  function api(method, url, body) {
+    var opts = { method: method, headers: { 'Content-Type': 'application/json' }, credentials: 'include' };
+    if (body) opts.body = JSON.stringify(body);
+    return fetch('/api/blog' + url, opts).then(function(r) { return r.json(); });
+  }
+
+  function loadArticles() {
+    document.getElementById('blog-loading').style.display = 'block';
+    api('GET', '/').then(function(data) {
+      document.getElementById('blog-loading').style.display = 'none';
+      articles = Array.isArray(data) ? data : [];
+      renderStats();
+      renderGrid();
+    }).catch(function() {
+      document.getElementById('blog-loading').style.display = 'none';
+      toast('Erreur de chargement', 'error');
+    });
+  }
+
+  function renderStats() {
+    var total = articles.length;
+    var published = articles.filter(function(a) { return a.status === 'published'; }).length;
+    var drafts = total - published;
+    var cats = {};
+    articles.forEach(function(a) { cats[a.category] = (cats[a.category] || 0) + 1; });
+    var topCat = Object.keys(cats).sort(function(a, b) { return cats[b] - cats[a]; })[0] || '-';
+
+    document.getElementById('blog-stats').innerHTML =
+      '<div class="blog-stat"><div class="blog-stat-value">' + total + '</div><div class="blog-stat-label">Articles</div></div>' +
+      '<div class="blog-stat"><div class="blog-stat-value">' + published + '</div><div class="blog-stat-label">Publies</div></div>' +
+      '<div class="blog-stat"><div class="blog-stat-value">' + drafts + '</div><div class="blog-stat-label">Brouillons</div></div>' +
+      '<div class="blog-stat"><div class="blog-stat-value" style="font-size:16px;text-transform:capitalize">' + topCat + '</div><div class="blog-stat-label">Categorie principale</div></div>';
+  }
+
+  function renderGrid() {
+    var grid = document.getElementById('blog-grid');
+    var empty = document.getElementById('blog-empty');
+    if (!articles.length) {
+      grid.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+
+    var catClasses = { mariage: 'cat-mariage', entreprise: 'cat-entreprise', anniversaire: 'cat-anniversaire', conseils: 'cat-conseils' };
+    var catLabels = { mariage: 'Mariage', entreprise: 'Entreprise', anniversaire: 'Anniversaire', conseils: 'Conseils' };
+
+    grid.innerHTML = articles.map(function(a) {
+      var img = a.heroImage ? '<img src="' + a.heroImage + '" alt="' + a.title + '">' : '<div style="width:100%;height:100%;background:#21262d;display:flex;align-items:center;justify-content:center;color:#484f58;font-size:32px">&#x1F4F7;</div>';
+      return '<div class="blog-card" data-slug="' + a.slug + '">' +
+        '<div class="blog-card-img">' + img + '</div>' +
+        '<div class="blog-card-body">' +
+          '<span class="blog-card-cat ' + (catClasses[a.category] || '') + '">' + (catLabels[a.category] || a.category) + '</span>' +
+          '<div class="blog-card-title">' + a.title + '</div>' +
+          '<div class="blog-card-meta">' +
+            '<span>' + (a.authorName || a.author) + '</span>' +
+            '<span>' + (a.date || '') + '</span>' +
+            '<span class="blog-card-status ' + (a.status || 'draft') + '">' + (a.status === 'published' ? 'Publie' : 'Brouillon') + '</span>' +
+          '</div>' +
+          '<div class="blog-card-actions">' +
+            '<button class="btn btn-sm btn-secondary" onclick="editArticle(\'' + a.slug + '\')">Modifier</button>' +
+            '<a class="btn btn-sm btn-secondary" href="/api/pages/' + a.slug + '/preview" target="_blank">Preview</a>' +
+            '<button class="btn btn-sm btn-danger" onclick="deleteArticle(\'' + a.slug + '\')">Supprimer</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  // ── Modal ──
+  window.openCreateModal = function() {
+    editMode = false;
+    document.getElementById('modal-title').textContent = 'Nouvel article';
+    document.getElementById('btn-save-article').textContent = 'Creer l\'article';
+    document.getElementById('edit-slug').value = '';
+    clearForm();
+    document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('article-modal').classList.add('active');
+  };
+
+  window.closeModal = function() {
+    document.getElementById('article-modal').classList.remove('active');
+  };
+
+  window.editArticle = function(slug) {
+    api('GET', '/' + slug).then(function(article) {
+      if (article.error) return toast(article.error, 'error');
+      editMode = true;
+      document.getElementById('modal-title').textContent = 'Modifier l\'article';
+      document.getElementById('btn-save-article').textContent = 'Enregistrer';
+      document.getElementById('edit-slug').value = slug;
+
+      document.getElementById('f-title').value = article.title || '';
+      document.getElementById('f-titlehtml').value = article.titleHTML || '';
+      document.getElementById('f-meta').value = article.metaDescription || '';
+      document.getElementById('f-category').value = article.category || 'conseils';
+      document.getElementById('f-author').value = article.author || 'mathilde';
+      document.getElementById('f-date').value = article.date || '';
+      document.getElementById('f-hero').value = article.heroImage || '';
+      document.getElementById('f-heroalt').value = article.heroAlt || '';
+
+      // Tags
+      currentTags = article.tags || [];
+      renderTags();
+
+      // Blocks
+      var list = document.getElementById('block-list');
+      list.innerHTML = '';
+      if (article.blocks && article.blocks.length) {
+        article.blocks.forEach(function(b) { addBlockWithData(b); });
+      }
+
+      document.getElementById('article-modal').classList.add('active');
+    });
+  };
+
+  window.deleteArticle = function(slug) {
+    if (!confirm('Supprimer cet article ? Cette action est irreversible.')) return;
+    api('DELETE', '/' + slug).then(function(r) {
+      if (r.success) { toast('Article supprime', 'success'); loadArticles(); }
+      else toast(r.error || 'Erreur', 'error');
+    });
+  };
+
+  function clearForm() {
+    ['f-title','f-titlehtml','f-meta','f-hero','f-heroalt'].forEach(function(id) {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('f-category').value = 'mariage';
+    document.getElementById('f-author').value = 'mathilde';
+    currentTags = [];
+    renderTags();
+    document.getElementById('block-list').innerHTML = '';
+  }
+
+  // ── Tags ──
+  function addTag(tag) {
+    tag = tag.replace(/^#/, '');
+    if (!tag || currentTags.indexOf(tag) !== -1) return;
+    currentTags.push(tag);
+    renderTags();
+  }
+
+  function removeTag(tag) {
+    currentTags = currentTags.filter(function(t) { return t !== tag; });
+    renderTags();
+  }
+
+  function renderTags() {
+    var wrap = document.getElementById('tags-wrap');
+    var input = document.getElementById('f-tags-input');
+    // Remove existing pills
+    wrap.querySelectorAll('.tag-pill').forEach(function(p) { p.remove(); });
+    currentTags.forEach(function(t) {
+      var pill = document.createElement('span');
+      pill.className = 'tag-pill';
+      pill.innerHTML = '#' + t + ' <button onclick="this.parentElement.remove();window._removeTag(\'' + t + '\')">&times;</button>';
+      wrap.insertBefore(pill, input);
+    });
+  }
+  window._removeTag = function(t) { removeTag(t); };
+
+  // ── Blocks ──
+  var blockCount = 0;
+
+  window.addBlock = function(type) {
+    document.getElementById('add-block-menu').classList.remove('open');
+    addBlockWithData({ type: type });
+  };
+
+  function addBlockWithData(data) {
+    blockCount++;
+    var id = 'block-' + blockCount;
+    var el = document.createElement('div');
+    el.className = 'block-item';
+    el.id = id;
+    el.dataset.type = data.type;
+
+    var badgeClass = '';
+    var label = data.type;
+    switch (data.type) {
+      case 'h2': badgeClass = 't-h2'; label = 'H2'; break;
+      case 'h3': badgeClass = 't-h3'; label = 'H3'; break;
+      case 'h4': badgeClass = 't-h3'; label = 'H4'; break;
+      case 'conseil': badgeClass = 't-conseil'; label = 'Conseil'; break;
+      case 'image': badgeClass = 't-image'; label = 'Image'; break;
+      case 'table': badgeClass = 't-table'; label = 'Tableau'; break;
+      case 'highlight': badgeClass = 't-highlight'; label = 'Citation'; break;
+      case 'cta-product': badgeClass = 't-cta'; label = 'CTA Produit'; break;
+      case 'intro': badgeClass = ''; label = 'Intro'; break;
+      case 'paragraph': label = 'Paragraphe'; break;
+      case 'list': label = 'Liste'; break;
+      case 'ordered-list': label = 'Liste num.'; break;
+      case 'faq': badgeClass = 't-h3'; label = 'FAQ'; break;
+    }
+
+    var header = '<div class="block-item-header"><span class="block-type-badge ' + badgeClass + '">' + label + '</span>' +
+      '<div class="block-actions">' +
+      '<button onclick="moveBlock(\'' + id + '\',-1)" title="Monter">&#9650;</button>' +
+      '<button onclick="moveBlock(\'' + id + '\',1)" title="Descendre">&#9660;</button>' +
+      '<button onclick="removeBlock(\'' + id + '\')" title="Supprimer">&#10005;</button>' +
+      '</div></div>';
+
+    var fields = '';
+    switch (data.type) {
+      case 'intro':
+      case 'paragraph':
+        fields = '<textarea class="f-content" rows="3" placeholder="Contenu HTML (gras, liens...)">' + (data.content || '') + '</textarea>';
+        break;
+      case 'h2':
+      case 'h3':
+      case 'h4':
+        fields = '<input class="f-text" type="text" placeholder="Titre de la section" value="' + escAttr(data.text || '') + '">';
+        if (data.type !== 'h4') fields += '<input class="f-id" type="text" placeholder="ID ancre (auto si vide)" value="' + escAttr(data.id || '') + '">';
+        break;
+      case 'list':
+      case 'ordered-list':
+        fields = '<span class="block-sub-label">Items (un par ligne)</span>' +
+          '<textarea class="f-items" rows="4" placeholder="Item 1\nItem 2\nItem 3">' + ((data.items || []).join('\n')) + '</textarea>';
+        break;
+      case 'image':
+        fields = '<input class="f-src" type="text" placeholder="URL image (/site-images/...)" value="' + escAttr(data.src || '') + '">' +
+          '<input class="f-alt" type="text" placeholder="Texte alt" value="' + escAttr(data.alt || '') + '">' +
+          '<input class="f-caption" type="text" placeholder="Legende (optionnel)" value="' + escAttr(data.caption || '') + '">';
+        break;
+      case 'conseil':
+        fields = '<div style="display:flex;gap:8px;margin-bottom:6px">' +
+          '<select class="f-variant" style="width:auto"><option value="">Rose (defaut)</option><option value="blue"' + (data.variant === 'blue' ? ' selected' : '') + '>Bleu</option><option value="orange"' + (data.variant === 'orange' ? ' selected' : '') + '>Orange</option><option value="green"' + (data.variant === 'green' ? ' selected' : '') + '>Vert</option></select>' +
+          '<input class="f-icon" type="text" placeholder="Emoji" value="' + escAttr(data.icon || '') + '" style="width:60px">' +
+          '<input class="f-label" type="text" placeholder="Label" value="' + escAttr(data.label || '') + '">' +
+          '</div>' +
+          '<textarea class="f-content" rows="3" placeholder="Contenu du conseil (HTML)">' + (data.content || '') + '</textarea>';
+        break;
+      case 'highlight':
+        fields = '<textarea class="f-content" rows="3" placeholder="Citation ou chiffre cle (HTML)">' + (data.content || '') + '</textarea>';
+        break;
+      case 'table':
+        fields = '<span class="block-sub-label">En-tetes (separes par |)</span>' +
+          '<input class="f-headers" type="text" placeholder="Col1 | Col2 | Col3" value="' + escAttr((data.headers || []).join(' | ')) + '">' +
+          '<span class="block-sub-label">Lignes (colonnes separees par |, une ligne par... ligne)</span>' +
+          '<textarea class="f-rows" rows="4" placeholder="Valeur1 | Valeur2 | Valeur3">' + ((data.rows || []).map(function(r) { return r.join(' | '); }).join('\n')) + '</textarea>' +
+          '<select class="f-variant" style="width:auto;margin-top:4px"><option value="">Rose (defaut)</option><option value="blue"' + (data.variant === 'blue' ? ' selected' : '') + '>Bleu</option></select>';
+        break;
+      case 'cta-product':
+        fields = '<input class="f-badge" type="text" placeholder="Badge (ex: Promo -100)" value="' + escAttr(data.badge || '') + '">' +
+          '<input class="f-image" type="text" placeholder="Image produit URL" value="' + escAttr(data.image || '') + '">' +
+          '<input class="f-label" type="text" placeholder="Label (ex: Mariage & Ceremonie)" value="' + escAttr(data.label || '') + '">' +
+          '<input class="f-title" type="text" placeholder="Titre CTA" value="' + escAttr(data.title || '') + '">' +
+          '<input class="f-desc" type="text" placeholder="Description" value="' + escAttr(data.desc || '') + '">' +
+          '<input class="f-link" type="text" placeholder="Lien" value="' + escAttr(data.link || '') + '">' +
+          '<input class="f-btntext" type="text" placeholder="Texte bouton" value="' + escAttr(data.btnText || '') + '">';
+        break;
+      case 'faq':
+        fields = '<input class="f-question" type="text" placeholder="Question ?" value="' + escAttr(data.question || '') + '">' +
+          '<textarea class="f-answer" rows="3" placeholder="Reponse...">' + (data.answer || '') + '</textarea>';
+        break;
+    }
+
+    el.innerHTML = header + fields;
+    document.getElementById('block-list').appendChild(el);
+  }
+
+  window.moveBlock = function(id, dir) {
+    var el = document.getElementById(id);
+    var list = document.getElementById('block-list');
+    if (dir === -1 && el.previousElementSibling) {
+      list.insertBefore(el, el.previousElementSibling);
+    } else if (dir === 1 && el.nextElementSibling) {
+      list.insertBefore(el.nextElementSibling, el);
+    }
+  };
+
+  window.removeBlock = function(id) {
+    var el = document.getElementById(id);
+    if (el) el.remove();
+  };
+
+  function escAttr(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // ── Collect blocks data ──
+  function collectBlocks() {
+    var blocks = [];
+    document.querySelectorAll('#block-list .block-item').forEach(function(el) {
+      var type = el.dataset.type;
+      var b = { type: type };
+      switch (type) {
+        case 'intro':
+        case 'paragraph':
+        case 'highlight':
+          b.content = val(el, '.f-content');
+          break;
+        case 'h2':
+        case 'h3':
+          b.text = val(el, '.f-text');
+          b.id = val(el, '.f-id') || '';
+          break;
+        case 'h4':
+          b.text = val(el, '.f-text');
+          break;
+        case 'list':
+        case 'ordered-list':
+          b.items = val(el, '.f-items').split('\n').filter(function(l) { return l.trim(); });
+          break;
+        case 'image':
+          b.src = val(el, '.f-src');
+          b.alt = val(el, '.f-alt');
+          b.caption = val(el, '.f-caption');
+          break;
+        case 'conseil':
+          b.variant = val(el, '.f-variant');
+          b.icon = val(el, '.f-icon');
+          b.label = val(el, '.f-label');
+          b.content = val(el, '.f-content');
+          break;
+        case 'table':
+          b.headers = val(el, '.f-headers').split('|').map(function(s) { return s.trim(); });
+          b.rows = val(el, '.f-rows').split('\n').filter(function(l) { return l.trim(); }).map(function(l) {
+            return l.split('|').map(function(s) { return s.trim(); });
+          });
+          b.variant = val(el, '.f-variant');
+          break;
+        case 'cta-product':
+          b.badge = val(el, '.f-badge');
+          b.image = val(el, '.f-image');
+          b.label = val(el, '.f-label');
+          b.title = val(el, '.f-title');
+          b.desc = val(el, '.f-desc');
+          b.link = val(el, '.f-link');
+          b.btnText = val(el, '.f-btntext');
+          break;
+        case 'faq':
+          b.question = val(el, '.f-question');
+          b.answer = val(el, '.f-answer');
+          break;
+      }
+      blocks.push(b);
+    });
+    return blocks;
+  }
+
+  function val(el, sel) {
+    var f = el.querySelector(sel);
+    return f ? f.value : '';
+  }
+
+  // ── Save ──
+  function saveArticle() {
+    var title = document.getElementById('f-title').value.trim();
+    if (!title) return toast('Le titre est requis', 'error');
+
+    var payload = {
+      title: title,
+      titleHTML: document.getElementById('f-titlehtml').value || title,
+      metaDescription: document.getElementById('f-meta').value,
+      category: document.getElementById('f-category').value,
+      author: document.getElementById('f-author').value,
+      date: document.getElementById('f-date').value,
+      heroImage: document.getElementById('f-hero').value,
+      heroAlt: document.getElementById('f-heroalt').value,
+      tags: currentTags,
+      blocks: collectBlocks()
+    };
+
+    var slug = document.getElementById('edit-slug').value;
+    var btn = document.getElementById('btn-save-article');
+    btn.disabled = true;
+    btn.textContent = 'Enregistrement...';
+
+    var method = editMode ? 'PUT' : 'POST';
+    var url = editMode ? '/' + slug : '/create';
+
+    api(method, url, payload).then(function(r) {
+      btn.disabled = false;
+      btn.textContent = editMode ? 'Enregistrer' : 'Creer l\'article';
+      if (r.success || r.slug) {
+        toast(editMode ? 'Article mis a jour' : 'Article cree', 'success');
+        closeModal();
+        loadArticles();
+      } else {
+        toast(r.error || 'Erreur', 'error');
+      }
+    }).catch(function() {
+      btn.disabled = false;
+      btn.textContent = editMode ? 'Enregistrer' : 'Creer l\'article';
+      toast('Erreur reseau', 'error');
+    });
+  }
+
+  // ── Toast ──
+  function toast(msg, type) {
+    var el = document.createElement('div');
+    el.className = 'toast ' + (type || 'info');
+    el.textContent = msg;
+    el.style.cssText = 'background:#161b22;border:1px solid ' + (type === 'error' ? '#f85149' : type === 'success' ? '#3fb950' : '#58a6ff') + ';color:#e6edf3;padding:10px 16px;border-radius:8px;margin-bottom:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.3);animation:fadeIn .3s';
+    document.getElementById('toast-container').appendChild(el);
+    setTimeout(function() { el.remove(); }, 3000);
+  }
+
+})();
+  </script>
+</body>
+</html>

@@ -8,6 +8,7 @@ const Components = (function() {
         { label: 'Pages',       href: '/pages.html',     icon: null, adminOnly: false },
         { label: 'Medias',      href: '/media.html',     icon: null, adminOnly: false },
         { label: 'Blocs',       href: '/blocks.html',    icon: null, adminOnly: false },
+        { label: 'Blog',        href: '/blog.html',      icon: null, adminOnly: false },
         { label: 'SEO',         href: '/seo.html',       icon: null, adminOnly: false },
         { label: 'Parametres',  href: '/settings.html',  icon: null, adminOnly: true },
         { label: 'Securite',    href: '/security.html',  icon: null, adminOnly: true },
