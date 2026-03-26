@@ -242,6 +242,7 @@
   <!-- Toast -->
   <div id="toast-container" style="position:fixed;top:20px;right:20px;z-index:2000"></div>
 
+  <script src="/js/auth.js"></script>
   <script src="/js/components.js"></script>
   <script>
 (function() {
@@ -252,7 +253,7 @@
   var editMode = false;
 
   // ── Init ──
-  Components.initPage(function() {
+  Components.initPage().then(function() {
     loadArticles();
     bindEvents();
   });
