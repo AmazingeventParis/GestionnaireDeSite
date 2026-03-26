@@ -169,16 +169,6 @@ function generateArticleHTML(article, index) {
     '{{BREADCRUMB_CAT_LINK}}': cat.link,
     '{{BREADCRUMB_CAT_NAME}}': cat.label,
     '{{BREADCRUMB_TITLE}}': article.title,
-    '{{SIDEBAR_CTA_LABEL}}': article.sidebarCta?.label || 'Location photobooth',
-    '{{SIDEBAR_CTA_TITLE}}': article.sidebarCta?.title || 'Animation <span>Mariage</span>',
-    '{{SIDEBAR_CTA_PRICE}}': article.sidebarCta?.price || '299\u20ac',
-    '{{SIDEBAR_CTA_PERIOD}}': article.sidebarCta?.period || 'par \u00e9v\u00e9nement \u2014 livraison incluse',
-    '{{SIDEBAR_CTA_LINK}}': article.sidebarCta?.link || 'https://shootnbox.fr/reservation/',
-    '{{CTA_FOOTER_BADGE}}': article.ctaFooter?.badge || '\ud83d\udcf8 Shootnbox',
-    '{{CTA_FOOTER_TITLE}}': article.ctaFooter?.title || 'Pr\u00eat \u00e0 <span>immortaliser votre \u00e9v\u00e9nement</span> ?',
-    '{{CTA_FOOTER_DESC}}': article.ctaFooter?.desc || 'Obtenez un devis personnalis\u00e9 en 2 minutes. Livraison \u00e0 domicile, tirages illimit\u00e9s, assistance 7j/7.',
-    '{{CTA_FOOTER_LINK}}': article.ctaFooter?.link || 'https://shootnbox.fr/reservation/',
-    '{{CTA_FOOTER_BTN}}': article.ctaFooter?.btn || 'Estimer mon tarif',
     '{{RELATED_HTML}}': relatedHTML,
     '{{SIDEBAR_RELATED_HTML}}': sidebarRelatedHTML
   };
@@ -257,7 +247,7 @@ router.get('/:slug', verifyToken, (req, res) => {
  */
 router.post('/create', verifyToken, requireRole('admin'), async (req, res) => {
   try {
-    const { title, titleHTML, metaDescription, category, author, date, heroImage, heroAlt, tags, bodyHTML, sidebarCta, ctaFooter } = req.body;
+    const { title, titleHTML, metaDescription, category, author, date, heroImage, heroAlt, tags, bodyHTML } = req.body;
 
     if (!title) return res.status(400).json({ error: 'Titre requis' });
 
@@ -281,8 +271,6 @@ router.post('/create', verifyToken, requireRole('admin'), async (req, res) => {
       heroAlt: heroAlt || title,
       tags: tags || [],
       bodyHTML: bodyHTML || '',
-      sidebarCta: sidebarCta || {},
-      ctaFooter: ctaFooter || {},
       status: 'draft',
       createdAt: new Date().toISOString()
     };
@@ -334,7 +322,7 @@ router.put('/:slug', verifyToken, requireRole('admin'), async (req, res) => {
     if (idx === -1) return res.status(404).json({ error: 'Article non trouv\u00e9' });
 
     const article = index.articles[idx];
-    const fields = ['title', 'titleHTML', 'metaDescription', 'category', 'author', 'date', 'heroImage', 'heroAlt', 'tags', 'bodyHTML', 'sidebarCta', 'ctaFooter', 'status'];
+    const fields = ['title', 'titleHTML', 'metaDescription', 'category', 'author', 'date', 'heroImage', 'heroAlt', 'tags', 'bodyHTML', 'status'];
 
     for (const f of fields) {
       if (req.body[f] !== undefined) article[f] = req.body[f];
