@@ -18,11 +18,7 @@
     .blog-card-img { width: 100%; aspect-ratio: 16/9; overflow: hidden; background: #0d1117; }
     .blog-card-img img { width: 100%; height: 100%; object-fit: cover; }
     .blog-card-body { padding: 16px; }
-    .blog-card-cat { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
-    .blog-card-cat.cat-mariage { background: #E5198122; color: #ff6eb4; }
-    .blog-card-cat.cat-entreprise { background: #0250FF22; color: #4d8aff; }
-    .blog-card-cat.cat-anniversaire { background: #7828C822; color: #a855f7; }
-    .blog-card-cat.cat-conseils { background: #FF7A0022; color: #ff9a3c; }
+    .blog-card-cat { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; background: #388bfd22; color: #58a6ff; }
     .blog-card-title { font-size: 16px; font-weight: 600; color: #e6edf3; margin-bottom: 8px; line-height: 1.3; }
     .blog-card-meta { font-size: 12px; color: #8b949e; display: flex; gap: 12px; margin-bottom: 12px; }
     .blog-card-status { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
@@ -38,7 +34,7 @@
     /* Modal */
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: flex-start; justify-content: center; padding: 40px 20px; overflow-y: auto; }
     .modal-overlay.active { display: flex; }
-    .modal { background: #161b22; border: 1px solid #30363d; border-radius: 12px; width: 100%; max-width: 900px; max-height: none; }
+    .modal { background: #161b22; border: 1px solid #30363d; border-radius: 12px; width: 100%; max-width: 900px; }
     .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #21262d; }
     .modal-header h3 { font-size: 18px; font-weight: 600; color: #e6edf3; }
     .modal-close { background: none; border: none; color: #8b949e; font-size: 20px; cursor: pointer; padding: 4px 8px; border-radius: 6px; }
@@ -59,40 +55,16 @@
     .form-group textarea { resize: vertical; min-height: 60px; }
     .form-hint { font-size: 11px; color: #484f58; margin-top: 2px; }
 
-    /* Block editor */
-    .blocks-editor { margin-top: 20px; border-top: 1px solid #21262d; padding-top: 16px; }
-    .blocks-editor-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-    .blocks-editor-header h4 { font-size: 14px; font-weight: 600; color: #e6edf3; }
-    .block-list { display: flex; flex-direction: column; gap: 8px; min-height: 40px; }
-    .block-item { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 12px; position: relative; }
-    .block-item:hover { border-color: #484f58; }
-    .block-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-    .block-type-badge { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; padding: 2px 8px; border-radius: 4px; background: #388bfd22; color: #58a6ff; }
-    .block-type-badge.t-h2 { background: #E5198122; color: #ff6eb4; }
-    .block-type-badge.t-h3 { background: #7828C822; color: #a855f7; }
-    .block-type-badge.t-conseil { background: #FF7A0022; color: #ff9a3c; }
-    .block-type-badge.t-image { background: #23863622; color: #3fb950; }
-    .block-type-badge.t-table { background: #0250FF22; color: #4d8aff; }
-    .block-type-badge.t-highlight { background: #d2992222; color: #d29922; }
-    .block-type-badge.t-cta { background: #E5198122; color: #E51981; }
-    .block-actions { display: flex; gap: 4px; }
-    .block-actions button { background: none; border: none; color: #8b949e; cursor: pointer; padding: 2px 6px; border-radius: 4px; font-size: 14px; }
-    .block-actions button:hover { background: #21262d; color: #e6edf3; }
-    .block-item input, .block-item textarea, .block-item select {
-      width: 100%; background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 7px 10px;
-      color: #e6edf3; font-size: 13px; font-family: inherit; outline: none; margin-bottom: 6px;
+    /* HTML editor */
+    .html-editor-wrap { margin-top: 20px; border-top: 1px solid #21262d; padding-top: 16px; }
+    .html-editor-wrap label { font-size: 13px; font-weight: 600; color: #e6edf3; margin-bottom: 8px; display: block; }
+    .html-editor-wrap textarea {
+      width: 100%; min-height: 400px; background: #0d1117; border: 1px solid #30363d; border-radius: 8px;
+      padding: 14px; color: #e6edf3; font-size: 13px; font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      line-height: 1.6; resize: vertical; outline: none; tab-size: 2;
     }
-    .block-item input:focus, .block-item textarea:focus { border-color: #58a6ff; }
-    .block-item textarea { resize: vertical; min-height: 50px; }
-    .block-sub-label { font-size: 10px; color: #484f58; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; display: block; }
-
-    /* Add block dropdown */
-    .add-block-wrap { position: relative; margin-top: 8px; }
-    .add-block-menu { display: none; position: absolute; bottom: 100%; left: 0; background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 6px; z-index: 10; min-width: 220px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
-    .add-block-menu.open { display: block; }
-    .add-block-menu button { display: block; width: 100%; text-align: left; background: none; border: none; color: #e6edf3; padding: 8px 10px; border-radius: 6px; font-size: 13px; cursor: pointer; font-family: inherit; }
-    .add-block-menu button:hover { background: #21262d; }
-    .add-block-menu button span { color: #8b949e; font-size: 11px; margin-left: 6px; }
+    .html-editor-wrap textarea:focus { border-color: #58a6ff; }
+    .html-editor-hint { font-size: 11px; color: #484f58; margin-top: 6px; line-height: 1.5; }
 
     /* Tags input */
     .tags-input-wrap { display: flex; flex-wrap: wrap; gap: 6px; background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 6px 10px; min-height: 38px; align-items: center; cursor: text; }
@@ -145,15 +117,14 @@
       <div class="modal-body">
         <input type="hidden" id="edit-slug">
 
-        <!-- Metadata -->
         <div class="form-row">
           <div class="form-group">
             <label>Titre de l'article</label>
             <input type="text" id="f-title" placeholder="10 idees pour animer votre mariage">
           </div>
           <div class="form-group">
-            <label>Titre HTML (avec accent)</label>
-            <input type="text" id="f-titlehtml" placeholder='10 idees pour &lt;span class="accent"&gt;animer&lt;/span&gt; votre mariage'>
+            <label>Titre HTML (avec accent rose)</label>
+            <input type="text" id="f-titlehtml" placeholder='Titre avec &lt;span class="accent"&gt;mot-cle&lt;/span&gt;'>
             <span class="form-hint">Utiliser &lt;span class="accent"&gt; pour le mot-cle en rose</span>
           </div>
         </div>
@@ -166,12 +137,9 @@
         <div class="form-row">
           <div class="form-group">
             <label>Categorie</label>
-            <select id="f-category">
-              <option value="mariage">Mariage</option>
-              <option value="entreprise">Entreprise</option>
-              <option value="anniversaire">Anniversaire</option>
-              <option value="conseils">Conseils</option>
-            </select>
+            <input type="text" id="f-category" list="cat-suggestions" placeholder="Mariage, Entreprise, Conseils...">
+            <datalist id="cat-suggestions"></datalist>
+            <span class="form-hint">Tapez une categorie existante ou creez-en une nouvelle</span>
           </div>
           <div class="form-group">
             <label>Auteur</label>
@@ -206,29 +174,13 @@
           </div>
         </div>
 
-        <!-- Block editor -->
-        <div class="blocks-editor">
-          <div class="blocks-editor-header">
-            <h4>Contenu de l'article</h4>
-          </div>
-          <div class="block-list" id="block-list"></div>
-          <div class="add-block-wrap">
-            <button class="btn btn-secondary" id="btn-add-block" type="button">+ Ajouter un bloc</button>
-            <div class="add-block-menu" id="add-block-menu">
-              <button onclick="addBlock('intro')">Introduction <span>Paragraphe chapeau</span></button>
-              <button onclick="addBlock('h2')">Titre H2 <span>Section principale</span></button>
-              <button onclick="addBlock('h3')">Titre H3 <span>Sous-section</span></button>
-              <button onclick="addBlock('h4')">Titre H4 <span>Question FAQ</span></button>
-              <button onclick="addBlock('paragraph')">Paragraphe <span>Texte</span></button>
-              <button onclick="addBlock('list')">Liste <span>a puces</span></button>
-              <button onclick="addBlock('ordered-list')">Liste <span>numerotee</span></button>
-              <button onclick="addBlock('image')">Image <span>+ legende</span></button>
-              <button onclick="addBlock('conseil')">Conseil <span>Box coloree</span></button>
-              <button onclick="addBlock('highlight')">Citation <span>Mise en avant</span></button>
-              <button onclick="addBlock('table')">Tableau <span>Colonnes/lignes</span></button>
-              <button onclick="addBlock('cta-product')">CTA Produit <span>Carte promo</span></button>
-              <button onclick="addBlock('faq')">FAQ <span>Question/Reponse</span></button>
-            </div>
+        <!-- HTML body editor -->
+        <div class="html-editor-wrap">
+          <label>Contenu HTML de l'article (body uniquement, sans header/footer)</label>
+          <textarea id="f-bodyhtml" placeholder="Collez ici le HTML du contenu de l'article..."></textarea>
+          <div class="html-editor-hint">
+            Collez le HTML complet du body de l'article. Le template gere automatiquement : breadcrumb, hero, auteur, partage, sidebar TOC, CTA footer, articles lies.<br>
+            <strong>Le sommaire (TOC)</strong> est auto-genere depuis les &lt;h2 id="..."&gt; et &lt;h3 id="..."&gt; du contenu.
           </div>
         </div>
       </div>
@@ -249,10 +201,10 @@
   'use strict';
 
   var articles = [];
+  var categories = [];
   var currentTags = [];
   var editMode = false;
 
-  // ── Init ──
   Components.initPage().then(function() {
     loadArticles();
     bindEvents();
@@ -261,15 +213,6 @@
   function bindEvents() {
     document.getElementById('btn-new-article').addEventListener('click', openCreateModal);
     document.getElementById('btn-save-article').addEventListener('click', saveArticle);
-
-    // Add block menu toggle
-    document.getElementById('btn-add-block').addEventListener('click', function(e) {
-      e.stopPropagation();
-      document.getElementById('add-block-menu').classList.toggle('open');
-    });
-    document.addEventListener('click', function() {
-      document.getElementById('add-block-menu').classList.remove('open');
-    });
 
     // Tags input
     document.getElementById('f-tags-input').addEventListener('keydown', function(e) {
@@ -281,6 +224,16 @@
     });
     document.getElementById('tags-wrap').addEventListener('click', function() {
       document.getElementById('f-tags-input').focus();
+    });
+
+    // Tab key in HTML textarea → insert 2 spaces
+    document.getElementById('f-bodyhtml').addEventListener('keydown', function(e) {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        var start = this.selectionStart, end = this.selectionEnd;
+        this.value = this.value.substring(0, start) + '  ' + this.value.substring(end);
+        this.selectionStart = this.selectionEnd = start + 2;
+      }
     });
 
     // Close modal on overlay click
@@ -300,13 +253,20 @@
     document.getElementById('blog-loading').style.display = 'block';
     api('GET', '/').then(function(data) {
       document.getElementById('blog-loading').style.display = 'none';
-      articles = Array.isArray(data) ? data : [];
+      articles = data.articles || [];
+      categories = data.categories || [];
+      updateCategorySuggestions();
       renderStats();
       renderGrid();
     }).catch(function() {
       document.getElementById('blog-loading').style.display = 'none';
       toast('Erreur de chargement', 'error');
     });
+  }
+
+  function updateCategorySuggestions() {
+    var dl = document.getElementById('cat-suggestions');
+    dl.innerHTML = categories.map(function(c) { return '<option value="' + c + '">'; }).join('');
   }
 
   function renderStats() {
@@ -334,18 +294,15 @@
     }
     empty.style.display = 'none';
 
-    var catClasses = { mariage: 'cat-mariage', entreprise: 'cat-entreprise', anniversaire: 'cat-anniversaire', conseils: 'cat-conseils' };
-    var catLabels = { mariage: 'Mariage', entreprise: 'Entreprise', anniversaire: 'Anniversaire', conseils: 'Conseils' };
-
     grid.innerHTML = articles.map(function(a) {
-      var img = a.heroImage ? '<img src="' + a.heroImage + '" alt="' + a.title + '">' : '<div style="width:100%;height:100%;background:#21262d;display:flex;align-items:center;justify-content:center;color:#484f58;font-size:32px">&#x1F4F7;</div>';
+      var img = a.heroImage ? '<img src="' + esc(a.heroImage) + '" alt="' + esc(a.title) + '">' : '<div style="width:100%;height:100%;background:#21262d;display:flex;align-items:center;justify-content:center;color:#484f58;font-size:32px">&#x1F4F7;</div>';
       return '<div class="blog-card" data-slug="' + a.slug + '">' +
         '<div class="blog-card-img">' + img + '</div>' +
         '<div class="blog-card-body">' +
-          '<span class="blog-card-cat ' + (catClasses[a.category] || '') + '">' + (catLabels[a.category] || a.category) + '</span>' +
-          '<div class="blog-card-title">' + a.title + '</div>' +
+          '<span class="blog-card-cat">' + esc(a.category || 'Blog') + '</span>' +
+          '<div class="blog-card-title">' + esc(a.title) + '</div>' +
           '<div class="blog-card-meta">' +
-            '<span>' + (a.authorName || a.author) + '</span>' +
+            '<span>' + esc(a.authorName || a.author) + '</span>' +
             '<span>' + (a.date || '') + '</span>' +
             '<span class="blog-card-status ' + (a.status || 'draft') + '">' + (a.status === 'published' ? 'Publie' : 'Brouillon') + '</span>' +
           '</div>' +
@@ -358,6 +315,8 @@
       '</div>';
     }).join('');
   }
+
+  function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
 
   // ── Modal ──
   window.openCreateModal = function() {
@@ -385,22 +344,15 @@
       document.getElementById('f-title').value = article.title || '';
       document.getElementById('f-titlehtml').value = article.titleHTML || '';
       document.getElementById('f-meta').value = article.metaDescription || '';
-      document.getElementById('f-category').value = article.category || 'conseils';
+      document.getElementById('f-category').value = article.category || '';
       document.getElementById('f-author').value = article.author || 'mathilde';
       document.getElementById('f-date').value = article.date || '';
       document.getElementById('f-hero').value = article.heroImage || '';
       document.getElementById('f-heroalt').value = article.heroAlt || '';
+      document.getElementById('f-bodyhtml').value = article.bodyHTML || '';
 
-      // Tags
       currentTags = article.tags || [];
       renderTags();
-
-      // Blocks
-      var list = document.getElementById('block-list');
-      list.innerHTML = '';
-      if (article.blocks && article.blocks.length) {
-        article.blocks.forEach(function(b) { addBlockWithData(b); });
-      }
 
       document.getElementById('article-modal').classList.add('active');
     });
@@ -415,14 +367,13 @@
   };
 
   function clearForm() {
-    ['f-title','f-titlehtml','f-meta','f-hero','f-heroalt'].forEach(function(id) {
+    ['f-title','f-titlehtml','f-meta','f-hero','f-heroalt','f-category'].forEach(function(id) {
       document.getElementById(id).value = '';
     });
-    document.getElementById('f-category').value = 'mariage';
+    document.getElementById('f-bodyhtml').value = '';
     document.getElementById('f-author').value = 'mathilde';
     currentTags = [];
     renderTags();
-    document.getElementById('block-list').innerHTML = '';
   }
 
   // ── Tags ──
@@ -433,209 +384,21 @@
     renderTags();
   }
 
-  function removeTag(tag) {
-    currentTags = currentTags.filter(function(t) { return t !== tag; });
-    renderTags();
-  }
-
   function renderTags() {
     var wrap = document.getElementById('tags-wrap');
     var input = document.getElementById('f-tags-input');
-    // Remove existing pills
     wrap.querySelectorAll('.tag-pill').forEach(function(p) { p.remove(); });
     currentTags.forEach(function(t) {
       var pill = document.createElement('span');
       pill.className = 'tag-pill';
-      pill.innerHTML = '#' + t + ' <button onclick="this.parentElement.remove();window._removeTag(\'' + t + '\')">&times;</button>';
+      pill.innerHTML = '#' + esc(t) + ' <button onclick="this.parentElement.remove();window._removeTag(\'' + t + '\')">&times;</button>';
       wrap.insertBefore(pill, input);
     });
   }
-  window._removeTag = function(t) { removeTag(t); };
-
-  // ── Blocks ──
-  var blockCount = 0;
-
-  window.addBlock = function(type) {
-    document.getElementById('add-block-menu').classList.remove('open');
-    addBlockWithData({ type: type });
+  window._removeTag = function(t) {
+    currentTags = currentTags.filter(function(x) { return x !== t; });
+    renderTags();
   };
-
-  function addBlockWithData(data) {
-    blockCount++;
-    var id = 'block-' + blockCount;
-    var el = document.createElement('div');
-    el.className = 'block-item';
-    el.id = id;
-    el.dataset.type = data.type;
-
-    var badgeClass = '';
-    var label = data.type;
-    switch (data.type) {
-      case 'h2': badgeClass = 't-h2'; label = 'H2'; break;
-      case 'h3': badgeClass = 't-h3'; label = 'H3'; break;
-      case 'h4': badgeClass = 't-h3'; label = 'H4'; break;
-      case 'conseil': badgeClass = 't-conseil'; label = 'Conseil'; break;
-      case 'image': badgeClass = 't-image'; label = 'Image'; break;
-      case 'table': badgeClass = 't-table'; label = 'Tableau'; break;
-      case 'highlight': badgeClass = 't-highlight'; label = 'Citation'; break;
-      case 'cta-product': badgeClass = 't-cta'; label = 'CTA Produit'; break;
-      case 'intro': badgeClass = ''; label = 'Intro'; break;
-      case 'paragraph': label = 'Paragraphe'; break;
-      case 'list': label = 'Liste'; break;
-      case 'ordered-list': label = 'Liste num.'; break;
-      case 'faq': badgeClass = 't-h3'; label = 'FAQ'; break;
-    }
-
-    var header = '<div class="block-item-header"><span class="block-type-badge ' + badgeClass + '">' + label + '</span>' +
-      '<div class="block-actions">' +
-      '<button onclick="moveBlock(\'' + id + '\',-1)" title="Monter">&#9650;</button>' +
-      '<button onclick="moveBlock(\'' + id + '\',1)" title="Descendre">&#9660;</button>' +
-      '<button onclick="removeBlock(\'' + id + '\')" title="Supprimer">&#10005;</button>' +
-      '</div></div>';
-
-    var fields = '';
-    switch (data.type) {
-      case 'intro':
-      case 'paragraph':
-        fields = '<textarea class="f-content" rows="3" placeholder="Contenu HTML (gras, liens...)">' + (data.content || '') + '</textarea>';
-        break;
-      case 'h2':
-      case 'h3':
-      case 'h4':
-        fields = '<input class="f-text" type="text" placeholder="Titre de la section" value="' + escAttr(data.text || '') + '">';
-        if (data.type !== 'h4') fields += '<input class="f-id" type="text" placeholder="ID ancre (auto si vide)" value="' + escAttr(data.id || '') + '">';
-        break;
-      case 'list':
-      case 'ordered-list':
-        fields = '<span class="block-sub-label">Items (un par ligne)</span>' +
-          '<textarea class="f-items" rows="4" placeholder="Item 1\nItem 2\nItem 3">' + ((data.items || []).join('\n')) + '</textarea>';
-        break;
-      case 'image':
-        fields = '<input class="f-src" type="text" placeholder="URL image (/site-images/...)" value="' + escAttr(data.src || '') + '">' +
-          '<input class="f-alt" type="text" placeholder="Texte alt" value="' + escAttr(data.alt || '') + '">' +
-          '<input class="f-caption" type="text" placeholder="Legende (optionnel)" value="' + escAttr(data.caption || '') + '">';
-        break;
-      case 'conseil':
-        fields = '<div style="display:flex;gap:8px;margin-bottom:6px">' +
-          '<select class="f-variant" style="width:auto"><option value="">Rose (defaut)</option><option value="blue"' + (data.variant === 'blue' ? ' selected' : '') + '>Bleu</option><option value="orange"' + (data.variant === 'orange' ? ' selected' : '') + '>Orange</option><option value="green"' + (data.variant === 'green' ? ' selected' : '') + '>Vert</option></select>' +
-          '<input class="f-icon" type="text" placeholder="Emoji" value="' + escAttr(data.icon || '') + '" style="width:60px">' +
-          '<input class="f-label" type="text" placeholder="Label" value="' + escAttr(data.label || '') + '">' +
-          '</div>' +
-          '<textarea class="f-content" rows="3" placeholder="Contenu du conseil (HTML)">' + (data.content || '') + '</textarea>';
-        break;
-      case 'highlight':
-        fields = '<textarea class="f-content" rows="3" placeholder="Citation ou chiffre cle (HTML)">' + (data.content || '') + '</textarea>';
-        break;
-      case 'table':
-        fields = '<span class="block-sub-label">En-tetes (separes par |)</span>' +
-          '<input class="f-headers" type="text" placeholder="Col1 | Col2 | Col3" value="' + escAttr((data.headers || []).join(' | ')) + '">' +
-          '<span class="block-sub-label">Lignes (colonnes separees par |, une ligne par... ligne)</span>' +
-          '<textarea class="f-rows" rows="4" placeholder="Valeur1 | Valeur2 | Valeur3">' + ((data.rows || []).map(function(r) { return r.join(' | '); }).join('\n')) + '</textarea>' +
-          '<select class="f-variant" style="width:auto;margin-top:4px"><option value="">Rose (defaut)</option><option value="blue"' + (data.variant === 'blue' ? ' selected' : '') + '>Bleu</option></select>';
-        break;
-      case 'cta-product':
-        fields = '<input class="f-badge" type="text" placeholder="Badge (ex: Promo -100)" value="' + escAttr(data.badge || '') + '">' +
-          '<input class="f-image" type="text" placeholder="Image produit URL" value="' + escAttr(data.image || '') + '">' +
-          '<input class="f-label" type="text" placeholder="Label (ex: Mariage & Ceremonie)" value="' + escAttr(data.label || '') + '">' +
-          '<input class="f-title" type="text" placeholder="Titre CTA" value="' + escAttr(data.title || '') + '">' +
-          '<input class="f-desc" type="text" placeholder="Description" value="' + escAttr(data.desc || '') + '">' +
-          '<input class="f-link" type="text" placeholder="Lien" value="' + escAttr(data.link || '') + '">' +
-          '<input class="f-btntext" type="text" placeholder="Texte bouton" value="' + escAttr(data.btnText || '') + '">';
-        break;
-      case 'faq':
-        fields = '<input class="f-question" type="text" placeholder="Question ?" value="' + escAttr(data.question || '') + '">' +
-          '<textarea class="f-answer" rows="3" placeholder="Reponse...">' + (data.answer || '') + '</textarea>';
-        break;
-    }
-
-    el.innerHTML = header + fields;
-    document.getElementById('block-list').appendChild(el);
-  }
-
-  window.moveBlock = function(id, dir) {
-    var el = document.getElementById(id);
-    var list = document.getElementById('block-list');
-    if (dir === -1 && el.previousElementSibling) {
-      list.insertBefore(el, el.previousElementSibling);
-    } else if (dir === 1 && el.nextElementSibling) {
-      list.insertBefore(el.nextElementSibling, el);
-    }
-  };
-
-  window.removeBlock = function(id) {
-    var el = document.getElementById(id);
-    if (el) el.remove();
-  };
-
-  function escAttr(s) {
-    return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  }
-
-  // ── Collect blocks data ──
-  function collectBlocks() {
-    var blocks = [];
-    document.querySelectorAll('#block-list .block-item').forEach(function(el) {
-      var type = el.dataset.type;
-      var b = { type: type };
-      switch (type) {
-        case 'intro':
-        case 'paragraph':
-        case 'highlight':
-          b.content = val(el, '.f-content');
-          break;
-        case 'h2':
-        case 'h3':
-          b.text = val(el, '.f-text');
-          b.id = val(el, '.f-id') || '';
-          break;
-        case 'h4':
-          b.text = val(el, '.f-text');
-          break;
-        case 'list':
-        case 'ordered-list':
-          b.items = val(el, '.f-items').split('\n').filter(function(l) { return l.trim(); });
-          break;
-        case 'image':
-          b.src = val(el, '.f-src');
-          b.alt = val(el, '.f-alt');
-          b.caption = val(el, '.f-caption');
-          break;
-        case 'conseil':
-          b.variant = val(el, '.f-variant');
-          b.icon = val(el, '.f-icon');
-          b.label = val(el, '.f-label');
-          b.content = val(el, '.f-content');
-          break;
-        case 'table':
-          b.headers = val(el, '.f-headers').split('|').map(function(s) { return s.trim(); });
-          b.rows = val(el, '.f-rows').split('\n').filter(function(l) { return l.trim(); }).map(function(l) {
-            return l.split('|').map(function(s) { return s.trim(); });
-          });
-          b.variant = val(el, '.f-variant');
-          break;
-        case 'cta-product':
-          b.badge = val(el, '.f-badge');
-          b.image = val(el, '.f-image');
-          b.label = val(el, '.f-label');
-          b.title = val(el, '.f-title');
-          b.desc = val(el, '.f-desc');
-          b.link = val(el, '.f-link');
-          b.btnText = val(el, '.f-btntext');
-          break;
-        case 'faq':
-          b.question = val(el, '.f-question');
-          b.answer = val(el, '.f-answer');
-          break;
-      }
-      blocks.push(b);
-    });
-    return blocks;
-  }
-
-  function val(el, sel) {
-    var f = el.querySelector(sel);
-    return f ? f.value : '';
-  }
 
   // ── Save ──
   function saveArticle() {
@@ -646,13 +409,13 @@
       title: title,
       titleHTML: document.getElementById('f-titlehtml').value || title,
       metaDescription: document.getElementById('f-meta').value,
-      category: document.getElementById('f-category').value,
+      category: document.getElementById('f-category').value.trim() || 'Blog',
       author: document.getElementById('f-author').value,
       date: document.getElementById('f-date').value,
       heroImage: document.getElementById('f-hero').value,
       heroAlt: document.getElementById('f-heroalt').value,
       tags: currentTags,
-      blocks: collectBlocks()
+      bodyHTML: document.getElementById('f-bodyhtml').value
     };
 
     var slug = document.getElementById('edit-slug').value;
@@ -683,7 +446,6 @@
   // ── Toast ──
   function toast(msg, type) {
     var el = document.createElement('div');
-    el.className = 'toast ' + (type || 'info');
     el.textContent = msg;
     el.style.cssText = 'background:#161b22;border:1px solid ' + (type === 'error' ? '#f85149' : type === 'success' ? '#3fb950' : '#58a6ff') + ';color:#e6edf3;padding:10px 16px;border-radius:8px;margin-bottom:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.3);animation:fadeIn .3s';
     document.getElementById('toast-container').appendChild(el);
