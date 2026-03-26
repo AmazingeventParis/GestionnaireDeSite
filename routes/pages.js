@@ -2147,6 +2147,9 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
           ? `position:relative;max-width:${wrapperMaxWidth};margin:0 auto;`
           : 'position:relative;';
 
+        // Neutralize inherited styles from site header/footer on same class names inside sections
+        allCSS += `\n#${scopeId} .snb-header{position:static!important;top:auto!important;left:auto!important;width:auto!important;z-index:auto!important;background:none!important;backdrop-filter:none!important;border-bottom:none!important;}`;
+
         const sectionSpacing = spacingData[section.file] ? `margin-top:${spacingData[section.file]}px;` : '';
         bodyContent += `<div class="gds-section-wrapper" id="${scopeId}" data-gds-file="${section.file}" style="${wrapperStyle}${sectionSpacing}">\n`;
         if (allCSS.trim()) bodyContent += `<style>${allCSS}</style>\n`;
