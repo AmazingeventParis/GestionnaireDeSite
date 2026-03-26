@@ -619,23 +619,46 @@
     console.log('[GDS Admin] Found', placeholders.length, 'image placeholders (' + bySelector.length + ' by class, ' + extraPlaceholders.length + ' by dashed border)');
 
     placeholders.forEach(ph => {
+      // For <img> elements: wrap in a div so we can add the overlay
+      let target = ph;
+      if (ph.tagName === 'IMG') {
+        const wrapper = document.createElement('div');
+        wrapper.style.position = 'relative';
+        wrapper.style.display = 'inline-block';
+        wrapper.style.width = ph.style.width || '100%';
+        wrapper.style.height = ph.style.height || 'auto';
+        wrapper.style.aspectRatio = ph.style.aspectRatio || '';
+        wrapper.style.cursor = 'pointer';
+        // Copy grid/layout relevant attributes
+        if (ph.className) wrapper.className = ph.className.split(' ').filter(c => !c.includes('cell-img')).join(' ') + ' gds-ph-img-wrap';
+        ph.parentNode.insertBefore(wrapper, ph);
+        wrapper.appendChild(ph);
+        // Reset img to fill wrapper
+        ph.style.width = '100%';
+        ph.style.height = '100%';
+        ph.style.display = 'block';
+        target = wrapper;
+      }
+
       // Style as clickable
-      ph.style.cursor = 'pointer';
-      ph.style.transition = 'all 0.2s';
+      target.style.cursor = 'pointer';
+      target.style.transition = 'all 0.2s';
       // Ensure position relative for overlay
-      const pos = window.getComputedStyle(ph).position;
-      if (pos === 'static') ph.style.position = 'relative';
+      const pos = window.getComputedStyle(target).position;
+      if (pos === 'static') target.style.position = 'relative';
 
       // Add hover overlay
       const overlay = document.createElement('div');
       overlay.className = 'gds-ph-overlay';
       overlay.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Ajouter une image';
-      ph.style.position = 'relative';
-      ph.appendChild(overlay);
+      overlay.style.zIndex = '50';
+      target.appendChild(overlay);
 
-      ph.addEventListener('click', (e) => {
+      target.addEventListener('click', (e) => {
         e.stopPropagation();
-        openPlaceholderModal(ph);
+        // Pass the actual img element to the modal, not the wrapper
+        const imgEl = target.tagName === 'IMG' ? target : target.querySelector('img[data-gds-placeholder]') || target;
+        openPlaceholderModal(imgEl);
       });
     });
   }
@@ -957,37 +980,55 @@
 
         if (!imgSrc) throw new Error('Aucune image');
 
-        // Replace placeholder with img or video tag
-        const parent = placeholderEl.parentElement;
-        const caption = parent.querySelector('.bento-caption span');
-        const altText = caption ? caption.textContent : 'Image';
+        // Replace placeholder with image/video
         const isVideo = imgSrc.match(/\.(mp4|webm|mov)(\?|$)/i) || (selectedFile && selectedFile.type.startsWith('video/'));
 
-        // Find section context for data-gds-img
-        const wrapper = parent.closest('.gds-section-wrapper');
-        const sectionFile = wrapper ? wrapper.getAttribute('data-gds-file') || 'custom' : 'custom';
-        const sectionName = sectionFile.replace(/^\d+-/, '').replace('.html', '');
-
-        let mediaEl;
-        if (isVideo) {
-          mediaEl = document.createElement('video');
-          mediaEl.src = imgSrc;
-          mediaEl.autoplay = true;
-          mediaEl.loop = true;
-          mediaEl.muted = true;
-          mediaEl.playsInline = true;
-          mediaEl.setAttribute('playsinline', '');
-          mediaEl.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+        // If the placeholder IS an <img>, just set its src directly
+        if (placeholderEl.tagName === 'IMG' && !isVideo) {
+          placeholderEl.src = imgSrc;
+          placeholderEl.removeAttribute('data-gds-placeholder');
+          placeholderEl.style.border = 'none';
+          placeholderEl.style.borderRadius = '';
+          placeholderEl.style.background = '';
+          // Remove the wrapper overlay if it exists
+          const phWrapper = placeholderEl.closest('.gds-ph-img-wrap');
+          if (phWrapper) {
+            const phOverlay = phWrapper.querySelector('.gds-ph-overlay');
+            if (phOverlay) phOverlay.remove();
+          }
+          // Find section context for data-gds-img
+          const wrapper = placeholderEl.closest('.gds-section-wrapper');
+          const sectionFile = wrapper ? wrapper.getAttribute('data-gds-file') || 'custom' : 'custom';
+          const sectionName = sectionFile.replace(/^\d+-/, '').replace('.html', '');
+          placeholderEl.setAttribute('data-gds-img', `${sectionName}:0:${imgSrc}`);
         } else {
-          mediaEl = document.createElement('img');
-          mediaEl.src = imgSrc;
-          mediaEl.alt = altText;
-          mediaEl.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
-          // Add data-gds-img so the existing image editor toolbar can handle replacement
-          mediaEl.setAttribute('data-gds-img', `${sectionName}:0:${imgSrc}`);
-        }
+          // Original logic for div placeholders or video replacement
+          const parent = placeholderEl.parentElement;
+          const caption = parent ? parent.querySelector('.bento-caption span') : null;
+          const altText = caption ? caption.textContent : 'Image';
+          const wrapper = (parent || placeholderEl).closest('.gds-section-wrapper');
+          const sectionFile = wrapper ? wrapper.getAttribute('data-gds-file') || 'custom' : 'custom';
+          const sectionName = sectionFile.replace(/^\d+-/, '').replace('.html', '');
 
-        placeholderEl.replaceWith(mediaEl);
+          let mediaEl;
+          if (isVideo) {
+            mediaEl = document.createElement('video');
+            mediaEl.src = imgSrc;
+            mediaEl.autoplay = true;
+            mediaEl.loop = true;
+            mediaEl.muted = true;
+            mediaEl.playsInline = true;
+            mediaEl.setAttribute('playsinline', '');
+            mediaEl.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+          } else {
+            mediaEl = document.createElement('img');
+            mediaEl.src = imgSrc;
+            mediaEl.alt = altText;
+            mediaEl.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+            mediaEl.setAttribute('data-gds-img', `${sectionName}:0:${imgSrc}`);
+          }
+          placeholderEl.replaceWith(mediaEl);
+        }
 
         // Save the section file with the new content (cleaned of admin UI)
         const saveWrapper = parent.closest('.gds-section-wrapper');
