@@ -424,7 +424,12 @@
       document.getElementById('f-title').value = article.title || '';
       document.getElementById('f-titlehtml').value = article.titleHTML || '';
       document.getElementById('f-meta').value = article.metaDescription || '';
-      document.getElementById('f-category').value = article.category || '';
+      // Set category select — match by lowercase
+      var catSel = document.getElementById('f-category');
+      var catVal = (article.category || '').toLowerCase();
+      for (var i = 0; i < catSel.options.length; i++) {
+        if (catSel.options[i].value.toLowerCase() === catVal) { catSel.selectedIndex = i; break; }
+      }
       document.getElementById('f-author').value = article.author || 'mathilde';
       document.getElementById('f-date').value = article.date || '';
       document.getElementById('f-hero').value = article.heroImage || '';
@@ -435,6 +440,9 @@
       renderTags();
 
       document.getElementById('article-modal').classList.add('active');
+    }).catch(function(err) {
+      console.error('editArticle error:', err);
+      toast('Erreur lors du chargement de l\'article', 'error');
     });
   };
 

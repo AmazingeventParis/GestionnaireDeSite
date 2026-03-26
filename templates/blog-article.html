@@ -134,7 +134,7 @@ body{font-family:'Raleway',sans-serif;font-size:16px;font-weight:400;line-height
 .snb-cta-footer-btn:hover::before{left:100%}
 .snb-cta-footer-btn:hover{transform:translateY(-3px);box-shadow:0 10px 32px rgba(229,25,129,.5)}
 .snb-cta-footer-btn svg{width:16px;height:16px;fill:none;stroke:#fff;stroke-width:2.2}
-.snb-sidebar{position:sticky;top:100px;display:flex;flex-direction:column;gap:24px}
+.snb-sidebar{display:flex;flex-direction:column;gap:24px}
 .snb-toc{padding:22px 20px;border-radius:16px;background:var(--card-pastel);border:1.5px solid rgba(229,25,129,.15);box-shadow:var(--shadow-neu);position:relative;overflow:hidden}
 .snb-toc::after{content:'';position:absolute;top:-40%;left:-40%;width:200%;height:200%;background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,.15) 45%,rgba(255,255,255,.3) 50%,rgba(255,255,255,.15) 55%,transparent 60%);animation:shimmer 8s ease-in-out infinite;pointer-events:none}
 @keyframes shimmer{0%,100%{transform:translateX(-30%) translateY(-10%) rotate(25deg)}50%{transform:translateX(30%) translateY(10%) rotate(25deg)}}
@@ -279,22 +279,60 @@ body{font-family:'Raleway',sans-serif;font-size:16px;font-weight:400;line-height
 
 <script>
 (function(){
+  /* ── TOC active highlight ── */
   var tocLinks = document.querySelectorAll('.snb-toc a');
-  if(!tocLinks.length) return;
-  function onScroll(){
-    var scrollY = window.scrollY + 120;
-    var sections = [];
-    tocLinks.forEach(function(a){
-      var id = a.getAttribute('href').replace('#','');
-      var el = document.getElementById(id);
-      if(el) sections.push({el:el,a:a});
-    });
-    var current = null;
-    sections.forEach(function(s){ if(s.el.offsetTop <= scrollY) current = s; });
-    tocLinks.forEach(function(a){ a.classList.remove('active') });
-    if(current) current.a.classList.add('active');
+  if(tocLinks.length){
+    function onScrollToc(){
+      var scrollY = window.scrollY + 120;
+      var sections = [];
+      tocLinks.forEach(function(a){
+        var id = a.getAttribute('href').replace('#','');
+        var el = document.getElementById(id);
+        if(el) sections.push({el:el,a:a});
+      });
+      var current = null;
+      sections.forEach(function(s){ if(s.el.offsetTop <= scrollY) current = s; });
+      tocLinks.forEach(function(a){ a.classList.remove('active') });
+      if(current) current.a.classList.add('active');
+    }
+    window.addEventListener('scroll', onScrollToc, {passive:true});
+    onScrollToc();
   }
-  window.addEventListener('scroll', onScroll, {passive:true});
-  onScroll();
+
+  /* ── Sidebar JS sticky (bypasses overflow:hidden parents) ── */
+  var sidebar = document.querySelector('.snb-sidebar');
+  if(!sidebar || window.innerWidth <= 850) return;
+  var layout = document.querySelector('.snb-article-layout');
+  if(!layout) return;
+
+  var sidebarTop = 100;
+  var origTop = sidebar.getBoundingClientRect().top + window.scrollY;
+  sidebar.style.width = sidebar.offsetWidth + 'px';
+
+  function onScrollSidebar(){
+    var layoutRect = layout.getBoundingClientRect();
+    var layoutBottom = layoutRect.bottom + window.scrollY;
+    var scrollY = window.scrollY;
+    var sidebarH = sidebar.offsetHeight;
+
+    if(scrollY + sidebarTop >= origTop && scrollY + sidebarTop + sidebarH <= layoutBottom){
+      sidebar.style.position = 'fixed';
+      sidebar.style.top = sidebarTop + 'px';
+    } else if(scrollY + sidebarTop + sidebarH > layoutBottom){
+      sidebar.style.position = 'absolute';
+      sidebar.style.top = (layoutBottom - sidebarH - layout.getBoundingClientRect().top - window.scrollY + layoutRect.top) + 'px';
+    } else {
+      sidebar.style.position = '';
+      sidebar.style.top = '';
+    }
+  }
+  window.addEventListener('scroll', onScrollSidebar, {passive:true});
+  window.addEventListener('resize', function(){
+    if(window.innerWidth <= 850){ sidebar.style.position=''; sidebar.style.top=''; return; }
+    origTop = sidebar.parentElement ? sidebar.parentElement.getBoundingClientRect().top + window.scrollY : origTop;
+    sidebar.style.width = sidebar.parentElement ? (sidebar.parentElement.offsetWidth + 'px') : '';
+    onScrollSidebar();
+  });
+  onScrollSidebar();
 })();
 </script>
