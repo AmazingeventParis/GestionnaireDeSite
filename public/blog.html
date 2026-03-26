@@ -414,7 +414,9 @@
   };
 
   window.editArticle = function(slug) {
+    console.log('[Blog] editArticle called with slug:', slug);
     api('GET', '/' + slug).then(function(article) {
+      console.log('[Blog] API response:', article);
       if (article.error) return toast(article.error, 'error');
       editMode = true;
       document.getElementById('modal-title').textContent = 'Modifier l\'article';
@@ -441,8 +443,8 @@
 
       document.getElementById('article-modal').classList.add('active');
     }).catch(function(err) {
-      console.error('editArticle error:', err);
-      toast('Erreur lors du chargement de l\'article', 'error');
+      console.error('[Blog] editArticle error:', err);
+      alert('Erreur editArticle: ' + (err.message || err));
     });
   };
 
