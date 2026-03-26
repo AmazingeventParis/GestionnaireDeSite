@@ -134,9 +134,9 @@
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" id="modal-cancel">Annuler</button>
-        <button class="btn btn-schedule" id="btn-schedule-article" style="display:none">Planifier</button>
-        <button class="btn btn-publish" id="btn-publish-article" style="display:none">Publier</button>
-        <button class="btn btn-primary" id="btn-save-article">Creer l'article</button>
+        <button class="btn btn-schedule" id="btn-schedule-article">Planifier la publication</button>
+        <button class="btn btn-publish" id="btn-publish-article">Publier maintenant</button>
+        <button class="btn btn-primary" id="btn-save-article">Enregistrer (brouillon)</button>
       </div>
     </div>
   </div>
@@ -186,8 +186,17 @@
 
     // Save / Publish / Schedule
     document.getElementById('btn-save-article').addEventListener('click', function() { saveArticle('draft'); });
-    document.getElementById('btn-publish-article').addEventListener('click', function() { saveArticle('published'); });
-    document.getElementById('btn-schedule-article').addEventListener('click', function() { saveArticle('scheduled'); });
+    document.getElementById('btn-publish-article').addEventListener('click', function() {
+      if (!confirm('Publier cet article maintenant ?')) return;
+      saveArticle('published');
+    });
+    document.getElementById('btn-schedule-article').addEventListener('click', function() {
+      var date = document.getElementById('f-date').value;
+      var time = document.getElementById('f-time').value || '09:00';
+      if (!date) { toast('Choisissez une date de publication', 'error'); document.getElementById('f-date').focus(); return; }
+      if (!confirm('Planifier la publication le ' + date + ' a ' + time + ' ?')) return;
+      saveArticle('scheduled');
+    });
 
     // Add category
     document.getElementById('btn-add-cat').addEventListener('click', function() {
@@ -300,9 +309,7 @@
   function openModal(isEdit) {
     editMode = isEdit;
     document.getElementById('modal-title').textContent = isEdit ? 'Modifier l\'article' : 'Nouvel article';
-    document.getElementById('btn-save-article').textContent = isEdit ? 'Enregistrer (brouillon)' : 'Creer (brouillon)';
-    document.getElementById('btn-publish-article').style.display = isEdit ? '' : 'none';
-    document.getElementById('btn-schedule-article').style.display = isEdit ? '' : 'none';
+    document.getElementById('btn-save-article').textContent = 'Enregistrer (brouillon)';
     if (!isEdit) { document.getElementById('edit-slug').value = ''; clearForm(); document.getElementById('f-date').value = new Date().toISOString().split('T')[0]; }
     document.getElementById('article-modal').classList.add('active');
   }
