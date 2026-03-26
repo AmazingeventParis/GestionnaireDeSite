@@ -86,6 +86,7 @@ try { app.use('/api/blog', require('./routes/blog')); } catch {}
 try { app.use('/api/shared', require('./routes/shared')); } catch {}
 try { app.use('/api/navigation', require('./routes/navigation')); } catch {}
 try { app.use('/api/seo', require('./routes/seo')); } catch {}
+try { app.use('/api/audit', require('./routes/audit')); } catch {}
 
 // Phase 4 routes (security, performance, monitoring, activity)
 try { app.use('/api/security', require('./routes/security')); } catch {}

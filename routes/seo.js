@@ -351,4 +351,95 @@ function scanForPages(dir, baseDir, pages) {
   } catch (e) { /* skip unreadable */ }
 }
 
+/**
+ * GET /feed — RSS 2.0 feed (public, no auth)
+ */
+router.get('/feed', (req, res) => {
+  try {
+    const config = readConfig();
+    const domain = config.deploy?.domain || 'example.com';
+    const baseDomain = domain.startsWith('http') ? domain : 'https://' + domain;
+
+    // Read blog index
+    const blogIndexPath = path.join(PREVIEWS_DIR, '_blog-index.json');
+    let articles = [];
+    if (fs.existsSync(blogIndexPath)) {
+      try {
+        const raw = JSON.parse(fs.readFileSync(blogIndexPath, 'utf-8'));
+        articles = Array.isArray(raw) ? raw : (raw.articles || []);
+      } catch (e) {
+        console.error('[SEO] Error reading blog index:', e.message);
+      }
+    }
+
+    // Filter only published articles
+    const published = articles.filter(a => a.status === 'published');
+
+    // Sort by date descending
+    published.sort((a, b) => {
+      const da = a.date ? new Date(a.date) : new Date(0);
+      const db = b.date ? new Date(b.date) : new Date(0);
+      return db - da;
+    });
+
+    // Helper: convert ISO date to RFC822
+    function toRFC822(isoDate) {
+      if (!isoDate) return new Date().toUTCString();
+      // Handle YYYY-MM-DD format
+      const d = new Date(isoDate + 'T09:00:00+00:00');
+      if (isNaN(d.getTime())) return new Date().toUTCString();
+      return d.toUTCString();
+    }
+
+    // Helper: escape XML entities
+    function escapeXml(str) {
+      if (!str) return '';
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+    }
+
+    // Build RSS XML
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+    xml += '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">\n';
+    xml += '  <channel>\n';
+    xml += '    <title>Shootnbox — Blog</title>\n';
+    xml += `    <link>${baseDomain}/blog/</link>\n`;
+    xml += `    <description>${escapeXml(config.seo?.defaultDescription || 'Blog Shootnbox')}</description>\n`;
+    xml += '    <language>fr</language>\n';
+    xml += `    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>\n`;
+    xml += `    <atom:link href="${baseDomain}/api/seo/feed" rel="self" type="application/rss+xml"/>\n`;
+
+    for (const article of published) {
+      const articleUrl = `${baseDomain}/blog/${article.slug}/`;
+      xml += '    <item>\n';
+      xml += `      <title>${escapeXml(article.title || article.slug)}</title>\n`;
+      xml += `      <link>${articleUrl}</link>\n`;
+      xml += `      <description>${escapeXml(article.metaDescription || '')}</description>\n`;
+      xml += `      <pubDate>${toRFC822(article.date)}</pubDate>\n`;
+      xml += `      <guid isPermaLink="true">${articleUrl}</guid>\n`;
+      if (article.authorName) {
+        xml += `      <author>${escapeXml(article.authorName)}</author>\n`;
+      }
+      if (article.category) {
+        xml += `      <category>${escapeXml(article.category)}</category>\n`;
+      }
+      xml += '    </item>\n';
+    }
+
+    xml += '  </channel>\n';
+    xml += '</rss>';
+
+    res.setHeader('Content-Type', 'application/rss+xml; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.send(xml);
+  } catch (err) {
+    console.error('[SEO] RSS feed error:', err.message);
+    res.status(500).json({ error: 'Erreur lors de la generation du flux RSS' });
+  }
+});
+
 module.exports = router;

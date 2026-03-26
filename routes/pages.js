@@ -1172,12 +1172,23 @@ router.post('/:slug/save', verifyToken, requireRole('admin', 'editor'), async (r
       }
     }
 
-    // Save SEO data
+    // Save SEO data with validation (Point 8)
     if (seo) {
+      const seoErrors = validateSeoData(seo);
+      if (seoErrors.length > 0) {
+        return res.status(400).json({ error: 'Donnees SEO invalides', details: seoErrors });
+      }
       const seoPath = slug === 'home'
         ? path.join(PREVIEWS_DIR, 'seo-home.json')
         : path.join(previewDir, 'seo.json');
-      fs.writeFileSync(seoPath, JSON.stringify(seo, null, 2), 'utf-8');
+      // Preserve status and audit fields
+      let existing = {};
+      if (fs.existsSync(seoPath)) {
+        try { existing = JSON.parse(fs.readFileSync(seoPath, 'utf-8')); } catch {}
+      }
+      const merged = { ...existing, ...seo, lastModifiedAt: new Date().toISOString() };
+      if (req.user) merged.lastModifiedBy = req.user.username || req.user.email || 'admin';
+      fs.writeFileSync(seoPath, JSON.stringify(merged, null, 2), 'utf-8');
     }
 
     await logAudit({
@@ -1584,6 +1595,43 @@ router.post('/:slug/history/:id/restore', verifyToken, requireRole('admin'), asy
 /**
  * GET /:slug/seo-audit — Run SEO validation on a page
  */
+/**
+ * Validate seo.json data — returns array of error strings. Empty = valid.
+ */
+function validateSeoData(data) {
+  const errors = [];
+  if (data.title !== undefined) {
+    if (typeof data.title !== 'string') errors.push('Title doit etre une chaine');
+    else if (data.title.length > 70) errors.push(`Title trop long (${data.title.length}/70 chars)`);
+    else if (data.title.length > 0 && data.title.length < 10) errors.push(`Title trop court (${data.title.length} chars, min 10)`);
+  }
+  if (data.description !== undefined && typeof data.description === 'string') {
+    if (data.description.length > 170) errors.push(`Description trop longue (${data.description.length}/170 chars)`);
+  }
+  if (data.ogImage && typeof data.ogImage === 'string' && !data.ogImage.startsWith('/') && !data.ogImage.startsWith('http')) {
+    errors.push('OG Image doit commencer par / ou http');
+  }
+  if (data.schemaType && !['WebPage','Service','Product','FAQPage','Article','BlogPosting','LocalBusiness'].includes(data.schemaType)) {
+    errors.push(`Schema type "${data.schemaType}" invalide`);
+  }
+  if (data.sitemap?.priority) {
+    const p = parseFloat(data.sitemap.priority);
+    if (isNaN(p) || p < 0 || p > 1) errors.push('Sitemap priority doit etre entre 0 et 1');
+  }
+  return errors;
+}
+
+/**
+ * Validate editorial status transition
+ */
+const VALID_TRANSITIONS = {
+  'draft': ['review'],
+  'review': ['draft', 'validated'],
+  'validated': ['published', 'draft'],
+  'published': ['archived', 'draft'],
+  'archived': ['draft']
+};
+
 router.get('/:slug/seo-audit', verifyToken, async (req, res) => {
   try {
     const slug = req.params.slug.replace(/[^a-z0-9-]/gi, '');
@@ -1604,72 +1652,204 @@ router.get('/:slug/seo-audit', verifyToken, async (req, res) => {
       try { seoData = JSON.parse(fs.readFileSync(seoPath, 'utf-8')); } catch (e) {}
     }
 
-    const checks = [];
-
-    // H1
+    // ── Extract data ──
+    const imgs = allHtml.match(/<img\s[^>]*>/gi) || [];
+    const noAlt = imgs.filter(i => !i.includes('alt=')).length;
+    const emptyAlt = imgs.filter(i => { const m = i.match(/alt=""/); return m && !i.includes('role="presentation"'); }).length;
+    const noDims = imgs.filter(i => !i.includes('width=')).length;
     const h1s = (allHtml.match(/<h1[\s>]/gi) || []);
-    checks.push({ rule: 'H1 unique', pass: h1s.length === 1, detail: h1s.length === 0 ? 'Aucun H1 trouve' : h1s.length > 1 ? `${h1s.length} H1 trouves (1 seul autorise)` : 'OK', severity: 'error' });
-
-    // Heading hierarchy
     const headings = [];
     const hRe = /<h([1-6])[\s>]/gi;
     let hm;
     while ((hm = hRe.exec(allHtml)) !== null) headings.push(parseInt(hm[1]));
     let hierOk = true;
-    for (let i = 1; i < headings.length; i++) {
-      if (headings[i] > headings[i-1] + 1) { hierOk = false; break; }
-    }
-    checks.push({ rule: 'Hierarchie headings', pass: hierOk, detail: hierOk ? 'OK' : 'Niveaux sautes (ex: H2 suivi de H4)', severity: 'warning' });
-
-    // Images alt
-    const imgs = allHtml.match(/<img\s[^>]*>/gi) || [];
-    const noAlt = imgs.filter(i => !i.includes('alt=')).length;
-    const emptyAlt = imgs.filter(i => { const m = i.match(/alt=""/); return m && !i.includes('role="presentation"'); }).length;
-    checks.push({ rule: 'Alt images', pass: noAlt === 0, detail: noAlt > 0 ? `${noAlt} image(s) sans alt` : emptyAlt > 0 ? `${emptyAlt} alt vides` : `${imgs.length} images OK`, severity: noAlt > 0 ? 'error' : 'warning' });
-
-    // Images dimensions
-    const noDims = imgs.filter(i => !i.includes('width=')).length;
-    checks.push({ rule: 'Dimensions images', pass: noDims === 0, detail: noDims > 0 ? `${noDims} image(s) sans width/height` : 'OK', severity: 'warning' });
-
-    // SEO meta
-    checks.push({ rule: 'Title SEO', pass: !!(seoData.title && seoData.title.length >= 30), detail: seoData.title ? `${seoData.title.length} chars` : 'Manquant', severity: 'error' });
-    checks.push({ rule: 'Meta description', pass: !!(seoData.description && seoData.description.length >= 50), detail: seoData.description ? `${seoData.description.length} chars` : 'Manquante', severity: 'error' });
-    checks.push({ rule: 'OG Title', pass: !!seoData.ogTitle, detail: seoData.ogTitle ? 'OK' : 'Manquant', severity: 'warning' });
-    checks.push({ rule: 'OG Description', pass: !!seoData.ogDescription, detail: seoData.ogDescription ? 'OK' : 'Manquante', severity: 'warning' });
-    checks.push({ rule: 'OG Image', pass: !!seoData.ogImage, detail: seoData.ogImage ? 'OK' : 'Manquante', severity: 'warning' });
-
-    // Semantic HTML
-    const hasSections = /<section[\s>]/i.test(allHtml) || /<article[\s>]/i.test(allHtml);
-    checks.push({ rule: 'HTML semantique', pass: hasSections, detail: hasSections ? 'Balises <section> ou <article> trouvees' : 'Aucune balise semantique (utiliser <section>, <article>, <figure>)', severity: 'warning' });
-
-    // Word count
+    for (let i = 1; i < headings.length; i++) { if (headings[i] > headings[i-1] + 1) { hierOk = false; break; } }
     const textOnly = allHtml.replace(/<style[\s\S]*?<\/style>/gi, '').replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
     const wordCount = textOnly.split(/\s+/).filter(w => w.length > 1).length;
-    checks.push({ rule: 'Contenu texte', pass: wordCount >= 300, detail: `${wordCount} mots (${wordCount >= 300 ? 'OK' : 'recommande 300+' })`, severity: 'warning' });
-
-    // Internal links
-    const intLinks = (allHtml.match(/<a\s[^>]*href="\/[^"]*"/gi) || []).length;
-    checks.push({ rule: 'Liens internes', pass: intLinks >= 3, detail: `${intLinks} liens (${intLinks >= 3 ? 'OK' : 'recommande 3+'})`, severity: 'warning' });
-
-    // Hidden content
+    const intLinksOut = (allHtml.match(/<a\s[^>]*href="\/[^"]*"/gi) || []).length;
     const hiddenRules = (allHtml.match(/display:\s*none/gi) || []).length;
-    checks.push({ rule: 'Contenu cache', pass: hiddenRules <= 3, detail: `${hiddenRules} regles display:none`, severity: hiddenRules > 5 ? 'warning' : 'info' });
+    const hasSemantic = /<section[\s>]/i.test(allHtml) || /<article[\s>]/i.test(allHtml);
+    const hasAria = /aria-label/i.test(allHtml);
 
-    // Schema type
-    checks.push({ rule: 'Schema type', pass: !!seoData.schemaType, detail: seoData.schemaType || 'Non defini', severity: 'info' });
+    // ── Categorized checks (Point 3) ──
+    const categories = {
+      indexation: { weight: 30, checks: [], score: 100 },
+      contenu:    { weight: 25, checks: [], score: 100 },
+      performance:{ weight: 20, checks: [], score: 100 },
+      social:     { weight: 15, checks: [], score: 100 },
+      accessibilite: { weight: 10, checks: [], score: 100 }
+    };
 
-    // Sitemap
-    checks.push({ rule: 'Sitemap', pass: seoData.sitemap?.include !== false, detail: seoData.noindex ? 'Page noindex (exclue)' : 'Incluse', severity: 'info' });
+    function addCheck(cat, rule, pass, detail, severity) {
+      categories[cat].checks.push({ rule, pass, detail, severity, category: cat });
+    }
 
-    // Score
-    const errors = checks.filter(c => !c.pass && c.severity === 'error').length;
-    const warnings = checks.filter(c => !c.pass && c.severity === 'warning').length;
-    const score = Math.max(0, 100 - (errors * 15) - (warnings * 5));
+    // INDEXATION
+    addCheck('indexation', 'Title SEO', !!(seoData.title && seoData.title.length >= 20), seoData.title ? `${seoData.title.length} chars` : 'Manquant', 'error');
+    addCheck('indexation', 'Meta description', !!(seoData.description && seoData.description.length >= 50), seoData.description ? `${seoData.description.length} chars` : 'Manquante', 'error');
+    addCheck('indexation', 'Schema JSON-LD', !!seoData.schemaType, seoData.schemaType || 'Non defini', 'error');
+    addCheck('indexation', 'Sitemap', seoData.sitemap?.include !== false && !seoData.noindex, seoData.noindex ? 'Page noindex' : 'Incluse', 'warning');
+    addCheck('indexation', 'Canonical coherent', !seoData.urlPath || seoData.urlPath === slug, seoData.urlPath ? `urlPath: ${seoData.urlPath}` : 'OK (slug par defaut)', 'warning');
 
-    res.json({ slug, score, errors, warnings, checks, seoData });
+    // CONTENU
+    addCheck('contenu', 'H1 unique', h1s.length === 1, h1s.length === 0 ? 'Aucun H1' : h1s.length > 1 ? `${h1s.length} H1` : 'OK', 'error');
+    addCheck('contenu', 'Hierarchie headings', hierOk, hierOk ? 'OK' : 'Niveaux sautes', 'warning');
+    addCheck('contenu', 'Contenu texte', wordCount >= 300, `${wordCount} mots`, 'warning');
+    addCheck('contenu', 'Liens internes sortants', intLinksOut >= 3, `${intLinksOut} liens`, 'warning');
+    addCheck('contenu', 'Contenu cache', hiddenRules <= 3, `${hiddenRules} display:none`, hiddenRules > 5 ? 'warning' : 'info');
+
+    // PERFORMANCE
+    addCheck('performance', 'Dimensions images', noDims === 0, noDims > 0 ? `${noDims} sans dimensions` : `${imgs.length} OK`, 'warning');
+    addCheck('performance', 'Images total', imgs.length <= 30, `${imgs.length} images`, imgs.length > 30 ? 'warning' : 'info');
+
+    // SOCIAL
+    addCheck('social', 'OG Title', !!seoData.ogTitle, seoData.ogTitle ? 'OK' : 'Manquant', 'warning');
+    addCheck('social', 'OG Description', !!seoData.ogDescription, seoData.ogDescription ? 'OK' : 'Manquante', 'warning');
+    addCheck('social', 'OG Image', !!seoData.ogImage, seoData.ogImage ? 'OK' : 'Manquante', 'warning');
+
+    // ACCESSIBILITE
+    addCheck('accessibilite', 'Alt images', noAlt === 0, noAlt > 0 ? `${noAlt} sans alt` : `${imgs.length} OK`, 'error');
+    addCheck('accessibilite', 'HTML semantique', hasSemantic, hasSemantic ? 'OK' : 'Manquant', 'warning');
+    addCheck('accessibilite', 'ARIA labels', hasAria, hasAria ? 'OK' : 'Aucun aria-label', 'info');
+
+    // Calculate per-category scores
+    for (const [key, cat] of Object.entries(categories)) {
+      const errs = cat.checks.filter(c => !c.pass && c.severity === 'error').length;
+      const warns = cat.checks.filter(c => !c.pass && c.severity === 'warning').length;
+      cat.score = Math.max(0, 100 - (errs * 25) - (warns * 10));
+    }
+
+    // Global weighted score
+    let totalWeight = 0, weightedSum = 0;
+    for (const cat of Object.values(categories)) {
+      weightedSum += cat.score * cat.weight;
+      totalWeight += cat.weight;
+    }
+    const score = Math.round(weightedSum / totalWeight);
+
+    // ── Internal link suggestions (Point 7) ──
+    const suggestions = [];
+    const foldersPath = path.join(PREVIEWS_DIR, '_folders.json');
+    let folders = {};
+    try { folders = JSON.parse(fs.readFileSync(foldersPath, 'utf-8')); } catch {}
+    const myFolder = folders[slug];
+    if (myFolder) {
+      const related = Object.entries(folders)
+        .filter(([s, f]) => f === myFolder && s !== slug)
+        .map(([s]) => s)
+        .slice(0, 5);
+      if (related.length) suggestions.push({ type: 'related_category', pages: related, reason: `Meme categorie "${myFolder}"` });
+    }
+    // Suggest by slug prefix
+    const prefix = slug.split('-').slice(0, 2).join('-');
+    if (prefix.length > 3) {
+      const similarPages = fs.readdirSync(PREVIEWS_DIR)
+        .filter(d => d.startsWith(prefix) && d !== slug && d !== '_shared' && !d.startsWith('_'))
+        .slice(0, 5);
+      if (similarPages.length) suggestions.push({ type: 'similar_slug', pages: similarPages, reason: `Prefix commun "${prefix}"` });
+    }
+
+    // All checks flat
+    const allChecks = [];
+    for (const cat of Object.values(categories)) allChecks.push(...cat.checks);
+    const errors = allChecks.filter(c => !c.pass && c.severity === 'error').length;
+    const warnings = allChecks.filter(c => !c.pass && c.severity === 'warning').length;
+
+    res.json({ slug, score, errors, warnings, categories, checks: allChecks, suggestions, seoData, wordCount });
   } catch (err) {
     console.error('[Pages] SEO audit error:', err.message);
     res.status(500).json({ error: 'Erreur lors de l\'audit SEO' });
+  }
+});
+
+/**
+ * POST /:slug/status — Change editorial status (Point 9)
+ */
+router.post('/:slug/status', verifyToken, requireRole('admin'), async (req, res) => {
+  try {
+    const slug = req.params.slug.replace(/[^a-z0-9-]/gi, '');
+    const previewDir = getPreviewDir(slug);
+    if (!fs.existsSync(previewDir)) return res.status(404).json({ error: 'Page non trouvee' });
+
+    const { status } = req.body;
+    if (!status) return res.status(400).json({ error: 'Status requis' });
+    if (!['draft', 'review', 'validated', 'published', 'archived'].includes(status)) {
+      return res.status(400).json({ error: 'Status invalide' });
+    }
+
+    // Read current seo.json
+    const seoPath = path.join(previewDir, 'seo.json');
+    let seoData = {};
+    if (fs.existsSync(seoPath)) {
+      try { seoData = JSON.parse(fs.readFileSync(seoPath, 'utf-8')); } catch {}
+    }
+
+    const currentStatus = seoData.status || 'draft';
+    const allowed = VALID_TRANSITIONS[currentStatus] || [];
+    if (!allowed.includes(status)) {
+      return res.status(400).json({ error: `Transition "${currentStatus}" → "${status}" non autorisee. Transitions possibles: ${allowed.join(', ')}` });
+    }
+
+    // Gate: review → validated requires SEO score >= 60
+    if (currentStatus === 'review' && status === 'validated') {
+      // Quick audit
+      const files = fs.readdirSync(previewDir).filter(f => f.endsWith('.html')).sort();
+      let allHtml = '';
+      for (const f of files) allHtml += fs.readFileSync(path.join(previewDir, f), 'utf-8') + '\n';
+
+      const h1Count = (allHtml.match(/<h1[\s>]/gi) || []).length;
+      const hasTitle = seoData.title && seoData.title.length >= 20;
+      const hasDesc = seoData.description && seoData.description.length >= 50;
+      const hasSchema = !!seoData.schemaType;
+      let quickScore = 100;
+      if (h1Count !== 1) quickScore -= 25;
+      if (!hasTitle) quickScore -= 25;
+      if (!hasDesc) quickScore -= 25;
+      if (!hasSchema) quickScore -= 15;
+
+      if (quickScore < 60) {
+        return res.status(400).json({
+          error: `Score SEO insuffisant (${quickScore}/100) pour passer en "validated". Minimum requis: 60.`,
+          details: {
+            h1: h1Count === 1 ? 'OK' : `${h1Count} H1 (besoin de 1)`,
+            title: hasTitle ? 'OK' : 'Manquant ou < 20 chars',
+            description: hasDesc ? 'OK' : 'Manquante ou < 50 chars',
+            schema: hasSchema ? 'OK' : 'Schema type manquant'
+          }
+        });
+      }
+    }
+
+    // Auto-actions on status change
+    if (status === 'archived') {
+      seoData.noindex = true;
+      if (seoData.sitemap) seoData.sitemap.include = false;
+    }
+    if (status === 'draft' && currentStatus === 'archived') {
+      seoData.noindex = false;
+      if (seoData.sitemap) seoData.sitemap.include = true;
+    }
+
+    seoData.status = status;
+    seoData.lastModifiedBy = req.user.username || req.user.email || 'admin';
+    seoData.lastModifiedAt = new Date().toISOString();
+
+    fs.writeFileSync(seoPath, JSON.stringify(seoData, null, 2), 'utf-8');
+
+    await logAudit({
+      userId: req.user.id,
+      action: 'page_status_change',
+      entityType: 'page',
+      entityId: slug,
+      details: { from: currentStatus, to: status },
+      ip: getClientIp(req),
+      userAgent: req.headers['user-agent']
+    });
+
+    res.json({ success: true, status, previousStatus: currentStatus });
+  } catch (err) {
+    console.error('[Pages] Status change error:', err.message);
+    res.status(500).json({ error: 'Erreur lors du changement de statut' });
   }
 });
 

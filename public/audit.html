@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audit SEO Global - Gestionnaire de Site</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .audit-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    .audit-header h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #e6edf3;
+      margin: 0;
+    }
+    .audit-header .subtitle {
+      font-size: 14px;
+      color: #8b949e;
+      margin-top: 4px;
+    }
+    .btn-run {
+      background: #238636;
+      border: 1px solid #2ea04366;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-run:hover {
+      background: #2ea043;
+    }
+    .btn-run:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* Score section */
+    .score-section {
+      text-align: center;
+      padding: 32px 0;
+      display: none;
+    }
+    .score-circle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      font-size: 40px;
+      font-weight: 700;
+      border: 5px solid #30363d;
+      margin-bottom: 12px;
+      transition: all 0.3s;
+    }
+    .score-label {
+      font-size: 14px;
+      color: #8b949e;
+    }
+
+    /* Stats row */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 32px;
+      display: none;
+    }
+    .stat-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      color: #e6edf3;
+      margin-bottom: 4px;
+    }
+    .stat-label {
+      font-size: 13px;
+      color: #8b949e;
+    }
+    .stat-value.critical { color: #f85149; }
+    .stat-value.warning { color: #d29922; }
+    .stat-value.good { color: #3fb950; }
+
+    /* Issue sections */
+    .issue-section {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .issue-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.2s;
+    }
+    .issue-header:hover {
+      background: #1c2129;
+    }
+    .issue-header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .issue-icon {
+      font-size: 16px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .issue-icon.critical { color: #f85149; }
+    .issue-icon.warning { color: #d29922; }
+    .issue-icon.good { color: #3fb950; }
+    .issue-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #e6edf3;
+    }
+    .issue-badge {
+      background: #21262d;
+      border: 1px solid #30363d;
+      color: #8b949e;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 2px 10px;
+      border-radius: 20px;
+    }
+    .issue-badge.critical {
+      background: #f8514922;
+      border-color: #f8514944;
+      color: #f85149;
+    }
+    .issue-badge.warning {
+      background: #d2992222;
+      border-color: #d2992244;
+      color: #d29922;
+    }
+    .issue-chevron {
+      color: #8b949e;
+      font-size: 12px;
+      transition: transform 0.2s;
+    }
+    .issue-section.open .issue-chevron {
+      transform: rotate(90deg);
+    }
+    .issue-body {
+      display: none;
+      padding: 0 18px 14px;
+      border-top: 1px solid #21262d;
+    }
+    .issue-section.open .issue-body {
+      display: block;
+    }
+    .issue-list {
+      list-style: none;
+      padding: 0;
+      margin: 12px 0 0 0;
+    }
+    .issue-list li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      background: #0d1117;
+      border: 1px solid #21262d;
+      margin-bottom: 6px;
+      font-size: 13px;
+      color: #e6edf3;
+    }
+    .issue-list li a {
+      color: #58a6ff;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .issue-list li a:hover {
+      text-decoration: underline;
+    }
+    .issue-detail {
+      color: #8b949e;
+      font-size: 12px;
+    }
+    .issue-group-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #8b949e;
+      margin: 12px 0 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Loading */
+    .loading-msg {
+      text-align: center;
+      padding: 40px 0;
+      color: #8b949e;
+      font-size: 14px;
+      display: none;
+    }
+    .error-msg {
+      text-align: center;
+      padding: 20px;
+      color: #f85149;
+      font-size: 14px;
+      display: none;
+      background: #f8514912;
+      border: 1px solid #f8514933;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+
+    /* All pages table */
+    .pages-table-wrap {
+      overflow-x: auto;
+      margin-top: 16px;
+    }
+    .pages-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .pages-table th {
+      text-align: left;
+      padding: 10px 12px;
+      color: #8b949e;
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid #30363d;
+      white-space: nowrap;
+    }
+    .pages-table td {
+      padding: 10px 12px;
+      color: #e6edf3;
+      border-bottom: 1px solid #21262d;
+      vertical-align: middle;
+    }
+    .pages-table tr:hover td {
+      background: #161b2280;
+    }
+    .pages-table a {
+      color: #58a6ff;
+      text-decoration: none;
+    }
+    .pages-table a:hover {
+      text-decoration: underline;
+    }
+    .badge-noindex {
+      background: #d2992222;
+      color: #d29922;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+    .badge-ok {
+      background: #3fb95022;
+      color: #3fb950;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #8b949e;
+    }
+    .empty-state h2 {
+      color: #e6edf3;
+      margin-bottom: 8px;
+    }
+
+    @media (max-width: 768px) {
+      .stats-row {
+        grid-template-columns: 1fr;
+      }
+      .audit-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="navbar"></div>
+
+  <div class="container" style="max-width:960px;margin:0 auto;padding:24px">
+    <div class="audit-header">
+      <div>
+        <h1>Audit SEO Global</h1>
+        <div class="subtitle">Analyse cross-pages de votre site</div>
+      </div>
+      <button class="btn-run" id="btn-run-audit" type="button">Lancer l'audit</button>
+    </div>
+
+    <div class="error-msg" id="error-msg"></div>
+    <div class="loading-msg" id="loading-msg">Analyse en cours...</div>
+
+    <div class="score-section" id="score-section">
+      <div class="score-circle" id="score-circle"></div>
+      <div class="score-label" id="score-label"></div>
+    </div>
+
+    <div class="stats-row" id="stats-row">
+      <div class="stat-card">
+        <div class="stat-value" id="stat-pages">0</div>
+        <div class="stat-label">Pages analysees</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value critical" id="stat-critical">0</div>
+        <div class="stat-label">Problemes critiques</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value warning" id="stat-warnings">0</div>
+        <div class="stat-label">Avertissements</div>
+      </div>
+    </div>
+
+    <div id="issues-container"></div>
+
+    <div id="pages-overview" style="display:none">
+      <div class="issue-section open">
+        <div class="issue-header" id="pages-overview-header">
+          <div class="issue-header-left">
+            <span class="issue-icon" style="color:#58a6ff">&#9776;</span>
+            <span class="issue-title">Toutes les pages</span>
+          </div>
+          <span class="issue-chevron">&#9654;</span>
+        </div>
+        <div class="issue-body" style="display:block">
+          <div class="pages-table-wrap">
+            <table class="pages-table">
+              <thead>
+                <tr>
+                  <th>Page</th>
+                  <th>Titre</th>
+                  <th>H1</th>
+                  <th>Mots</th>
+                  <th>Index</th>
+                </tr>
+              </thead>
+              <tbody id="pages-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/auth.js"></script>
+  <script src="/js/components.js"></script>
+  <script>
+    (function() {
+      var auditData = null;
+
+      function escapeHtml(str) {
+        if (!str) return '';
+        var div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+      }
+
+      function truncate(str, max) {
+        if (!str) return '';
+        return str.length > max ? str.substring(0, max) + '...' : str;
+      }
+
+      function pageLink(slug) {
+        return '<a href="/page-code.html?slug=' + encodeURIComponent(slug) + '">' + escapeHtml(slug) + '</a>';
+      }
+
+      function runAudit() {
+        var btn = document.getElementById('btn-run-audit');
+        var loading = document.getElementById('loading-msg');
+        var errorEl = document.getElementById('error-msg');
+        var scoreSection = document.getElementById('score-section');
+        var statsRow = document.getElementById('stats-row');
+        var issuesContainer = document.getElementById('issues-container');
+        var pagesOverview = document.getElementById('pages-overview');
+
+        btn.disabled = true;
+        btn.textContent = 'Analyse en cours...';
+        loading.style.display = 'block';
+        errorEl.style.display = 'none';
+        scoreSection.style.display = 'none';
+        statsRow.style.display = 'none';
+        issuesContainer.innerHTML = '';
+        pagesOverview.style.display = 'none';
+
+        Auth.apiFetch('/api/audit/global').then(function(r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        }).then(function(data) {
+          btn.disabled = false;
+          btn.textContent = 'Relancer l\'audit';
+          loading.style.display = 'none';
+          auditData = data;
+
+          if (data.error) {
+            errorEl.textContent = data.error;
+            errorEl.style.display = 'block';
+            return;
+          }
+
+          renderScore(data);
+          renderStats(data);
+          renderIssues(data);
+          renderPagesTable(data);
+        }).catch(function(err) {
+          btn.disabled = false;
+          btn.textContent = 'Relancer l\'audit';
+          loading.style.display = 'none';
+          errorEl.textContent = 'Erreur lors de l\'audit : ' + err.message;
+          errorEl.style.display = 'block';
+        });
+      }
+
+      function renderScore(data) {
+        var section = document.getElementById('score-section');
+        var circle = document.getElementById('score-circle');
+        var label = document.getElementById('score-label');
+
+        section.style.display = 'block';
+        circle.textContent = data.score;
+
+        var color, borderColor;
+        if (data.score >= 80) {
+          color = '#3fb950';
+          borderColor = '#23863644';
+        } else if (data.score >= 50) {
+          color = '#d29922';
+          borderColor = '#d2992244';
+        } else {
+          color = '#f85149';
+          borderColor = '#f8514944';
+        }
+        circle.style.color = color;
+        circle.style.borderColor = borderColor;
+
+        label.textContent = data.criticalIssues + ' critique(s), ' + data.warnings + ' avertissement(s)';
+      }
+
+      function renderStats(data) {
+        var row = document.getElementById('stats-row');
+        row.style.display = 'grid';
+        document.getElementById('stat-pages').textContent = data.totalPages;
+        document.getElementById('stat-critical').textContent = data.criticalIssues;
+        document.getElementById('stat-warnings').textContent = data.warnings;
+      }
+
+      function buildIssueSection(title, icon, severity, count, bodyHtml) {
+        var section = document.createElement('div');
+        section.className = 'issue-section';
+        if (count > 0) section.className += ' open';
+
+        var header = document.createElement('div');
+        header.className = 'issue-header';
+        header.innerHTML =
+          '<div class="issue-header-left">' +
+            '<span class="issue-icon ' + severity + '">' + icon + '</span>' +
+            '<span class="issue-title">' + escapeHtml(title) + '</span>' +
+          '</div>' +
+          '<div style="display:flex;align-items:center;gap:10px">' +
+            '<span class="issue-badge ' + (count > 0 ? severity : '') + '">' + count + '</span>' +
+            '<span class="issue-chevron">&#9654;</span>' +
+          '</div>';
+
+        var body = document.createElement('div');
+        body.className = 'issue-body';
+        if (count > 0) body.style.display = 'block';
+        body.innerHTML = bodyHtml;
+
+        section.appendChild(header);
+        section.appendChild(body);
+
+        header.addEventListener('click', function() {
+          var isOpen = section.classList.contains('open');
+          if (isOpen) {
+            section.classList.remove('open');
+            body.style.display = 'none';
+          } else {
+            section.classList.add('open');
+            body.style.display = 'block';
+          }
+        });
+
+        return section;
+      }
+
+      function renderIssues(data) {
+        var container = document.getElementById('issues-container');
+        container.innerHTML = '';
+
+        // 1. Missing SEO data (critical)
+        var missingSeoHtml = '';
+        if (data.missingSeo.length > 0) {
+          missingSeoHtml = '<ul class="issue-list">';
+          for (var i = 0; i < data.missingSeo.length; i++) {
+            var item = data.missingSeo[i];
+            missingSeoHtml += '<li>' + pageLink(item.slug) +
+              ' <span class="issue-detail">Manquant : ' + escapeHtml(item.missing.join(', ')) + '</span></li>';
+          }
+          missingSeoHtml += '</ul>';
+        } else {
+          missingSeoHtml = '<p style="color:#3fb950;font-size:13px;margin:12px 0 0">Toutes les pages ont un titre et une description.</p>';
+        }
+        container.appendChild(buildIssueSection(
+          'Donnees SEO manquantes', '&#10007;', 'critical',
+          data.missingSeo.length, missingSeoHtml
+        ));
+
+        // 2. Missing H1 (critical)
+        var missingH1Html = '';
+        if (data.missingH1.length > 0) {
+          missingH1Html = '<ul class="issue-list">';
+          for (var h = 0; h < data.missingH1.length; h++) {
+            missingH1Html += '<li>' + pageLink(data.missingH1[h]) + ' <span class="issue-detail">Aucun H1 detecte</span></li>';
+          }
+          missingH1Html += '</ul>';
+        } else {
+          missingH1Html = '<p style="color:#3fb950;font-size:13px;margin:12px 0 0">Toutes les pages ont un H1.</p>';
+        }
+        container.appendChild(buildIssueSection(
+          'H1 manquants', '&#10007;', 'critical',
+          data.missingH1.length, missingH1Html
+        ));
+
+        // 3. Duplicate titles (critical)
+        var dupTitleKeys = Object.keys(data.duplicateTitles);
+        var dupTitleHtml = '';
+        if (dupTitleKeys.length > 0) {
+          dupTitleHtml = '';
+          for (var dt = 0; dt < dupTitleKeys.length; dt++) {
+            var titleKey = dupTitleKeys[dt];
+            var slugs = data.duplicateTitles[titleKey];
+            dupTitleHtml += '<div class="issue-group-label">"' + escapeHtml(truncate(titleKey, 60)) + '"</div>';
+            dupTitleHtml += '<ul class="issue-list">';
+            for (var ds = 0; ds < slugs.length; ds++) {
+              dupTitleHtml += '<li>' + pageLink(slugs[ds]) + '</li>';
+            }
+            dupTitleHtml += '</ul>';
+          }
+        } else {
+          dupTitleHtml = '<p style="color:#3fb950;font-size:13px;margin:12px 0 0">Aucun titre en doublon.</p>';
+        }
+        container.appendChild(buildIssueSection(
+          'Titres en doublon', '&#10007;', 'critical',
+          dupTitleKeys.length, dupTitleHtml
+        ));
+
+        // 4. Duplicate descriptions (warning)
+        var dupDescKeys = Object.keys(data.duplicateDescriptions);
+        var dupDescHtml = '';
+        if (dupDescKeys.length > 0) {
+          for (var dd = 0; dd < dupDescKeys.length; dd++) {
+            var descKey = dupDescKeys[dd];
+            var dSlugs = data.duplicateDescriptions[descKey];
+            dupDescHtml += '<div class="issue-group-label">"' + escapeHtml(truncate(descKey, 60)) + '"</div>';
+            dupDescHtml += '<ul class="issue-list">';
+            for (var dds = 0; dds < dSlugs.length; dds++) {
+              dupDescHtml += '<li>' + pageLink(dSlugs[dds]) + '</li>';
+            }
+            dupDescHtml += '</ul>';
+          }
+        } else {
+          dupDescHtml = '<p style="color:#3fb950;font-size:13px;margin:12px 0 0">Aucune description en doublon.</p>';
+        }
+        container.appendChild(buildIssueSection(
+          'Descriptions en doublon', '&#9888;', 'warning',
+          dupDescKeys.length, dupDescHtml
+        ));
+
+        // 5. Orphan pages (warning)
+        var orphanHtml = '';
+        if (data.orphanPages.length > 0) {
+          orphanHtml = '<ul class="issue-list">';
+          for (var op = 0; op < data.orphanPages.length; op++) {
+            orphanHtml += '<li>' + pageLink(data.orphanPages[op]) + ' <span class="issue-detail">Non lie depuis le header ou footer</span></li>';
+          }
+          orphanHtml += '</ul>';
+        } else {
+          orphanHtml = '<p style="color:#3fb950;font-size:13px;margin:12px 0 0">Toutes les pages sont liees depuis la navigation.</p>';
+        }
+        container.appendChild(buildIssueSection(
+          'Pages orphelines', '&#9888;', 'warning',
+          data.orphanPages.length, orphanHtml
+        ));
+
+        // 6. Empty indexable pages (warning)
+        var emptyHtml = '';
+        if (data.emptyPages.length > 0) {
+          emptyHtml = '<ul class="issue-list">';
+          for (var ep = 0; ep < data.emptyPages.length; ep++) {
+            emptyHtml += '<li>' + pageLink(data.emptyPages[ep].slug) +
+              ' <span class="issue-detail">' + data.emptyPages[ep].wordCount + ' mots</span></li>';
+          }
+          emptyHtml += '</ul>';
+        } else {
+          emptyHtml = '<p style="color:#3fb950;font-size:13px;margin:12px 0 0">Toutes les pages indexables ont un contenu suffisant.</p>';
+        }
+        container.appendChild(buildIssueSection(
+          'Pages indexables pauvres en contenu', '&#9888;', 'warning',
+          data.emptyPages.length, emptyHtml
+        ));
+
+        // 7. Canonical inconsistencies (warning)
+        var canonHtml = '';
+        if (data.canonicalIssues.length > 0) {
+          canonHtml = '<ul class="issue-list">';
+          for (var ci = 0; ci < data.canonicalIssues.length; ci++) {
+            canonHtml += '<li>' + pageLink(data.canonicalIssues[ci].slug) +
+              ' <span class="issue-detail">slug: ' + escapeHtml(data.canonicalIssues[ci].slug) +
+              ' / urlPath: ' + escapeHtml(data.canonicalIssues[ci].urlPath) + '</span></li>';
+          }
+          canonHtml += '</ul>';
+        } else {
+          canonHtml = '<p style="color:#3fb950;font-size:13px;margin:12px 0 0">Toutes les URLs canoniques sont coherentes.</p>';
+        }
+        container.appendChild(buildIssueSection(
+          'Incoherences canoniques', '&#9888;', 'warning',
+          data.canonicalIssues.length, canonHtml
+        ));
+      }
+
+      function renderPagesTable(data) {
+        var overview = document.getElementById('pages-overview');
+        var tbody = document.getElementById('pages-tbody');
+        overview.style.display = 'block';
+        tbody.innerHTML = '';
+
+        var pages = data.pages || [];
+        pages.sort(function(a, b) { return a.slug.localeCompare(b.slug); });
+
+        for (var i = 0; i < pages.length; i++) {
+          var pg = pages[i];
+          var tr = document.createElement('tr');
+
+          var tdSlug = document.createElement('td');
+          var link = document.createElement('a');
+          link.href = '/page-code.html?slug=' + encodeURIComponent(pg.slug);
+          link.textContent = pg.slug;
+          tdSlug.appendChild(link);
+
+          var tdTitle = document.createElement('td');
+          tdTitle.textContent = truncate(pg.title, 50);
+          if (!pg.title) tdTitle.innerHTML = '<span style="color:#f85149;font-style:italic">Manquant</span>';
+
+          var tdH1 = document.createElement('td');
+          tdH1.textContent = truncate(pg.h1 || '', 40);
+          if (!pg.h1) tdH1.innerHTML = '<span style="color:#f85149;font-style:italic">Aucun</span>';
+
+          var tdWords = document.createElement('td');
+          tdWords.textContent = pg.wordCount;
+          if (pg.wordCount < 100) tdWords.style.color = '#d29922';
+
+          var tdIndex = document.createElement('td');
+          if (pg.noindex) {
+            tdIndex.innerHTML = '<span class="badge-noindex">noindex</span>';
+          } else {
+            tdIndex.innerHTML = '<span class="badge-ok">index</span>';
+          }
+
+          tr.appendChild(tdSlug);
+          tr.appendChild(tdTitle);
+          tr.appendChild(tdH1);
+          tr.appendChild(tdWords);
+          tr.appendChild(tdIndex);
+          tbody.appendChild(tr);
+        }
+
+        // Toggle for pages overview
+        var overviewHeader = document.getElementById('pages-overview-header');
+        overviewHeader.addEventListener('click', function() {
+          var section = overviewHeader.parentElement;
+          var body = section.querySelector('.issue-body');
+          var isOpen = section.classList.contains('open');
+          if (isOpen) {
+            section.classList.remove('open');
+            body.style.display = 'none';
+          } else {
+            section.classList.add('open');
+            body.style.display = 'block';
+          }
+        });
+      }
+
+      Components.initPage().then(function() {
+        var btn = document.getElementById('btn-run-audit');
+        btn.addEventListener('click', function() {
+          runAudit();
+        });
+        runAudit();
+      });
+    })();
+  </script>
+</body>
+</html>

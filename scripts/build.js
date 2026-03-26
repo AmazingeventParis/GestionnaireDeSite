@@ -195,82 +195,116 @@ function readSection(filePath) {
 const sharedHeader = readSection(path.join(previewsDir, '_shared', 'header.html'));
 const sharedFooter = readSection(path.join(previewsDir, '_shared', 'footer.html'));
 
+// ===== BUILD MODE: warn (default) or strict =====
+const BUILD_MODE = process.env.BUILD_STRICT || 'warn';
+const buildReport = []; // Global report across all pages
+
+// Load media-meta.json for image classification (Point 6)
+const mediaMetaPath = path.join(projectRoot, 'public', 'site-images', 'media-meta.json');
+let mediaMeta = {};
+try { mediaMeta = JSON.parse(fs.readFileSync(mediaMetaPath, 'utf-8')); } catch {}
+
 // ===== POST-PROCESSING for Lighthouse =====
-function postProcess(html) {
-  // 0. AUTO-FIX H1: promote first H2 to H1 if no H1 exists in page content
+function postProcess(html, pageSlug) {
+  const pageReport = { slug: pageSlug, fixes: [], warnings: [], errors: [] };
+
+  // 0. H1 CHECK — warn or fix depending on mode
   const mainMatch = html.match(/<main[^>]*>([\s\S]*)<\/main>/i);
   if (mainMatch) {
-    const mainContent = mainMatch[1];
-    const hasH1 = /<h1[\s>]/i.test(mainContent);
+    const hasH1 = /<h1[\s>]/i.test(mainMatch[1]);
     if (!hasH1) {
-      // Promote first H2 in main content to H1
-      let promoted = false;
-      html = html.replace(/(<main[^>]*>[\s\S]*?)(<h2)([\s>])/i, (m, before, tag, after) => {
-        promoted = true;
-        return before + '<h1' + after;
-      });
-      if (promoted) {
-        // Also close the promoted h1
-        let count = 0;
-        html = html.replace(/<\/h2>/gi, (m) => {
-          count++;
-          return count === 1 ? '</h1>' : m;
+      if (BUILD_MODE === 'strict') {
+        pageReport.errors.push('H1 MANQUANT — aucun <h1> dans le contenu de la page');
+      } else {
+        // Mode warn: promote first H2 but log it clearly
+        let promoted = false;
+        html = html.replace(/(<main[^>]*>[\s\S]*?)(<h2)([\s>])/i, (m, before, tag, after) => {
+          promoted = true;
+          return before + '<h1' + after;
         });
-        console.log('  SEO AUTO-FIX: Promoted first <h2> to <h1>');
+        if (promoted) {
+          let count = 0;
+          html = html.replace(/<\/h2>/gi, (m) => { count++; return count === 1 ? '</h1>' : m; });
+          pageReport.warnings.push('H1 AUTO-PROMU — premier <h2> transforme en <h1>. Corrigez le template source.');
+        } else {
+          pageReport.errors.push('H1 MANQUANT — aucun <h1> ni <h2> a promouvoir');
+        }
       }
     }
   }
 
-  // 1. Add width/height + loading="lazy" + decoding="async" + srcset to images
+  // 1. Images: dimensions, lazy loading, srcset, alt classification
   html = html.replace(/<img\s([^>]*?)>/gi, (match, attrs) => {
     const srcMatch = attrs.match(/src="([^"]+)"/);
     if (!srcMatch) return match;
     const src = srcMatch[1];
 
-    // External images (blog thumbnails from WordPress)
+    // External images
     if (src.startsWith('http')) {
-      if (!attrs.includes('width=') && src.includes('768x494')) {
-        attrs += ' width="768" height="494"';
-      }
+      if (!attrs.includes('width=') && src.includes('768x494')) attrs += ' width="768" height="494"';
       if (!attrs.includes('loading=')) attrs += ' loading="lazy"';
       if (!attrs.includes('decoding=')) attrs += ' decoding="async"';
       return `<img ${attrs}>`;
     }
 
-    // Add width/height if missing
+    // Dimensions
     const dims = imageDimensions[src];
     if (!attrs.includes('width=') && dims) {
       attrs += ` width="${dims[0]}" height="${dims[1]}"`;
     }
 
-    // Add srcset for responsive images (local images only, not logos/icons)
+    // Real srcset — only if physical variant files exist on disk
     if (!attrs.includes('srcset=') && dims && dims[0] >= 600 && !src.includes('/logo/') && !src.includes('/icon')) {
-      const w = dims[0];
-      // Generate srcset with 480w, 768w, and original width
-      const sizes = [];
-      if (w >= 480) sizes.push(`${src} ${w}w`);
-      attrs += ` srcset="${sizes.join(', ')}" sizes="(max-width: 480px) 480px, (max-width: 768px) 768px, ${w}px"`;
-    }
-
-    // Logo = above the fold, no lazy
-    if (!attrs.includes('loading=')) {
-      if (src.includes('/logo/')) {
-        attrs += ' fetchpriority="high"';
-      } else {
-        attrs += ' loading="lazy"';
+      const basePath = path.join(projectRoot, 'public');
+      const ext = path.extname(src);
+      const base = src.slice(0, -ext.length);
+      const variants = [];
+      for (const w of [480, 768, 1280]) {
+        const variantSrc = `${base}-${w}w${ext}`;
+        if (fs.existsSync(path.join(basePath, variantSrc))) {
+          variants.push(`${variantSrc} ${w}w`);
+        }
+      }
+      if (variants.length > 0) {
+        variants.push(`${src} ${dims[0]}w`);
+        attrs += ` srcset="${variants.join(', ')}" sizes="(max-width: 480px) 100vw, (max-width: 768px) 100vw, 1280px"`;
       }
     }
 
-    if (!attrs.includes('decoding=')) {
-      attrs += ' decoding="async"';
+    // Loading strategy
+    if (!attrs.includes('loading=')) {
+      if (src.includes('/logo/')) attrs += ' fetchpriority="high"';
+      else attrs += ' loading="lazy"';
+    }
+    if (!attrs.includes('decoding=')) attrs += ' decoding="async"';
+
+    // Alt attribute — use media-meta.json classification (Point 6)
+    if (!attrs.includes('alt=')) {
+      const meta = mediaMeta[src];
+      if (meta) {
+        if (meta.type === 'decorative') {
+          attrs += ' alt="" role="presentation"';
+        } else if (meta.alt) {
+          attrs += ` alt="${meta.alt}"`;
+        } else {
+          pageReport.warnings.push(`ALT MANQUANT — image classifiee "${meta.type}" mais alt vide: ${src}`);
+        }
+      } else if (src.includes('/logo/')) {
+        attrs += ' alt="Shootnbox"';
+      } else if (attrs.includes('aria-hidden') || attrs.includes('role="presentation"')) {
+        attrs += ' alt=""';
+      } else {
+        // No auto-fix from filename — log warning instead
+        pageReport.warnings.push(`ALT MANQUANT — image non classifiee sans alt: ${src}`);
+        if (BUILD_MODE !== 'strict') {
+          attrs += ' alt=""'; // Minimal fallback to avoid HTML validation error
+        }
+      }
     }
 
-    // Ensure alt attribute exists
-    if (!attrs.includes('alt=')) {
-      // Extract filename as fallback alt
-      const filename = src.split('/').pop().replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
-      attrs += ` alt="${filename}"`;
-      console.log(`  SEO AUTO-FIX: Added fallback alt="${filename}" to image ${src}`);
+    // Check if image is in media-meta.json
+    if (!mediaMeta[src] && !src.startsWith('http') && !src.includes('/logo/')) {
+      pageReport.warnings.push(`IMAGE NON CLASSIFIEE — ${src} absent de media-meta.json`);
     }
 
     return `<img ${attrs}>`;
@@ -445,6 +479,9 @@ function postProcess(html) {
   });
 
   html = $.html();
+
+  // Store page report
+  buildReport.push(pageReport);
   return html;
 }
 
@@ -824,6 +861,7 @@ for (const page of pages) {
 <meta name="twitter:description" content="${page.ogDescription}">
 <meta name="twitter:image" content="${page.ogImage}">
 ${preloadImg}
+<link rel="alternate" type="application/rss+xml" title="Shootnbox Blog" href="/api/seo/feed">
 <link rel="dns-prefetch" href="https://shootnbox.fr">
 <link rel="preload" as="font" type="font/woff2" href="/fonts/raleway-latin.woff2" crossorigin>
 <link rel="preload" as="font" type="font/woff2" href="/fonts/raleway-900i-latin.woff2" crossorigin>
@@ -857,7 +895,7 @@ ${sharedFooter}
 </html>`;
 
   // Apply Lighthouse optimizations
-  html = postProcess(html);
+  html = postProcess(html, page.slug);
 
   // Extract FAQ JSON-LD if page has FAQ
   if (page.hasFaq) {
@@ -974,5 +1012,27 @@ ${sitemapEntries.map(e => `  <url>
 
 fs.writeFileSync(path.join(siteDir, 'sitemap.xml'), sitemapXml, 'utf-8');
 console.log(`  Sitemap: ${sitemapEntries.length} URLs → public/site/sitemap.xml`);
+
+// ===== BUILD REPORT =====
+console.log('\n' + '='.repeat(60));
+console.log(`BUILD REPORT — Mode: ${BUILD_MODE.toUpperCase()}`);
+console.log('='.repeat(60));
+
+let totalErrors = 0, totalWarnings = 0, totalFixes = 0;
+for (const report of buildReport) {
+  const hasIssues = report.errors.length || report.warnings.length || report.fixes.length;
+  if (!hasIssues) continue;
+  console.log(`\n  [${report.slug}]`);
+  for (const e of report.errors)   { console.log(`    \x1b[31mERROR\x1b[0m  ${e}`); totalErrors++; }
+  for (const w of report.warnings) { console.log(`    \x1b[33mWARN\x1b[0m   ${w}`); totalWarnings++; }
+  for (const f of report.fixes)    { console.log(`    \x1b[36mFIX\x1b[0m    ${f}`); totalFixes++; }
+}
+
+console.log(`\n  TOTAL: ${totalErrors} errors, ${totalWarnings} warnings, ${totalFixes} fixes`);
+
+if (BUILD_MODE === 'strict' && totalErrors > 0) {
+  console.log(`\n\x1b[31mBUILD FAILED — ${totalErrors} error(s) in strict mode. Fix them before publishing.\x1b[0m`);
+  process.exit(1);
+}
 
 console.log('\nAll pages built successfully!');

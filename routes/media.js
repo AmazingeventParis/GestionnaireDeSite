@@ -117,6 +117,52 @@ function getWebpQuality() {
   }
 }
 
+// ==================== RESPONSIVE VARIANTS ====================
+
+const RESPONSIVE_WIDTHS = [480, 768, 1280];
+const RESPONSIVE_QUALITY = 80;
+const RESPONSIVE_MIN_WIDTH = 600;
+const VARIANT_PATTERN = /-(480|768|1280)w\.\w+$/i;
+
+/**
+ * Generate responsive WebP variants (480w, 768w, 1280w) for an uploaded image.
+ * Skips variants where width >= source width. Non-blocking: errors are logged but don't break upload.
+ * Returns array of generated variant info objects.
+ */
+async function generateResponsiveVariants(sourcePath, targetDir, baseName) {
+  const variants = [];
+  try {
+    const metadata = await sharp(sourcePath).metadata();
+    const sourceWidth = metadata.width || 0;
+
+    if (sourceWidth < RESPONSIVE_MIN_WIDTH) return variants;
+
+    for (const w of RESPONSIVE_WIDTHS) {
+      if (w >= sourceWidth) continue;
+      const variantName = `${baseName}-${w}w.webp`;
+      const variantPath = path.join(targetDir, variantName);
+
+      // Skip if already exists (unlikely on upload but safe)
+      if (fs.existsSync(variantPath)) continue;
+
+      try {
+        await sharp(sourcePath)
+          .resize(w, null, { withoutEnlargement: true })
+          .webp({ quality: RESPONSIVE_QUALITY })
+          .toFile(variantPath);
+
+        const stat = fs.statSync(variantPath);
+        variants.push({ name: variantName, width: w, size: stat.size });
+      } catch (variantErr) {
+        console.error(`[Media] Responsive variant ${w}w error:`, variantErr.message);
+      }
+    }
+  } catch (err) {
+    console.error('[Media] Responsive variants error:', err.message);
+  }
+  return variants;
+}
+
 // ==================== ROUTES ====================
 
 /**
@@ -236,12 +282,21 @@ router.post('/upload', verifyToken, requireRole('admin', 'editor'), uploadLimite
           const metadata = await sharp(outputPath).metadata();
           const stat = fs.statSync(outputPath);
 
+          // Generate responsive variants (480w, 768w, 1280w)
+          const variants = await generateResponsiveVariants(outputPath, targetDir, path.basename(webpName, '.webp'));
+
           uploaded.push({
             name: webpName,
             path: '/site-images/' + (folder ? folder + '/' : '') + webpName,
             size: stat.size,
             dimensions: { width: metadata.width, height: metadata.height },
-            format: 'webp'
+            format: 'webp',
+            variants: variants.map(v => ({
+              name: v.name,
+              path: '/site-images/' + (folder ? folder + '/' : '') + v.name,
+              width: v.width,
+              size: v.size
+            }))
           });
 
           fs.unlinkSync(file.path);
