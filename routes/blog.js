@@ -7,8 +7,8 @@ const { logAudit } = require('../utils/audit');
 
 const PREVIEWS_DIR = path.join(__dirname, '..', 'previews');
 const TEMPLATES_DIR = path.join(__dirname, '..', 'templates');
-const DATA_DIR = path.join(__dirname, '..', 'data');
-const BLOG_INDEX = path.join(DATA_DIR, 'blog-index.json');
+// Store blog index in previews/ which has a persistent Docker volume (gds-previews)
+const BLOG_INDEX = path.join(PREVIEWS_DIR, '_blog-index.json');
 
 // ── Helpers ──────────────────────────────────────────────
 
@@ -23,7 +23,6 @@ function readIndex() {
 }
 
 function writeIndex(data) {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
   fs.writeFileSync(BLOG_INDEX, JSON.stringify(data, null, 2), 'utf-8');
 }
 
