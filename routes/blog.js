@@ -12,10 +12,14 @@ const BLOG_INDEX = path.join(DATA_DIR, 'blog-index.json');
 
 // ── Helpers ──────────────────────────────────────────────
 
+const DEFAULT_CATEGORIES = ['Mariage', 'Entreprise', 'Anniversaire', 'Conseils'];
+
 function readIndex() {
   try {
-    return JSON.parse(fs.readFileSync(BLOG_INDEX, 'utf-8'));
-  } catch { return { articles: [], categories: [] }; }
+    const data = JSON.parse(fs.readFileSync(BLOG_INDEX, 'utf-8'));
+    if (!data.categories || !data.categories.length) data.categories = [...DEFAULT_CATEGORIES];
+    return data;
+  } catch { return { articles: [], categories: [...DEFAULT_CATEGORIES] }; }
 }
 
 function writeIndex(data) {
@@ -217,6 +221,18 @@ router.get('/', verifyToken, (req, res) => {
     })),
     categories: index.categories || []
   });
+});
+
+/**
+ * POST /categories — Add a new category
+ */
+router.post('/categories', verifyToken, requireRole('admin'), (req, res) => {
+  const { name } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: 'Nom requis' });
+  const index = readIndex();
+  ensureCategory(index, name.trim());
+  writeIndex(index);
+  res.json({ success: true, categories: index.categories });
 });
 
 /**

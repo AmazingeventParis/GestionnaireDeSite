@@ -137,9 +137,10 @@
         <div class="form-row">
           <div class="form-group">
             <label>Categorie</label>
-            <input type="text" id="f-category" list="cat-suggestions" placeholder="Mariage, Entreprise, Conseils...">
-            <datalist id="cat-suggestions"></datalist>
-            <span class="form-hint">Tapez une categorie existante ou creez-en une nouvelle</span>
+            <div style="display:flex;gap:6px">
+              <select id="f-category" style="flex:1"></select>
+              <button type="button" class="btn btn-sm btn-secondary" id="btn-add-cat" title="Ajouter une categorie" style="padding:6px 12px;white-space:nowrap">+</button>
+            </div>
           </div>
           <div class="form-group">
             <label>Auteur</label>
@@ -176,10 +177,32 @@
 
         <!-- HTML body editor -->
         <div class="html-editor-wrap">
-          <label>Contenu HTML de l'article (body uniquement, sans header/footer)</label>
-          <textarea id="f-bodyhtml" placeholder="Collez ici le HTML du contenu de l'article..."></textarea>
+          <label>Contenu HTML de l'article</label>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+            <select id="block-insert-select" style="flex:1;background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:7px 10px;color:#e6edf3;font-size:13px">
+              <option value="">-- Inserer un bloc --</option>
+              <option value="intro">Introduction (chapeau)</option>
+              <option value="h2">Titre H2 — Section</option>
+              <option value="h3">Titre H3 — Sous-section</option>
+              <option value="h4">Titre H4 — Question FAQ</option>
+              <option value="paragraph">Paragraphe</option>
+              <option value="list">Liste a puces</option>
+              <option value="image">Image + legende</option>
+              <option value="conseil">Conseil Shootnbox (rose)</option>
+              <option value="conseil-blue">Astuce technique (bleu)</option>
+              <option value="conseil-orange">Attention (orange)</option>
+              <option value="conseil-green">Bon a savoir (vert)</option>
+              <option value="highlight">Citation / Mise en avant</option>
+              <option value="table">Tableau</option>
+              <option value="cta-product">CTA Produit inline</option>
+              <option value="faq">FAQ (question/reponse)</option>
+              <option value="separator">Separateur</option>
+            </select>
+            <button type="button" class="btn btn-sm btn-primary" id="btn-insert-block">Inserer</button>
+          </div>
+          <textarea id="f-bodyhtml" placeholder="Collez le HTML complet ou inserez des blocs ci-dessus..."></textarea>
           <div class="html-editor-hint">
-            Collez le HTML complet du body de l'article. Le template gere automatiquement : breadcrumb, hero, auteur, partage, sidebar TOC, CTA footer, articles lies.<br>
+            Collez le HTML complet ou construisez bloc par bloc. Le template gere : breadcrumb, hero, auteur, sidebar TOC, CTA footer, articles lies.<br>
             <strong>Le sommaire (TOC)</strong> est auto-genere depuis les &lt;h2 id="..."&gt; et &lt;h3 id="..."&gt; du contenu.
           </div>
         </div>
@@ -226,7 +249,7 @@
       document.getElementById('f-tags-input').focus();
     });
 
-    // Tab key in HTML textarea → insert 2 spaces
+    // Tab key in HTML textarea
     document.getElementById('f-bodyhtml').addEventListener('keydown', function(e) {
       if (e.key === 'Tab') {
         e.preventDefault();
@@ -236,11 +259,66 @@
       }
     });
 
+    // Add category
+    document.getElementById('btn-add-cat').addEventListener('click', function() {
+      var name = prompt('Nom de la nouvelle categorie :');
+      if (!name || !name.trim()) return;
+      name = name.trim();
+      api('POST', '/categories', { name: name }).then(function(r) {
+        if (r.success) {
+          categories = r.categories || categories;
+          updateCategorySelect();
+          document.getElementById('f-category').value = name;
+          toast('Categorie "' + name + '" ajoutee', 'success');
+        } else {
+          toast(r.error || 'Erreur', 'error');
+        }
+      });
+    });
+
+    // Insert block
+    document.getElementById('btn-insert-block').addEventListener('click', function() {
+      var sel = document.getElementById('block-insert-select');
+      var type = sel.value;
+      if (!type) return;
+      var snippet = BLOCK_SNIPPETS[type] || '';
+      if (!snippet) return;
+      var ta = document.getElementById('f-bodyhtml');
+      var pos = ta.selectionStart;
+      var before = ta.value.substring(0, pos);
+      var after = ta.value.substring(pos);
+      var nl = (before && !before.endsWith('\n')) ? '\n\n' : (before ? '\n' : '');
+      ta.value = before + nl + snippet + '\n' + after;
+      ta.focus();
+      ta.selectionStart = ta.selectionEnd = pos + nl.length + snippet.length + 1;
+      sel.value = '';
+    });
+
     // Close modal on overlay click
     document.getElementById('article-modal').addEventListener('click', function(e) {
       if (e.target === this) closeModal();
     });
   }
+
+  // Block HTML snippets
+  var BLOCK_SNIPPETS = {
+    'intro': '<p class="snb-article-intro">\n  [Phrase d\'accroche forte. Presenter le probleme, annoncer les <strong>X idees</strong> qui suivent.]\n</p>',
+    'h2': '<h2 id="section-x">[Titre de la section H2]</h2>',
+    'h3': '<h3 id="sous-section-x">[Titre H3 — sous-partie]</h3>',
+    'h4': '<h4>[Question ou titre H4]</h4>',
+    'paragraph': '<p>[Contenu du paragraphe. <strong>Texte en gras</strong>, <a href="/">lien interne</a>.]</p>',
+    'list': '<ul>\n  <li><strong>Point 1 :</strong> Explication.</li>\n  <li><strong>Point 2 :</strong> Explication.</li>\n  <li><strong>Point 3 :</strong> Explication.</li>\n</ul>',
+    'image': '<div class="snb-img-wrap">\n  <img src="/site-images/[image.webp]" alt="[Description]" loading="lazy" width="820" height="460">\n  <p class="snb-img-caption">Legende de l\'image</p>\n</div>',
+    'conseil': '<div class="snb-conseil">\n  <div class="snb-conseil-icon">\uD83D\uDCA1</div>\n  <div class="snb-conseil-body">\n    <span class="snb-conseil-label">Le conseil Shootnbox</span>\n    <p class="snb-conseil-text">[Conseil court et actionnable. <strong>Points cles en gras.</strong>]</p>\n  </div>\n</div>',
+    'conseil-blue': '<div class="snb-conseil v-blue">\n  <div class="snb-conseil-icon">\uD83D\uDD27</div>\n  <div class="snb-conseil-body">\n    <span class="snb-conseil-label">Astuce technique</span>\n    <p class="snb-conseil-text">[Conseil technique ou logistique.]</p>\n  </div>\n</div>',
+    'conseil-orange': '<div class="snb-conseil v-orange">\n  <div class="snb-conseil-icon">\u26A0\uFE0F</div>\n  <div class="snb-conseil-body">\n    <span class="snb-conseil-label">A ne pas oublier</span>\n    <p class="snb-conseil-text">[Mise en garde ou point d\'attention important.]</p>\n  </div>\n</div>',
+    'conseil-green': '<div class="snb-conseil v-green">\n  <div class="snb-conseil-icon">\u2705</div>\n  <div class="snb-conseil-body">\n    <span class="snb-conseil-label">Bon a savoir</span>\n    <p class="snb-conseil-text">[Information utile.]</p>\n  </div>\n</div>',
+    'highlight': '<div class="snb-highlight">\n  <p>[Citation memorable ou chiffre cle. <strong>Texte important en gras.</strong>]</p>\n</div>',
+    'table': '<div class="snb-table-wrap">\n  <table>\n    <thead><tr>\n      <th>Colonne 1</th>\n      <th>Colonne 2</th>\n      <th>Colonne 3</th>\n    </tr></thead>\n    <tbody>\n      <tr><td>Element A</td><td>Detail</td><td>Info</td></tr>\n      <tr><td>Element B</td><td>Detail</td><td>Info</td></tr>\n    </tbody>\n  </table>\n</div>',
+    'cta-product': '<div class="snb-cta-card">\n  <div class="snb-cta-card-badge">Promo -100\u20AC</div>\n  <div class="snb-cta-card-img"><img src="/site-images/[produit.webp]" alt="[Produit]" loading="lazy"></div>\n  <div class="snb-cta-card-content">\n    <span class="snb-cta-card-label">[Categorie]</span>\n    <div class="snb-cta-card-title">[Titre promo]</div>\n    <p class="snb-cta-card-desc">[Description courte du produit.]</p>\n    <a href="https://shootnbox.fr/reservation/" class="snb-cta-card-btn">\n      Reserver (-100\u20AC) \uD83D\uDCF8\n      <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>\n    </a>\n  </div>\n</div>',
+    'faq': '<h4>[Question frequente ?]</h4>\n<p>[Reponse directe et concise — 2-4 phrases max.]</p>',
+    'separator': '<div class="snb-sep"></div>'
+  };
 
   // ── API ──
   function api(method, url, body) {
@@ -255,7 +333,7 @@
       document.getElementById('blog-loading').style.display = 'none';
       articles = data.articles || [];
       categories = data.categories || [];
-      updateCategorySuggestions();
+      updateCategorySelect();
       renderStats();
       renderGrid();
     }).catch(function() {
@@ -264,9 +342,11 @@
     });
   }
 
-  function updateCategorySuggestions() {
-    var dl = document.getElementById('cat-suggestions');
-    dl.innerHTML = categories.map(function(c) { return '<option value="' + c + '">'; }).join('');
+  function updateCategorySelect() {
+    var sel = document.getElementById('f-category');
+    var current = sel.value;
+    sel.innerHTML = categories.map(function(c) { return '<option value="' + esc(c) + '">' + esc(c) + '</option>'; }).join('');
+    if (current && sel.querySelector('option[value="' + current + '"]')) sel.value = current;
   }
 
   function renderStats() {
@@ -367,11 +447,13 @@
   };
 
   function clearForm() {
-    ['f-title','f-titlehtml','f-meta','f-hero','f-heroalt','f-category'].forEach(function(id) {
+    ['f-title','f-titlehtml','f-meta','f-hero','f-heroalt'].forEach(function(id) {
       document.getElementById(id).value = '';
     });
     document.getElementById('f-bodyhtml').value = '';
     document.getElementById('f-author').value = 'mathilde';
+    var catSel = document.getElementById('f-category');
+    if (catSel.options.length) catSel.selectedIndex = 0;
     currentTags = [];
     renderTags();
   }
