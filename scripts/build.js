@@ -464,7 +464,7 @@ function minifyHTML(html) {
 
 // ===== JSON-LD SCHEMA.ORG GENERATORS =====
 function generateOrganizationLD() {
-  return {
+  const org = {
     '@context': 'https://schema.org',
     '@type': 'LocalBusiness',
     '@id': `${SITE_DOMAIN}/#organization`,
@@ -482,8 +482,40 @@ function generateOrganizationLD() {
       'addressCountry': 'FR'
     },
     'areaServed': { '@type': 'Country', 'name': 'France' },
-    'priceRange': '€€',
-    'sameAs': Object.values(siteConfig.footer?.socials || {}).filter(Boolean)
+    'priceRange': '\u20ac\u20ac',
+    'sameAs': Object.values(siteConfig.footer?.socials || {}).filter(Boolean),
+    'aggregateRating': {
+      '@type': 'AggregateRating',
+      'ratingValue': '4.8',
+      'bestRating': '5',
+      'ratingCount': '250',
+      'reviewCount': '250'
+    }
+  };
+  return org;
+}
+
+function generateProductLD(productName, productDesc, productImage, productUrl) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    'name': productName,
+    'description': productDesc,
+    'image': `${SITE_DOMAIN}${productImage}`,
+    'url': `${SITE_DOMAIN}${productUrl}`,
+    'brand': { '@type': 'Brand', 'name': 'Shootnbox' },
+    'offers': {
+      '@type': 'Offer',
+      'priceCurrency': 'EUR',
+      'availability': 'https://schema.org/InStock',
+      'url': `${SITE_DOMAIN}/reservation/`
+    },
+    'aggregateRating': {
+      '@type': 'AggregateRating',
+      'ratingValue': '4.8',
+      'bestRating': '5',
+      'ratingCount': '250'
+    }
   };
 }
 
@@ -526,7 +558,7 @@ function generateWebSiteLD() {
 function buildJsonLdTags(page) {
   const scripts = [];
 
-  // Always include Organization
+  // Always include Organization (with AggregateRating)
   scripts.push(`<script type="application/ld+json">${JSON.stringify(generateOrganizationLD())}</script>`);
 
   // Page-specific schema
@@ -534,6 +566,8 @@ function buildJsonLdTags(page) {
     scripts.push(`<script type="application/ld+json">${JSON.stringify(generateWebSiteLD())}</script>`);
   } else if (page.schemaType === 'Service') {
     scripts.push(`<script type="application/ld+json">${JSON.stringify(generateServiceLD(page))}</script>`);
+  } else if (page.schemaType === 'Product' && page.product) {
+    scripts.push(`<script type="application/ld+json">${JSON.stringify(generateProductLD(page.product.name, page.product.description, page.product.image, page.product.url))}</script>`);
   }
 
   // Breadcrumbs
@@ -642,6 +676,15 @@ function validateSEO(html, page) {
 for (const page of pages) {
   console.log(`\n=== Building: ${page.slug} ===`);
 
+  // Read per-page seo.json for noindex and other overrides
+  const pageSeoPath = path.join(page.previewDir, 'seo.json');
+  if (fs.existsSync(pageSeoPath)) {
+    try {
+      const pageSeo = JSON.parse(fs.readFileSync(pageSeoPath, 'utf-8'));
+      if (pageSeo.noindex) page.noindex = true;
+    } catch (e) { /* ignore parse errors */ }
+  }
+
   // Read page-specific sections
   const sectionContents = {};
   for (const name of page.sections) {
@@ -667,7 +710,11 @@ for (const page of pages) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="robots" content="index, follow">
+<meta name="robots" content="${page.noindex ? 'noindex, nofollow' : 'index, follow'}">
+<meta name="author" content="${siteConfig.identity?.name || 'Shootnbox'}">
+<meta name="theme-color" content="${siteConfig.colors?.primary || '#E51981'}">
+<link rel="apple-touch-icon" href="/site-images/logo/shootnbox-logo-new-1.webp">
+<link rel="icon" type="image/webp" href="/site-images/logo/shootnbox-logo-new-1.webp">
 <title>${page.title}</title>
 <meta name="description" content="${page.description}">
 <link rel="canonical" href="${page.ogUrl}">
@@ -786,5 +833,54 @@ ${sharedFooter}
   const lazyCount = (html.match(/loading="lazy"/g) || []).length;
   console.log(`  Images: ${imgCount} total, ${lazyCount} lazy`);
 }
+
+// ===== AUTO-GENERATE SITEMAP =====
+console.log('\n=== Generating sitemap.xml ===');
+const siteDir = path.join(projectRoot, 'public', 'site');
+const sitemapEntries = [];
+
+function scanForPages(dir, baseUrl) {
+  const items = fs.readdirSync(dir, { withFileTypes: true });
+  for (const item of items) {
+    if (item.isDirectory()) {
+      scanForPages(path.join(dir, item.name), baseUrl + item.name + '/');
+    } else if (item.name === 'index.html') {
+      const urlPath = baseUrl || '/';
+      const fileStat = fs.statSync(path.join(dir, item.name));
+      const lastmod = fileStat.mtime.toISOString().split('T')[0];
+      const priority = urlPath === '/' ? '1.0' : urlPath.split('/').filter(Boolean).length <= 1 ? '0.9' : '0.7';
+      const changefreq = urlPath === '/' ? 'weekly' : 'monthly';
+
+      // Check per-page seo.json for sitemap exclusion or noindex
+      const pageDir = dir;
+      const seoJsonPath = path.join(previewsDir, urlPath.replace(/^\/|\/$/g, '') || 'home', 'seo.json');
+      let exclude = false;
+      if (fs.existsSync(seoJsonPath)) {
+        try {
+          const seo = JSON.parse(fs.readFileSync(seoJsonPath, 'utf-8'));
+          if (seo.noindex || seo.sitemap?.include === false) exclude = true;
+        } catch (e) {}
+      }
+      if (!exclude) {
+        sitemapEntries.push({ url: urlPath, lastmod, priority, changefreq });
+      }
+    }
+  }
+}
+
+scanForPages(siteDir, '/');
+
+const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${sitemapEntries.map(e => `  <url>
+    <loc>${SITE_DOMAIN}${e.url}</loc>
+    <lastmod>${e.lastmod}</lastmod>
+    <changefreq>${e.changefreq}</changefreq>
+    <priority>${e.priority}</priority>
+  </url>`).join('\n')}
+</urlset>`;
+
+fs.writeFileSync(path.join(siteDir, 'sitemap.xml'), sitemapXml, 'utf-8');
+console.log(`  Sitemap: ${sitemapEntries.length} URLs → public/site/sitemap.xml`);
 
 console.log('\nAll pages built successfully!');
