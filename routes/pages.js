@@ -2067,8 +2067,9 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
       if (nameLower.includes('header') || nameLower.includes('footer')) continue;
       let content = fs.readFileSync(path.join(previewDir, section.file), 'utf-8');
 
-      // Check if this is a standalone HTML doc (has <body>) or a fragment
-      const isStandalone = /<body[^>]*>/i.test(content);
+      // Check if this is a standalone section (has <body>, or has <style> with class-based rules)
+      // Sections with their own <style> need CSS scoping even if <body> was stripped
+      const isStandalone = /<body[^>]*>/i.test(content) || (/<style[^>]*>/i.test(content) && /\.[a-zA-Z][\w-]*\s*[\{,]/i.test(content));
 
       if (isStandalone) {
         // Standalone HTML doc: extract body, collect head+inline CSS, scope it
