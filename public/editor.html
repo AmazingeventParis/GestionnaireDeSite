@@ -482,6 +482,10 @@
           changes = [];
           updateChangesBadge();
 
+          // Reload iframe to show updated content
+          var frame = document.getElementById('editor-frame');
+          if (frame) frame.src = frame.src;
+
           // Guardian 1: Show SEO warnings from save response
           if (data.seoWarnings && data.seoWarnings.length > 0) {
             showSeoNotification('Sauvegarde OK — Warnings SEO detectes', data.seoWarnings, 'warning');
