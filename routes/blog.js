@@ -10,6 +10,11 @@ const TEMPLATES_DIR = path.join(__dirname, '..', 'templates');
 // Store blog index in previews/ which has a persistent Docker volume (gds-previews)
 const BLOG_INDEX = path.join(PREVIEWS_DIR, '_blog-index.json');
 
+// Debug: log the actual paths at startup
+console.log('[Blog] PREVIEWS_DIR:', PREVIEWS_DIR);
+console.log('[Blog] BLOG_INDEX:', BLOG_INDEX);
+console.log('[Blog] Index exists:', require('fs').existsSync(BLOG_INDEX));
+
 // ── Helpers ──────────────────────────────────────────────
 
 const DEFAULT_CATEGORIES = ['Mariage', 'Entreprise', 'Anniversaire', 'Conseils'];
@@ -18,12 +23,18 @@ function readIndex() {
   try {
     const data = JSON.parse(fs.readFileSync(BLOG_INDEX, 'utf-8'));
     if (!data.categories || !data.categories.length) data.categories = [...DEFAULT_CATEGORIES];
+    console.log('[Blog] readIndex: found', data.articles?.length || 0, 'articles at', BLOG_INDEX);
     return data;
-  } catch { return { articles: [], categories: [...DEFAULT_CATEGORIES] }; }
+  } catch (e) {
+    console.log('[Blog] readIndex: file not found or parse error:', e.message);
+    return { articles: [], categories: [...DEFAULT_CATEGORIES] };
+  }
 }
 
 function writeIndex(data) {
+  console.log('[Blog] writeIndex:', data.articles?.length || 0, 'articles to', BLOG_INDEX);
   fs.writeFileSync(BLOG_INDEX, JSON.stringify(data, null, 2), 'utf-8');
+  console.log('[Blog] writeIndex: file exists after write:', fs.existsSync(BLOG_INDEX));
 }
 
 const AUTHORS = {
