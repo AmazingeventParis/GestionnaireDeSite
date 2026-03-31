@@ -1197,6 +1197,13 @@
 
   // ===== PUBLISH =====
   async function publish() {
+    // Force blur to capture pending edits
+    const activeEditable = document.querySelector('[contenteditable="plaintext-only"], [contenteditable="true"]');
+    if (activeEditable) {
+      activeEditable.blur();
+      await new Promise(r => setTimeout(r, 50));
+    }
+
     const btn = document.getElementById('gdsPublishBtn');
     btn.disabled = true;
     btn.textContent = 'Sauvegarde...';
@@ -1418,6 +1425,14 @@
 
   // ===== SAVE WITHOUT PUBLISH =====
   async function saveOnly() {
+    // Force blur on any actively edited element to trigger trackChange
+    const activeEditable = document.querySelector('[contenteditable="plaintext-only"], [contenteditable="true"]');
+    if (activeEditable) {
+      activeEditable.blur();
+      // Small delay to let blur handler run
+      await new Promise(r => setTimeout(r, 50));
+    }
+
     const changeCount = Object.keys(changes).length;
     const hasSeoChanges = seoData._modified;
     if (changeCount === 0 && !hasSeoChanges) return;
