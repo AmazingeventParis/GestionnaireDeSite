@@ -2205,79 +2205,83 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
     // ── Blog sidebar injection: wrap content sections in 2-column layout ──
     if (slug.startsWith('blog-')) {
       try {
-        const blogRoute = require('./blog');
-        const blogIndex = require('./blog').readIndex ? null : null; // readIndex is not exported, read directly
-        const blogIndexPath = path.join(PREVIEWS_DIR, '_blog-index.json');
-        let blogIdx = { articles: [] };
-        if (fs.existsSync(blogIndexPath)) {
-          try { blogIdx = JSON.parse(fs.readFileSync(blogIndexPath, 'utf-8')); } catch {}
+        // Read all section HTML to build TOC from H2/H3
+        const allSectionHtml = sections
+          .filter(s => !s.file.includes('hero') && !s.file.includes('related'))
+          .map(s => { try { return fs.readFileSync(path.join(previewDir, s.file), 'utf-8'); } catch { return ''; } })
+          .join('\n');
+
+        // Build TOC from H2/H3 with id attributes
+        const tocHtml = [];
+        const hRe = /<(h[23])\s[^>]*id="([^"]*)"[^>]*>([\s\S]*?)<\/\1>/gi;
+        let hm;
+        while ((hm = hRe.exec(allSectionHtml)) !== null) {
+          const tag = hm[1].toLowerCase();
+          const id = hm[2];
+          const text = hm[3].replace(/<[^>]+>/g, '').trim();
+          tocHtml.push(tag === 'h2'
+            ? `<li><a href="#${id}">${text}</a></li>`
+            : `<li class="h3-item"><a href="#${id}">${text}</a></li>`);
         }
-        const blogArticle = (blogIdx.articles || []).find(a => a.slug === slug);
+        // Also match H2/H3 without id (assign auto id)
+        const hReNoId = /<(h[23])(?:\s[^>]*)?>(?!.*id=)([\s\S]*?)<\/\1>/gi;
+        while ((hm = hReNoId.exec(allSectionHtml)) !== null) {
+          const tag = hm[1].toLowerCase();
+          const text = hm[2].replace(/<[^>]+>/g, '').trim();
+          if (!text) continue;
+          const autoId = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+          tocHtml.push(tag === 'h2'
+            ? `<li><a href="#${autoId}">${text}</a></li>`
+            : `<li class="h3-item"><a href="#${autoId}">${text}</a></li>`);
+        }
 
-        if (blogArticle) {
-          // Read all body HTML from the page sections to build TOC
-          const allSectionHtml = sections
-            .filter(s => !s.file.includes('hero') && !s.file.includes('related'))
-            .map(s => { try { return fs.readFileSync(path.join(previewDir, s.file), 'utf-8'); } catch { return ''; } })
-            .join('\n');
+        // Build sidebar related articles from blog index
+        let sidebarRelated = '';
+        const blogIndexPath = path.join(PREVIEWS_DIR, '_blog-index.json');
+        if (fs.existsSync(blogIndexPath)) {
+          try {
+            const blogIdx = JSON.parse(fs.readFileSync(blogIndexPath, 'utf-8'));
+            const others = (blogIdx.articles || [])
+              .filter(a => a.slug !== slug && a.status !== 'draft')
+              .slice(0, 3);
+            sidebarRelated = others.map(a =>
+              `<li><a href="/blog/${a.slug}/"><div class="sr-link-thumb"><img src="${a.heroImage || '/site-images/blog-default.webp'}" alt="" loading="lazy"></div><span class="sr-link-title">${a.title}</span></a></li>`
+            ).join('\n');
+          } catch {}
+        }
 
-          // Build TOC from body content H2/H3
-          const tocHtml = [];
-          const hRe = /<(h[23])\s[^>]*id="([^"]*)"[^>]*>([\s\S]*?)<\/\1>/gi;
-          let hm;
-          while ((hm = hRe.exec(allSectionHtml)) !== null) {
-            const tag = hm[1].toLowerCase();
-            const id = hm[2];
-            const text = hm[3].replace(/<[^>]+>/g, '').trim();
-            tocHtml.push(tag === 'h2'
-              ? `<li><a href="#${id}">${text}</a></li>`
-              : `<li class="h3-item"><a href="#${id}">${text}</a></li>`);
-          }
-
-          // Build sidebar related articles
-          const others = (blogIdx.articles || [])
-            .filter(a => a.slug !== slug && a.status !== 'draft')
-            .slice(0, 3);
-          const sidebarRelated = others.map(a =>
-            `<li><a href="/blog/${a.slug}/"><div class="sr-link-thumb"><img src="${a.heroImage || '/site-images/blog-default.webp'}" alt="" loading="lazy"></div><span class="sr-link-title">${a.title}</span></a></li>`
-          ).join('\n');
-
-          const sidebarHtml = `<aside class="snb-sidebar" style="position:sticky;top:100px;align-self:start;display:flex;flex-direction:column;gap:24px;">
+        const sidebarHtml = `<aside class="snb-sidebar" style="position:sticky;top:100px;align-self:start;display:flex;flex-direction:column;gap:24px;">
   <nav class="snb-toc" aria-label="Sommaire"><div class="snb-toc-title">Sommaire</div><ul>${tocHtml.join('\n')}</ul></nav>
   <div class="snb-sidebar-cta"><span class="sc-label">Location photobooth</span><div class="sc-title">Animation <span>Mariage</span></div><div class="sc-price">299&euro;</div><div class="sc-period">par &eacute;v&eacute;nement &mdash; livraison incluse</div><a href="https://shootnbox.fr/reservation/" class="sc-btn">Obtenir mon devis</a></div>
   <div class="snb-sidebar-related"><div class="sr-title">A lire aussi</div><ul>${sidebarRelated}</ul></div>
 </aside>`;
 
-          // Find the last section before related (90-blog-related)
-          // Insert layout wrapper: open grid before first body section, close + sidebar before related
-          const firstBodySection = sections.find(s => !s.file.includes('hero') && !s.file.includes('related'));
-          const relatedSection = sections.find(s => s.file.includes('related'));
+        // Wrap body sections in 2-column grid layout with sidebar
+        const firstBodySection = sections.find(s => !s.file.includes('hero') && !s.file.includes('related'));
+        const relatedSection = sections.find(s => s.file.includes('related'));
 
-          if (firstBodySection) {
-            const openTag = `<div class="snb-article-layout" style="max-width:1300px;margin:0 auto;padding:0 24px 80px;display:grid;grid-template-columns:1fr 280px;gap:48px;align-items:start;">`;
-            const closeTag = `${sidebarHtml}\n</div><!-- /snb-article-layout -->`;
+        if (firstBodySection) {
+          const openTag = `<div class="snb-article-layout" style="max-width:1300px;margin:0 auto;padding:0 24px 80px;display:grid;grid-template-columns:1fr 280px;gap:48px;align-items:start;">`;
+          const closeTag = `${sidebarHtml}\n</div><!-- /snb-article-layout -->`;
 
-            // Insert open grid before first body section wrapper
+          bodyContent = bodyContent.replace(
+            new RegExp(`(<div[^>]*data-gds-file="${firstBodySection.file.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}")`),
+            openTag + '\n$1'
+          );
+
+          if (relatedSection) {
             bodyContent = bodyContent.replace(
-              new RegExp(`(<div[^>]*data-gds-file="${firstBodySection.file.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}")`),
-              openTag + '\n$1'
+              new RegExp(`(<div[^>]*data-gds-file="${relatedSection.file.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}")`),
+              closeTag + '\n$1'
             );
-
-            // Insert close grid + sidebar before related section (or before </main>)
-            if (relatedSection) {
-              bodyContent = bodyContent.replace(
-                new RegExp(`(<div[^>]*data-gds-file="${relatedSection.file.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}")`),
-                closeTag + '\n$1'
-              );
-            } else {
-              bodyContent = bodyContent.replace('</main>', closeTag + '\n</main>');
-            }
+          } else {
+            bodyContent = bodyContent.replace('</main>', closeTag + '\n</main>');
           }
-
-          // Add responsive media query for blog layout
-          bodyContent = bodyContent.replace('</main>',
-            `<style>@media(max-width:850px){.snb-article-layout{grid-template-columns:1fr!important;gap:0!important;}.snb-sidebar{display:none!important;}}</style>\n</main>`);
         }
+
+        // Responsive
+        bodyContent = bodyContent.replace('</main>',
+          `<style>@media(max-width:850px){.snb-article-layout{grid-template-columns:1fr!important;gap:0!important;}.snb-sidebar{display:none!important;}}</style>\n</main>`);
       } catch (e) {
         console.error('[Pages] Blog sidebar injection error:', e.message);
       }
