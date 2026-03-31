@@ -1996,6 +1996,14 @@
       if (activeWrapper) positionActions();
     }, { passive: true });
 
+    // DEBUG: make actions always visible to test
+    actionsBar.style.display = 'flex';
+    actionsBar.style.position = 'fixed';
+    actionsBar.style.top = '80px';
+    actionsBar.style.right = '12px';
+    actionsBar.style.zIndex = '99999';
+    console.log('[GDS Admin] Actions bar forced visible at top:80px right:12px');
+
     actionsBar.querySelector('.gds-section-save-btn').addEventListener('click', (e) => {
       e.stopPropagation();
       if (activeWrapper) openSaveToLibraryModal(actionsBar.dataset.file, activeWrapper);
