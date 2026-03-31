@@ -1922,99 +1922,36 @@
       wrapper.parentNode.insertBefore(inserter, wrapper.nextSibling);
     });
 
-    // Add action buttons to each section wrapper — appended to body, positioned by JS
-    const actionsBar = document.createElement('div');
-    actionsBar.className = 'gds-section-actions';
-    actionsBar.innerHTML = `
-      <button class="gds-section-save-btn" title="Sauvegarder dans la bibliotheque">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-      </button>
-      <button class="gds-section-code-btn" title="Modifier le code HTML">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-      </button>
-      <button class="gds-section-delete-btn" title="Supprimer ce bloc">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-      </button>
-    `;
-    document.body.appendChild(actionsBar);
+    // Add permanent label bar at the top of each section wrapper
+    wrappers.forEach((wrapper) => {
+      const file = wrapper.getAttribute('data-gds-file');
+      if (!file) return;
 
-    let activeWrapper = null;
-    let hideTimer = null;
+      const label = document.createElement('div');
+      label.className = 'gds-section-label';
+      label.innerHTML = `
+        <span class="gds-section-label-name">${file}</span>
+        <button class="gds-section-label-btn" title="Modifier le code HTML" data-action="code">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        </button>
+        <button class="gds-section-label-btn" title="Sauvegarder dans la bibliotheque" data-action="save">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        </button>
+        <button class="gds-section-label-btn" title="Supprimer ce bloc" data-action="delete" style="border-color:rgba(248,81,73,0.3)">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        </button>
+      `;
+      wrapper.insertBefore(label, wrapper.firstChild);
 
-    function showActions(wrapper) {
-      if (!wrapper || !wrapper.getAttribute('data-gds-file')) return;
-      activeWrapper = wrapper;
-      actionsBar.dataset.file = wrapper.getAttribute('data-gds-file');
-      positionActions();
-      actionsBar.style.display = 'flex';
-    }
-
-    function positionActions() {
-      if (!activeWrapper) return;
-      const rect = activeWrapper.getBoundingClientRect();
-      // Keep buttons visible in viewport — stick to top of viewport if wrapper is taller than viewport
-      const topInViewport = Math.max(8, Math.min(rect.top + 8, window.innerHeight - 60));
-      actionsBar.style.position = 'fixed';
-      actionsBar.style.top = topInViewport + 'px';
-      actionsBar.style.left = 'auto';
-      actionsBar.style.right = '12px';
-    }
-
-    function hideActions() {
-      actionsBar.style.display = 'none';
-      activeWrapper = null;
-    }
-
-    // Detect section wrapper on mouse move
-    document.addEventListener('mousemove', (e) => {
-      if (actionsBar.contains(e.target)) { clearTimeout(hideTimer); return; }
-
-      let found = e.target.closest('.gds-section-wrapper');
-      if (!found) {
-        // Try elementsFromPoint for elements that block pointer events
-        const stack = document.elementsFromPoint(e.clientX, e.clientY);
-        for (const el of stack) {
-          const w = el.closest ? el.closest('.gds-section-wrapper') : null;
-          if (w) { found = w; break; }
-        }
-      }
-
-      if (found && found.getAttribute('data-gds-file')) {
-        clearTimeout(hideTimer);
-        if (found !== activeWrapper) showActions(found);
-      } else {
-        clearTimeout(hideTimer);
-        hideTimer = setTimeout(hideActions, 500);
-      }
-    });
-
-    actionsBar.addEventListener('mouseenter', () => clearTimeout(hideTimer));
-    actionsBar.addEventListener('mouseleave', () => { hideTimer = setTimeout(hideActions, 400); });
-
-    // Update position on scroll
-    window.addEventListener('scroll', () => {
-      if (activeWrapper) positionActions();
-    }, { passive: true });
-
-    // DEBUG: make actions always visible to test
-    actionsBar.style.display = 'flex';
-    actionsBar.style.position = 'fixed';
-    actionsBar.style.top = '80px';
-    actionsBar.style.right = '12px';
-    actionsBar.style.zIndex = '99999';
-    console.log('[GDS Admin] Actions bar forced visible at top:80px right:12px');
-
-    actionsBar.querySelector('.gds-section-save-btn').addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (activeWrapper) openSaveToLibraryModal(actionsBar.dataset.file, activeWrapper);
-    });
-    actionsBar.querySelector('.gds-section-code-btn').addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (activeWrapper) openCodeModal(actionsBar.dataset.file, activeWrapper);
-    });
-    actionsBar.querySelector('.gds-section-delete-btn').addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (activeWrapper) openDeleteModal(actionsBar.dataset.file, activeWrapper);
+      label.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        e.stopPropagation();
+        const action = btn.dataset.action;
+        if (action === 'code') openCodeModal(file, wrapper);
+        else if (action === 'save') openSaveToLibraryModal(file, wrapper);
+        else if (action === 'delete') openDeleteModal(file, wrapper);
+      });
     });
 
     console.log('[GDS Admin] Inserted', wrappers.length + 1, 'block inserters');

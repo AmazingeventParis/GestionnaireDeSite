@@ -658,17 +658,52 @@ body.gds-admin-mode .gds-page-content {
 }
 
 /* ===== SECTION DELETE BUTTON ===== */
-.gds-section-actions {
-  display: none;
-  position: fixed;
-  right: 12px;
-  gap: 6px;
-  z-index: 99990;
-  background: #fff;
-  padding: 6px 10px;
-  border-radius: 10px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.1);
-  align-items: center;
+/* Section label bar — always visible at top of each section */
+.gds-section-label {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 6px 12px !important;
+  background: linear-gradient(135deg, #161b22, #1e2530) !important;
+  border-radius: 0 0 10px 10px !important;
+  margin: 0 auto 8px !important;
+  max-width: fit-content !important;
+  position: relative !important;
+  z-index: 50 !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+}
+.gds-section-label-name {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: #8b949e !important;
+  letter-spacing: 0.5px !important;
+}
+.gds-section-label-btn {
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 6px !important;
+  border: 1px solid #30363d !important;
+  background: #21262d !important;
+  color: #e6edf3 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: all 0.15s !important;
+  padding: 0 !important;
+}
+.gds-section-label-btn:hover {
+  background: #E51981 !important;
+  border-color: #E51981 !important;
+  color: #fff !important;
+}
+.gds-section-label-btn svg {
+  width: 13px !important;
+  height: 13px !important;
+  stroke: currentColor !important;
+  fill: none !important;
+  stroke-width: 2 !important;
 }
 .gds-section-delete-btn {
   width: 36px;
