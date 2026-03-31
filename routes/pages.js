@@ -2041,7 +2041,7 @@ router.post('/:slug/publish', verifyToken, requireRole('admin'), async (req, res
 router.get('/:slug/preview', optionalAuth, async (req, res) => {
   try {
     const slug = req.params.slug.replace(/[^a-z0-9-]/gi, '');
-    const editMode = req.query.edit === '1' && req.user;
+    const editMode = req.query.edit === '1';
     const previewDir = getPreviewDir(slug);
 
     if (!fs.existsSync(previewDir)) {
