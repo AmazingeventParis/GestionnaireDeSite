@@ -1217,12 +1217,49 @@
     overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
 
     // Apply
-    document.getElementById('gds-html-apply').addEventListener('click', () => {
+    document.getElementById('gds-html-apply').addEventListener('click', async () => {
       const newHtml = textarea.value;
-      // Re-add tag bar
+      const hasBlocks = /<(div|table|section|article|ul|ol|blockquote|figure|header|footer|aside|nav|form|details|dl)\b/i.test(newHtml);
+      const currentTag = el.tagName.toLowerCase();
+
+      // If injecting block-level HTML into an inline element (p, span, h1-h6),
+      // save directly to the section file instead of trying to put blocks inside a p
+      if (hasBlocks || newHtml.includes('<style>')) {
+        // Save the full section with the replacement applied server-side
+        const wrapper = el.closest('.gds-section-wrapper');
+        if (wrapper) {
+          const file = wrapper.getAttribute('data-gds-file');
+          if (file) {
+            // Replace the element in the section with the new HTML
+            // Use a temporary marker to find and replace
+            const marker = '<!--GDS-HTML-REPLACE-' + Date.now() + '-->';
+            el.outerHTML = marker;
+
+            // Get clean section HTML
+            const cleanHtml = cleanSectionHtml(wrapper).replace(marker, newHtml);
+
+            try {
+              const res = await Auth.apiFetch('/api/pages/' + currentSlug + '/section/' + encodeURIComponent(file), {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: cleanHtml })
+              });
+              if (!res.ok) throw new Error('Erreur sauvegarde');
+              close();
+              showToast('HTML injecte et sauvegarde — rechargement...', 'success');
+              setTimeout(() => window.location.reload(), 500);
+              return;
+            } catch (err) {
+              showToast('Erreur: ' + err.message, 'error');
+              return;
+            }
+          }
+        }
+      }
+
+      // Simple inline HTML: just replace innerHTML
       el.innerHTML = newHtml;
       if (tagBar) el.appendChild(tagBar);
-      // Track change
       trackChange(el, id);
       el.classList.add('gds-modified');
       close();
