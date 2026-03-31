@@ -589,8 +589,10 @@
         html += '</div><div style="padding:12px 24px 20px;display:flex;justify-content:flex-end;gap:8px;border-top:1px solid #21262d">';
         if (forceCallback) {
           html += '<button id="seo-notif-force" style="padding:8px 20px;background:#d29922;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Publier quand meme</button>';
+          html += '<button id="seo-notif-ok" style="padding:8px 20px;background:#21262d;color:#e6edf3;border:1px solid #30363d;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Corriger</button>';
+        } else {
+          html += '<button id="seo-notif-ok" style="padding:8px 20px;background:#238636;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">OK, compris</button>';
         }
-        html += '<button id="seo-notif-ok" style="padding:8px 20px;background:#21262d;color:#e6edf3;border:1px solid #30363d;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Corriger</button>';
         html += '</div></div>';
 
         overlay.innerHTML = html;
