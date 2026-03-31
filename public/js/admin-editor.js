@@ -2035,9 +2035,11 @@
         throw new Error(err.error || 'Erreur');
       }
       modal.remove();
-      showToast('Bloc ajoute !', 'success');
-      // Force reload to show the new block
-      window.location.reload(true);
+      showToast('Bloc ajoute ! Rechargement...', 'success');
+      // Force reload with cache bust to show the new block
+      setTimeout(() => {
+        window.location.href = window.location.pathname + window.location.search + (window.location.search ? '&' : '?') + '_t=' + Date.now();
+      }, 300);
     } catch (err) {
       showToast('Erreur: ' + err.message, 'error');
       submitBtn.disabled = false;
