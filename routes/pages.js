@@ -1132,57 +1132,68 @@ router.post('/:slug/save', verifyToken, requireRole('admin', 'editor'), async (r
       console.error('[Pages] History snapshot error:', histErr.message);
     }
 
-    // Apply text changes
-    // Change ID format: "sectionFile:index:tag" (e.g., "hero.html:0:h1")
+    // Apply text changes using cheerio for reliable element matching
+    // Change ID format: "sectionName:index:tag" (index is relative to ALL editable elements in section)
     if (changes && Array.isArray(changes)) {
+      // Group changes by section name
+      const changesBySection = {};
       for (const change of changes) {
         if (!change.id || change.text === undefined) continue;
-
         const parts = change.id.split(':');
         if (parts.length < 3) continue;
-
         const sectionName = parts[0];
-        const index = parseInt(parts[1], 10);
-        const tag = parts[2];
+        if (!changesBySection[sectionName]) changesBySection[sectionName] = [];
+        changesBySection[sectionName].push({ ...change, index: parseInt(parts[1], 10), origTag: parts[2] });
+      }
 
-        // Find the actual file matching the section name (e.g., "section" → "20-section.html")
-        let filePath = path.join(previewDir, sectionName);
-        if (!fs.existsSync(filePath)) {
-          // Try with .html extension
-          filePath = path.join(previewDir, sectionName + '.html');
-        }
-        if (!fs.existsSync(filePath)) {
-          // Scan directory for a file matching the pattern *-{sectionName}.html
-          const allFiles = fs.readdirSync(previewDir).filter(f => f.endsWith('.html'));
-          const match = allFiles.find(f => {
-            const name = f.replace(/^\d+-/, '').replace('.html', '');
-            return name === sectionName;
-          });
-          if (match) filePath = path.join(previewDir, match);
-        }
-        if (!fs.existsSync(filePath)) continue;
+      const cheerio = require('cheerio');
+      const editableSelector = 'h1, h2, h3, h4, h5, h6, p, [class*="snb-h"], [class*="snb-title"], [class*="snb-subtitle"], [class*="snb-body"], [class*="snb-intro"], [class*="snb-desc"], li, blockquote, figcaption, dt, dd';
+
+      for (const [sectionName, sectionChanges] of Object.entries(changesBySection)) {
+        // Find the actual file
+        let filePath = null;
+        const allFiles = fs.readdirSync(previewDir).filter(f => f.endsWith('.html'));
+        const match = allFiles.find(f => f.replace(/^\d+-/, '').replace('.html', '') === sectionName);
+        if (match) filePath = path.join(previewDir, match);
+        if (!filePath || !fs.existsSync(filePath)) continue;
 
         let html = fs.readFileSync(filePath, 'utf-8');
+        const $ = cheerio.load(html, { decodeEntities: false });
 
-        // Find and replace the nth occurrence of the tag
-        const newTag = change.tagChanged ? change.tag : tag;
-        const regex = new RegExp(`(<${tag}[^>]*>)(.*?)(<\\/${tag}>)`, 'gis');
-        let matchCount = 0;
-
-        html = html.replace(regex, (match, open, content, close) => {
-          if (matchCount === index) {
-            matchCount++;
-            if (change.tagChanged && newTag !== tag) {
-              // Tag was changed (e.g., h2 -> h3)
-              return `<${newTag}${open.slice(tag.length + 1)}${change.text}</${newTag}>`;
-            }
-            return `${open}${change.text}${close}`;
-          }
-          matchCount++;
-          return match;
+        // Find all editable elements in order (same logic as the tagging)
+        const editables = [];
+        $(editableSelector).each((i, el) => {
+          const $el = $(el);
+          const text = $el.text().trim();
+          if (!text || text.length < 2) return;
+          if ($el.closest('.gds-section-actions, .gds-block-inserter, .snb-sidebar, .snb-toc, .snb-breadcrumb, nav, script, style').length) return;
+          editables.push({ el, $el, tag: el.tagName.toLowerCase() });
         });
 
-        fs.writeFileSync(filePath, html, 'utf-8');
+        // Apply changes by index
+        for (const change of sectionChanges) {
+          if (change.index >= editables.length) continue;
+          const target = editables[change.index];
+          const $el = target.$el;
+
+          // Replace content
+          $el.html(change.text);
+
+          // Change tag if needed
+          if (change.tagChanged && change.tag && change.tag !== target.tag) {
+            const newTag = change.tag;
+            const attrs = [];
+            const el = target.el;
+            if (el.attribs) {
+              for (const [k, v] of Object.entries(el.attribs)) {
+                attrs.push(`${k}="${v}"`);
+              }
+            }
+            $el.replaceWith(`<${newTag} ${attrs.join(' ')}>${change.text}</${newTag}>`);
+          }
+        }
+
+        fs.writeFileSync(filePath, $.html(), 'utf-8');
       }
     }
 
