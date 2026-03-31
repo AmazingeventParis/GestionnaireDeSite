@@ -1110,7 +1110,9 @@
         }
 
         // Save the section file with the new content (cleaned of admin UI)
-        const saveWrapper = parent.closest('.gds-section-wrapper');
+        const saveWrapper = (placeholderEl.closest || placeholderEl.parentElement?.closest)
+          ? (placeholderEl.closest('.gds-section-wrapper') || placeholderEl.parentElement?.closest('.gds-section-wrapper'))
+          : null;
         if (saveWrapper) {
           const file = saveWrapper.getAttribute('data-gds-file');
           if (file) {
