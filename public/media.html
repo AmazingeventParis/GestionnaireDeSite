@@ -510,7 +510,8 @@
                 document.getElementById('media-count').textContent = data.total + ' image(s)';
                 document.getElementById('count-all').textContent = data.total;
             } catch (err) {
-                document.getElementById('images-grid').innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#9888;</div><p>Erreur de chargement des medias</p></div>';
+                console.error('[Media] Load error:', err);
+                document.getElementById('images-grid').innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#9888;</div><p>Erreur de chargement des medias</p><p style="font-size:12px;color:#f85149;margin-top:8px">' + (err.message || err) + '</p></div>';
             }
         }
 
