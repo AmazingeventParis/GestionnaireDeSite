@@ -2054,7 +2054,7 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
 
     // Inject blog CSS globally (not scoped) for blog pages
     if (slug.startsWith('blog-')) {
-      const blogCssPath = path.join(SHARED_DIR, 'blog-styles.css');
+      const blogCssPath = path.join(__dirname, '..', 'public', 'css', 'blog-styles.css');
       if (fs.existsSync(blogCssPath)) {
         bodyContent += `<style>${fs.readFileSync(blogCssPath, 'utf-8')}</style>\n`;
       }
