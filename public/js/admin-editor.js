@@ -1922,10 +1922,10 @@
       wrapper.parentNode.insertBefore(inserter, wrapper.nextSibling);
     });
 
-    // Add floating action buttons (code + delete) — position:fixed, shown on hover
-    const floatingActions = document.createElement('div');
-    floatingActions.className = 'gds-section-actions';
-    floatingActions.innerHTML = `
+    // Add action buttons to each section wrapper — appended to body, positioned by JS
+    const actionsBar = document.createElement('div');
+    actionsBar.className = 'gds-section-actions';
+    actionsBar.innerHTML = `
       <button class="gds-section-save-btn" title="Sauvegarder dans la bibliotheque">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
       </button>
@@ -1936,68 +1936,73 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
       </button>
     `;
-    document.body.appendChild(floatingActions);
+    document.body.appendChild(actionsBar);
 
     let activeWrapper = null;
-    let hideActionsTimer = null;
+    let hideTimer = null;
 
-    // Track mouse to show/hide actions on section hover
+    function showActions(wrapper) {
+      if (!wrapper || !wrapper.getAttribute('data-gds-file')) return;
+      activeWrapper = wrapper;
+      actionsBar.dataset.file = wrapper.getAttribute('data-gds-file');
+      const rect = wrapper.getBoundingClientRect();
+      actionsBar.style.position = 'absolute';
+      actionsBar.style.top = (rect.top + window.scrollY + 8) + 'px';
+      actionsBar.style.left = (rect.right + window.scrollX - 160) + 'px';
+      actionsBar.style.display = 'flex';
+    }
+
+    function hideActions() {
+      actionsBar.style.display = 'none';
+      activeWrapper = null;
+    }
+
+    // Detect section wrapper on mouse move
     document.addEventListener('mousemove', (e) => {
-      if (floatingActions.contains(e.target)) return;
-      const els = document.elementsFromPoint(e.clientX, e.clientY);
-      let foundWrapper = null;
-      for (const el of els) {
-        if (el.classList && el.classList.contains('gds-section-wrapper')) {
-          foundWrapper = el;
-          break;
+      if (actionsBar.contains(e.target)) { clearTimeout(hideTimer); return; }
+
+      let found = e.target.closest('.gds-section-wrapper');
+      if (!found) {
+        // Try elementsFromPoint for elements that block pointer events
+        const stack = document.elementsFromPoint(e.clientX, e.clientY);
+        for (const el of stack) {
+          const w = el.closest ? el.closest('.gds-section-wrapper') : null;
+          if (w) { found = w; break; }
         }
-        const parent = el.closest('.gds-section-wrapper');
-        if (parent) { foundWrapper = parent; break; }
       }
 
-      if (foundWrapper && foundWrapper.getAttribute('data-gds-file')) {
-        clearTimeout(hideActionsTimer);
-        if (foundWrapper !== activeWrapper) {
-          activeWrapper = foundWrapper;
-          const file = activeWrapper.getAttribute('data-gds-file');
-          floatingActions.dataset.file = file;
-          // Position at top-right of wrapper
-          const rect = activeWrapper.getBoundingClientRect();
-          floatingActions.style.top = (rect.top + 8) + 'px';
-          floatingActions.style.right = (window.innerWidth - rect.right + 8) + 'px';
-          floatingActions.style.left = 'auto';
-          floatingActions.classList.add('visible');
-        }
-      } else if (!floatingActions.contains(e.target)) {
-        clearTimeout(hideActionsTimer);
-        hideActionsTimer = setTimeout(() => {
-          floatingActions.classList.remove('visible');
-          activeWrapper = null;
-        }, 400);
+      if (found && found.getAttribute('data-gds-file')) {
+        clearTimeout(hideTimer);
+        if (found !== activeWrapper) showActions(found);
+      } else {
+        clearTimeout(hideTimer);
+        hideTimer = setTimeout(hideActions, 500);
       }
     });
 
-    floatingActions.addEventListener('mouseenter', () => clearTimeout(hideActionsTimer));
-    floatingActions.addEventListener('mouseleave', () => {
-      hideActionsTimer = setTimeout(() => {
-        floatingActions.classList.remove('visible');
-        activeWrapper = null;
-      }, 300);
-    });
+    actionsBar.addEventListener('mouseenter', () => clearTimeout(hideTimer));
+    actionsBar.addEventListener('mouseleave', () => { hideTimer = setTimeout(hideActions, 400); });
 
-    floatingActions.querySelector('.gds-section-save-btn').addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (activeWrapper) openSaveToLibraryModal(floatingActions.dataset.file, activeWrapper);
-    });
+    // Update position on scroll
+    window.addEventListener('scroll', () => {
+      if (activeWrapper) {
+        const rect = activeWrapper.getBoundingClientRect();
+        actionsBar.style.top = (rect.top + window.scrollY + 8) + 'px';
+        actionsBar.style.left = (rect.right + window.scrollX - 160) + 'px';
+      }
+    }, { passive: true });
 
-    floatingActions.querySelector('.gds-section-code-btn').addEventListener('click', (e) => {
+    actionsBar.querySelector('.gds-section-save-btn').addEventListener('click', (e) => {
       e.stopPropagation();
-      if (activeWrapper) openCodeModal(floatingActions.dataset.file, activeWrapper);
+      if (activeWrapper) openSaveToLibraryModal(actionsBar.dataset.file, activeWrapper);
     });
-
-    floatingActions.querySelector('.gds-section-delete-btn').addEventListener('click', (e) => {
+    actionsBar.querySelector('.gds-section-code-btn').addEventListener('click', (e) => {
       e.stopPropagation();
-      if (activeWrapper) openDeleteModal(floatingActions.dataset.file, activeWrapper);
+      if (activeWrapper) openCodeModal(actionsBar.dataset.file, activeWrapper);
+    });
+    actionsBar.querySelector('.gds-section-delete-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (activeWrapper) openDeleteModal(actionsBar.dataset.file, activeWrapper);
     });
 
     console.log('[GDS Admin] Inserted', wrappers.length + 1, 'block inserters');

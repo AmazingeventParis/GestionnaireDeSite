@@ -659,17 +659,14 @@ body.gds-admin-mode .gds-page-content {
 
 /* ===== SECTION DELETE BUTTON ===== */
 .gds-section-actions {
-  position: fixed !important;
-  z-index: 99990 !important;
-  opacity: 0;
-  transition: opacity 0.2s;
-  display: flex !important;
+  display: none;
+  position: absolute;
   gap: 6px;
-  pointer-events: none;
-}
-.gds-section-actions.visible {
-  opacity: 1 !important;
-  pointer-events: all !important;
+  z-index: 99990;
+  background: #fff;
+  padding: 4px 8px;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2), 0 0 0 1px rgba(0,0,0,0.08);
 }
 .gds-section-delete-btn {
   width: 36px;
