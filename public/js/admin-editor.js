@@ -1922,40 +1922,82 @@
       wrapper.parentNode.insertBefore(inserter, wrapper.nextSibling);
     });
 
-    // Add action buttons (code + delete) to each section wrapper
-    wrappers.forEach((wrapper) => {
-      const file = wrapper.getAttribute('data-gds-file');
-      if (!file) return;
+    // Add floating action buttons (code + delete) — position:fixed, shown on hover
+    const floatingActions = document.createElement('div');
+    floatingActions.className = 'gds-section-actions';
+    floatingActions.innerHTML = `
+      <button class="gds-section-save-btn" title="Sauvegarder dans la bibliotheque">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      </button>
+      <button class="gds-section-code-btn" title="Modifier le code HTML">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      </button>
+      <button class="gds-section-delete-btn" title="Supprimer ce bloc">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+      </button>
+    `;
+    document.body.appendChild(floatingActions);
 
-      const actions = document.createElement('div');
-      actions.className = 'gds-section-actions';
-      actions.innerHTML = `
-        <button class="gds-section-save-btn" title="Sauvegarder dans la bibliotheque" data-file="${file}">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-        </button>
-        <button class="gds-section-code-btn" title="Modifier le code HTML" data-file="${file}">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-        </button>
-        <button class="gds-section-delete-btn" title="Supprimer ce bloc" data-file="${file}">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-        </button>
-      `;
-      wrapper.appendChild(actions);
+    let activeWrapper = null;
+    let hideActionsTimer = null;
 
-      actions.querySelector('.gds-section-save-btn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        openSaveToLibraryModal(file, wrapper);
-      });
+    // Track mouse to show/hide actions on section hover
+    document.addEventListener('mousemove', (e) => {
+      if (floatingActions.contains(e.target)) return;
+      const els = document.elementsFromPoint(e.clientX, e.clientY);
+      let foundWrapper = null;
+      for (const el of els) {
+        if (el.classList && el.classList.contains('gds-section-wrapper')) {
+          foundWrapper = el;
+          break;
+        }
+        const parent = el.closest('.gds-section-wrapper');
+        if (parent) { foundWrapper = parent; break; }
+      }
 
-      actions.querySelector('.gds-section-code-btn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        openCodeModal(file, wrapper);
-      });
+      if (foundWrapper && foundWrapper.getAttribute('data-gds-file')) {
+        clearTimeout(hideActionsTimer);
+        if (foundWrapper !== activeWrapper) {
+          activeWrapper = foundWrapper;
+          const file = activeWrapper.getAttribute('data-gds-file');
+          floatingActions.dataset.file = file;
+          // Position at top-right of wrapper
+          const rect = activeWrapper.getBoundingClientRect();
+          floatingActions.style.top = (rect.top + 8) + 'px';
+          floatingActions.style.right = (window.innerWidth - rect.right + 8) + 'px';
+          floatingActions.style.left = 'auto';
+          floatingActions.classList.add('visible');
+        }
+      } else if (!floatingActions.contains(e.target)) {
+        clearTimeout(hideActionsTimer);
+        hideActionsTimer = setTimeout(() => {
+          floatingActions.classList.remove('visible');
+          activeWrapper = null;
+        }, 400);
+      }
+    });
 
-      actions.querySelector('.gds-section-delete-btn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        openDeleteModal(file, wrapper);
-      });
+    floatingActions.addEventListener('mouseenter', () => clearTimeout(hideActionsTimer));
+    floatingActions.addEventListener('mouseleave', () => {
+      hideActionsTimer = setTimeout(() => {
+        floatingActions.classList.remove('visible');
+        activeWrapper = null;
+      }, 300);
+    });
+
+    floatingActions.querySelector('.gds-section-save-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (activeWrapper) openSaveToLibraryModal(floatingActions.dataset.file, activeWrapper);
+    });
+
+    floatingActions.querySelector('.gds-section-code-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (activeWrapper) openCodeModal(floatingActions.dataset.file, activeWrapper);
+    });
+
+    floatingActions.querySelector('.gds-section-delete-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (activeWrapper) openDeleteModal(floatingActions.dataset.file, activeWrapper);
     });
 
     console.log('[GDS Admin] Inserted', wrappers.length + 1, 'block inserters');
