@@ -163,8 +163,7 @@ function generateArticleFiles(article, index) {
     ? `<img src="${heroImageSrc}" alt="${article.heroAlt || article.title}" loading="eager" fetchpriority="high" width="1300" height="488">`
     : `<img src="" alt="${article.heroAlt || article.title}" data-gds-placeholder loading="eager" fetchpriority="high" width="1300" height="488" style="width:100%;aspect-ratio:16/6;border:2px dashed rgba(150,150,150,0.3);border-radius:20px;background:#f0f0f0;">`;
 
-  // ── File 1: 10-blog-hero.html — breadcrumb + meta + H1 + author + share ──
-  // CSS is NOT included here — it's injected globally by the preview route via _shared/blog-styles.css
+  // ── File 1: 10-blog-hero.html — breadcrumb + meta + H1 + author + hero image ──
   const heroFile = `<nav class="snb-breadcrumb" aria-label="Fil d'Ariane">
   <a href="/">Accueil</a>
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
@@ -198,13 +197,11 @@ function generateArticleFiles(article, index) {
       <a class="snb-share-btn" href="#" aria-label="Copier"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></a>
     </div>
   </div>
+  <div class="snb-hero-img-wrap">
+    ${heroImgTag}
+    <span class="snb-hero-img-caption">&copy; Shootnbox</span>
+  </div>
 </header>`;
-
-  // ── File 2: 15-blog-heroimg.html — hero image placeholder ──
-  const heroImgFile = `<div class="snb-hero-img-wrap">
-  ${heroImgTag}
-  <span class="snb-hero-img-caption">&copy; Shootnbox</span>
-</div>`;
 
   // ── File 3: 20-blog-body.html — article body content (user adds blocs after this) ──
   const bodyFile = bodyHTML
@@ -222,7 +219,6 @@ function generateArticleFiles(article, index) {
 
   return {
     '10-blog-hero.html': heroFile,
-    '15-blog-heroimg.html': heroImgFile,
     '20-blog-body.html': bodyFile,
     '90-blog-related.html': relatedFile,
     // Sidebar data for preview route injection
@@ -431,11 +427,11 @@ router.put('/:slug', verifyToken, requireRole('admin'), async (req, res) => {
       if (name === '20-blog-body.html' && req.body.bodyHTML === undefined) continue;
       fs.writeFileSync(path.join(pageDir, name), content, 'utf-8');
     }
-    // Clean up old single-file format if it exists
-    const oldFile = path.join(pageDir, '10-blog-article.html');
-    if (fs.existsSync(oldFile)) fs.unlinkSync(oldFile);
-    const oldSidebar = path.join(pageDir, '30-blog-sidebar.html');
-    if (fs.existsSync(oldSidebar)) fs.unlinkSync(oldSidebar);
+    // Clean up old file formats
+    for (const old of ['10-blog-article.html', '30-blog-sidebar.html', '15-blog-heroimg.html']) {
+      const p = path.join(pageDir, old);
+      if (fs.existsSync(p)) fs.unlinkSync(p);
+    }
 
     // Update seo.json
     const seoData = {
