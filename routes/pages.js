@@ -2249,7 +2249,7 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
           } catch {}
         }
 
-        const sidebarHtml = `<aside class="snb-sidebar" style="position:sticky;top:100px;align-self:start;display:flex;flex-direction:column;gap:24px;">
+        const sidebarHtml = `<aside class="snb-sidebar" style="position:sticky;top:100px;align-self:start;display:flex;flex-direction:column;gap:24px;grid-column:2;grid-row:1/-1;">
   <nav class="snb-toc" aria-label="Sommaire"><div class="snb-toc-title">Sommaire</div><ul>${tocHtml.join('\n')}</ul></nav>
   <div class="snb-sidebar-cta"><span class="sc-label">Location photobooth</span><div class="sc-title">Animation <span>Mariage</span></div><div class="sc-price">299&euro;</div><div class="sc-period">par &eacute;v&eacute;nement &mdash; livraison incluse</div><a href="https://shootnbox.fr/reservation/" class="sc-btn">Obtenir mon devis</a></div>
   <div class="snb-sidebar-related"><div class="sr-title">A lire aussi</div><ul>${sidebarRelated}</ul></div>
@@ -2260,8 +2260,8 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
         const relatedSection = sections.find(s => s.file.includes('related'));
 
         if (firstBodySection) {
-          const openTag = `<div class="snb-article-layout" style="max-width:1300px;margin:0 auto;padding:0 24px 80px;display:grid;grid-template-columns:1fr 280px;gap:48px;align-items:start;">`;
-          const closeTag = `${sidebarHtml}\n</div><!-- /snb-article-layout -->`;
+          const openTag = `<div class="snb-article-layout" style="max-width:1300px;margin:0 auto;padding:0 24px 80px;display:grid;grid-template-columns:1fr 280px;gap:48px;align-items:start;"><div class="snb-article-body-col" style="grid-column:1;min-width:0;">`;
+          const closeTag = `</div><!-- /snb-article-body-col -->\n${sidebarHtml}\n</div><!-- /snb-article-layout -->`;
 
           bodyContent = bodyContent.replace(
             new RegExp(`(<div[^>]*data-gds-file="${firstBodySection.file.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}")`),
