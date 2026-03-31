@@ -2172,7 +2172,7 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
         // Neutralize inherited styles from site header/footer on same class names inside sections
         allCSS += `\n#${scopeId} .snb-header{position:static!important;top:auto!important;left:auto!important;width:auto!important;z-index:auto!important;background:none!important;backdrop-filter:none!important;border-bottom:none!important;}`;
         // Fix sidebar sticky — media query scoping may break it, re-enforce desktop sticky + mobile hide
-        allCSS += `\n#${scopeId} .snb-sidebar{position:sticky!important;top:100px!important;align-self:start!important;}`;
+        allCSS += `\n#${scopeId} .snb-sidebar{position:sticky!important;top:100px!important;align-self:start!important;display:flex!important;flex-direction:column!important;gap:24px!important;}`;
         allCSS += `\n@media(max-width:850px){#${scopeId} .snb-sidebar{position:static!important;display:none!important;}}`;
 
         const sectionSpacing = spacingData[section.file] ? `margin-top:${spacingData[section.file]}px;` : '';
