@@ -2190,11 +2190,22 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
 
     bodyContent += '</main>\n';
 
-    // Apply standardized hero height to hero sections
+    // Apply standardized hero height + background enforcement to hero sections
+    // 1. Add min-height on hero wrapper
     bodyContent = bodyContent.replace(/(data-gds-file="[^"]*hero[^"]*"[^>]*style="[^"]*)(">)/gi, (match, before, end) => {
-      // Don't add if already has min-height with var
       if (before.includes('--hero-height')) return match;
       return before + 'min-height:var(--hero-height);' + end;
+    });
+    // 2. Override hardcoded min-height values inside hero section CSS with the variable
+    bodyContent = bodyContent.replace(/(<div[^>]*data-gds-file="[^"]*hero[^"]*"[^>]*>[\s\S]*?)(<\/div>\s*<div class="gds-section-wrapper")/gi, (match, heroContent, nextSection) => {
+      // Replace hardcoded min-height in style blocks within hero sections
+      const fixed = heroContent.replace(/(min-height:\s*)\d{2,4}px/gi, '$1var(--hero-height)');
+      return fixed + nextSection;
+    });
+    // 3. Also fix the last hero if it's the last section (no next wrapper)
+    bodyContent = bodyContent.replace(/(<div[^>]*data-gds-file="[^"]*hero[^"]*"[^>]*>[\s\S]*?)(<\/div>\s*<\/main>)/gi, (match, heroContent, mainClose) => {
+      const fixed = heroContent.replace(/(min-height:\s*)\d{2,4}px/gi, '$1var(--hero-height)');
+      return fixed + mainClose;
     });
 
     // Auto-tag editable elements server-side (more reliable than client-side)
