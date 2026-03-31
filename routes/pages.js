@@ -2211,28 +2211,27 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
           .map(s => { try { return fs.readFileSync(path.join(previewDir, s.file), 'utf-8'); } catch { return ''; } })
           .join('\n');
 
-        // Build TOC from H2/H3 with id attributes
+        // Build TOC from H2 only (not H3) — sidebar sommaire
         const tocHtml = [];
-        const hRe = /<(h[23])\s[^>]*id="([^"]*)"[^>]*>([\s\S]*?)<\/\1>/gi;
+        const seenTitles = new Set();
+        // Match H2 with id
+        const hRe = /<h2\s[^>]*id="([^"]*)"[^>]*>([\s\S]*?)<\/h2>/gi;
         let hm;
         while ((hm = hRe.exec(allSectionHtml)) !== null) {
-          const tag = hm[1].toLowerCase();
-          const id = hm[2];
-          const text = hm[3].replace(/<[^>]+>/g, '').trim();
-          tocHtml.push(tag === 'h2'
-            ? `<li><a href="#${id}">${text}</a></li>`
-            : `<li class="h3-item"><a href="#${id}">${text}</a></li>`);
-        }
-        // Also match H2/H3 without id (assign auto id)
-        const hReNoId = /<(h[23])(?:\s[^>]*)?>(?!.*id=)([\s\S]*?)<\/\1>/gi;
-        while ((hm = hReNoId.exec(allSectionHtml)) !== null) {
-          const tag = hm[1].toLowerCase();
+          const id = hm[1];
           const text = hm[2].replace(/<[^>]+>/g, '').trim();
-          if (!text) continue;
+          if (!text || seenTitles.has(text)) continue;
+          seenTitles.add(text);
+          tocHtml.push(`<li><a href="#${id}">${text}</a></li>`);
+        }
+        // Also match H2 without id (auto-generate id)
+        const hReNoId = /<h2(?:\s[^>]*)?>(?!.*id=)([\s\S]*?)<\/h2>/gi;
+        while ((hm = hReNoId.exec(allSectionHtml)) !== null) {
+          const text = hm[1].replace(/<[^>]+>/g, '').trim();
+          if (!text || seenTitles.has(text)) continue;
+          seenTitles.add(text);
           const autoId = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-          tocHtml.push(tag === 'h2'
-            ? `<li><a href="#${autoId}">${text}</a></li>`
-            : `<li class="h3-item"><a href="#${autoId}">${text}</a></li>`);
+          tocHtml.push(`<li><a href="#${autoId}">${text}</a></li>`);
         }
 
         // Build sidebar related articles from blog index
