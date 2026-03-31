@@ -108,9 +108,27 @@
 - `GET /api/seo/scripts` — config injection de code
 - `PUT /api/seo/scripts` — sauvegarder injection de code
 - `GET /api/seo/sitemap` — generer sitemap XML dynamique
+- `GET /api/seo/feed` — flux RSS 2.0 des articles blog
+
+### Audit
+- `GET /api/audit/global` — audit cross-pages (doublons, orphelines, incoherences)
+- `GET /api/pages/:slug/seo-audit` — audit SEO par page (5 categories, score pondere)
+
+### Shared (public, pas d'auth)
+- `GET /api/shared/header` — HTML du header (pour integration WordPress)
+- `GET /api/shared/footer` — HTML du footer
+- `GET /api/shared/critical-css` — CSS critique (fonts + resets)
+
+### Blog
+- `GET /api/blog` — liste des articles
+- `POST /api/blog/create` — creer un article (genere 3 fichiers : hero, body, related)
+- `GET /api/blog/:slug` — detail article
+- `PUT /api/blog/:slug` — modifier article
+- `DELETE /api/blog/:slug` — supprimer article
+- `POST /api/blog/categories` — ajouter une categorie
 
 ### Media
-- `POST /api/media/upload` — upload images/videos (conversion WebP auto)
+- `POST /api/media/upload` — upload images/videos (conversion WebP auto + 3 variantes responsive)
 
 ## Charte graphique Shootnbox
 
@@ -161,6 +179,118 @@ curl -s "http://217.182.89.133:8000/api/v1/deploy?uuid=usnz6o4qp48maw8q0lny22nl&
   -H "Authorization: Bearer 1|FNcssp3CipkrPNVSQyv3IboYwGsP8sjPskoBG3ux98e5a576"
 ```
 
+## Systeme SEO
+
+### Build.js — auto-corrections et validation
+- **Mode warn/strict** : `BUILD_STRICT=strict` fait echouer le build si H1 manquant
+- **H1 auto-promotion** : mode warn transforme premier H2 en H1 + log WARNING
+- **Alt images** : utilise `media-meta.json` pour classification (decorative/informative/branding)
+- **srcset responsive** : genere srcset reel si variantes -480w/-768w/-1280w existent sur disque
+- **Validation SEO** : 14+ checks (title, description, H1, headings, alt, schema, OG, contenu, liens)
+- **Score par categorie** : Indexation (30%), Contenu (25%), Performance (20%), Social (15%), Accessibilite (10%)
+- **Sitemap auto** : genere sitemap.xml a chaque build
+
+### Gardiens SEO
+- **Au save** : retourne `seoWarnings[]` dans la reponse — la sauvegarde passe toujours
+- **A la publication** : audit SEO complet, bloque si erreurs critiques (409 + `canForce:true`)
+- **Front** : modal notification detaillee avec "OK compris" ou "Publier quand meme"
+
+### Nomenclature des sections (site-config.json → sections)
+- **hero** : height 520/420/360px, padding, titleSize 52/40/32px
+- **standard** : padding 80/60/48px, titleSize 44/36/28px
+- **compact** : padding 48/36/28px
+- **cta** : padding 60/48/40px, maxWidth 860px
+- **background** : enabled, gradient, glows, pictos
+- Variables CSS injectees : `--hero-height`, `--section-padding`, `--section-title-size`, etc.
+- Editables dans Settings → Sections
+
+### Statuts editoriaux
+- `draft` → `review` → `validated` → `published` → `archived`
+- Gate SEO : review→validated necessite score >= 60
+- `archived` auto-set noindex + retrait sitemap
+
+## Blog
+
+### Architecture des articles
+- 3 fichiers generes : `10-blog-hero.html`, `20-blog-body.html`, `90-blog-related.html`
+- CSS blog dans `public/css/blog-styles.css` (global, pas scope)
+- Sidebar injectee par le preview route pour les pages `blog-*`
+- TOC auto-genere depuis les H2 du contenu
+- L'utilisateur ajoute ses blocs entre le hero et les related via l'editeur
+
+### Sidebar blog
+- Injectee automatiquement par le serveur (pas un fichier)
+- TOC : uniquement les H2 (pas H3), pas de doublons
+- CTA : Location photobooth 299€ (fige)
+- Articles lies : depuis blog-index
+- Layout : grid 2 colonnes (1fr 280px), sidebar sticky, responsive 1col mobile
+
+## Editeur visuel
+
+### Toolbar de texte
+- **H1-H4, P** : change le type de balise (sauvegarde persistee)
+- **B, I, U, S** : gras, italique, souligne, barre (via execCommand)
+- **Lien** : inserer/supprimer un lien
+- **Clear** : supprimer la mise en forme
+- **`</>`** : editeur HTML source (modal avec textarea monospace)
+- Tous les styles avec `!important` pour resister au CSS des blocs
+
+### Labels de section
+- Bandeau permanent en haut de chaque section avec nom du fichier
+- Boutons : code (`</>`), bibliotheque, supprimer
+- Toujours visible, fond sombre
+
+### Detection des elements editables
+- Selecteur elargi : h1-h6, p, li, blockquote, figcaption, [class*="snb-h"], [class*="snb-title"], etc.
+- Elements exclus : sidebar, toc, breadcrumb, nav, script, style
+- `editMode = req.query.edit === '1'` (pas de check auth dans l'iframe)
+- Save via cheerio : match par index global dans la section
+
+### Nettoyage auto au save
+- Supprime `<!DOCTYPE>`, `<html>`, `<head>` (garde `<style>`), `<body>`
+- Supprime resets `* { margin:0!important; padding:0!important }`
+- Supprime toolbar tag-select du innerHTML avant sauvegarde
+- Neutralise `.snb-header` herite du header du site dans les sections
+
+### Placeholders images
+- `<img data-gds-placeholder>` : wrappee dans div pour overlay
+- Upload ou URL → `src` mis directement sur l'img
+- Section sauvegardee automatiquement apres upload
+
+## Fond de page global
+- Fichier : `previews/_shared/page-background.html` + `public/css/blog-styles.css`
+- Degrade : #f8eaff → #fff0f8 → #FFF8EE → #f0f0ff → #f8eaff
+- 6 halos diffus animes (rose, bleu, violet, orange, vert)
+- 12 pictos SVG decoratifs (polaroids, appareils photo, etoiles, coeurs, confettis)
+- Configurable dans Settings → Sections → Fond de page
+- `overflow-x: clip` sur body et page-wrapper (pas hidden — casse sticky)
+
+## Regles pour les developpeurs de blocs
+
+### Format de livraison
+```html
+<style>.mon-bloc { ... }</style>
+<section class="mon-bloc">...</section>
+```
+- PAS de `<!DOCTYPE>`, `<html>`, `<head>`, `<body>`
+- PAS de reset `* { margin:0!important }`
+- PAS de classes `.snb-header`, `.snb-footer`, `.snb-nav` (conflit avec le systeme)
+- Toutes les regles CSS scopees sous la classe du bloc
+- Utiliser de vrais `<h2>`, `<h3>` (pas `<div class="snb-h2">`)
+- Images placeholder : `<img src="" alt="..." data-gds-placeholder>`
+
+### Variables CSS disponibles
+```css
+var(--hero-height)        /* 520px → 420px → 360px */
+var(--hero-padding)       /* responsive */
+var(--hero-title-size)    /* 52px → 40px → 32px */
+var(--section-padding)    /* 80px 24px → 48px 16px */
+var(--section-title-size) /* 44px → 28px */
+var(--color-primary)      /* #E51981 */
+var(--color-secondary)    /* #0250FF */
+var(--max-width)          /* 1300px */
+```
+
 ## Bugs resolus importants
 
 - **Sections disparaissant au deploy** : Volumes Docker non montes → corrige avec docker-compose build pack
@@ -171,3 +301,10 @@ curl -s "http://217.182.89.133:8000/api/v1/deploy?uuid=usnz6o4qp48maw8q0lny22nl&
 - **Cache navigateur** : maxAge 0 sur fichiers admin
 - **Scripts FAQ non executes** : Extraction des scripts des sections standalone → reinjectes en fin de body
 - **Contamination admin dans les fichiers** : Nettoyage serveur dans PUT /section/:file
+- **Build ne chargeait pas les sections** : fichiers `02-hero.html` non trouves car build cherchait `hero.html` → fix avec scan par nom sans prefixe
+- **Sidebar blog non visible** : `overflow-x:hidden` sur body cassait `position:sticky` → remplace par `overflow-x:clip`
+- **Media queries cassees par scopeCSS** : regles fuyaient hors des `@media` → fix avec injection explicite des regles layout/sidebar
+- **Elements non editables dans l'editeur** : `editMode` necessitait auth mais iframe sans cookie → fix `editMode = req.query.edit === '1'`
+- **Save ne persistait pas** : index global vs index par tag → fix avec cheerio match par index global
+- **Toolbar BIUS dans le HTML sauve** : regex ne matchait pas la barre complete → fix avec remove/reappend DOM
+- **Boutons section invisibles** : position absolute dans wrapper avec overflow:hidden → fix avec labels permanents en haut de section
