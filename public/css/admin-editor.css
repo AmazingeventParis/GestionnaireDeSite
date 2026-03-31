@@ -163,18 +163,28 @@ body.gds-admin-mode .gds-page-content {
   opacity: 1;
 }
 
-/* Tag selector popup */
+/* Editing toolbar */
 .gds-tag-select {
   position: absolute;
-  top: -38px;
+  top: -42px;
   left: 0;
   display: none;
-  gap: 3px;
+  gap: 2px;
   z-index: 100;
   background: #fff;
   padding: 4px 6px;
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.08);
+  align-items: center;
+  flex-wrap: nowrap;
+  max-width: 95vw;
+}
+.gds-tag-select .gds-toolbar-sep {
+  width: 1px !important;
+  height: 20px !important;
+  background: #e0e0e0 !important;
+  margin: 0 3px !important;
+  flex-shrink: 0 !important;
 }
 [data-gds-edit]:focus .gds-tag-select,
 [data-gds-edit]:hover .gds-tag-select {

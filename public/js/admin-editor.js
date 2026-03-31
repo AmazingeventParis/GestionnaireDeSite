@@ -209,21 +209,100 @@
       // Make focusable
       el.setAttribute('tabindex', '0');
 
-      // Build tag selector buttons
+      // Build editing toolbar: tag selectors + formatting buttons
       const tagBar = document.createElement('div');
       tagBar.className = 'gds-tag-select';
+
+      // Tag buttons (H1-H4, P)
       ['H1','H2','H3','H4','P'].forEach(t => {
         const btn = document.createElement('button');
         btn.className = 'gds-tag-btn' + (t === tag.toUpperCase() ? ' active' : '');
         btn.textContent = t;
         btn.type = 'button';
         btn.addEventListener('mousedown', (e) => {
-          e.preventDefault(); // prevent blur
+          e.preventDefault();
           e.stopPropagation();
           changeTag(el, t.toLowerCase());
         });
         tagBar.appendChild(btn);
       });
+
+      // Separator
+      const sep1 = document.createElement('div');
+      sep1.className = 'gds-toolbar-sep';
+      tagBar.appendChild(sep1);
+
+      // Formatting buttons
+      const formatBtns = [
+        { cmd: 'bold', icon: '<b>B</b>', title: 'Gras (Ctrl+B)' },
+        { cmd: 'italic', icon: '<i>I</i>', title: 'Italique (Ctrl+I)' },
+        { cmd: 'underline', icon: '<u>U</u>', title: 'Souligne (Ctrl+U)' },
+        { cmd: 'strikeThrough', icon: '<s>S</s>', title: 'Barre' },
+      ];
+      formatBtns.forEach(f => {
+        const btn = document.createElement('button');
+        btn.className = 'gds-tag-btn';
+        btn.innerHTML = f.icon;
+        btn.title = f.title;
+        btn.type = 'button';
+        btn.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          document.execCommand(f.cmd, false, null);
+        });
+        tagBar.appendChild(btn);
+      });
+
+      // Separator
+      const sep2 = document.createElement('div');
+      sep2.className = 'gds-toolbar-sep';
+      tagBar.appendChild(sep2);
+
+      // Link button
+      const linkBtn = document.createElement('button');
+      linkBtn.className = 'gds-tag-btn';
+      linkBtn.innerHTML = '&#128279;';
+      linkBtn.title = 'Inserer un lien';
+      linkBtn.type = 'button';
+      linkBtn.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const url = prompt('URL du lien :');
+        if (url) document.execCommand('createLink', false, url);
+      });
+      tagBar.appendChild(linkBtn);
+
+      // Unlink button
+      const unlinkBtn = document.createElement('button');
+      unlinkBtn.className = 'gds-tag-btn';
+      unlinkBtn.innerHTML = '&#10060;';
+      unlinkBtn.title = 'Supprimer le lien';
+      unlinkBtn.type = 'button';
+      unlinkBtn.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        document.execCommand('unlink', false, null);
+      });
+      tagBar.appendChild(unlinkBtn);
+
+      // Separator
+      const sep3 = document.createElement('div');
+      sep3.className = 'gds-toolbar-sep';
+      tagBar.appendChild(sep3);
+
+      // Clear formatting
+      const clearBtn = document.createElement('button');
+      clearBtn.className = 'gds-tag-btn';
+      clearBtn.innerHTML = '&#128465;';
+      clearBtn.title = 'Supprimer la mise en forme';
+      clearBtn.type = 'button';
+      clearBtn.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        document.execCommand('removeFormat', false, null);
+      });
+      tagBar.appendChild(clearBtn);
+
       el.style.position = 'relative';
       el.appendChild(tagBar);
 
@@ -233,13 +312,13 @@
         if (e.target.tagName === 'A' && !e.target.closest('[data-gds-edit]').getAttribute('contenteditable')) {
           e.preventDefault();
         }
-        el.setAttribute('contenteditable', 'plaintext-only');
+        el.setAttribute('contenteditable', 'true');
         el.focus();
       });
 
-      // On focus: show tag bar + enable editing
+      // On focus: show toolbar + enable editing
       el.addEventListener('focus', () => {
-        el.setAttribute('contenteditable', 'plaintext-only');
+        el.setAttribute('contenteditable', 'true');
         tagBar.style.display = 'flex';
       });
 
@@ -1120,29 +1199,40 @@
       el.appendChild(tagBar);
     }
     tagBar.innerHTML = '';
+    // Tag buttons
     ['H1','H2','H3','H4','P'].forEach(t => {
       const btn = document.createElement('button');
       btn.className = 'gds-tag-btn' + (t === tag.toUpperCase() ? ' active' : '');
       btn.textContent = t;
       btn.type = 'button';
-      btn.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        changeTag(el, t.toLowerCase());
-      });
+      btn.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); changeTag(el, t.toLowerCase()); });
       tagBar.appendChild(btn);
     });
+    // Separator + formatting buttons
+    const sep = document.createElement('div'); sep.className = 'gds-toolbar-sep'; tagBar.appendChild(sep);
+    [{ cmd:'bold', icon:'<b>B</b>' }, { cmd:'italic', icon:'<i>I</i>' }, { cmd:'underline', icon:'<u>U</u>' }, { cmd:'strikeThrough', icon:'<s>S</s>' }].forEach(f => {
+      const btn = document.createElement('button'); btn.className = 'gds-tag-btn'; btn.innerHTML = f.icon; btn.type = 'button';
+      btn.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); document.execCommand(f.cmd, false, null); });
+      tagBar.appendChild(btn);
+    });
+    const sep2 = document.createElement('div'); sep2.className = 'gds-toolbar-sep'; tagBar.appendChild(sep2);
+    const lb = document.createElement('button'); lb.className = 'gds-tag-btn'; lb.innerHTML = '&#128279;'; lb.type = 'button';
+    lb.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); const url = prompt('URL du lien :'); if (url) document.execCommand('createLink', false, url); });
+    tagBar.appendChild(lb);
+    const cb = document.createElement('button'); cb.className = 'gds-tag-btn'; cb.innerHTML = '&#128465;'; cb.type = 'button';
+    cb.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); document.execCommand('removeFormat', false, null); });
+    tagBar.appendChild(cb);
     tagBar.style.display = 'none';
 
     el.addEventListener('click', (e) => {
       if (e.target.closest('.gds-tag-select')) return;
       if (e.target.tagName === 'A') e.preventDefault();
-      el.setAttribute('contenteditable', 'plaintext-only');
+      el.setAttribute('contenteditable', 'true');
       el.focus();
     });
 
     el.addEventListener('focus', () => {
-      el.setAttribute('contenteditable', 'plaintext-only');
+      el.setAttribute('contenteditable', 'true');
       tagBar.style.display = 'flex';
     });
 
