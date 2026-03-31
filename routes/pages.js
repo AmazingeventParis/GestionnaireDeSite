@@ -2052,6 +2052,14 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
     }
     bodyContent += '<main class="snb-page-content">\n';
 
+    // Inject blog CSS globally (not scoped) for blog pages
+    if (slug.startsWith('blog-')) {
+      const blogCssPath = path.join(SHARED_DIR, 'blog-styles.css');
+      if (fs.existsSync(blogCssPath)) {
+        bodyContent += `<style>${fs.readFileSync(blogCssPath, 'utf-8')}</style>\n`;
+      }
+    }
+
     // Inject shared page background (halos, glows, transitions) if enabled
     if (config.sections?.background?.enabled !== false) {
       const bgPath = path.join(SHARED_DIR, 'page-background.html');

@@ -164,8 +164,8 @@ function generateArticleFiles(article, index) {
     : `<img src="" alt="${article.heroAlt || article.title}" data-gds-placeholder loading="eager" fetchpriority="high" width="1300" height="488" style="width:100%;aspect-ratio:16/6;border:2px dashed rgba(150,150,150,0.3);border-radius:20px;background:#f0f0f0;">`;
 
   // ── File 1: 10-blog-hero.html — breadcrumb + meta + H1 + author + share ──
-  const heroFile = `<style>${css}</style>
-<nav class="snb-breadcrumb" aria-label="Fil d'Ariane">
+  // CSS is NOT included here — it's injected globally by the preview route via _shared/blog-styles.css
+  const heroFile = `<nav class="snb-breadcrumb" aria-label="Fil d'Ariane">
   <a href="/">Accueil</a>
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
   <a href="/blog/">Blog</a>
