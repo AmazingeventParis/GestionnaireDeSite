@@ -1165,7 +1165,11 @@
     // Get clean HTML (without tag bar)
     const tagBar = el.querySelector('.gds-tag-select');
     if (tagBar) tagBar.style.display = 'none';
-    let currentHtml = el.innerHTML.replace(/<div class="gds-tag-select"[\s\S]*?<\/div>/g, '').trim();
+    // Remove tag bar temporarily to get clean HTML
+    const existingTagBar = el.querySelector('.gds-tag-select');
+    if (existingTagBar) existingTagBar.remove();
+    let currentHtml = el.innerHTML.trim();
+    if (existingTagBar) el.appendChild(existingTagBar);
 
     // Format HTML for readability
     currentHtml = currentHtml
@@ -1259,9 +1263,12 @@
   }
 
   function trackChange(el, id) {
-    const newText = el.innerHTML;
-    // Remove tag bar content from tracked text
-    const cleanText = newText.replace(/<div class="gds-tag-select"[\s\S]*?<\/div>/, '');
+    // Temporarily remove the tag bar from DOM to get clean innerHTML
+    const tagBar = el.querySelector('.gds-tag-select');
+    if (tagBar) tagBar.remove();
+    const cleanText = el.innerHTML.trim();
+    if (tagBar) el.appendChild(tagBar);
+
     const currentTag = el.tagName.toLowerCase();
     const origTag = el.dataset.gdsOrigTag || currentTag;
 
@@ -1406,7 +1413,7 @@
       // Clean tag bar HTML from change texts before saving
       const cleanChanges = Object.values(changes).map(c => ({
         ...c,
-        text: c.text.replace(/<div class="gds-tag-select"[\s\S]*?<\/div>/g, '')
+        text: c.text
       }));
 
       // Save content
