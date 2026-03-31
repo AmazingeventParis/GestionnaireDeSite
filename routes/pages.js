@@ -1141,11 +1141,25 @@ router.post('/:slug/save', verifyToken, requireRole('admin', 'editor'), async (r
         const parts = change.id.split(':');
         if (parts.length < 3) continue;
 
-        const sectionFile = parts[0];
+        const sectionName = parts[0];
         const index = parseInt(parts[1], 10);
         const tag = parts[2];
-        const filePath = path.join(previewDir, sectionFile);
 
+        // Find the actual file matching the section name (e.g., "section" → "20-section.html")
+        let filePath = path.join(previewDir, sectionName);
+        if (!fs.existsSync(filePath)) {
+          // Try with .html extension
+          filePath = path.join(previewDir, sectionName + '.html');
+        }
+        if (!fs.existsSync(filePath)) {
+          // Scan directory for a file matching the pattern *-{sectionName}.html
+          const allFiles = fs.readdirSync(previewDir).filter(f => f.endsWith('.html'));
+          const match = allFiles.find(f => {
+            const name = f.replace(/^\d+-/, '').replace('.html', '');
+            return name === sectionName;
+          });
+          if (match) filePath = path.join(previewDir, match);
+        }
         if (!fs.existsSync(filePath)) continue;
 
         let html = fs.readFileSync(filePath, 'utf-8');
