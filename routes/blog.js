@@ -146,90 +146,119 @@ function generateArticleFiles(article, index) {
   const cat = categoryInfo(article.category);
   const author = AUTHORS[article.author] || AUTHORS.mathilde;
   const bodyHTML = article.bodyHTML || '';
-  const tocHTML = buildTOCFromHTML(bodyHTML);
   const tagsHTML = buildTagsHTML(article.tags || []);
   const relatedHTML = buildRelatedHTML(article.slug, index);
-  const sidebarRelatedHTML = buildSidebarRelatedHTML(article.slug, index);
   const readTime = article.readTime || estimateReadTimeHTML(bodyHTML);
 
-  const replacements = {
-    '{{TITLE}}': article.title,
-    '{{META_DESCRIPTION}}': article.metaDescription || '',
-    '{{CATEGORY}}': cat.label,
-    '{{CATEGORY_CLASS}}': cat.class,
-    '{{CATEGORY_EMOJI}}': cat.emoji,
-    '{{DATE}}': formatDateFR(article.date),
-    '{{READ_TIME}}': String(readTime),
-    '{{AUTHOR_NAME}}': author.name,
-    '{{AUTHOR_INITIALS}}': author.initials,
-    '{{AUTHOR_ROLE}}': author.role,
-    '{{HERO_IMAGE}}': article.heroImage || '',
-    '{{HERO_ALT}}': article.heroAlt || article.title,
-    '{{TITLE_HTML}}': article.titleHTML || article.title,
-    '{{BODY_CONTENT}}': bodyHTML,
-    '{{TAGS_HTML}}': tagsHTML,
-    '{{TOC_HTML}}': tocHTML,
-    '{{BREADCRUMB_CAT_LINK}}': cat.link,
-    '{{BREADCRUMB_CAT_NAME}}': cat.label,
-    '{{BREADCRUMB_TITLE}}': article.title,
-    '{{RELATED_HTML}}': relatedHTML,
-    '{{SIDEBAR_RELATED_HTML}}': sidebarRelatedHTML
-  };
-
-  let fullHtml = tpl;
-  for (const [key, val] of Object.entries(replacements)) {
-    fullHtml = fullHtml.split(key).join(val);
-  }
-
-  // Split into 3 files: hero, content, sidebar+footer
-
-  // Extract CSS (everything in <style>)
+  // Extract CSS from template
   let css = '';
-  fullHtml = fullHtml.replace(/<style>([\s\S]*?)<\/style>/i, (m, c) => { css = c; return ''; });
+  tpl.replace(/<style>([\s\S]*?)<\/style>/i, (m, c) => { css = c; });
 
-  // Extract script
+  // Extract TOC script from template
   let script = '';
-  fullHtml = fullHtml.replace(/<script>([\s\S]*?)<\/script>/i, (m, c) => { script = c; return ''; });
+  tpl.replace(/<script>([\s\S]*?)<\/script>/i, (m, c) => { script = c; });
 
-  // Split HTML at the layout div
-  const heroEnd = fullHtml.indexOf('<div class="snb-article-layout">');
-  const sidebarStart = fullHtml.indexOf('<aside class="snb-sidebar">');
-  const sidebarEnd = fullHtml.indexOf('</aside>');
-  const layoutEnd = fullHtml.indexOf('</div>', sidebarEnd + 8); // close snb-article-layout
-  const relatedStart = fullHtml.indexOf('<section class="snb-related-section">');
-
-  const heroHTML = fullHtml.substring(0, heroEnd).trim();
-  const bodyContentHTML = fullHtml.substring(heroEnd, sidebarStart).trim();
-  const sidebarHTML = fullHtml.substring(sidebarStart, sidebarEnd + 8).trim();
-  const afterLayout = fullHtml.substring(layoutEnd + 6).trim(); // related section + rest
-
-  // File 1: Hero (breadcrumb + meta + title + author + hero image placeholder)
   const heroImageSrc = article.heroImage || '';
   const heroImgTag = heroImageSrc
     ? `<img src="${heroImageSrc}" alt="${article.heroAlt || article.title}" loading="eager" fetchpriority="high" width="1300" height="488">`
     : `<img src="" alt="${article.heroAlt || article.title}" data-gds-placeholder loading="eager" fetchpriority="high" width="1300" height="488" style="width:100%;aspect-ratio:16/6;border:2px dashed rgba(150,150,150,0.3);border-radius:20px;background:#f0f0f0;">`;
 
-  // Replace the img in hero with placeholder-aware version
-  let heroFinal = heroHTML.replace(/<img\s+src="[^"]*"\s+alt="[^"]*"[^>]*>/, heroImgTag);
+  // ── File 1: 10-blog-hero.html — breadcrumb + meta + H1 + author + share ──
+  const heroFile = `<style>${css}</style>
+<nav class="snb-breadcrumb" aria-label="Fil d'Ariane">
+  <a href="/">Accueil</a>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+  <a href="/blog/">Blog</a>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+  <a href="${cat.link}">${cat.label}</a>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+  <span class="current">${article.title}</span>
+</nav>
+<header class="snb-article-hero">
+  <div class="snb-article-meta-top">
+    <span class="snb-cat-badge ${cat.class}">${cat.emoji} ${cat.label}</span>
+    <span class="snb-article-date">${formatDateFR(article.date)}</span>
+    <span class="snb-article-read-time">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+      ${readTime} min de lecture
+    </span>
+  </div>
+  <h1 class="snb-article-title">${article.titleHTML || article.title}</h1>
+  <div class="snb-author-row">
+    <div class="snb-author-avatar">${author.initials}</div>
+    <div class="snb-author-info">
+      <span class="snb-author-name">${author.name}</span>
+      <span class="snb-author-role">${author.role}</span>
+    </div>
+    <div class="snb-author-sep"></div>
+    <div class="snb-share-mini">
+      <span class="share-label">Partager</span>
+      <a class="snb-share-btn" href="#" aria-label="Facebook"><svg viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg></a>
+      <a class="snb-share-btn" href="#" aria-label="X"><svg viewBox="0 0 24 24"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.4 5.5 3.9 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/></svg></a>
+      <a class="snb-share-btn" href="#" aria-label="Copier"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></a>
+    </div>
+  </div>
+</header>`;
 
-  const file1 = `<style>${css}</style>\n${heroFinal}`;
+  // ── File 2: 15-blog-heroimg.html — hero image placeholder ──
+  const heroImgFile = `<div class="snb-hero-img-wrap">
+  ${heroImgTag}
+  <span class="snb-hero-img-caption">&copy; Shootnbox</span>
+</div>`;
 
-  // File 2: Article body content (editable — user adds blocs here)
-  // Wrap in the article-layout opening + article body
-  const file2 = bodyContentHTML
-    ? bodyContentHTML + '\n  </article>'
-    : `<div class="snb-article-layout">\n  <article class="snb-article-body">\n    <p class="snb-article-intro">Redigez votre introduction ici...</p>\n  </article>`;
+  // ── File 3: 20-blog-body.html — article body content (user adds blocs after this) ──
+  const bodyFile = bodyHTML
+    ? `<article class="snb-article-body">\n${bodyHTML}\n\n<div class="snb-sep"></div>\n<div class="snb-tags">${tagsHTML}</div>\n\n<div class="snb-cta-footer">\n  <div class="snb-cta-footer-badge">&#x1F4F8; Shootnbox</div>\n  <h3>Pr&ecirc;t &agrave; <span>immortaliser votre &eacute;v&eacute;nement</span> ?</h3>\n  <p>Obtenez un devis personnalis&eacute; en 2 minutes.</p>\n  <a href="https://shootnbox.fr/reservation/" class="snb-cta-footer-btn">Estimer mon tarif <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>\n</div>\n</article>`
+    : `<article class="snb-article-body">\n  <p class="snb-article-intro">Redigez votre introduction ici...</p>\n</article>`;
 
-  // File 3: Sidebar + related articles + script
-  const file3 = `  ${sidebarHTML}\n</div>\n${afterLayout}\n<script>${script}</script>`;
+  // ── File 4: 90-blog-related.html — related articles grid ──
+  const relatedFile = `<section class="snb-related-section">
+  <div class="snb-related-header">
+    <h2>Ces articles pourraient vous <span>interesser</span></h2>
+  </div>
+  <div class="snb-related-grid">${relatedHTML}</div>
+</section>
+<script>${script}</script>`;
 
-  return { file1, file2, file3 };
+  return {
+    '10-blog-hero.html': heroFile,
+    '15-blog-heroimg.html': heroImgFile,
+    '20-blog-body.html': bodyFile,
+    '90-blog-related.html': relatedFile,
+    // Sidebar data for preview route injection
+    sidebarData: { article, index }
+  };
+}
+
+// Generate the sidebar HTML (used by preview route, not stored as a file)
+function generateSidebarHTML(article, index) {
+  const bodyHTML = article.bodyHTML || '';
+  const tocHTML = buildTOCFromHTML(bodyHTML);
+  const sidebarRelatedHTML = buildSidebarRelatedHTML(article.slug, index);
+
+  return `<aside class="snb-sidebar" style="position:sticky;top:100px;align-self:start;display:flex;flex-direction:column;gap:24px;">
+  <nav class="snb-toc" aria-label="Sommaire de l'article">
+    <div class="snb-toc-title">Sommaire</div>
+    <ul>${tocHTML}</ul>
+  </nav>
+  <div class="snb-sidebar-cta">
+    <span class="sc-label">Location photobooth</span>
+    <div class="sc-title">Animation <span>Mariage</span></div>
+    <div class="sc-price">299&euro;</div>
+    <div class="sc-period">par &eacute;v&eacute;nement &mdash; livraison incluse</div>
+    <a href="https://shootnbox.fr/reservation/" class="sc-btn">Obtenir mon devis</a>
+  </div>
+  <div class="snb-sidebar-related">
+    <div class="sr-title">A lire aussi</div>
+    <ul>${sidebarRelatedHTML}</ul>
+  </div>
+</aside>`;
 }
 
 // Backward compat wrapper
 function generateArticleHTML(article, index) {
   const files = generateArticleFiles(article, index);
-  return files.file1 + '\n' + files.file2 + '\n' + files.file3;
+  return Object.entries(files).filter(([k]) => k.endsWith('.html')).map(([,v]) => v).join('\n');
 }
 
 // Ensure category is tracked in index
@@ -338,9 +367,9 @@ router.post('/create', verifyToken, requireRole('admin'), async (req, res) => {
     // Create page directory + section files (3 separate files)
     fs.mkdirSync(pageDir, { recursive: true });
     const files = generateArticleFiles(article, index);
-    fs.writeFileSync(path.join(pageDir, '10-blog-hero.html'), files.file1, 'utf-8');
-    fs.writeFileSync(path.join(pageDir, '20-blog-body.html'), files.file2, 'utf-8');
-    fs.writeFileSync(path.join(pageDir, '30-blog-sidebar.html'), files.file3, 'utf-8');
+    for (const [name, content] of Object.entries(files)) {
+      if (name.endsWith('.html')) fs.writeFileSync(path.join(pageDir, name), content, 'utf-8');
+    }
 
     // Create seo.json
     const seoData = {
@@ -391,19 +420,22 @@ router.put('/:slug', verifyToken, requireRole('admin'), async (req, res) => {
     index.articles[idx] = article;
     writeIndex(index);
 
-    // Regenerate HTML (3 files)
+    // Regenerate HTML files
     const pageDir = path.join(PREVIEWS_DIR, article.slug);
     if (!fs.existsSync(pageDir)) fs.mkdirSync(pageDir, { recursive: true });
     const files = generateArticleFiles(article, index);
-    fs.writeFileSync(path.join(pageDir, '10-blog-hero.html'), files.file1, 'utf-8');
-    // Only regenerate body if bodyHTML changed (don't overwrite user's manual edits from editor)
-    if (req.body.bodyHTML !== undefined) {
-      fs.writeFileSync(path.join(pageDir, '20-blog-body.html'), files.file2, 'utf-8');
+    // Always regenerate hero, heroimg, related + sidebar
+    for (const [name, content] of Object.entries(files)) {
+      if (!name.endsWith('.html')) continue;
+      // Don't overwrite user's manual body edits unless bodyHTML was explicitly changed
+      if (name === '20-blog-body.html' && req.body.bodyHTML === undefined) continue;
+      fs.writeFileSync(path.join(pageDir, name), content, 'utf-8');
     }
-    fs.writeFileSync(path.join(pageDir, '30-blog-sidebar.html'), files.file3, 'utf-8');
-    // Clean up old single-file if it exists
+    // Clean up old single-file format if it exists
     const oldFile = path.join(pageDir, '10-blog-article.html');
     if (fs.existsSync(oldFile)) fs.unlinkSync(oldFile);
+    const oldSidebar = path.join(pageDir, '30-blog-sidebar.html');
+    if (fs.existsSync(oldSidebar)) fs.unlinkSync(oldSidebar);
 
     // Update seo.json
     const seoData = {
