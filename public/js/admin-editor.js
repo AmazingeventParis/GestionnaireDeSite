@@ -227,11 +227,18 @@
       el.style.position = 'relative';
       el.appendChild(tagBar);
 
+      // Store the HTML structure template before any editing
+      let structureTemplate = null;
+
       // On click: enter edit mode
       el.addEventListener('click', (e) => {
         if (e.target.closest('.gds-tag-select')) return;
         if (e.target.tagName === 'A' && !e.target.closest('[data-gds-edit]').getAttribute('contenteditable')) {
           e.preventDefault();
+        }
+        // Save structure before editing starts
+        if (!structureTemplate) {
+          structureTemplate = saveStructure(el);
         }
         el.setAttribute('contenteditable', 'true');
         el.focus();
@@ -239,14 +246,21 @@
 
       // On focus: show tag bar + enable editing
       el.addEventListener('focus', () => {
+        if (!structureTemplate) {
+          structureTemplate = saveStructure(el);
+        }
         el.setAttribute('contenteditable', 'true');
         tagBar.style.display = 'flex';
       });
 
-      // On blur: exit edit mode, track changes
+      // On blur: exit edit mode, restore structure with new text
       el.addEventListener('blur', () => {
         el.removeAttribute('contenteditable');
         tagBar.style.display = 'none';
+        // Restore HTML structure with the new text content
+        if (structureTemplate && structureTemplate.hasChildren) {
+          restoreStructure(el, structureTemplate);
+        }
         trackChange(el, id);
       });
 
@@ -1057,6 +1071,98 @@
   }
 
   // ===== CHANGE TAG (H1 <-> H2 etc) =====
+  // ===== STRUCTURE PRESERVATION =====
+  // Save the HTML structure (spans, classes, animations) before editing
+  function saveStructure(el) {
+    const children = [];
+    let hasRealChildren = false;
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_ALL, {
+      acceptNode: function(node) {
+        // Skip the tag-select bar
+        if (node.nodeType === 1 && node.classList && node.classList.contains('gds-tag-select')) return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+
+    let node;
+    while (node = walker.nextNode()) {
+      if (node.nodeType === 3) { // Text node
+        children.push({ type: 'text', text: node.textContent });
+      } else if (node.nodeType === 1 && node !== el) { // Element
+        // Only track inline elements (span, a, strong, em, br) — not block children
+        const tag = node.tagName.toLowerCase();
+        if (['span', 'a', 'strong', 'em', 'b', 'i', 'br', 'sub', 'sup'].includes(tag)) {
+          hasRealChildren = true;
+          const attrs = {};
+          for (const attr of node.attributes) {
+            attrs[attr.name] = attr.value;
+          }
+          children.push({
+            type: 'element',
+            tag: tag,
+            attrs: attrs,
+            text: node.textContent,
+            outerHTML: node.outerHTML
+          });
+          walker.nextSibling(); // Skip children of this element (already captured)
+        }
+      }
+    }
+    return { children, hasChildren: hasRealChildren, originalHTML: el.innerHTML };
+  }
+
+  // Restore structure: take the new plain text and re-wrap it in the original HTML elements
+  function restoreStructure(el, template) {
+    // Get the current plain text (what the user typed)
+    const tagBar = el.querySelector('.gds-tag-select');
+    const newPlainText = el.textContent.replace(/H1H2H3H4P/g, '').trim(); // Remove tag bar text leak
+    const origPlainText = template.children.filter(c => c.text).map(c => c.text.trim()).join(' ').trim();
+
+    // If the text hasn't changed at all, just restore original HTML
+    if (newPlainText === origPlainText) {
+      el.innerHTML = template.originalHTML;
+      if (tagBar) el.appendChild(tagBar);
+      return;
+    }
+
+    // Text changed — try to map new text onto old structure
+    // Strategy: replace text content of each text node / element in order
+    const words = newPlainText.split(/(\s+)/); // Split preserving whitespace
+    let wordIdx = 0;
+    let rebuilt = '';
+
+    for (const child of template.children) {
+      if (child.type === 'element' && child.tag === 'br') {
+        rebuilt += '<br>';
+        continue;
+      }
+      if (child.type === 'text') {
+        const origWords = child.text.trim().split(/\s+/).length;
+        const chunk = words.slice(wordIdx, wordIdx + origWords).join('');
+        wordIdx += origWords;
+        // Skip whitespace entries
+        while (wordIdx < words.length && /^\s+$/.test(words[wordIdx])) wordIdx++;
+        rebuilt += chunk || child.text;
+      } else if (child.type === 'element') {
+        const origWords = child.text.trim().split(/\s+/).length;
+        const chunk = words.slice(wordIdx, wordIdx + origWords).join('');
+        wordIdx += origWords;
+        while (wordIdx < words.length && /^\s+$/.test(words[wordIdx])) wordIdx++;
+        // Rebuild the element with same tag + attrs but new text
+        const attrStr = Object.entries(child.attrs).map(([k,v]) => `${k}="${v}"`).join(' ');
+        rebuilt += `<${child.tag}${attrStr ? ' ' + attrStr : ''}>${chunk || child.text}</${child.tag}>`;
+      }
+    }
+
+    // If we have leftover words, append them
+    if (wordIdx < words.length) {
+      rebuilt += words.slice(wordIdx).join('');
+    }
+
+    el.innerHTML = rebuilt;
+    if (tagBar) el.appendChild(tagBar);
+  }
+
   function changeTag(el, newTag) {
     const id = el.getAttribute('data-gds-edit');
     const currentTag = el.tagName.toLowerCase();
