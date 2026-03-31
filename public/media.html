@@ -505,10 +505,12 @@
                 images = data.images || [];
                 folders = data.folders || [];
 
+                var mcEl = document.getElementById('media-count');
+                if (mcEl) mcEl.textContent = data.total + ' image(s)';
+                var caEl = document.getElementById('count-all');
+                if (caEl) caEl.textContent = data.total;
                 renderFolders();
                 renderGrid();
-                document.getElementById('media-count').textContent = data.total + ' image(s)';
-                document.getElementById('count-all').textContent = data.total;
             } catch (err) {
                 console.error('[Media] Load error:', err);
                 document.getElementById('images-grid').innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#9888;</div><p>Erreur de chargement des medias</p><p style="font-size:12px;color:#f85149;margin-top:8px">' + (err.message || err) + '</p></div>';
