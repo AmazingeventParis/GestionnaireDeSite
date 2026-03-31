@@ -118,7 +118,7 @@
     <div class="container">
         <div class="section-header">
             <h1 class="page-title">Utilisateurs</h1>
-            <button class="btn btn-primary" onclick="openCreateModal()">+ Creer un utilisateur</button>
+            <button class="btn btn-primary" id="btn-create-user">+ Creer un utilisateur</button>
         </div>
 
         <div class="card" style="padding: 0; overflow: hidden;">
@@ -132,7 +132,7 @@
             <div class="card" style="padding: 20px;">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
                     <h3 style="margin:0;font-size:15px;color:#e6edf3;" id="sessions-title">Sessions</h3>
-                    <button class="btn btn-secondary" onclick="closeSessions()" style="padding:6px 12px;font-size:12px;">Fermer</button>
+                    <button class="btn btn-secondary" id="btn-close-sessions" style="padding:6px 12px;font-size:12px;">Fermer</button>
                 </div>
                 <div id="sessions-container"></div>
             </div>
@@ -143,7 +143,7 @@
     <div class="modal-overlay" id="modal" style="display:none">
         <div class="modal">
             <h2 class="modal-title" id="modal-title">Creer un utilisateur</h2>
-            <form id="user-form" onsubmit="saveUser(event)">
+            <form id="user-form">
                 <input type="hidden" id="user-id">
                 <div class="form-group">
                     <label class="form-label">Email *</label>
@@ -173,7 +173,7 @@
                     </select>
                 </div>
                 <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-modal">Annuler</button>
                     <button type="submit" class="btn btn-primary">Enregistrer</button>
                 </div>
             </form>
@@ -235,10 +235,10 @@
             html += '<td><span class="' + (u.is_active ? 'status-active' : 'status-inactive') + '">' + (u.is_active ? 'Actif' : 'Inactif') + '</span></td>';
             html += '<td style="color:#8b949e;font-size:13px;">' + (u.last_login ? Components.formatDate(u.last_login) : '—') + '</td>';
             html += '<td><div class="user-actions">';
-            html += '<button onclick="openEditModal(\'' + u.id + '\')">Modifier</button>';
-            html += '<button class="btn-sessions" onclick="viewSessions(\'' + u.id + '\', \'' + Components.escapeHtml(u.username || u.email) + '\')">Sessions</button>';
+            html += '<button data-action="edit" data-id="' + u.id + '">Modifier</button>';
+            html += '<button class="btn-sessions" data-action="sessions" data-id="' + u.id + '" data-name="' + Components.escapeHtml(u.username || u.email) + '">Sessions</button>';
             if (!isSelf) {
-                html += '<button class="btn-danger" onclick="deleteUser(\'' + u.id + '\')">Supprimer</button>';
+                html += '<button class="btn-danger" data-action="delete" data-id="' + u.id + '">Supprimer</button>';
             }
             html += '</div></td>';
             html += '</tr>';
@@ -373,11 +373,11 @@
             html += '<div class="session-ua">' + Components.escapeHtml(ua) + '</div>';
             html += '<div class="session-date">Creee : ' + Components.formatDate(s.created_at) + ' — Expire : ' + Components.formatDate(s.expires_at) + '</div>';
             html += '</div>';
-            html += '<button class="revoke-btn" onclick="revokeSession(\'' + userId + '\', \'' + s.id + '\')">Revoquer</button>';
+            html += '<button class="revoke-btn" data-action="revoke" data-user="' + userId + '" data-session="' + s.id + '">Revoquer</button>';
             html += '</div>';
         }
 
-        html += '<button class="revoke-all-btn" onclick="revokeAllSessions(\'' + userId + '\')">Revoquer toutes les sessions</button>';
+        html += '<button class="revoke-all-btn" data-action="revoke-all" data-user="' + userId + '">Revoquer toutes les sessions</button>';
         el.innerHTML = html;
     }
 
@@ -411,8 +411,33 @@
         }
     }
 
+    // Event listeners (no inline onclick)
+    document.getElementById('btn-create-user').addEventListener('click', openCreateModal);
+    document.getElementById('btn-cancel-modal').addEventListener('click', closeModal);
+    document.getElementById('btn-close-sessions').addEventListener('click', closeSessions);
+    document.getElementById('user-form').addEventListener('submit', saveUser);
     document.getElementById('modal').addEventListener('click', function(e) {
         if (e.target === this) closeModal();
+    });
+
+    // Delegation for user table actions
+    document.getElementById('users-container').addEventListener('click', function(e) {
+        var btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        var action = btn.dataset.action;
+        var id = btn.dataset.id;
+        if (action === 'edit') openEditModal(id);
+        else if (action === 'sessions') viewSessions(id, btn.dataset.name);
+        else if (action === 'delete') deleteUser(id);
+    });
+
+    // Delegation for session actions
+    document.getElementById('sessions-container').addEventListener('click', function(e) {
+        var btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        var action = btn.dataset.action;
+        if (action === 'revoke') revokeSession(btn.dataset.user, btn.dataset.session);
+        else if (action === 'revoke-all') revokeAllSessions(btn.dataset.user);
     });
 
     loadUsers();
