@@ -137,20 +137,21 @@ body.gds-admin-mode .gds-page-content {
 [data-gds-edit]::after {
   content: attr(data-gds-tag);
   position: absolute;
-  top: -14px;
+  top: -16px;
   right: -2px;
   font-size: 10px;
   font-weight: 800;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
   color: #fff;
-  background: #58a6ff;
-  padding: 2px 8px;
-  border-radius: 4px;
+  background: #E51981;
+  padding: 3px 10px;
+  border-radius: 5px;
   letter-spacing: 0.5px;
   text-transform: uppercase;
   pointer-events: none;
   opacity: 1 !important;
   z-index: 11;
+  box-shadow: 0 2px 6px rgba(229,25,129,0.3);
 }
 
 /* Modified indicator */
@@ -165,29 +166,35 @@ body.gds-admin-mode .gds-page-content {
 /* Tag selector popup */
 .gds-tag-select {
   position: absolute;
-  top: -32px;
+  top: -38px;
   left: 0;
   display: none;
-  gap: 2px;
+  gap: 3px;
   z-index: 100;
+  background: #fff;
+  padding: 4px 6px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.08);
 }
-[data-gds-edit]:focus .gds-tag-select {
+[data-gds-edit]:focus .gds-tag-select,
+[data-gds-edit]:hover .gds-tag-select {
   display: flex;
 }
 .gds-tag-btn {
-  padding: 3px 8px;
-  font-size: 10px;
+  padding: 4px 10px;
+  font-size: 11px;
   font-weight: 800;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-  border: none;
-  border-radius: 4px;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 6px;
   cursor: pointer;
-  background: #21262d;
-  color: rgba(255,255,255,0.6);
+  background: #f8f9fa;
+  color: #333;
   transition: all 0.15s;
+  letter-spacing: 0.3px;
 }
-.gds-tag-btn:hover { background: #58a6ff; color: #fff; }
-.gds-tag-btn.active { background: #58a6ff; color: #fff; }
+.gds-tag-btn:hover { background: #E51981; color: #fff; border-color: #E51981; }
+.gds-tag-btn.active { background: #E51981; color: #fff; border-color: #E51981; box-shadow: 0 2px 8px rgba(229,25,129,0.3); }
 
 /* ===== TOAST NOTIFICATION ===== */
 #gds-admin-toast {
