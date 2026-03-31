@@ -2052,10 +2052,26 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
     }
     bodyContent += '<main class="snb-page-content">\n';
 
-    // Inject shared page background (halos, glows, transitions)
-    const bgPath = path.join(SHARED_DIR, 'page-background.html');
-    if (fs.existsSync(bgPath)) {
-      bodyContent += fs.readFileSync(bgPath, 'utf-8') + '\n';
+    // Inject shared page background (halos, glows, transitions) if enabled
+    if (config.sections?.background?.enabled !== false) {
+      const bgPath = path.join(SHARED_DIR, 'page-background.html');
+      if (fs.existsSync(bgPath)) {
+        let bgHtml = fs.readFileSync(bgPath, 'utf-8');
+        // Apply custom gradient from config if defined
+        if (config.sections?.background?.gradient) {
+          bgHtml = bgHtml.replace(/linear-gradient\(180deg[\s\S]*?\);\s*\n\}/m,
+            config.sections.background.gradient + ';\n}');
+        }
+        // Hide glows if disabled
+        if (config.sections?.background?.glows === false) {
+          bgHtml = bgHtml.replace(/<div class="bg-glow[^>]*><\/div>/g, '');
+        }
+        // Hide pictos if disabled
+        if (config.sections?.background?.pictos === false) {
+          bgHtml = bgHtml.replace(/<svg class="bg-picto[\s\S]*?<\/svg>/g, '');
+        }
+        bodyContent += bgHtml + '\n';
+      }
     }
 
     // Load spacing config
@@ -2173,6 +2189,13 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
     }
 
     bodyContent += '</main>\n';
+
+    // Apply standardized hero height to hero sections
+    bodyContent = bodyContent.replace(/(data-gds-file="[^"]*hero[^"]*"[^>]*style="[^"]*)(">)/gi, (match, before, end) => {
+      // Don't add if already has min-height with var
+      if (before.includes('--hero-height')) return match;
+      return before + 'min-height:var(--hero-height);' + end;
+    });
 
     // Auto-tag editable elements server-side (more reliable than client-side)
     if (editMode) {

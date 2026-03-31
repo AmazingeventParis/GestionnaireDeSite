@@ -106,6 +106,12 @@
       "titleSize": { "desktop": "52px", "tablet": "40px", "mobile": "32px" },
       "subtitleSize": { "desktop": "17px", "tablet": "16px", "mobile": "15px" }
     },
+    "background": {
+      "enabled": true,
+      "gradient": "linear-gradient(180deg, #f8eaff 0%, #f8eaff 8%, #fff0f8 18%, #f8eaff 30%, #FFF8EE 45%, #fff0f8 55%, #f0f0ff 65%, #FFF8EE 78%, #f8eaff 90%, #f5eaf9 100%)",
+      "glows": true,
+      "pictos": true
+    },
     "standard": {
       "padding": { "desktop": "80px 24px", "tablet": "60px 20px", "mobile": "48px 16px" },
       "titleSize": { "desktop": "44px", "tablet": "36px", "mobile": "28px" },
