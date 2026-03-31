@@ -1,0 +1,117 @@
+<!-- Fond de page habille — transitions pastels + halos diffus -->
+<style>
+.snb-page-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg,
+      #f8eaff 0%,
+      #f8eaff 8%,
+      #fff0f8 18%,
+      #f8eaff 30%,
+      #FFF8EE 45%,
+      #fff0f8 55%,
+      #f0f0ff 65%,
+      #FFF8EE 78%,
+      #f8eaff 90%,
+      #f5eaf9 100%
+    );
+}
+
+/* Halos diffus animes */
+.snb-page-bg .bg-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  will-change: transform;
+}
+
+/* Rose — haut droite */
+.snb-page-bg .bg-g1 {
+  width: 600px; height: 600px;
+  top: 5%; right: -5%;
+  background: radial-gradient(circle, rgba(229,25,129,0.07) 0%, transparent 70%);
+  animation: bgFloat1 18s ease-in-out infinite alternate;
+}
+
+/* Bleu — milieu gauche */
+.snb-page-bg .bg-g2 {
+  width: 500px; height: 500px;
+  top: 25%; left: -8%;
+  background: radial-gradient(circle, rgba(2,80,255,0.05) 0%, transparent 70%);
+  animation: bgFloat2 22s ease-in-out infinite alternate;
+}
+
+/* Violet — centre */
+.snb-page-bg .bg-g3 {
+  width: 450px; height: 450px;
+  top: 45%; left: 40%;
+  background: radial-gradient(circle, rgba(168,85,247,0.05) 0%, transparent 70%);
+  animation: bgFloat3 20s ease-in-out infinite alternate;
+}
+
+/* Orange — bas droite */
+.snb-page-bg .bg-g4 {
+  width: 500px; height: 500px;
+  top: 65%; right: -3%;
+  background: radial-gradient(circle, rgba(255,122,0,0.04) 0%, transparent 70%);
+  animation: bgFloat4 24s ease-in-out infinite alternate;
+}
+
+/* Rose — bas gauche */
+.snb-page-bg .bg-g5 {
+  width: 400px; height: 400px;
+  bottom: 5%; left: 5%;
+  background: radial-gradient(circle, rgba(229,25,129,0.05) 0%, transparent 70%);
+  animation: bgFloat5 16s ease-in-out infinite alternate;
+}
+
+/* Vert subtil — milieu droite */
+.snb-page-bg .bg-g6 {
+  width: 350px; height: 350px;
+  top: 55%; right: 15%;
+  background: radial-gradient(circle, rgba(22,163,74,0.03) 0%, transparent 70%);
+  animation: bgFloat6 26s ease-in-out infinite alternate;
+}
+
+@keyframes bgFloat1 { from { transform: translate(0, 0) scale(1); } to { transform: translate(-30px, 20px) scale(1.1); } }
+@keyframes bgFloat2 { from { transform: translate(0, 0) scale(1); } to { transform: translate(25px, -15px) scale(1.05); } }
+@keyframes bgFloat3 { from { transform: translate(0, 0) scale(1); } to { transform: translate(-15px, 25px) scale(1.08); } }
+@keyframes bgFloat4 { from { transform: translate(0, 0) scale(1); } to { transform: translate(20px, -20px) scale(1.06); } }
+@keyframes bgFloat5 { from { transform: translate(0, 0) scale(1); } to { transform: translate(-20px, -15px) scale(1.1); } }
+@keyframes bgFloat6 { from { transform: translate(0, 0) scale(1); } to { transform: translate(15px, 10px) scale(1.05); } }
+
+/* Lignes decoratives tres subtiles */
+.snb-page-bg .bg-line {
+  position: absolute;
+  background: linear-gradient(90deg, transparent, rgba(229,25,129,0.04), transparent);
+  height: 1px;
+  width: 60%;
+  left: 20%;
+}
+.snb-page-bg .bg-line.l1 { top: 20%; }
+.snb-page-bg .bg-line.l2 { top: 50%; background: linear-gradient(90deg, transparent, rgba(2,80,255,0.03), transparent); width: 50%; left: 25%; }
+.snb-page-bg .bg-line.l3 { top: 75%; background: linear-gradient(90deg, transparent, rgba(168,85,247,0.03), transparent); width: 40%; left: 30%; }
+
+@media (max-width: 768px) {
+  .snb-page-bg .bg-glow { filter: blur(80px); }
+  .snb-page-bg .bg-g1, .snb-page-bg .bg-g2, .snb-page-bg .bg-g3,
+  .snb-page-bg .bg-g4, .snb-page-bg .bg-g5, .snb-page-bg .bg-g6 {
+    width: 300px !important; height: 300px !important;
+  }
+}
+</style>
+<div class="snb-page-bg" aria-hidden="true">
+  <div class="bg-glow bg-g1"></div>
+  <div class="bg-glow bg-g2"></div>
+  <div class="bg-glow bg-g3"></div>
+  <div class="bg-glow bg-g4"></div>
+  <div class="bg-glow bg-g5"></div>
+  <div class="bg-glow bg-g6"></div>
+  <div class="bg-line l1"></div>
+  <div class="bg-line l2"></div>
+  <div class="bg-line l3"></div>
+</div>

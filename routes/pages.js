@@ -2052,6 +2052,12 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
     }
     bodyContent += '<main class="snb-page-content">\n';
 
+    // Inject shared page background (halos, glows, transitions)
+    const bgPath = path.join(SHARED_DIR, 'page-background.html');
+    if (fs.existsSync(bgPath)) {
+      bodyContent += fs.readFileSync(bgPath, 'utf-8') + '\n';
+    }
+
     // Load spacing config
     let spacingData = {};
     const spacingPath = path.join(previewDir, '.spacing.json');

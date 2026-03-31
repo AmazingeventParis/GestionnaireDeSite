@@ -194,6 +194,7 @@ function readSection(filePath) {
 
 const sharedHeader = readSection(path.join(previewsDir, '_shared', 'header.html'));
 const sharedFooter = readSection(path.join(previewsDir, '_shared', 'footer.html'));
+const sharedPageBg = readSection(path.join(previewsDir, '_shared', 'page-background.html'));
 
 // ===== BUILD MODE: warn (default) or strict =====
 const BUILD_MODE = process.env.BUILD_STRICT || 'warn';
@@ -903,6 +904,7 @@ ${buildJsonLdTags(page)}
 ${sharedHeader}
 
 <main class="snb-page-content">
+${sharedPageBg || ''}
 ${page.sections.filter(s => sectionContents[s]).map(s => sectionContents[s]).join('\n\n')}
 </main>
 
