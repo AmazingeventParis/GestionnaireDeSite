@@ -1945,11 +1945,19 @@
       if (!wrapper || !wrapper.getAttribute('data-gds-file')) return;
       activeWrapper = wrapper;
       actionsBar.dataset.file = wrapper.getAttribute('data-gds-file');
-      const rect = wrapper.getBoundingClientRect();
-      actionsBar.style.position = 'absolute';
-      actionsBar.style.top = (rect.top + window.scrollY + 8) + 'px';
-      actionsBar.style.left = (rect.right + window.scrollX - 160) + 'px';
+      positionActions();
       actionsBar.style.display = 'flex';
+    }
+
+    function positionActions() {
+      if (!activeWrapper) return;
+      const rect = activeWrapper.getBoundingClientRect();
+      // Keep buttons visible in viewport — stick to top of viewport if wrapper is taller than viewport
+      const topInViewport = Math.max(8, Math.min(rect.top + 8, window.innerHeight - 60));
+      actionsBar.style.position = 'fixed';
+      actionsBar.style.top = topInViewport + 'px';
+      actionsBar.style.left = 'auto';
+      actionsBar.style.right = '12px';
     }
 
     function hideActions() {
@@ -1985,11 +1993,7 @@
 
     // Update position on scroll
     window.addEventListener('scroll', () => {
-      if (activeWrapper) {
-        const rect = activeWrapper.getBoundingClientRect();
-        actionsBar.style.top = (rect.top + window.scrollY + 8) + 'px';
-        actionsBar.style.left = (rect.right + window.scrollX - 160) + 'px';
-      }
+      if (activeWrapper) positionActions();
     }, { passive: true });
 
     actionsBar.querySelector('.gds-section-save-btn').addEventListener('click', (e) => {
