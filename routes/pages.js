@@ -2171,9 +2171,12 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
 
         // Neutralize inherited styles from site header/footer on same class names inside sections
         allCSS += `\n#${scopeId} .snb-header{position:static!important;top:auto!important;left:auto!important;width:auto!important;z-index:auto!important;background:none!important;backdrop-filter:none!important;border-bottom:none!important;}`;
-        // Fix sidebar sticky — media query scoping may break it, re-enforce desktop sticky + mobile hide
+        // Fix blog article layout — media query scoping breaks multi-rule @media blocks
+        // Re-enforce desktop 2-column layout + sidebar sticky, mobile 1-column + sidebar hidden
+        allCSS += `\n#${scopeId} .snb-article-layout{display:grid!important;grid-template-columns:1fr 280px!important;gap:48px!important;align-items:start!important;}`;
         allCSS += `\n#${scopeId} .snb-sidebar{position:sticky!important;top:100px!important;align-self:start!important;display:flex!important;flex-direction:column!important;gap:24px!important;}`;
-        allCSS += `\n@media(max-width:850px){#${scopeId} .snb-sidebar{position:static!important;display:none!important;}}`;
+        allCSS += `\n@media(max-width:1100px){#${scopeId} .snb-article-layout{grid-template-columns:1fr 240px!important;gap:36px!important;}}`;
+        allCSS += `\n@media(max-width:850px){#${scopeId} .snb-article-layout{grid-template-columns:1fr!important;gap:0!important;}#${scopeId} .snb-sidebar{position:static!important;display:none!important;}}`;
 
         const sectionSpacing = spacingData[section.file] ? `margin-top:${spacingData[section.file]}px;` : '';
         bodyContent += `<div class="gds-section-wrapper" id="${scopeId}" data-gds-file="${section.file}" style="${wrapperStyle}${sectionSpacing}">\n`;
