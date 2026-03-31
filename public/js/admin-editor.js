@@ -303,6 +303,24 @@
       });
       tagBar.appendChild(clearBtn);
 
+      // Separator
+      const sep4 = document.createElement('div');
+      sep4.className = 'gds-toolbar-sep';
+      tagBar.appendChild(sep4);
+
+      // HTML source editor button
+      const htmlBtn = document.createElement('button');
+      htmlBtn.className = 'gds-tag-btn';
+      htmlBtn.innerHTML = '&lt;/&gt;';
+      htmlBtn.title = 'Editer le code HTML';
+      htmlBtn.type = 'button';
+      htmlBtn.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openHtmlEditor(el, id);
+      });
+      tagBar.appendChild(htmlBtn);
+
       el.style.position = 'relative';
       el.appendChild(tagBar);
 
@@ -1138,6 +1156,78 @@
   }
 
   // ===== CHANGE TAG (H1 <-> H2 etc) =====
+  // ===== HTML SOURCE EDITOR =====
+  function openHtmlEditor(el, id) {
+    // Remove existing modal
+    const existing = document.getElementById('gds-html-editor-modal');
+    if (existing) existing.remove();
+
+    // Get clean HTML (without tag bar)
+    const tagBar = el.querySelector('.gds-tag-select');
+    if (tagBar) tagBar.style.display = 'none';
+    let currentHtml = el.innerHTML.replace(/<div class="gds-tag-select"[\s\S]*?<\/div>/g, '').trim();
+
+    // Format HTML for readability
+    currentHtml = currentHtml
+      .replace(/></g, '>\n<')
+      .replace(/\n\n+/g, '\n');
+
+    const overlay = document.createElement('div');
+    overlay.id = 'gds-html-editor-modal';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;';
+
+    overlay.innerHTML = `
+      <div style="background:#161b22;border:1px solid #30363d;border-radius:12px;width:100%;max-width:800px;max-height:90vh;display:flex;flex-direction:column;">
+        <div style="padding:16px 20px;border-bottom:1px solid #21262d;display:flex;justify-content:space-between;align-items:center;">
+          <h3 style="color:#e6edf3;font-size:15px;font-weight:600;margin:0;">Editer le HTML — <span style="color:#E51981">&lt;${el.tagName.toLowerCase()}&gt;</span></h3>
+          <button id="gds-html-close" style="background:none;border:none;color:#8b949e;font-size:20px;cursor:pointer;">&times;</button>
+        </div>
+        <div style="padding:16px 20px;flex:1;overflow:hidden;display:flex;flex-direction:column;">
+          <div style="font-size:11px;color:#8b949e;margin-bottom:8px;">Vous pouvez injecter du HTML responsive : tableaux, listes, divs, images, liens, etc.</div>
+          <textarea id="gds-html-textarea" style="flex:1;min-height:300px;width:100%;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:14px;color:#e6edf3;font-size:13px;font-family:'Consolas','Monaco','Courier New',monospace;line-height:1.6;resize:vertical;outline:none;tab-size:2;">${currentHtml.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+        </div>
+        <div style="padding:12px 20px;border-top:1px solid #21262d;display:flex;justify-content:flex-end;gap:8px;">
+          <button id="gds-html-cancel" style="padding:8px 20px;background:#21262d;color:#e6edf3;border:1px solid #30363d;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">Annuler</button>
+          <button id="gds-html-apply" style="padding:8px 20px;background:#238636;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">Appliquer</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const textarea = document.getElementById('gds-html-textarea');
+
+    // Tab key support
+    textarea.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const s = textarea.selectionStart, en = textarea.selectionEnd;
+        textarea.value = textarea.value.substring(0, s) + '  ' + textarea.value.substring(en);
+        textarea.selectionStart = textarea.selectionEnd = s + 2;
+      }
+    });
+
+    // Close
+    const close = () => overlay.remove();
+    document.getElementById('gds-html-close').addEventListener('click', close);
+    document.getElementById('gds-html-cancel').addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+    // Apply
+    document.getElementById('gds-html-apply').addEventListener('click', () => {
+      const newHtml = textarea.value;
+      // Re-add tag bar
+      el.innerHTML = newHtml;
+      if (tagBar) el.appendChild(tagBar);
+      // Track change
+      trackChange(el, id);
+      el.classList.add('gds-modified');
+      close();
+      showToast('HTML mis a jour', 'success');
+    });
+
+    textarea.focus();
+  }
+
   function changeTag(el, newTag) {
     const id = el.getAttribute('data-gds-edit');
     const currentTag = el.tagName.toLowerCase();
@@ -1224,6 +1314,10 @@
     const cb = document.createElement('button'); cb.className = 'gds-tag-btn'; cb.innerHTML = '&#128465;'; cb.type = 'button';
     cb.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); document.execCommand('removeFormat', false, null); });
     tagBar.appendChild(cb);
+    const sep3b = document.createElement('div'); sep3b.className = 'gds-toolbar-sep'; tagBar.appendChild(sep3b);
+    const hb = document.createElement('button'); hb.className = 'gds-tag-btn'; hb.innerHTML = '&lt;/&gt;'; hb.title = 'Editer HTML'; hb.type = 'button';
+    hb.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); openHtmlEditor(el, id); });
+    tagBar.appendChild(hb);
     tagBar.style.display = 'none';
 
     el.addEventListener('click', (e) => {
