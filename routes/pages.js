@@ -2320,7 +2320,7 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
           const sectionName = file.replace(/^\d+-/, '').replace('.html', '');
           let sectionIdx = 0;
 
-          $wrapper.find('h1, h2, h3, h4, p').each((i, el) => {
+          $wrapper.find('h1, h2, h3, h4, h5, h6, p, [class*="snb-h"], [class*="snb-title"], [class*="snb-subtitle"], [class*="snb-body"], [class*="snb-intro"], [class*="snb-desc"], [class*="heading"], [class*="title"]:not(title), li, blockquote, figcaption, .snb-conseil-text, .snb-highlight p, dt, dd').each((i, el) => {
             const $el = $(el);
             // Skip if already tagged
             if ($el.attr('data-gds-edit')) return;
@@ -2329,8 +2329,10 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
             // Skip if empty
             const text = $el.text().trim();
             if (!text || text.length < 2) return;
-            // Skip if inside admin UI
-            if ($el.closest('.gds-section-actions, .gds-block-inserter').length) return;
+            // Skip if inside admin UI, sidebar, nav, or scripts
+            if ($el.closest('.gds-section-actions, .gds-block-inserter, .snb-sidebar, .snb-toc, .snb-breadcrumb, nav, script, style').length) return;
+            // Skip tiny elements (icons, badges) — must have meaningful text
+            if (text.length < 5 && !['h1','h2','h3','h4','h5','h6'].includes(el.tagName.toLowerCase())) return;
 
             const tag = el.tagName.toLowerCase();
             $el.attr('data-gds-edit', `${sectionName}:${sectionIdx}:${tag}`);
