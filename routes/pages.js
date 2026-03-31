@@ -2158,8 +2158,8 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
 
         // Combine, clean, and scope CSS
         let allCSS = (headCSS + '\n' + inlineCSS).trim();
-        allCSS = allCSS.replace(/body\s*\{[^}]*\}/gi, '');
-        allCSS = allCSS.replace(/html\s*\{[^}]*\}/gi, '');
+        allCSS = allCSS.replace(/(?<![.\-\w])body\s*\{[^}]*\}/gi, '');
+        allCSS = allCSS.replace(/(?<![.\-\w])html\s*\{[^}]*\}/gi, '');
         allCSS = allCSS.replace(/\*\s*,\s*\*::before\s*,\s*\*::after\s*\{[^}]*\}/gi, '');
         // Strip scoped wildcard resets that use !important on margin/padding (breaks layout)
         // e.g. .snb-steps *, .snb-steps *::before, .snb-steps *::after { margin:0!important; padding:0!important; }
