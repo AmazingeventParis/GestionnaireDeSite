@@ -99,6 +99,29 @@
     "sectionPadding": { "desktop": "60px", "mobile": "40px" },
     "borderRadius": "12px"
   },
+  "sections": {
+    "hero": {
+      "height": { "desktop": "520px", "tablet": "420px", "mobile": "360px" },
+      "padding": { "desktop": "40px 40px 50px", "tablet": "40px 20px 50px", "mobile": "30px 16px 40px" },
+      "titleSize": { "desktop": "52px", "tablet": "40px", "mobile": "32px" },
+      "subtitleSize": { "desktop": "17px", "tablet": "16px", "mobile": "15px" }
+    },
+    "standard": {
+      "padding": { "desktop": "80px 24px", "tablet": "60px 20px", "mobile": "48px 16px" },
+      "titleSize": { "desktop": "44px", "tablet": "36px", "mobile": "28px" },
+      "maxWidth": "1300px"
+    },
+    "compact": {
+      "padding": { "desktop": "48px 24px", "tablet": "36px 20px", "mobile": "28px 16px" },
+      "titleSize": { "desktop": "36px", "tablet": "30px", "mobile": "24px" },
+      "maxWidth": "1300px"
+    },
+    "cta": {
+      "padding": { "desktop": "60px 24px", "tablet": "48px 20px", "mobile": "40px 16px" },
+      "titleSize": { "desktop": "40px", "tablet": "32px", "mobile": "26px" },
+      "maxWidth": "860px"
+    }
+  },
   "contact": {
     "phone": "01.45.01.66.66",
     "email": "contact@shootnbox.fr",

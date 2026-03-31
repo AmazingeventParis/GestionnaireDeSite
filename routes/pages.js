@@ -2297,6 +2297,43 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
       --max-width: ${config.layout?.maxWidth || '1340px'};
       --border-radius: ${config.layout?.borderRadius || '12px'};
       --cta-radius: ${config.cta?.borderRadius || '50px'};
+      --hero-height: ${config.sections?.hero?.height?.desktop || '520px'};
+      --hero-padding: ${config.sections?.hero?.padding?.desktop || '40px 40px 50px'};
+      --hero-title-size: ${config.sections?.hero?.titleSize?.desktop || '52px'};
+      --hero-subtitle-size: ${config.sections?.hero?.subtitleSize?.desktop || '17px'};
+      --section-padding: ${config.sections?.standard?.padding?.desktop || '80px 24px'};
+      --section-title-size: ${config.sections?.standard?.titleSize?.desktop || '44px'};
+      --section-max-width: ${config.sections?.standard?.maxWidth || '1300px'};
+      --compact-padding: ${config.sections?.compact?.padding?.desktop || '48px 24px'};
+      --compact-title-size: ${config.sections?.compact?.titleSize?.desktop || '36px'};
+      --cta-section-padding: ${config.sections?.cta?.padding?.desktop || '60px 24px'};
+      --cta-section-title-size: ${config.sections?.cta?.titleSize?.desktop || '40px'};
+      --cta-section-max-width: ${config.sections?.cta?.maxWidth || '860px'};
+    }
+    @media (max-width:1024px) {
+      :root {
+        --hero-height: ${config.sections?.hero?.height?.tablet || '420px'};
+        --hero-padding: ${config.sections?.hero?.padding?.tablet || '40px 20px 50px'};
+        --hero-title-size: ${config.sections?.hero?.titleSize?.tablet || '40px'};
+        --section-padding: ${config.sections?.standard?.padding?.tablet || '60px 20px'};
+        --section-title-size: ${config.sections?.standard?.titleSize?.tablet || '36px'};
+        --compact-padding: ${config.sections?.compact?.padding?.tablet || '36px 20px'};
+        --cta-section-padding: ${config.sections?.cta?.padding?.tablet || '48px 20px'};
+      }
+    }
+    @media (max-width:600px) {
+      :root {
+        --hero-height: ${config.sections?.hero?.height?.mobile || '360px'};
+        --hero-padding: ${config.sections?.hero?.padding?.mobile || '30px 16px 40px'};
+        --hero-title-size: ${config.sections?.hero?.titleSize?.mobile || '32px'};
+        --hero-subtitle-size: ${config.sections?.hero?.subtitleSize?.mobile || '15px'};
+        --section-padding: ${config.sections?.standard?.padding?.mobile || '48px 16px'};
+        --section-title-size: ${config.sections?.standard?.titleSize?.mobile || '28px'};
+        --compact-padding: ${config.sections?.compact?.padding?.mobile || '28px 16px'};
+        --compact-title-size: ${config.sections?.compact?.titleSize?.mobile || '24px'};
+        --cta-section-padding: ${config.sections?.cta?.padding?.mobile || '40px 16px'};
+        --cta-section-title-size: ${config.sections?.cta?.titleSize?.mobile || '26px'};
+      }
     }
     h1, h2, h3, h4, h5, h6 { font-family: var(--font-headings); }
     .container { max-width: var(--max-width); margin: 0 auto; padding: 0 20px; }

@@ -355,6 +355,7 @@
         <button class="settings-tab" data-tab="footer">Footer</button>
         <button class="settings-tab" data-tab="cta">CTA</button>
         <button class="settings-tab" data-tab="layout">Layout</button>
+        <button class="settings-tab" data-tab="sections">Sections</button>
         <button class="settings-tab" data-tab="contact">Contact</button>
         <button class="settings-tab" data-tab="seo">SEO</button>
         <button class="settings-tab" data-tab="scripts">Scripts</button>
@@ -755,6 +756,98 @@
           <div class="field-group">
             <label for="layout-borderRadius">Border radius global</label>
             <input type="text" id="layout-borderRadius" data-path="layout.borderRadius" placeholder="12px">
+          </div>
+        </div>
+
+        <!-- SECTIONS NOMENCLATURE -->
+        <div class="settings-section" id="section-sections">
+          <h2 class="settings-section-title">Nomenclature des sections</h2>
+          <p class="settings-section-desc">Hauteurs et dimensions standardisees pour tous les blocs de page</p>
+
+          <h3 style="color:#58a6ff;font-size:14px;font-weight:700;margin:20px 0 12px;text-transform:uppercase;letter-spacing:1px">Hero</h3>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="sections-hero-height-desktop">Hauteur hero (desktop)</label>
+              <input type="text" id="sections-hero-height-desktop" data-path="sections.hero.height.desktop" placeholder="520px">
+            </div>
+            <div class="field-group">
+              <label for="sections-hero-height-tablet">Hauteur hero (tablette)</label>
+              <input type="text" id="sections-hero-height-tablet" data-path="sections.hero.height.tablet" placeholder="420px">
+            </div>
+            <div class="field-group">
+              <label for="sections-hero-height-mobile">Hauteur hero (mobile)</label>
+              <input type="text" id="sections-hero-height-mobile" data-path="sections.hero.height.mobile" placeholder="360px">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="sections-hero-padding-desktop">Padding hero (desktop)</label>
+              <input type="text" id="sections-hero-padding-desktop" data-path="sections.hero.padding.desktop" placeholder="40px 40px 50px">
+            </div>
+            <div class="field-group">
+              <label for="sections-hero-padding-mobile">Padding hero (mobile)</label>
+              <input type="text" id="sections-hero-padding-mobile" data-path="sections.hero.padding.mobile" placeholder="30px 16px 40px">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="sections-hero-titleSize-desktop">Taille titre hero (desktop)</label>
+              <input type="text" id="sections-hero-titleSize-desktop" data-path="sections.hero.titleSize.desktop" placeholder="52px">
+            </div>
+            <div class="field-group">
+              <label for="sections-hero-titleSize-mobile">Taille titre hero (mobile)</label>
+              <input type="text" id="sections-hero-titleSize-mobile" data-path="sections.hero.titleSize.mobile" placeholder="32px">
+            </div>
+          </div>
+
+          <h3 style="color:#58a6ff;font-size:14px;font-weight:700;margin:20px 0 12px;text-transform:uppercase;letter-spacing:1px">Section standard</h3>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="sections-standard-padding-desktop">Padding (desktop)</label>
+              <input type="text" id="sections-standard-padding-desktop" data-path="sections.standard.padding.desktop" placeholder="80px 24px">
+            </div>
+            <div class="field-group">
+              <label for="sections-standard-padding-mobile">Padding (mobile)</label>
+              <input type="text" id="sections-standard-padding-mobile" data-path="sections.standard.padding.mobile" placeholder="48px 16px">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="sections-standard-titleSize-desktop">Taille titre (desktop)</label>
+              <input type="text" id="sections-standard-titleSize-desktop" data-path="sections.standard.titleSize.desktop" placeholder="44px">
+            </div>
+            <div class="field-group">
+              <label for="sections-standard-titleSize-mobile">Taille titre (mobile)</label>
+              <input type="text" id="sections-standard-titleSize-mobile" data-path="sections.standard.titleSize.mobile" placeholder="28px">
+            </div>
+          </div>
+
+          <h3 style="color:#58a6ff;font-size:14px;font-weight:700;margin:20px 0 12px;text-transform:uppercase;letter-spacing:1px">Section compacte</h3>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="sections-compact-padding-desktop">Padding (desktop)</label>
+              <input type="text" id="sections-compact-padding-desktop" data-path="sections.compact.padding.desktop" placeholder="48px 24px">
+            </div>
+            <div class="field-group">
+              <label for="sections-compact-padding-mobile">Padding (mobile)</label>
+              <input type="text" id="sections-compact-padding-mobile" data-path="sections.compact.padding.mobile" placeholder="28px 16px">
+            </div>
+          </div>
+
+          <h3 style="color:#58a6ff;font-size:14px;font-weight:700;margin:20px 0 12px;text-transform:uppercase;letter-spacing:1px">Section CTA</h3>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="sections-cta-padding-desktop">Padding (desktop)</label>
+              <input type="text" id="sections-cta-padding-desktop" data-path="sections.cta.padding.desktop" placeholder="60px 24px">
+            </div>
+            <div class="field-group">
+              <label for="sections-cta-padding-mobile">Padding (mobile)</label>
+              <input type="text" id="sections-cta-padding-mobile" data-path="sections.cta.padding.mobile" placeholder="40px 16px">
+            </div>
+          </div>
+          <div class="field-group">
+            <label for="sections-cta-maxWidth">Largeur max CTA</label>
+            <input type="text" id="sections-cta-maxWidth" data-path="sections.cta.maxWidth" placeholder="860px">
           </div>
         </div>
 

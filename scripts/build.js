@@ -896,6 +896,38 @@ img { max-width: 100%; height: auto; }
 ul { list-style: none; padding: 0; margin: 0; }
 .snb-page-content { padding-top: 72px; }
 @media (max-width: 850px) { .snb-page-content { padding-top: 60px; } }
+:root {
+  --hero-height: ${siteConfig.sections?.hero?.height?.desktop || '520px'};
+  --hero-padding: ${siteConfig.sections?.hero?.padding?.desktop || '40px 40px 50px'};
+  --hero-title-size: ${siteConfig.sections?.hero?.titleSize?.desktop || '52px'};
+  --hero-subtitle-size: ${siteConfig.sections?.hero?.subtitleSize?.desktop || '17px'};
+  --section-padding: ${siteConfig.sections?.standard?.padding?.desktop || '80px 24px'};
+  --section-title-size: ${siteConfig.sections?.standard?.titleSize?.desktop || '44px'};
+  --section-max-width: ${siteConfig.sections?.standard?.maxWidth || '1300px'};
+  --compact-padding: ${siteConfig.sections?.compact?.padding?.desktop || '48px 24px'};
+  --compact-title-size: ${siteConfig.sections?.compact?.titleSize?.desktop || '36px'};
+  --cta-section-padding: ${siteConfig.sections?.cta?.padding?.desktop || '60px 24px'};
+  --cta-section-title-size: ${siteConfig.sections?.cta?.titleSize?.desktop || '40px'};
+  --cta-section-max-width: ${siteConfig.sections?.cta?.maxWidth || '860px'};
+}
+@media (max-width:1024px) { :root {
+  --hero-height: ${siteConfig.sections?.hero?.height?.tablet || '420px'};
+  --hero-padding: ${siteConfig.sections?.hero?.padding?.tablet || '40px 20px 50px'};
+  --hero-title-size: ${siteConfig.sections?.hero?.titleSize?.tablet || '40px'};
+  --section-padding: ${siteConfig.sections?.standard?.padding?.tablet || '60px 20px'};
+  --section-title-size: ${siteConfig.sections?.standard?.titleSize?.tablet || '36px'};
+} }
+@media (max-width:600px) { :root {
+  --hero-height: ${siteConfig.sections?.hero?.height?.mobile || '360px'};
+  --hero-padding: ${siteConfig.sections?.hero?.padding?.mobile || '30px 16px 40px'};
+  --hero-title-size: ${siteConfig.sections?.hero?.titleSize?.mobile || '32px'};
+  --hero-subtitle-size: ${siteConfig.sections?.hero?.subtitleSize?.mobile || '15px'};
+  --section-padding: ${siteConfig.sections?.standard?.padding?.mobile || '48px 16px'};
+  --section-title-size: ${siteConfig.sections?.standard?.titleSize?.mobile || '28px'};
+  --compact-padding: ${siteConfig.sections?.compact?.padding?.mobile || '28px 16px'};
+  --cta-section-padding: ${siteConfig.sections?.cta?.padding?.mobile || '40px 16px'};
+  --cta-section-title-size: ${siteConfig.sections?.cta?.titleSize?.mobile || '26px'};
+} }
 </style>
 ${buildJsonLdTags(page)}
 </head>
