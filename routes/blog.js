@@ -141,7 +141,7 @@ function buildSidebarRelatedHTML(currentSlug, index) {
 }
 
 // Generate full article HTML from template + data
-function generateArticleHTML(article, index) {
+function generateArticleFiles(article, index) {
   const tpl = fs.readFileSync(path.join(TEMPLATES_DIR, 'blog-article.html'), 'utf-8');
   const cat = categoryInfo(article.category);
   const author = AUTHORS[article.author] || AUTHORS.mathilde;
@@ -163,7 +163,7 @@ function generateArticleHTML(article, index) {
     '{{AUTHOR_NAME}}': author.name,
     '{{AUTHOR_INITIALS}}': author.initials,
     '{{AUTHOR_ROLE}}': author.role,
-    '{{HERO_IMAGE}}': article.heroImage || '/site-images/blog-default.webp',
+    '{{HERO_IMAGE}}': article.heroImage || '',
     '{{HERO_ALT}}': article.heroAlt || article.title,
     '{{TITLE_HTML}}': article.titleHTML || article.title,
     '{{BODY_CONTENT}}': bodyHTML,
@@ -176,11 +176,60 @@ function generateArticleHTML(article, index) {
     '{{SIDEBAR_RELATED_HTML}}': sidebarRelatedHTML
   };
 
-  let html = tpl;
+  let fullHtml = tpl;
   for (const [key, val] of Object.entries(replacements)) {
-    html = html.split(key).join(val);
+    fullHtml = fullHtml.split(key).join(val);
   }
-  return html;
+
+  // Split into 3 files: hero, content, sidebar+footer
+
+  // Extract CSS (everything in <style>)
+  let css = '';
+  fullHtml = fullHtml.replace(/<style>([\s\S]*?)<\/style>/i, (m, c) => { css = c; return ''; });
+
+  // Extract script
+  let script = '';
+  fullHtml = fullHtml.replace(/<script>([\s\S]*?)<\/script>/i, (m, c) => { script = c; return ''; });
+
+  // Split HTML at the layout div
+  const heroEnd = fullHtml.indexOf('<div class="snb-article-layout">');
+  const sidebarStart = fullHtml.indexOf('<aside class="snb-sidebar">');
+  const sidebarEnd = fullHtml.indexOf('</aside>');
+  const layoutEnd = fullHtml.indexOf('</div>', sidebarEnd + 8); // close snb-article-layout
+  const relatedStart = fullHtml.indexOf('<section class="snb-related-section">');
+
+  const heroHTML = fullHtml.substring(0, heroEnd).trim();
+  const bodyContentHTML = fullHtml.substring(heroEnd, sidebarStart).trim();
+  const sidebarHTML = fullHtml.substring(sidebarStart, sidebarEnd + 8).trim();
+  const afterLayout = fullHtml.substring(layoutEnd + 6).trim(); // related section + rest
+
+  // File 1: Hero (breadcrumb + meta + title + author + hero image placeholder)
+  const heroImageSrc = article.heroImage || '';
+  const heroImgTag = heroImageSrc
+    ? `<img src="${heroImageSrc}" alt="${article.heroAlt || article.title}" loading="eager" fetchpriority="high" width="1300" height="488">`
+    : `<img src="" alt="${article.heroAlt || article.title}" data-gds-placeholder loading="eager" fetchpriority="high" width="1300" height="488" style="width:100%;aspect-ratio:16/6;border:2px dashed rgba(150,150,150,0.3);border-radius:20px;background:#f0f0f0;">`;
+
+  // Replace the img in hero with placeholder-aware version
+  let heroFinal = heroHTML.replace(/<img\s+src="[^"]*"\s+alt="[^"]*"[^>]*>/, heroImgTag);
+
+  const file1 = `<style>${css}</style>\n${heroFinal}`;
+
+  // File 2: Article body content (editable — user adds blocs here)
+  // Wrap in the article-layout opening + article body
+  const file2 = bodyContentHTML
+    ? bodyContentHTML + '\n  </article>'
+    : `<div class="snb-article-layout">\n  <article class="snb-article-body">\n    <p class="snb-article-intro">Redigez votre introduction ici...</p>\n  </article>`;
+
+  // File 3: Sidebar + related articles + script
+  const file3 = `  ${sidebarHTML}\n</div>\n${afterLayout}\n<script>${script}</script>`;
+
+  return { file1, file2, file3 };
+}
+
+// Backward compat wrapper
+function generateArticleHTML(article, index) {
+  const files = generateArticleFiles(article, index);
+  return files.file1 + '\n' + files.file2 + '\n' + files.file3;
 }
 
 // Ensure category is tracked in index
@@ -286,10 +335,12 @@ router.post('/create', verifyToken, requireRole('admin'), async (req, res) => {
     index.articles.push(article);
     writeIndex(index);
 
-    // Create page directory + section file
+    // Create page directory + section files (3 separate files)
     fs.mkdirSync(pageDir, { recursive: true });
-    const html = generateArticleHTML(article, index);
-    fs.writeFileSync(path.join(pageDir, '10-blog-article.html'), html, 'utf-8');
+    const files = generateArticleFiles(article, index);
+    fs.writeFileSync(path.join(pageDir, '10-blog-hero.html'), files.file1, 'utf-8');
+    fs.writeFileSync(path.join(pageDir, '20-blog-body.html'), files.file2, 'utf-8');
+    fs.writeFileSync(path.join(pageDir, '30-blog-sidebar.html'), files.file3, 'utf-8');
 
     // Create seo.json
     const seoData = {
@@ -340,11 +391,19 @@ router.put('/:slug', verifyToken, requireRole('admin'), async (req, res) => {
     index.articles[idx] = article;
     writeIndex(index);
 
-    // Regenerate HTML
+    // Regenerate HTML (3 files)
     const pageDir = path.join(PREVIEWS_DIR, article.slug);
     if (!fs.existsSync(pageDir)) fs.mkdirSync(pageDir, { recursive: true });
-    const html = generateArticleHTML(article, index);
-    fs.writeFileSync(path.join(pageDir, '10-blog-article.html'), html, 'utf-8');
+    const files = generateArticleFiles(article, index);
+    fs.writeFileSync(path.join(pageDir, '10-blog-hero.html'), files.file1, 'utf-8');
+    // Only regenerate body if bodyHTML changed (don't overwrite user's manual edits from editor)
+    if (req.body.bodyHTML !== undefined) {
+      fs.writeFileSync(path.join(pageDir, '20-blog-body.html'), files.file2, 'utf-8');
+    }
+    fs.writeFileSync(path.join(pageDir, '30-blog-sidebar.html'), files.file3, 'utf-8');
+    // Clean up old single-file if it exists
+    const oldFile = path.join(pageDir, '10-blog-article.html');
+    if (fs.existsSync(oldFile)) fs.unlinkSync(oldFile);
 
     // Update seo.json
     const seoData = {
@@ -414,8 +473,13 @@ router.post('/:slug/regenerate', verifyToken, requireRole('admin'), (req, res) =
   const pageDir = path.join(PREVIEWS_DIR, article.slug);
   if (!fs.existsSync(pageDir)) fs.mkdirSync(pageDir, { recursive: true });
 
-  const html = generateArticleHTML(article, index);
-  fs.writeFileSync(path.join(pageDir, '10-blog-article.html'), html, 'utf-8');
+  const files = generateArticleFiles(article, index);
+  fs.writeFileSync(path.join(pageDir, '10-blog-hero.html'), files.file1, 'utf-8');
+  fs.writeFileSync(path.join(pageDir, '20-blog-body.html'), files.file2, 'utf-8');
+  fs.writeFileSync(path.join(pageDir, '30-blog-sidebar.html'), files.file3, 'utf-8');
+  // Clean up old single-file
+  const oldFile = path.join(pageDir, '10-blog-article.html');
+  if (fs.existsSync(oldFile)) fs.unlinkSync(oldFile);
 
   res.json({ success: true });
 });
