@@ -2314,13 +2314,16 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
         const $ = cheerio.load(bodyContent, { decodeEntities: false });
         let autoIdx = 0;
 
-        $('.gds-section-wrapper').each((wi, wrapper) => {
+        // Tag editables in section wrappers AND in injected layout wrappers
+        const editableSelector = 'h1, h2, h3, h4, h5, h6, p, [class*="snb-h"], [class*="snb-title"], [class*="snb-subtitle"], [class*="snb-body"], [class*="snb-intro"], [class*="snb-desc"], [class*="heading"], [class*="title"]:not(title), li, blockquote, figcaption, .snb-conseil-text, .snb-highlight p, dt, dd';
+
+        $('.gds-section-wrapper, .snb-article-layout .gds-section-wrapper').each((wi, wrapper) => {
           const $wrapper = $(wrapper);
-          const file = $wrapper.attr('data-gds-file') || 'custom';
+          const file = $wrapper.attr('data-gds-file') || $wrapper.closest('[data-gds-file]').attr('data-gds-file') || 'custom';
           const sectionName = file.replace(/^\d+-/, '').replace('.html', '');
           let sectionIdx = 0;
 
-          $wrapper.find('h1, h2, h3, h4, h5, h6, p, [class*="snb-h"], [class*="snb-title"], [class*="snb-subtitle"], [class*="snb-body"], [class*="snb-intro"], [class*="snb-desc"], [class*="heading"], [class*="title"]:not(title), li, blockquote, figcaption, .snb-conseil-text, .snb-highlight p, dt, dd').each((i, el) => {
+          $wrapper.find(editableSelector).each((i, el) => {
             const $el = $(el);
             // Skip if already tagged
             if ($el.attr('data-gds-edit')) return;
