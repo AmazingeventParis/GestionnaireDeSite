@@ -886,7 +886,7 @@
     // URL input
     document.getElementById('gds-ir-url-input').addEventListener('input', () => {
       const url = document.getElementById('gds-ir-url-input').value.trim();
-      document.getElementById('gds-ir-submit').disabled = !url.startsWith('http');
+      document.getElementById('gds-ir-submit').disabled = !(url.startsWith('http') || url.startsWith('/'));
     });
 
     // Submit
