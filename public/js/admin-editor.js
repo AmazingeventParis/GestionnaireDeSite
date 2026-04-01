@@ -1751,9 +1751,19 @@
     } : null;
 
     // Clean tag bar HTML from change texts
+    // The tag-select contains nested <div class="gds-toolbar-sep"> so simple lazy match fails
+    // Use a function to find the matching closing </div> by counting depth
     const cleanChanges = Object.values(changes).map(c => ({
       ...c,
-      text: c.text.replace(/<div class="gds-tag-select"[\s\S]*?<\/div>/g, '')
+      text: c.text.replace(/<div class="gds-tag-select"[\s\S]*$/, (match) => {
+        let depth = 0, i = 0;
+        while (i < match.length) {
+          if (match.substring(i, i+4) === '<div') { depth++; const end = match.indexOf('>', i); i = end + 1; }
+          else if (match.substring(i, i+6) === '</div>') { depth--; if (depth === 0) return match.substring(i + 6); i += 6; }
+          else i++;
+        }
+        return '';
+      })
     }));
 
     try {

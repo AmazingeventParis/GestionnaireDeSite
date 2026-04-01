@@ -1176,8 +1176,12 @@ router.post('/:slug/save', verifyToken, requireRole('admin', 'editor'), async (r
           const target = editables[change.index];
           const $el = target.$el;
 
-          // Replace content
-          $el.html(change.text);
+          // Replace content — strip any leaked admin toolbar HTML
+          let cleanText = change.text;
+          cleanText = cleanText.replace(/<div class="gds-tag-select">[\s\S]*?<\/div>(?:\s*<\/div>)*/g, '');
+          cleanText = cleanText.replace(/<button class="gds-tag-btn"[\s\S]*?<\/button>/g, '');
+          cleanText = cleanText.replace(/<div class="gds-toolbar-sep"[\s\S]*?<\/div>/g, '');
+          $el.html(cleanText);
 
           // Change tag if needed
           if (change.tagChanged && change.tag && change.tag !== target.tag) {
