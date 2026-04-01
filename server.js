@@ -124,6 +124,16 @@ app.use('/site-images', express.static(path.join(__dirname, 'public', 'site-imag
   maxAge: process.env.NODE_ENV === 'production' ? '365d' : 0, etag: true
 }));
 
+// ===== URL PATH ROUTING — redirect /location-photobooth-xxx/ to page preview =====
+app.get('/location-photobooth-:city/', (req, res) => {
+  const city = req.params.city.replace(/[^a-z0-9-]/gi, '');
+  res.redirect('/api/pages/' + city + '/preview');
+});
+app.get('/location-photobooth/:city/', (req, res) => {
+  const city = req.params.city.replace(/[^a-z0-9-]/gi, '');
+  res.redirect('/api/pages/' + city + '/preview');
+});
+
 // ===== API 404 =====
 app.all('/api/*', (req, res) => {
   res.status(404).json({ error: 'Route API non trouvee' });
