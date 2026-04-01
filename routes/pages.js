@@ -1151,10 +1151,13 @@ router.post('/:slug/save', verifyToken, requireRole('admin', 'editor'), async (r
       const editableSelector = 'h1, h2, h3, h4, h5, h6, p, [class*="snb-h"], [class*="snb-title"], [class*="snb-subtitle"], [class*="snb-body"], [class*="snb-intro"], [class*="snb-desc"], [class*="heading"], [class*="title"]:not(title), li, blockquote, figcaption, .snb-conseil-text, .snb-highlight p, dt, dd';
 
       for (const [sectionName, sectionChanges] of Object.entries(changesBySection)) {
-        // Find the actual file
+        // Find the actual file — sectionName is now the full filename without .html (e.g. "50-section")
         let filePath = null;
         const allFiles = fs.readdirSync(previewDir).filter(f => f.endsWith('.html'));
-        const match = allFiles.find(f => f.replace(/^\d+-/, '').replace('.html', '') === sectionName);
+        // Try exact match first (new format: "50-section" → "50-section.html")
+        let match = allFiles.find(f => f.replace('.html', '') === sectionName);
+        // Fallback: old format without prefix (for backwards compatibility)
+        if (!match) match = allFiles.find(f => f.replace(/^\d+-/, '').replace('.html', '') === sectionName);
         if (match) filePath = path.join(previewDir, match);
         if (!filePath || !fs.existsSync(filePath)) continue;
 
@@ -2381,7 +2384,9 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
         $('.gds-section-wrapper, .snb-article-layout .gds-section-wrapper').each((wi, wrapper) => {
           const $wrapper = $(wrapper);
           const file = $wrapper.attr('data-gds-file') || $wrapper.closest('[data-gds-file]').attr('data-gds-file') || 'custom';
-          const sectionName = file.replace(/^\d+-/, '').replace('.html', '');
+          // Use full filename (without .html) as section name to avoid collisions
+          // e.g. "50-section" instead of "section" — multiple sections share the same base name
+          const sectionName = file.replace('.html', '');
           let sectionIdx = 0;
 
           $wrapper.find(editableSelector).each((i, el) => {
@@ -2412,7 +2417,7 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
         $('.gds-section-wrapper').each((wi, wrapper) => {
           const $wrapper = $(wrapper);
           const file = $wrapper.attr('data-gds-file') || 'custom';
-          const sectionName = file.replace(/^\d+-/, '').replace('.html', '');
+          const sectionName = file.replace('.html', '');
 
           $wrapper.find('img, video').each((i, el) => {
             const $el = $(el);
