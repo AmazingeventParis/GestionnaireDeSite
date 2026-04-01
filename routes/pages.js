@@ -1544,6 +1544,7 @@ router.put('/:slug/section/:file', verifyToken, requireRole('admin', 'editor'), 
     // Remove scoped CSS prefixes (#gds-s-xxx) that leaked from preview rendering
     content = content.replace(/#gds-s-\w+\s+/g, '');
     // Remove admin UI elements
+    content = content.replace(/<div class="gds-section-label">[\s\S]*?<\/div>\n?/g, '');
     content = content.replace(/<div class="gds-tag-select">[\s\S]*?<\/div>/g, '');
     content = content.replace(/<div class="gds-ph-overlay">[\s\S]*?<\/div>/g, '');
     content = content.replace(/<div class="gds-section-actions">[\s\S]*?<\/div>/g, '');

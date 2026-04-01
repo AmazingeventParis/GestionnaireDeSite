@@ -1854,7 +1854,7 @@
   function cleanSectionHtml(wrapper) {
     const clone = wrapper.cloneNode(true);
     // Remove admin UI elements
-    clone.querySelectorAll('.gds-tag-select, .gds-section-actions, .gds-block-inserter, .gds-ph-overlay, .gds-img-toolbar, #gds-admin-bar').forEach(el => el.remove());
+    clone.querySelectorAll('.gds-section-label, .gds-tag-select, .gds-section-actions, .gds-block-inserter, .gds-ph-overlay, .gds-img-toolbar, #gds-admin-bar').forEach(el => el.remove());
     // Remove admin attributes
     clone.querySelectorAll('[data-gds-edit]').forEach(el => {
       el.removeAttribute('data-gds-edit');
