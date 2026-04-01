@@ -412,6 +412,9 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 9l-3 3 3 3"/><path d="M9 5l3-3 3 3"/><path d="M15 19l-3 3-3-3"/><path d="M19 9l3 3-3 3"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/></svg> Position
         </div>
       </div>
+      <div class="gds-img-btn" id="gdsImgFlipBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h3"/><path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"/><line x1="12" y1="2" x2="12" y2="22" stroke-dasharray="2 2"/></svg> Miroir
+      </div>
       <div class="gds-img-sliders" id="gdsImgSliders" style="display:none">
         <div class="gds-img-slider-row">
           <label>H</label>
@@ -523,6 +526,40 @@
       slidersPanel.style.display = posOpen ? 'block' : 'none';
     });
 
+    // Flip/Mirror button
+    const flipBtn = document.getElementById('gdsImgFlipBtn');
+    flipBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!activeEl) return;
+      // Toggle horizontal flip
+      const current = activeEl.style.transform || '';
+      const isFlipped = current.includes('scaleX(-1)');
+      if (isFlipped) {
+        activeEl.style.setProperty('transform', current.replace('scaleX(-1)', '').trim() || 'none', 'important');
+      } else {
+        activeEl.style.setProperty('transform', (current.replace('none', '').trim() + ' scaleX(-1)').trim(), 'important');
+      }
+      // Save to section file
+      const wrapper = activeEl.closest('.gds-section-wrapper');
+      if (wrapper) {
+        const file = wrapper.getAttribute('data-gds-file');
+        if (file) {
+          const sectionHtml = cleanSectionHtml(wrapper);
+          try {
+            await Auth.apiFetch('/api/pages/' + currentSlug + '/section/' + encodeURIComponent(file), {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ content: sectionHtml })
+            });
+            showToast(isFlipped ? 'Miroir retire' : 'Image retournee', 'success');
+          } catch (err) {
+            showToast('Erreur sauvegarde miroir', 'error');
+          }
+        }
+      }
+    });
+
     // Live preview position
     posX.addEventListener('input', () => {
       posXVal.textContent = posX.value + '%';
@@ -534,46 +571,40 @@
     });
 
     function applyPosition(el, x, y) {
-      if (el.hasAttribute('data-gds-img')) {
-        el.style.objectPosition = x + '% ' + y + '%';
-      } else {
-        const style = el.getAttribute('style') || '';
-        const newStyle = style.replace(/\d+%\s+\d+%/, x + '% ' + y + '%');
-        el.setAttribute('style', newStyle);
+      // Use setProperty with !important to override any CSS
+      el.style.setProperty('object-position', x + '% ' + y + '%', 'important');
+      // Also ensure object-fit is set
+      if (!el.style.objectFit && el.tagName === 'IMG') {
+        el.style.setProperty('object-fit', 'cover', 'important');
       }
     }
 
-    // Save position
+    // Save position — save directly to section file
     posSave.addEventListener('click', async (e) => {
       e.preventDefault();
       if (!activeEl) return;
 
-      const isImg = activeEl.hasAttribute('data-gds-img');
-      const attrData = activeEl.getAttribute(isImg ? 'data-gds-img' : 'data-gds-bg');
-      const section = attrData.split(':')[0];
-      const src = attrData.split(':').slice(2).join(':');
-
-      console.log('[GDS] Saving position:', { slug: currentSlug, section, src, posX: posX.value, posY: posY.value });
       posSave.textContent = '...';
-      try {
-        const res = await Auth.apiFetch('/api/pages/' + currentSlug + '/image-position', {
-          method: 'POST',
-          body: JSON.stringify({
-            section: section,
-            src: src,
-            posX: posX.value,
-            posY: posY.value
-          })
-        });
-        const resData = await res.json().catch(() => ({}));
-        console.log('[GDS] Position response:', res.status, resData);
-        if (!res.ok) throw new Error(resData.error || 'Erreur ' + res.status);
-        imageChanges++;
-        updateChangesCount();
-        showToast('Position sauvegardee !', 'success');
-      } catch (err) {
-        showToast('Erreur: ' + err.message, 'error');
-        console.error('[GDS] Position save error:', err);
+      // Apply position with !important
+      applyPosition(activeEl, posX.value, posY.value);
+
+      // Save the section file with the new inline style
+      const wrapper = activeEl.closest('.gds-section-wrapper');
+      if (wrapper) {
+        const file = wrapper.getAttribute('data-gds-file');
+        if (file) {
+          const sectionHtml = cleanSectionHtml(wrapper);
+          try {
+            await Auth.apiFetch('/api/pages/' + currentSlug + '/section/' + encodeURIComponent(file), {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ content: sectionHtml })
+            });
+            showToast('Position sauvegardee !', 'success');
+          } catch (err) {
+            showToast('Erreur: ' + err.message, 'error');
+          }
+        }
       }
       posSave.textContent = 'Appliquer';
       posOpen = false;
