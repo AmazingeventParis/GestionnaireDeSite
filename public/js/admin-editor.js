@@ -379,18 +379,20 @@
     const bgEls = document.querySelectorAll('[data-gds-bg]');
     console.log('[GDS Admin] Found', imgEls.length, 'editable images +', bgEls.length, 'editable backgrounds');
 
-    // Double-click on any image/video in a section to open replacement modal
-    document.querySelectorAll('.gds-section-wrapper img, .gds-section-wrapper video').forEach(el => {
-      // Skip logos and header images
+    // Double-click on any image/video in a section to open replacement modal (event delegation)
+    document.addEventListener('dblclick', (e) => {
+      const el = e.target.closest('.gds-section-wrapper img, .gds-section-wrapper video');
+      if (!el) return;
       if (el.closest('.snb-header, .snb-nav, nav, header, .snb-footer, footer')) return;
       if (el.src && el.src.includes('/logo/')) return;
-
+      e.preventDefault();
+      e.stopPropagation();
+      openImageReplaceModal(el);
+    });
+    // Style all current images as clickable
+    document.querySelectorAll('.gds-section-wrapper img, .gds-section-wrapper video').forEach(el => {
+      if (el.closest('.snb-header, .snb-nav, nav, header, .snb-footer, footer')) return;
       el.style.cursor = 'pointer';
-      el.addEventListener('dblclick', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        openImageReplaceModal(el);
-      });
     });
 
     // Hidden file input
@@ -456,6 +458,13 @@
         if (el.hasAttribute('data-gds-img') || el.hasAttribute('data-gds-bg')) {
           found = el;
           break;
+        }
+        // Also detect images/videos inside sections even without data-gds-img (e.g. JS-cloned elements)
+        if ((el.tagName === 'IMG' || el.tagName === 'VIDEO') && el.closest('.gds-section-wrapper') && !el.closest('.snb-header, .snb-nav, nav, header, .snb-footer, footer')) {
+          if (el.src && !el.src.includes('/logo/') && !el.src.startsWith('data:')) {
+            found = el;
+            break;
+          }
         }
       }
 
@@ -620,16 +629,20 @@
       }
       const file = fileInput.files[0];
 
-      const isImg = el.hasAttribute('data-gds-img');
-      const data = el.getAttribute(isImg ? 'data-gds-img' : 'data-gds-bg');
-      if (!data) {
-        console.error('[GDS] Upload: element has no data-gds-img/bg attribute');
-        showToast('Erreur: image non editable', 'error');
-        return;
+      const isImg = el.hasAttribute('data-gds-img') || el.tagName === 'IMG' || el.tagName === 'VIDEO';
+      const data = el.getAttribute('data-gds-img') || el.getAttribute('data-gds-bg');
+      let section, originalSrc;
+      if (data) {
+        const parts = data.split(':');
+        section = parts[0];
+        originalSrc = parts.slice(2).join(':');
+      } else {
+        // Fallback for elements without data-gds-img (e.g. JS-cloned carousel slides)
+        const wrapper = el.closest('.gds-section-wrapper');
+        const sectionFile = wrapper ? wrapper.getAttribute('data-gds-file') || 'custom' : 'custom';
+        section = sectionFile.replace(/^\d+-/, '').replace('.html', '');
+        originalSrc = el.src || '';
       }
-      const parts = data.split(':');
-      const section = parts[0];
-      const originalSrc = parts.slice(2).join(':');
 
       console.log('[GDS] Upload starting:', { section, originalSrc, file: file.name, size: file.size });
       changeBtn.textContent = 'Upload...';
@@ -901,6 +914,9 @@
 
         const isNewVideo = newSrc.match(/\.(mp4|webm|mov)(\?|$)/i);
 
+        // Save wrapper reference BEFORE any replaceWith (which removes imgEl from DOM)
+        const saveWrapper = imgEl.closest('.gds-section-wrapper') || (imgEl.parentElement && imgEl.parentElement.closest('.gds-section-wrapper'));
+
         if (isNewVideo && !isVideo) {
           const vid = document.createElement('video');
           vid.src = newSrc;
@@ -918,7 +934,7 @@
         }
 
         // Save the section
-        const wrapper = imgEl.closest('.gds-section-wrapper') || (imgEl.parentElement && imgEl.parentElement.closest('.gds-section-wrapper'));
+        const wrapper = saveWrapper;
         if (wrapper) {
           const file = wrapper.getAttribute('data-gds-file');
           if (file) {
