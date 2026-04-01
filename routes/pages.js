@@ -2202,6 +2202,28 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
           ? `position:relative;max-width:${wrapperMaxWidth};margin:0 auto;`
           : 'position:relative;';
 
+        // Fix: re-inject @media blocks from the original unscoped CSS with proper scoping
+        // The scopeCSS parser sometimes breaks multi-rule @media blocks
+        const mediaRegex = /@media\s*\([^)]+\)\s*\{([\s\S]*?)\n\s*\}/g;
+        let mediaMatch;
+        const origCSS = (headCSS + '\n' + inlineCSS).trim();
+        while ((mediaMatch = mediaRegex.exec(origCSS)) !== null) {
+          const mediaHeader = mediaMatch[0].match(/@media\s*\([^)]+\)/)[0];
+          const mediaBody = mediaMatch[1];
+          // Scope each rule inside the @media manually
+          const rules = mediaBody.match(/[^{}]+\{[^}]*\}/g) || [];
+          if (rules.length > 1) { // Only fix multi-rule @media blocks
+            const scopedRules = rules.map(r => {
+              const selEnd = r.indexOf('{');
+              const sel = r.substring(0, selEnd).trim();
+              const body = r.substring(selEnd);
+              if (sel.startsWith('@') || sel === ':root') return r;
+              return `#${scopeId} ${sel}${body}`;
+            }).join('\n');
+            allCSS += `\n${mediaHeader}{${scopedRules}}`;
+          }
+        }
+
         // Neutralize inherited styles from site header/footer on same class names inside sections
         allCSS += `\n#${scopeId} .snb-header{position:static!important;top:auto!important;left:auto!important;width:auto!important;z-index:auto!important;background:none!important;backdrop-filter:none!important;border-bottom:none!important;}`;
         // Fix blog article layout — media query scoping breaks multi-rule @media blocks
