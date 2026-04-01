@@ -468,7 +468,7 @@
 }
 
 .snb-ft-zone-group.open .snb-ft-zone-content {
-  max-height: 600px;
+  max-height: 2000px;
 }
 
 .snb-ft-zone-cities {
@@ -683,7 +683,7 @@ Obtenir un devis gratuit
 <div class="snb-ft-zones-title">Zones d'intervention</div>
 <div class="snb-ft-zones-groups">
 <div class="snb-ft-zone-group">
-<div class="snb-ft-zone-header" onclick="this.parentElement.classList.toggle('open')">
+<div class="snb-ft-zone-header">
 <div class="snb-ft-zone-header-left">
 <div class="snb-ft-zone-icon national"><svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"></path></svg></div>
 <span class="snb-ft-zone-name">Livraison partout en France</span>
@@ -716,7 +716,7 @@ Obtenir un devis gratuit
 </div>
 </div>
 <div class="snb-ft-zone-group">
-<div class="snb-ft-zone-header" onclick="this.parentElement.classList.toggle('open')">
+<div class="snb-ft-zone-header">
 <div class="snb-ft-zone-header-left">
 <div class="snb-ft-zone-icon idf"><svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"></path></svg></div>
 <span class="snb-ft-zone-name">Ile-de-France</span>
@@ -852,7 +852,7 @@ Obtenir un devis gratuit
 </div>
 </div>
 <div class="snb-ft-zone-group">
-<div class="snb-ft-zone-header" onclick="this.parentElement.classList.toggle('open')">
+<div class="snb-ft-zone-header">
 <div class="snb-ft-zone-header-left">
 <div class="snb-ft-zone-icon gironde"><svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"></path></svg></div>
 <span class="snb-ft-zone-name">Gironde &amp; Bordeaux</span>
@@ -910,4 +910,14 @@ Obtenir un devis gratuit
 <a href="/conditions-generales-de-ventes/">CGV</a>
 </div>
 </div>
+<script>
+document.addEventListener('click', function(e) {
+  var header = e.target.closest('.snb-ft-zone-header');
+  if (!header) return;
+  var group = header.parentElement;
+  if (group && group.classList.contains('snb-ft-zone-group')) {
+    group.classList.toggle('open');
+  }
+});
+</script>
 </footer>
