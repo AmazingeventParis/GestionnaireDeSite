@@ -1899,6 +1899,12 @@
     // Remove gds-modified class
     clone.querySelectorAll('.gds-modified').forEach(el => el.classList.remove('gds-modified'));
     clone.querySelectorAll('.gds-img-hover').forEach(el => el.classList.remove('gds-img-hover'));
+    // Unwrap gds-ph-img-wrap divs — these are added by the placeholder system
+    // and accumulate on each save. Replace each wrapper with its children.
+    clone.querySelectorAll('.gds-ph-img-wrap').forEach(wrap => {
+      while (wrap.firstChild) wrap.parentNode.insertBefore(wrap.firstChild, wrap);
+      wrap.remove();
+    });
     return clone.innerHTML;
   }
 
