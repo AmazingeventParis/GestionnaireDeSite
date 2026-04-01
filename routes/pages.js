@@ -1147,7 +1147,8 @@ router.post('/:slug/save', verifyToken, requireRole('admin', 'editor'), async (r
       }
 
       const cheerio = require('cheerio');
-      const editableSelector = 'h1, h2, h3, h4, h5, h6, p, [class*="snb-h"], [class*="snb-title"], [class*="snb-subtitle"], [class*="snb-body"], [class*="snb-intro"], [class*="snb-desc"], li, blockquote, figcaption, dt, dd';
+      // MUST match the auto-tagging selector in the preview route exactly
+      const editableSelector = 'h1, h2, h3, h4, h5, h6, p, [class*="snb-h"], [class*="snb-title"], [class*="snb-subtitle"], [class*="snb-body"], [class*="snb-intro"], [class*="snb-desc"], [class*="heading"], [class*="title"]:not(title), li, blockquote, figcaption, .snb-conseil-text, .snb-highlight p, dt, dd';
 
       for (const [sectionName, sectionChanges] of Object.entries(changesBySection)) {
         // Find the actual file
@@ -1160,13 +1161,15 @@ router.post('/:slug/save', verifyToken, requireRole('admin', 'editor'), async (r
         let html = fs.readFileSync(filePath, 'utf-8');
         const $ = cheerio.load(html, { decodeEntities: false });
 
-        // Find all editable elements in order (same logic as the tagging)
+        // Find all editable elements in order (same logic as the auto-tagging in preview route)
         const editables = [];
         $(editableSelector).each((i, el) => {
           const $el = $(el);
+          // Same filters as auto-tagging
+          if ($el.closest('[onclick]').length) return;
           const text = $el.text().trim();
           if (!text || text.length < 2) return;
-          if ($el.closest('.gds-section-actions, .gds-block-inserter, .snb-sidebar, .snb-toc, .snb-breadcrumb, nav, script, style').length) return;
+          if ($el.closest('.gds-section-actions, .gds-section-label, .gds-block-inserter, .snb-sidebar, .snb-toc, .snb-breadcrumb, nav, script, style').length) return;
           editables.push({ el, $el, tag: el.tagName.toLowerCase() });
         });
 
