@@ -1072,7 +1072,31 @@
           // upload returns { uploaded: [{ path, name, ... }] }
           imgSrc = (data.uploaded && data.uploaded[0] && data.uploaded[0].path) || data.url || data.path || '';
         } else if (selectedUrl) {
-          imgSrc = selectedUrl;
+          // Download the URL and upload it to convert to WebP
+          try {
+            const urlRes = await fetch(selectedUrl);
+            if (urlRes.ok) {
+              const blob = await urlRes.blob();
+              const fileName = selectedUrl.split('/').pop().split('?')[0] || 'image.jpg';
+              const file = new File([blob], fileName, { type: blob.type });
+              const formData = new FormData();
+              formData.append('images', file);
+              formData.append('slug', currentSlug);
+
+              const uploadRes = await Auth.apiFetch('/api/media/upload', {
+                method: 'POST',
+                body: formData
+              });
+              if (uploadRes.ok) {
+                const uploadData = await uploadRes.json();
+                imgSrc = (uploadData.uploaded && uploadData.uploaded[0] && uploadData.uploaded[0].path) || '';
+              }
+            }
+          } catch (urlErr) {
+            console.warn('[GDS] URL download failed, using direct URL:', urlErr.message);
+          }
+          // Fallback to direct URL if download failed
+          if (!imgSrc) imgSrc = selectedUrl;
         }
 
         if (!imgSrc) throw new Error('Aucune image');
