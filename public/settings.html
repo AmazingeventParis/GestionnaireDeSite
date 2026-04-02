@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Parametres - Gestionnaire de Site</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .settings-layout {
+      display: grid;
+      grid-template-columns: 220px 1fr 280px;
+      gap: 20px;
+      min-height: calc(100vh - 120px);
+    }
+
+    /* Tabs sidebar */
+    .settings-tabs {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 8px;
+      position: sticky;
+      top: 80px;
+      align-self: start;
+      max-height: calc(100vh - 100px);
+      overflow-y: auto;
+    }
+    .settings-tab {
+      display: block;
+      width: 100%;
+      padding: 10px 14px;
+      background: transparent;
+      border: none;
+      color: #8b949e;
+      font-size: 14px;
+      text-align: left;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: all 0.15s;
+      margin-bottom: 2px;
+    }
+    .settings-tab:hover {
+      background: #21262d;
+      color: #e6edf3;
+    }
+    .settings-tab.active {
+      background: #58a6ff1a;
+      color: #58a6ff;
+      font-weight: 600;
+    }
+
+    /* Main content */
+    .settings-main {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 24px;
+    }
+    .settings-section {
+      display: none;
+    }
+    .settings-section.active {
+      display: block;
+    }
+    .settings-section-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #e6edf3;
+      margin-bottom: 6px;
+    }
+    .settings-section-desc {
+      font-size: 14px;
+      color: #8b949e;
+      margin-bottom: 24px;
+    }
+
+    /* Form fields */
+    .field-group {
+      margin-bottom: 20px;
+    }
+    .field-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #c9d1d9;
+      margin-bottom: 6px;
+    }
+    .field-group input[type="text"],
+    .field-group input[type="url"],
+    .field-group input[type="email"],
+    .field-group input[type="tel"],
+    .field-group input[type="number"],
+    .field-group textarea,
+    .field-group select {
+      width: 100%;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      color: #e6edf3;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+    .field-group input:focus,
+    .field-group textarea:focus,
+    .field-group select:focus {
+      border-color: #58a6ff;
+      outline: none;
+      box-shadow: 0 0 0 2px #58a6ff33;
+    }
+    .field-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    .field-group .field-hint {
+      font-size: 12px;
+      color: #484f58;
+      margin-top: 4px;
+    }
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .field-row-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+    }
+
+    /* Color picker */
+    .color-field {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .color-field input[type="color"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 40px;
+      height: 40px;
+      border: 2px solid #30363d;
+      border-radius: 8px;
+      cursor: pointer;
+      padding: 2px;
+      background: #0d1117;
+    }
+    .color-field input[type="color"]::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+    .color-field input[type="color"]::-webkit-color-swatch {
+      border: none;
+      border-radius: 5px;
+    }
+    .color-field input[type="text"] {
+      width: 100px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 13px;
+    }
+    .color-field-label {
+      font-size: 13px;
+      color: #8b949e;
+      min-width: 80px;
+    }
+
+    /* Toggle switch */
+    .toggle-field {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #21262d;
+    }
+    .toggle-field-label {
+      font-size: 14px;
+      color: #c9d1d9;
+    }
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .toggle-slider {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: #30363d;
+      border-radius: 24px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      left: 3px;
+      bottom: 3px;
+      background: #e6edf3;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    .toggle-switch input:checked + .toggle-slider {
+      background: #238636;
+    }
+    .toggle-switch input:checked + .toggle-slider::before {
+      transform: translateX(20px);
+    }
+
+    /* Preview panel */
+    .settings-preview {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 16px;
+      position: sticky;
+      top: 80px;
+      align-self: start;
+      max-height: calc(100vh - 100px);
+      overflow-y: auto;
+    }
+    .preview-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #e6edf3;
+      margin-bottom: 16px;
+    }
+    .color-swatch-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .color-swatch {
+      border-radius: 8px;
+      padding: 12px 10px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1px solid #30363d;
+    }
+    .color-swatch-label {
+      display: block;
+      margin-top: 4px;
+      opacity: 0.8;
+    }
+    .preview-font-sample {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .preview-font-sample h3 {
+      font-size: 18px;
+      color: #e6edf3;
+      margin-bottom: 4px;
+    }
+    .preview-font-sample p {
+      font-size: 14px;
+      color: #8b949e;
+    }
+    .preview-cta-sample {
+      display: inline-block;
+      padding: 10px 24px;
+      color: #fff;
+      font-weight: 600;
+      font-size: 14px;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    /* Action bar */
+    .settings-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid #30363d;
+    }
+    .btn-save-settings {
+      background: #238636;
+      color: #fff;
+      border: 1px solid #2ea04366;
+      padding: 10px 24px;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-save-settings:hover { background: #2ea043; }
+    .btn-rebuild {
+      background: #21262d;
+      color: #e6edf3;
+      border: 1px solid #30363d;
+      padding: 10px 24px;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-rebuild:hover { background: #30363d; }
+
+    @media (max-width: 1024px) {
+      .settings-layout {
+        grid-template-columns: 1fr;
+      }
+      .settings-tabs {
+        position: static;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        padding: 6px;
+      }
+      .settings-tab {
+        flex: 0 0 auto;
+        padding: 8px 12px;
+        font-size: 13px;
+      }
+      .settings-preview {
+        position: static;
+        order: -1;
+      }
+    }
+    @media (max-width: 768px) {
+      .field-row, .field-row-3 {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="navbar"></div>
+
+  <div class="container">
+    <h1 class="page-title">Parametres</h1>
+    <p class="page-subtitle">Configuration generale du site</p>
+
+    <div class="settings-layout">
+      <!-- Tabs -->
+      <div class="settings-tabs" id="settings-tabs">
+        <button class="settings-tab active" data-tab="identity">Identite</button>
+        <button class="settings-tab" data-tab="colors">Couleurs</button>
+        <button class="settings-tab" data-tab="typography">Typographie</button>
+        <button class="settings-tab" data-tab="header">Header</button>
+        <button class="settings-tab" data-tab="footer">Footer</button>
+        <button class="settings-tab" data-tab="cta">CTA</button>
+        <button class="settings-tab" data-tab="layout">Layout</button>
+        <button class="settings-tab" data-tab="sections">Sections</button>
+        <button class="settings-tab" data-tab="contact">Contact</button>
+        <button class="settings-tab" data-tab="seo">SEO</button>
+        <button class="settings-tab" data-tab="scripts">Scripts</button>
+        <button class="settings-tab" data-tab="deploy">Deploiement</button>
+      </div>
+
+      <!-- Main content -->
+      <div class="settings-main">
+        <!-- IDENTITY -->
+        <div class="settings-section active" id="section-identity">
+          <h2 class="settings-section-title">Identite</h2>
+          <p class="settings-section-desc">Nom, logo et informations de base du site</p>
+          <div class="field-group">
+            <label for="identity-name">Nom du site</label>
+            <input type="text" id="identity-name" data-path="identity.name" placeholder="Mon Site">
+          </div>
+          <div class="field-group">
+            <label for="identity-tagline">Tagline</label>
+            <input type="text" id="identity-tagline" data-path="identity.tagline" placeholder="Slogan ou sous-titre">
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="identity-logo">Logo (URL)</label>
+              <input type="url" id="identity-logo" data-path="identity.logo" placeholder="https://...">
+            </div>
+            <div class="field-group">
+              <label for="identity-logoWhite">Logo blanc (URL)</label>
+              <input type="url" id="identity-logoWhite" data-path="identity.logoWhite" placeholder="https://...">
+            </div>
+          </div>
+          <div class="field-group">
+            <label for="identity-favicon">Favicon (URL)</label>
+            <input type="url" id="identity-favicon" data-path="identity.favicon" placeholder="https://...">
+          </div>
+        </div>
+
+        <!-- COLORS -->
+        <div class="settings-section" id="section-colors">
+          <h2 class="settings-section-title">Couleurs</h2>
+          <p class="settings-section-desc">Palette de couleurs du site</p>
+          <div class="field-group">
+            <div class="color-field">
+              <input type="color" id="color-primary" data-path="colors.primary" value="#E51981">
+              <input type="text" id="color-primary-text" data-color-text="color-primary" value="#E51981">
+              <span class="color-field-label">Primaire</span>
+            </div>
+          </div>
+          <div class="field-group">
+            <div class="color-field">
+              <input type="color" id="color-secondary" data-path="colors.secondary" value="#0250FF">
+              <input type="text" id="color-secondary-text" data-color-text="color-secondary" value="#0250FF">
+              <span class="color-field-label">Secondaire</span>
+            </div>
+          </div>
+          <div class="field-group">
+            <div class="color-field">
+              <input type="color" id="color-tertiary" data-path="colors.tertiary" value="#a855f7">
+              <input type="text" id="color-tertiary-text" data-color-text="color-tertiary" value="#a855f7">
+              <span class="color-field-label">Tertiaire</span>
+            </div>
+          </div>
+          <div class="field-group">
+            <div class="color-field">
+              <input type="color" id="color-accent1" data-path="colors.accent1" value="#FF7A00">
+              <input type="text" id="color-accent1-text" data-color-text="color-accent1" value="#FF7A00">
+              <span class="color-field-label">Accent 1</span>
+            </div>
+          </div>
+          <div class="field-group">
+            <div class="color-field">
+              <input type="color" id="color-accent2" data-path="colors.accent2" value="#16A34A">
+              <input type="text" id="color-accent2-text" data-color-text="color-accent2" value="#16A34A">
+              <span class="color-field-label">Accent 2</span>
+            </div>
+          </div>
+          <div class="field-group">
+            <div class="color-field">
+              <input type="color" id="color-textDark" data-path="colors.textDark" value="#1a0a22">
+              <input type="text" id="color-textDark-text" data-color-text="color-textDark" value="#1a0a22">
+              <span class="color-field-label">Texte fonce</span>
+            </div>
+          </div>
+          <div class="field-group">
+            <div class="color-field">
+              <input type="color" id="color-textLight" data-path="colors.textLight" value="#ffffff">
+              <input type="text" id="color-textLight-text" data-color-text="color-textLight" value="#ffffff">
+              <span class="color-field-label">Texte clair</span>
+            </div>
+          </div>
+          <div class="field-group">
+            <div class="color-field">
+              <input type="color" id="color-bgMain" data-path="colors.bgMain" value="#ffffff">
+              <input type="text" id="color-bgMain-text" data-color-text="color-bgMain" value="#ffffff">
+              <span class="color-field-label">Fond principal</span>
+            </div>
+          </div>
+          <div class="field-group">
+            <div class="color-field">
+              <input type="color" id="color-bgAlt" data-path="colors.bgAlt" value="#f8eaff">
+              <input type="text" id="color-bgAlt-text" data-color-text="color-bgAlt" value="#f8eaff">
+              <span class="color-field-label">Fond alternatif</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- TYPOGRAPHY -->
+        <div class="settings-section" id="section-typography">
+          <h2 class="settings-section-title">Typographie</h2>
+          <p class="settings-section-desc">Polices et tailles de texte</p>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="typo-fontMain">Police principale</label>
+              <input type="text" id="typo-fontMain" data-path="typography.fontMain" placeholder="Raleway">
+              <div class="field-hint">Nom de la police Google Fonts</div>
+            </div>
+            <div class="field-group">
+              <label for="typo-fontHeadings">Police des titres</label>
+              <input type="text" id="typo-fontHeadings" data-path="typography.fontHeadings" placeholder="Raleway">
+            </div>
+          </div>
+          <h3 style="color:#c9d1d9;font-size:15px;margin:20px 0 12px;">Tailles</h3>
+          <div class="field-row-3">
+            <div class="field-group">
+              <label>H1 Desktop</label>
+              <input type="text" id="typo-h1-desktop" data-path="typography.sizes.h1.desktop" placeholder="56px">
+            </div>
+            <div class="field-group">
+              <label>H1 Mobile</label>
+              <input type="text" id="typo-h1-mobile" data-path="typography.sizes.h1.mobile" placeholder="36px">
+            </div>
+            <div class="field-group">
+              <label>H1 Weight</label>
+              <input type="number" id="typo-h1-weight" data-path="typography.sizes.h1.weight" placeholder="900">
+            </div>
+          </div>
+          <div class="field-row-3">
+            <div class="field-group">
+              <label>H2 Desktop</label>
+              <input type="text" id="typo-h2-desktop" data-path="typography.sizes.h2.desktop" placeholder="42px">
+            </div>
+            <div class="field-group">
+              <label>H2 Mobile</label>
+              <input type="text" id="typo-h2-mobile" data-path="typography.sizes.h2.mobile" placeholder="28px">
+            </div>
+            <div class="field-group">
+              <label>H2 Weight</label>
+              <input type="number" id="typo-h2-weight" data-path="typography.sizes.h2.weight" placeholder="800">
+            </div>
+          </div>
+          <div class="field-row-3">
+            <div class="field-group">
+              <label>H3 Desktop</label>
+              <input type="text" id="typo-h3-desktop" data-path="typography.sizes.h3.desktop" placeholder="28px">
+            </div>
+            <div class="field-group">
+              <label>H3 Mobile</label>
+              <input type="text" id="typo-h3-mobile" data-path="typography.sizes.h3.mobile" placeholder="22px">
+            </div>
+            <div class="field-group">
+              <label>H3 Weight</label>
+              <input type="number" id="typo-h3-weight" data-path="typography.sizes.h3.weight" placeholder="700">
+            </div>
+          </div>
+          <div class="field-row-3">
+            <div class="field-group">
+              <label>Paragraphe Desktop</label>
+              <input type="text" id="typo-p-desktop" data-path="typography.sizes.p.desktop" placeholder="16px">
+            </div>
+            <div class="field-group">
+              <label>Paragraphe Mobile</label>
+              <input type="text" id="typo-p-mobile" data-path="typography.sizes.p.mobile" placeholder="15px">
+            </div>
+            <div class="field-group">
+              <label>Paragraphe Weight</label>
+              <input type="number" id="typo-p-weight" data-path="typography.sizes.p.weight" placeholder="400">
+            </div>
+          </div>
+        </div>
+
+        <!-- HEADER -->
+        <div class="settings-section" id="section-header">
+          <h2 class="settings-section-title">Header</h2>
+          <p class="settings-section-desc">Navigation et barre superieure</p>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="header-logoPosition">Position du logo</label>
+              <select id="header-logoPosition" data-path="header.logoPosition">
+                <option value="left">Gauche</option>
+                <option value="center">Centre</option>
+                <option value="right">Droite</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label for="header-logoSize">Taille du logo</label>
+              <input type="text" id="header-logoSize" data-path="header.logoSize" placeholder="150px">
+            </div>
+          </div>
+          <div class="toggle-field">
+            <span class="toggle-field-label">Header sticky</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="header-sticky" data-path="header.sticky">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="toggle-field">
+            <span class="toggle-field-label">Transparent sur le hero</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="header-transparentOnHero" data-path="header.transparentOnHero">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="field-group" style="margin-top:16px;">
+            <label for="header-scrollEffect">Effet au scroll</label>
+            <select id="header-scrollEffect" data-path="header.scrollEffect">
+              <option value="shadow">Ombre</option>
+              <option value="shrink">Retrecir</option>
+              <option value="none">Aucun</option>
+            </select>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="header-height-desktop">Hauteur desktop</label>
+              <input type="text" id="header-height-desktop" data-path="header.height.desktop" placeholder="80px">
+            </div>
+            <div class="field-group">
+              <label for="header-height-mobile">Hauteur mobile</label>
+              <input type="text" id="header-height-mobile" data-path="header.height.mobile" placeholder="60px">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="header-ctaText">Texte du CTA header</label>
+              <input type="text" id="header-ctaText" data-path="header.ctaText" placeholder="Contactez-nous">
+            </div>
+            <div class="field-group">
+              <label for="header-ctaLink">Lien du CTA header</label>
+              <input type="text" id="header-ctaLink" data-path="header.ctaLink" placeholder="/contact">
+            </div>
+          </div>
+          <div class="field-group">
+            <label for="header-phone">Telephone</label>
+            <input type="tel" id="header-phone" data-path="header.phone" placeholder="01 23 45 67 89">
+          </div>
+          <div class="field-group">
+            <label for="header-mobileHamburger">Position hamburger mobile</label>
+            <select id="header-mobileHamburger" data-path="header.mobileHamburger">
+              <option value="right">Droite</option>
+              <option value="left">Gauche</option>
+            </select>
+          </div>
+          <h3 style="color:#c9d1d9;font-size:15px;margin:20px 0 12px;">Header partage</h3>
+          <p style="font-size:12px;color:#8b949e;margin-bottom:12px;">Ce header est injecte automatiquement en haut de <strong>toutes les pages</strong> du site.</p>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;">
+            <a href="/api/pages/shared/header/preview" target="_blank" class="btn-sm btn-view" style="padding:8px 16px;font-size:13px;border-radius:6px;border:1px solid #30363d;background:#21262d;color:#e6edf3;text-decoration:none;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:background 0.2s;">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 2c1.981 0 3.671.992 4.933 2.078 1.27 1.091 2.187 2.345 2.637 3.023a1.62 1.62 0 010 1.798c-.45.678-1.367 1.932-2.637 3.023C11.67 13.008 9.981 14 8 14c-1.981 0-3.671-.992-4.933-2.078C1.797 10.831.88 9.577.43 8.899a1.62 1.62 0 010-1.798c.45-.678 1.367-1.932 2.637-3.023C4.33 2.992 6.019 2 8 2zM1.679 7.932a.12.12 0 000 .136c.411.622 1.241 1.75 2.366 2.717C5.176 11.758 6.527 12.5 8 12.5c1.473 0 2.825-.742 3.955-1.715 1.124-.967 1.954-2.096 2.366-2.717a.12.12 0 000-.136c-.412-.621-1.242-1.75-2.366-2.717C10.824 4.242 9.473 3.5 8 3.5c-1.473 0-2.824.742-3.955 1.715-1.124.967-1.954 2.096-2.366 2.717zM8 10a2 2 0 110-4 2 2 0 010 4z"/></svg>
+              Voir
+            </a>
+            <a href="/shared-editor.html?component=header" class="btn-sm btn-edit" style="padding:8px 16px;font-size:13px;border-radius:6px;border:1px solid #58a6ff44;background:#58a6ff22;color:#58a6ff;text-decoration:none;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:background 0.2s;">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M11.013 1.427a1.75 1.75 0 012.474 0l1.086 1.086a1.75 1.75 0 010 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 01-.927-.928l.929-3.25a1.75 1.75 0 01.445-.758l8.61-8.61zm1.414 1.06a.25.25 0 00-.354 0L3.463 11.098a.25.25 0 00-.064.108l-.631 2.208 2.208-.63a.25.25 0 00.108-.064l8.61-8.61a.25.25 0 000-.354z"/></svg>
+              Editer
+            </a>
+            <span id="shared-header-info" style="font-size:12px;color:#8b949e;"></span>
+          </div>
+          <h3 style="color:#c9d1d9;font-size:15px;margin:20px 0 12px;">Bandeau superieur</h3>
+          <div class="toggle-field">
+            <span class="toggle-field-label">Activer le bandeau</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="header-topBanner-enabled" data-path="header.topBanner.enabled">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="field-group" style="margin-top:12px;">
+            <label for="header-topBanner-text">Texte du bandeau</label>
+            <input type="text" id="header-topBanner-text" data-path="header.topBanner.text" placeholder="Promotion en cours !">
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <div class="color-field">
+                <input type="color" id="header-topBanner-bgColor" data-path="header.topBanner.bgColor" value="#E51981">
+                <input type="text" id="header-topBanner-bgColor-text" data-color-text="header-topBanner-bgColor" value="#E51981">
+                <span class="color-field-label">Couleur fond</span>
+              </div>
+            </div>
+            <div class="field-group">
+              <label for="header-topBanner-link">Lien du bandeau</label>
+              <input type="text" id="header-topBanner-link" data-path="header.topBanner.link" placeholder="/promo">
+            </div>
+          </div>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="settings-section" id="section-footer">
+          <h2 class="settings-section-title">Footer</h2>
+          <p class="settings-section-desc">Pied de page et reseaux sociaux</p>
+          <div class="field-group">
+            <label for="footer-copyright">Copyright</label>
+            <input type="text" id="footer-copyright" data-path="footer.copyright" placeholder="&copy; {year} Mon Site">
+            <div class="field-hint">Utilisez {year} pour l'annee actuelle</div>
+          </div>
+          <div class="field-group">
+            <label for="footer-legalPage">Page mentions legales (slug)</label>
+            <input type="text" id="footer-legalPage" data-path="footer.legalPage" placeholder="mentions-legales">
+          </div>
+          <h3 style="color:#c9d1d9;font-size:15px;margin:20px 0 12px;">Footer partage</h3>
+          <p style="font-size:12px;color:#8b949e;margin-bottom:12px;">Ce footer est injecte automatiquement en bas de <strong>toutes les pages</strong> du site.</p>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;">
+            <a href="/api/pages/shared/footer/preview" target="_blank" class="btn-sm btn-view" style="padding:8px 16px;font-size:13px;border-radius:6px;border:1px solid #30363d;background:#21262d;color:#e6edf3;text-decoration:none;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:background 0.2s;">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 2c1.981 0 3.671.992 4.933 2.078 1.27 1.091 2.187 2.345 2.637 3.023a1.62 1.62 0 010 1.798c-.45.678-1.367 1.932-2.637 3.023C11.67 13.008 9.981 14 8 14c-1.981 0-3.671-.992-4.933-2.078C1.797 10.831.88 9.577.43 8.899a1.62 1.62 0 010-1.798c.45-.678 1.367-1.932 2.637-3.023C4.33 2.992 6.019 2 8 2zM1.679 7.932a.12.12 0 000 .136c.411.622 1.241 1.75 2.366 2.717C5.176 11.758 6.527 12.5 8 12.5c1.473 0 2.825-.742 3.955-1.715 1.124-.967 1.954-2.096 2.366-2.717a.12.12 0 000-.136c-.412-.621-1.242-1.75-2.366-2.717C10.824 4.242 9.473 3.5 8 3.5c-1.473 0-2.824.742-3.955 1.715-1.124.967-1.954 2.096-2.366 2.717zM8 10a2 2 0 110-4 2 2 0 010 4z"/></svg>
+              Voir
+            </a>
+            <a href="/shared-editor.html?component=footer" class="btn-sm btn-edit" style="padding:8px 16px;font-size:13px;border-radius:6px;border:1px solid #58a6ff44;background:#58a6ff22;color:#58a6ff;text-decoration:none;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:background 0.2s;">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M11.013 1.427a1.75 1.75 0 012.474 0l1.086 1.086a1.75 1.75 0 010 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 01-.927-.928l.929-3.25a1.75 1.75 0 01.445-.758l8.61-8.61zm1.414 1.06a.25.25 0 00-.354 0L3.463 11.098a.25.25 0 00-.064.108l-.631 2.208 2.208-.63a.25.25 0 00.108-.064l8.61-8.61a.25.25 0 000-.354z"/></svg>
+              Editer
+            </a>
+            <span id="shared-footer-info" style="font-size:12px;color:#8b949e;"></span>
+          </div>
+          <h3 style="color:#c9d1d9;font-size:15px;margin:20px 0 12px;">Reseaux sociaux</h3>
+          <div class="field-group">
+            <label for="footer-socials-instagram">Instagram</label>
+            <input type="url" id="footer-socials-instagram" data-path="footer.socials.instagram" placeholder="https://instagram.com/...">
+          </div>
+          <div class="field-group">
+            <label for="footer-socials-facebook">Facebook</label>
+            <input type="url" id="footer-socials-facebook" data-path="footer.socials.facebook" placeholder="https://facebook.com/...">
+          </div>
+          <div class="field-group">
+            <label for="footer-socials-linkedin">LinkedIn</label>
+            <input type="url" id="footer-socials-linkedin" data-path="footer.socials.linkedin" placeholder="https://linkedin.com/...">
+          </div>
+          <div class="field-group">
+            <label for="footer-socials-tiktok">TikTok</label>
+            <input type="url" id="footer-socials-tiktok" data-path="footer.socials.tiktok" placeholder="https://tiktok.com/...">
+          </div>
+          <div class="field-group">
+            <label for="footer-socials-youtube">YouTube</label>
+            <input type="url" id="footer-socials-youtube" data-path="footer.socials.youtube" placeholder="https://youtube.com/...">
+          </div>
+        </div>
+
+        <!-- CTA -->
+        <div class="settings-section" id="section-cta">
+          <h2 class="settings-section-title">CTA (Boutons d'action)</h2>
+          <p class="settings-section-desc">Style des boutons d'appel a l'action</p>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="cta-borderRadius">Border radius</label>
+              <input type="text" id="cta-borderRadius" data-path="cta.borderRadius" placeholder="50px">
+            </div>
+            <div class="field-group">
+              <label for="cta-style">Style</label>
+              <select id="cta-style" data-path="cta.style">
+                <option value="gradient">Gradient</option>
+                <option value="solid">Solide</option>
+                <option value="outline">Outline</option>
+                <option value="ghost">Ghost</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-group">
+            <label for="cta-hoverEffect">Effet au survol</label>
+            <select id="cta-hoverEffect" data-path="cta.hoverEffect">
+              <option value="shine">Brillance</option>
+              <option value="scale">Zoom</option>
+              <option value="shadow">Ombre</option>
+              <option value="none">Aucun</option>
+            </select>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="cta-defaultText">Texte par defaut</label>
+              <input type="text" id="cta-defaultText" data-path="cta.defaultText" placeholder="Nous contacter">
+            </div>
+            <div class="field-group">
+              <label for="cta-defaultLink">Lien par defaut</label>
+              <input type="text" id="cta-defaultLink" data-path="cta.defaultLink" placeholder="/contact">
+            </div>
+          </div>
+        </div>
+
+        <!-- LAYOUT -->
+        <div class="settings-section" id="section-layout">
+          <h2 class="settings-section-title">Layout</h2>
+          <p class="settings-section-desc">Mise en page et espacement</p>
+          <div class="field-group">
+            <label for="layout-maxWidth">Largeur maximale</label>
+            <input type="text" id="layout-maxWidth" data-path="layout.maxWidth" placeholder="1340px">
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="layout-sectionPadding-desktop">Padding sections (desktop)</label>
+              <input type="text" id="layout-sectionPadding-desktop" data-path="layout.sectionPadding.desktop" placeholder="80px">
+            </div>
+            <div class="field-group">
+              <label for="layout-sectionPadding-mobile">Padding sections (mobile)</label>
+              <input type="text" id="layout-sectionPadding-mobile" data-path="layout.sectionPadding.mobile" placeholder="50px">
+            </div>
+          </div>
+          <div class="field-group">
+            <label for="layout-borderRadius">Border radius global</label>
+            <input type="text" id="layout-borderRadius" data-path="layout.borderRadius" placeholder="12px">
+          </div>
+        </div>
+
+        <!-- SECTIONS NOMENCLATURE -->
+        <div class="settings-section" id="section-sections">
+          <h2 class="settings-section-title">Nomenclature des sections</h2>
+          <p class="settings-section-desc">Hauteurs et dimensions standardisees pour tous les blocs de page</p>
+
+          <h3 style="color:#58a6ff;font-size:14px;font-weight:700;margin:20px 0 12px;text-transform:uppercase;letter-spacing:1px">Fond de page</h3>
+          <div class="field-row">
+            <div class="field-group">
+              <label>Fond active</label>
+              <select id="sections-background-enabled" data-path="sections.background.enabled">
+                <option value="true">Oui</option>
+                <option value="false">Non</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label>Halos diffus</label>
+              <select id="sections-background-glows" data-path="sections.background.glows">
+                <option value="true">Oui</option>
+                <option value="false">Non</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label>Pictos decoratifs</label>
+              <select id="sections-background-pictos" data-path="sections.background.pictos">
+                <option value="true">Oui</option>
+                <option value="false">Non</option>
+              </select>
+            </div>
+          </div>
+
+          <h3 style="color:#58a6ff;font-size:14px;font-weight:700;margin:20px 0 12px;text-transform:uppercase;letter-spacing:1px">Hero</h3>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="sections-hero-height-desktop">Hauteur hero (desktop)</label>
+              <input type="text" id="sections-hero-height-desktop" data-path="sections.hero.height.desktop" placeholder="520px">
+            </div>
+            <div class="field-group">
+              <label for="sections-hero-height-tablet">Hauteur hero (tablette)</label>
+              <input type="text" id="sections-hero-height-tablet" data-path="sections.hero.height.tablet" placeholder="420px">
+            </div>
+            <div class="field-group">
+              <label for="sections-hero-height-mobile">Hauteur hero (mobile)</label>
+              <input type="text" id="sections-hero-height-mobile" data-path="sections.hero.height.mobile" placeholder="360px">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="sections-hero-padding-desktop">Padding hero (desktop)</label>
+              <input type="text" id="sections-hero-padding-desktop" data-path="sections.hero.padding.desktop" placeholder="40px 40px 50px">
+            </div>
+            <div class="field-group">
+              <label for="sections-hero-padding-mobile">Padding hero (mobile)</label>
+              <input type="text" id="sections-hero-padding-mobile" data-path="sections.hero.padding.mobile" placeholder="30px 16px 40px">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="sections-hero-titleSize-desktop">Taille titre hero (desktop)</label>
+              <input type="text" id="sections-hero-titleSize-desktop" data-path="sections.hero.titleSize.desktop" placeholder="52px">
+            </div>
+            <div class="field-group">
+              <label for="sections-hero-titleSize-mobile">Taille titre hero (mobile)</label>
+              <input type="text" id="sections-hero-titleSize-mobile" data-path="sections.hero.titleSize.mobile" placeholder="32px">
+            </div>
+          </div>
+
+          <h3 style="color:#58a6ff;font-size:14px;font-weight:700;margin:20px 0 12px;text-transform:uppercase;letter-spacing:1px">Section standard</h3>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="sections-standard-padding-desktop">Padding (desktop)</label>
+              <input type="text" id="sections-standard-padding-desktop" data-path="sections.standard.padding.desktop" placeholder="80px 24px">
+            </div>
+            <div class="field-group">
+              <label for="sections-standard-padding-mobile">Padding (mobile)</label>
+              <input type="text" id="sections-standard-padding-mobile" data-path="sections.standard.padding.mobile" placeholder="48px 16px">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="sections-standard-titleSize-desktop">Taille titre (desktop)</label>
+              <input type="text" id="sections-standard-titleSize-desktop" data-path="sections.standard.titleSize.desktop" placeholder="44px">
+            </div>
+            <div class="field-group">
+              <label for="sections-standard-titleSize-mobile">Taille titre (mobile)</label>
+              <input type="text" id="sections-standard-titleSize-mobile" data-path="sections.standard.titleSize.mobile" placeholder="28px">
+            </div>
+          </div>
+
+          <h3 style="color:#58a6ff;font-size:14px;font-weight:700;margin:20px 0 12px;text-transform:uppercase;letter-spacing:1px">Section compacte</h3>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="sections-compact-padding-desktop">Padding (desktop)</label>
+              <input type="text" id="sections-compact-padding-desktop" data-path="sections.compact.padding.desktop" placeholder="48px 24px">
+            </div>
+            <div class="field-group">
+              <label for="sections-compact-padding-mobile">Padding (mobile)</label>
+              <input type="text" id="sections-compact-padding-mobile" data-path="sections.compact.padding.mobile" placeholder="28px 16px">
+            </div>
+          </div>
+
+          <h3 style="color:#58a6ff;font-size:14px;font-weight:700;margin:20px 0 12px;text-transform:uppercase;letter-spacing:1px">Section CTA</h3>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="sections-cta-padding-desktop">Padding (desktop)</label>
+              <input type="text" id="sections-cta-padding-desktop" data-path="sections.cta.padding.desktop" placeholder="60px 24px">
+            </div>
+            <div class="field-group">
+              <label for="sections-cta-padding-mobile">Padding (mobile)</label>
+              <input type="text" id="sections-cta-padding-mobile" data-path="sections.cta.padding.mobile" placeholder="40px 16px">
+            </div>
+          </div>
+          <div class="field-group">
+            <label for="sections-cta-maxWidth">Largeur max CTA</label>
+            <input type="text" id="sections-cta-maxWidth" data-path="sections.cta.maxWidth" placeholder="860px">
+          </div>
+        </div>
+
+        <!-- CONTACT -->
+        <div class="settings-section" id="section-contact">
+          <h2 class="settings-section-title">Contact</h2>
+          <p class="settings-section-desc">Coordonnees et informations de contact</p>
+          <div class="field-group">
+            <label for="contact-phone">Telephone</label>
+            <input type="tel" id="contact-phone" data-path="contact.phone" placeholder="01 23 45 67 89">
+          </div>
+          <div class="field-group">
+            <label for="contact-email">Email</label>
+            <input type="email" id="contact-email" data-path="contact.email" placeholder="contact@monsite.fr">
+          </div>
+          <div class="field-group">
+            <label for="contact-address">Adresse</label>
+            <textarea id="contact-address" data-path="contact.address" placeholder="123 Rue Example, 75001 Paris"></textarea>
+          </div>
+          <div class="field-group">
+            <label for="contact-hours">Horaires</label>
+            <input type="text" id="contact-hours" data-path="contact.hours" placeholder="Lun-Ven 9h-18h">
+          </div>
+          <div class="field-group">
+            <label for="contact-mapsPlaceId">Google Maps Place ID</label>
+            <input type="text" id="contact-mapsPlaceId" data-path="contact.mapsPlaceId" placeholder="ChIJ...">
+            <div class="field-hint">Trouvez votre Place ID sur developers.google.com/maps</div>
+          </div>
+        </div>
+
+        <!-- SEO -->
+        <div class="settings-section" id="section-seo">
+          <h2 class="settings-section-title">SEO</h2>
+          <p class="settings-section-desc">Referencement et balises meta</p>
+          <div class="field-group">
+            <label for="seo-titleTemplate">Template du titre</label>
+            <input type="text" id="seo-titleTemplate" data-path="seo.titleTemplate" placeholder="%page% | Mon Site">
+            <div class="field-hint">%page% sera remplace par le titre de chaque page</div>
+          </div>
+          <div class="field-group">
+            <label for="seo-defaultDescription">Description par defaut</label>
+            <textarea id="seo-defaultDescription" data-path="seo.defaultDescription" placeholder="Description globale du site..." maxlength="160"></textarea>
+          </div>
+          <div class="toggle-field">
+            <span class="toggle-field-label">Noindex (bloquer l'indexation)</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="seo-noindex" data-path="seo.noindex">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="field-group" style="margin-top:16px;">
+            <label for="seo-ogImageDefault">Image OG par defaut (URL)</label>
+            <input type="url" id="seo-ogImageDefault" data-path="seo.ogImageDefault" placeholder="https://...">
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="seo-gtmId">Google Tag Manager ID</label>
+              <input type="text" id="seo-gtmId" data-path="seo.gtmId" placeholder="GTM-XXXXXX">
+            </div>
+            <div class="field-group">
+              <label for="seo-searchConsoleId">Search Console ID</label>
+              <input type="text" id="seo-searchConsoleId" data-path="seo.searchConsoleId" placeholder="...">
+            </div>
+          </div>
+        </div>
+
+        <!-- SCRIPTS -->
+        <div class="settings-section" id="section-scripts">
+          <h2 class="settings-section-title">Scripts</h2>
+          <p class="settings-section-desc">Code personnalise et integrations</p>
+          <div class="field-group">
+            <label for="scripts-headCustom">Code dans le &lt;head&gt;</label>
+            <textarea id="scripts-headCustom" data-path="scripts.headCustom" placeholder="<script>...</script>" style="font-family:monospace;min-height:100px;"></textarea>
+          </div>
+          <div class="field-group">
+            <label for="scripts-bodyEndCustom">Code avant &lt;/body&gt;</label>
+            <textarea id="scripts-bodyEndCustom" data-path="scripts.bodyEndCustom" placeholder="<script>...</script>" style="font-family:monospace;min-height:100px;"></textarea>
+          </div>
+          <div class="toggle-field">
+            <span class="toggle-field-label">Bandeau cookies</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="scripts-cookieConsent-enabled" data-path="scripts.cookieConsent.enabled">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="field-group" style="margin-top:12px;">
+            <label for="scripts-cookieConsent-text">Texte du bandeau cookies</label>
+            <textarea id="scripts-cookieConsent-text" data-path="scripts.cookieConsent.text" placeholder="Ce site utilise des cookies..."></textarea>
+          </div>
+          <div class="field-group">
+            <label for="scripts-chatWidget">Widget de chat (code HTML)</label>
+            <textarea id="scripts-chatWidget" data-path="scripts.chatWidget" placeholder="<script>...</script>" style="font-family:monospace;min-height:80px;"></textarea>
+          </div>
+        </div>
+
+        <!-- DEPLOY -->
+        <div class="settings-section" id="section-deploy">
+          <h2 class="settings-section-title">Deploiement</h2>
+          <p class="settings-section-desc">Configuration du deploiement et du domaine</p>
+          <div class="field-group">
+            <label for="deploy-domain">Domaine</label>
+            <input type="text" id="deploy-domain" data-path="deploy.domain" placeholder="monsite.fr">
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="deploy-coolifyUuid">Coolify App UUID</label>
+              <input type="text" id="deploy-coolifyUuid" data-path="deploy.coolifyUuid" placeholder="abc123...">
+            </div>
+            <div class="field-group">
+              <label for="deploy-coolifyToken">Coolify Token</label>
+              <input type="text" id="deploy-coolifyToken" data-path="deploy.coolifyToken" placeholder="Token API">
+            </div>
+          </div>
+          <div class="field-group">
+            <label for="deploy-cacheMaxAge">Cache max-age</label>
+            <input type="text" id="deploy-cacheMaxAge" data-path="deploy.cacheMaxAge" placeholder="365d">
+          </div>
+          <div class="toggle-field">
+            <span class="toggle-field-label">Compression (gzip)</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="deploy-compression" data-path="deploy.compression">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="toggle-field">
+            <span class="toggle-field-label">Minification HTML/CSS/JS</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="deploy-minify" data-path="deploy.minify">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="settings-actions">
+          <button class="btn-save-settings" id="btn-save">Sauvegarder</button>
+          <button class="btn-rebuild" id="btn-rebuild">Reconstruire le site</button>
+        </div>
+      </div>
+
+      <!-- Preview panel -->
+      <div class="settings-preview" id="settings-preview">
+        <div class="preview-title">Apercu</div>
+        <div class="color-swatch-grid" id="preview-colors">
+          <!-- Populated by JS -->
+        </div>
+        <div class="preview-font-sample" id="preview-fonts">
+          <h3>Titre exemple</h3>
+          <p>Texte de paragraphe pour visualiser la typographie choisie.</p>
+        </div>
+        <div style="text-align:center;margin-top:12px;">
+          <button class="preview-cta-sample" id="preview-cta">Nous contacter</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="/js/auth.js"></script>
+  <script src="/js/components.js"></script>
+  <script src="/js/settings.js"></script>
+</body>
+</html>

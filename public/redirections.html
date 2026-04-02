@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirections — Gestionnaire de Site</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .redir-table { width: 100%; border-collapse: collapse; }
+        .redir-table th, .redir-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid #30363d;
+        }
+        .redir-table th {
+            background: #161b22;
+            color: #8b949e;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+        .redir-table tr:hover { background: rgba(88, 166, 255, 0.04); }
+        .path-cell { font-family: monospace; font-size: 13px; color: #58a6ff; }
+        .code-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            font-family: monospace;
+        }
+        .code-301 { background: rgba(63, 185, 80, 0.15); color: #3fb950; }
+        .code-302 { background: rgba(210, 153, 34, 0.15); color: #d29922; }
+        .hits-cell { color: #8b949e; font-size: 13px; }
+        .toggle-switch {
+            position: relative;
+            width: 40px;
+            height: 22px;
+            display: inline-block;
+        }
+        .toggle-switch input { display: none; }
+        .toggle-slider {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #30363d;
+            border-radius: 22px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            left: 3px;
+            bottom: 3px;
+            background: #e6edf3;
+            border-radius: 50%;
+            transition: all 0.2s;
+        }
+        .toggle-switch input:checked + .toggle-slider { background: #238636; }
+        .toggle-switch input:checked + .toggle-slider::before { transform: translateX(18px); }
+        .redir-actions { display: flex; gap: 8px; }
+        .redir-actions button {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            cursor: pointer;
+            background: #21262d;
+            color: #e6edf3;
+            transition: all 0.15s;
+        }
+        .redir-actions button:hover { border-color: #58a6ff; color: #58a6ff; }
+        .redir-actions .btn-danger { color: #f85149; }
+        .redir-actions .btn-danger:hover { border-color: #f85149; }
+        .header-actions { display: flex; gap: 10px; }
+        .empty-state { text-align: center; padding: 48px; color: #8b949e; }
+    </style>
+</head>
+<body>
+    <div id="navbar"></div>
+
+    <div class="container">
+        <div class="section-header">
+            <h1 class="page-title">Redirections</h1>
+            <div class="header-actions" id="admin-actions" style="display:none">
+                <button class="btn btn-secondary" onclick="openImportModal()">Importer CSV</button>
+                <button class="btn btn-primary" onclick="openAddModal()">+ Ajouter</button>
+            </div>
+        </div>
+
+        <div class="card" style="padding: 0; overflow: hidden;">
+            <div id="redir-container">
+                <p class="text-muted" style="padding: 20px;">Chargement...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div class="modal-overlay" id="modal" style="display:none">
+        <div class="modal">
+            <h2 class="modal-title" id="modal-title">Ajouter une redirection</h2>
+            <form id="redir-form" onsubmit="saveRedirection(event)">
+                <input type="hidden" id="redir-id">
+                <div class="form-group">
+                    <label class="form-label">Chemin source *</label>
+                    <input class="form-input" id="redir-source" required placeholder="/ancienne-page">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Chemin cible *</label>
+                    <input class="form-input" id="redir-target" required placeholder="/nouvelle-page ou https://...">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Code de statut</label>
+                    <select class="form-select" id="redir-code">
+                        <option value="301">301 — Permanente</option>
+                        <option value="302">302 — Temporaire</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Import CSV Modal -->
+    <div class="modal-overlay" id="import-modal" style="display:none">
+        <div class="modal">
+            <h2 class="modal-title">Importer des redirections (CSV)</h2>
+            <form id="import-form" onsubmit="importCsv(event)">
+                <div class="form-group">
+                    <label class="form-label">Contenu CSV (source,cible,code par ligne)</label>
+                    <textarea class="form-textarea" id="csv-content" rows="10" required
+                        placeholder="/ancien,/nouveau,301&#10;/page-a,/page-b,302&#10;/old,https://example.com,301"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeImportModal()">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Importer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/components.js"></script>
+    <script>
+    var redirections = [];
+
+    async function loadRedirections() {
+        await Components.initPage();
+
+        var user = Auth.getUser();
+        if (user && user.role === 'admin') {
+            document.getElementById('admin-actions').style.display = 'flex';
+        }
+
+        var res = await Auth.apiFetch('/api/redirections');
+        if (res.ok) {
+            var data = await res.json();
+            redirections = data.redirections || [];
+            renderRedirections();
+        } else {
+            document.getElementById('redir-container').innerHTML =
+                '<p class="text-muted" style="padding:20px;">Erreur lors du chargement.</p>';
+        }
+    }
+
+    function renderRedirections() {
+        var el = document.getElementById('redir-container');
+        var user = Auth.getUser();
+        var isAdmin = user && user.role === 'admin';
+
+        if (redirections.length === 0) {
+            el.innerHTML = '<div class="empty-state">Aucune redirection configuree.</div>';
+            return;
+        }
+
+        var html = '<table class="redir-table"><thead><tr>';
+        html += '<th>Source</th><th>Cible</th><th>Code</th><th>Hits</th><th>Actif</th>';
+        if (isAdmin) html += '<th>Actions</th>';
+        html += '</tr></thead><tbody>';
+
+        for (var i = 0; i < redirections.length; i++) {
+            var r = redirections[i];
+            html += '<tr>';
+            html += '<td class="path-cell">' + Components.escapeHtml(r.source_path) + '</td>';
+            html += '<td class="path-cell">' + Components.escapeHtml(r.target_path) + '</td>';
+            html += '<td><span class="code-badge code-' + r.status_code + '">' + r.status_code + '</span></td>';
+            html += '<td class="hits-cell">' + (r.hit_count || 0) + '</td>';
+            html += '<td><label class="toggle-switch"><input type="checkbox"' + (r.is_active ? ' checked' : '') +
+                     (isAdmin ? ' onchange="toggleActive(\'' + r.id + '\', this.checked)"' : ' disabled') +
+                     '><span class="toggle-slider"></span></label></td>';
+            if (isAdmin) {
+                html += '<td><div class="redir-actions">';
+                html += '<button onclick="openEditModal(\'' + r.id + '\')">Modifier</button>';
+                html += '<button class="btn-danger" onclick="deleteRedirection(\'' + r.id + '\')">Supprimer</button>';
+                html += '</div></td>';
+            }
+            html += '</tr>';
+        }
+        html += '</tbody></table>';
+        el.innerHTML = html;
+    }
+
+    function openAddModal() {
+        document.getElementById('modal-title').textContent = 'Ajouter une redirection';
+        document.getElementById('redir-id').value = '';
+        document.getElementById('redir-form').reset();
+        document.getElementById('modal').style.display = 'flex';
+    }
+
+    function openEditModal(id) {
+        var r = redirections.find(function(x) { return x.id === id; });
+        if (!r) return;
+        document.getElementById('modal-title').textContent = 'Modifier la redirection';
+        document.getElementById('redir-id').value = r.id;
+        document.getElementById('redir-source').value = r.source_path;
+        document.getElementById('redir-target').value = r.target_path;
+        document.getElementById('redir-code').value = r.status_code;
+        document.getElementById('modal').style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('modal').style.display = 'none';
+    }
+
+    function openImportModal() {
+        document.getElementById('csv-content').value = '';
+        document.getElementById('import-modal').style.display = 'flex';
+    }
+
+    function closeImportModal() {
+        document.getElementById('import-modal').style.display = 'none';
+    }
+
+    async function saveRedirection(e) {
+        e.preventDefault();
+        var id = document.getElementById('redir-id').value;
+        var body = {
+            source_path: document.getElementById('redir-source').value,
+            target_path: document.getElementById('redir-target').value,
+            status_code: parseInt(document.getElementById('redir-code').value)
+        };
+
+        var method = id ? 'PUT' : 'POST';
+        var url = id ? '/api/redirections/' + id : '/api/redirections';
+        var res = await Auth.apiFetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+
+        if (res.ok) {
+            Components.showToast(id ? 'Redirection mise a jour' : 'Redirection creee', 'success');
+            closeModal();
+            loadRedirections();
+        } else {
+            var err = await res.json();
+            Components.showToast(err.error || 'Erreur', 'error');
+        }
+    }
+
+    async function toggleActive(id, active) {
+        var res = await Auth.apiFetch('/api/redirections/' + id, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ is_active: active })
+        });
+        if (!res.ok) {
+            var err = await res.json();
+            Components.showToast(err.error || 'Erreur', 'error');
+            loadRedirections();
+        }
+    }
+
+    async function deleteRedirection(id) {
+        var confirmed = await Components.showConfirm('Supprimer cette redirection ?');
+        if (!confirmed) return;
+
+        var res = await Auth.apiFetch('/api/redirections/' + id, { method: 'DELETE' });
+        if (res.ok) {
+            Components.showToast('Redirection supprimee', 'success');
+            loadRedirections();
+        } else {
+            var err = await res.json();
+            Components.showToast(err.error || 'Erreur', 'error');
+        }
+    }
+
+    async function importCsv(e) {
+        e.preventDefault();
+        var csv = document.getElementById('csv-content').value;
+
+        var res = await Auth.apiFetch('/api/redirections/import', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ csv: csv })
+        });
+
+        if (res.ok) {
+            var data = await res.json();
+            Components.showToast(data.message || 'Import reussi', 'success');
+            closeImportModal();
+            loadRedirections();
+        } else {
+            var err = await res.json();
+            Components.showToast(err.error || 'Erreur lors de l\'import', 'error');
+        }
+    }
+
+    document.getElementById('modal').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+    });
+    document.getElementById('import-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeImportModal();
+    });
+
+    loadRedirections();
+    </script>
+</body>
+</html>

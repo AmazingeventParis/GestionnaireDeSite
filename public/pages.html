@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pages - Gestionnaire de Site</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .pages-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    /* Search bar */
+    .pages-search {
+      position: relative;
+      margin-bottom: 16px;
+    }
+    .pages-search input {
+      width: 100%;
+      padding: 10px 14px 10px 38px;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      color: #e6edf3;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+      box-sizing: border-box;
+    }
+    .pages-search input:focus {
+      border-color: #58a6ff;
+    }
+    .pages-search input::placeholder { color: #484f58; }
+    .pages-search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #484f58;
+      pointer-events: none;
+    }
+    .pages-search-count {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #484f58;
+      font-size: 12px;
+    }
+    /* Folder tabs */
+    .folder-tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .folder-tab {
+      padding: 6px 14px;
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 20px;
+      color: #8b949e;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .folder-tab:hover {
+      border-color: #58a6ff;
+      color: #e6edf3;
+    }
+    .folder-tab.active {
+      background: #58a6ff22;
+      border-color: #58a6ff;
+      color: #58a6ff;
+    }
+    .folder-tab-count {
+      background: #30363d;
+      color: #8b949e;
+      font-size: 11px;
+      padding: 1px 6px;
+      border-radius: 10px;
+      min-width: 18px;
+      text-align: center;
+    }
+    .folder-tab.active .folder-tab-count {
+      background: #58a6ff33;
+      color: #58a6ff;
+    }
+    /* Page card folder badge */
+    .page-card-folder {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      background: #21262d;
+      color: #8b949e;
+      border: 1px solid #30363d;
+      margin-left: 6px;
+    }
+    /* Grid */
+    .pages-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 16px;
+    }
+    .page-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 20px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .page-card:hover {
+      border-color: #58a6ff;
+      box-shadow: 0 0 0 1px #58a6ff33;
+    }
+    .page-card.hidden { display: none; }
+    .page-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    .page-card-name {
+      font-size: 18px;
+      font-weight: 600;
+      color: #e6edf3;
+      margin: 0;
+    }
+    .page-card-slug {
+      font-size: 13px;
+      color: #8b949e;
+      margin-top: 2px;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+    .status-published { background: #16a34a22; color: #3fb950; border: 1px solid #16a34a44; }
+    .status-draft { background: #d2992222; color: #d29922; border: 1px solid #d2992244; }
+    .status-modified { background: #ff7a0022; color: #ff7a00; border: 1px solid #ff7a0044; }
+    .page-card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 12px 0;
+      font-size: 13px;
+      color: #8b949e;
+    }
+    .page-card-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .page-card-sections {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    .section-tag {
+      background: #21262d;
+      color: #8b949e;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 12px;
+      border: 1px solid #30363d;
+    }
+    .page-card-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .btn-sm {
+      padding: 6px 14px;
+      font-size: 13px;
+      border-radius: 6px;
+      border: 1px solid #30363d;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .btn-view { background: #21262d; color: #e6edf3; }
+    .btn-view:hover { background: #30363d; text-decoration: none; }
+    .btn-edit { background: #58a6ff22; color: #58a6ff; border-color: #58a6ff44; }
+    .btn-edit:hover { background: #58a6ff33; text-decoration: none; }
+    .btn-new-page {
+      background: #238636;
+      color: #ffffff;
+      border: 1px solid #2ea04366;
+      padding: 8px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
+      display: none;
+    }
+    .btn-new-page:hover { background: #2ea043; text-decoration: none; }
+    .btn-new-page.visible { display: inline-flex; align-items: center; gap: 6px; }
+    .empty-state { text-align: center; padding: 60px 20px; color: #8b949e; }
+    .empty-state h3 { color: #e6edf3; margin-bottom: 8px; }
+    .loading-spinner { display: flex; justify-content: center; padding: 40px; color: #8b949e; }
+    .page-card-btn {
+      padding: 6px 10px;
+      font-size: 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .page-card-btn-code { background: #21262d; color: #58a6ff; border: 1px solid #388bfd44; }
+    .page-card-btn-code:hover { background: #388bfd22; text-decoration: none; }
+    .page-card-btn-redir { background: #21262d; color: #d2a8ff; border: 1px solid #8b5cf644; }
+    .page-card-btn-redir:hover { background: #8b5cf622; text-decoration: none; }
+    .page-card-btn-dup { background: #21262d; color: #3fb950; border: 1px solid #16a34a44; }
+    .page-card-btn-dup:hover { background: #16a34a22; text-decoration: none; }
+    .page-card-btn-copy { background: #21262d; color: #f0883e; border: 1px solid #f0883e44; }
+    .page-card-btn-copy:hover { background: #f0883e22; text-decoration: none; }
+    .page-card-btn-del { background: #21262d; color: #f85149; border: 1px solid #f8514944; }
+    .page-card-btn-del:hover { background: #f8514922; text-decoration: none; }
+    .page-card-btn-import { background: #21262d; color: #79c0ff; border: 1px solid #79c0ff44; }
+    .page-card-btn-import:hover { background: #79c0ff22; text-decoration: none; }
+    .page-card-btn-rename { background: #21262d; color: #d2a8ff; border: 1px solid #d2a8ff44; }
+    .page-card-btn-rename:hover { background: #d2a8ff22; text-decoration: none; }
+    .page-card-btn-folder { background: #21262d; color: #8b949e; border: 1px solid #30363d; }
+    .page-card-btn-folder:hover { background: #30363d22; text-decoration: none; color: #e6edf3; }
+    /* Import modal */
+    .import-modal-overlay {
+      position: fixed; top:0; left:0; right:0; bottom:0;
+      background: rgba(0,0,0,0.6); z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .import-modal {
+      background: #161b22; border: 1px solid #30363d; border-radius: 12px;
+      padding: 24px; width: 420px; max-width: 90vw; max-height: 80vh;
+    }
+    .import-modal h3 { color: #e6edf3; margin: 0 0 8px; font-size: 18px; }
+    .import-modal p { color: #8b949e; font-size: 13px; margin: 0 0 16px; }
+    .import-page-list { max-height: 300px; overflow-y: auto; margin-bottom: 16px; }
+    .import-page-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 12px; border: 1px solid #30363d; border-radius: 6px;
+      margin-bottom: 6px; cursor: pointer; transition: all 0.15s;
+    }
+    .import-page-item:hover { border-color: #58a6ff; background: #58a6ff11; }
+    .import-page-item-name { color: #e6edf3; font-size: 14px; font-weight: 500; }
+    .import-page-item-info { color: #8b949e; font-size: 12px; }
+    .import-mode-toggle { display: flex; gap: 8px; margin-bottom: 16px; }
+    .import-mode-btn {
+      flex: 1; padding: 8px; border: 1px solid #30363d; border-radius: 6px;
+      background: #21262d; color: #8b949e; cursor: pointer; font-size: 12px;
+      text-align: center; transition: all 0.15s;
+    }
+    .import-mode-btn.active { border-color: #58a6ff; color: #58a6ff; background: #58a6ff11; }
+    .import-modal-close {
+      background: #21262d; color: #8b949e; border: 1px solid #30363d;
+      padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px;
+      width: 100%; margin-top: 4px;
+    }
+    .import-modal-close:hover { background: #30363d; color: #e6edf3; }
+    /* Create page modal */
+    .create-modal-field { margin-bottom: 14px; }
+    .create-modal-field label {
+      display: block; color: #8b949e; font-size: 13px; margin-bottom: 4px;
+    }
+    .create-modal-field input,
+    .create-modal-field select {
+      width: 100%; padding: 8px 12px; background: #0d1117; border: 1px solid #30363d;
+      border-radius: 6px; color: #e6edf3; font-size: 14px; outline: none;
+      box-sizing: border-box;
+    }
+    .create-modal-field input:focus,
+    .create-modal-field select:focus { border-color: #58a6ff; }
+    .create-modal-actions { display: flex; gap: 8px; margin-top: 16px; }
+    .create-modal-actions button {
+      flex: 1; padding: 8px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600;
+    }
+    .btn-create-cancel {
+      background: #21262d; color: #8b949e; border: 1px solid #30363d;
+    }
+    .btn-create-confirm {
+      background: #238636; color: #fff; border: 1px solid #2ea04366;
+    }
+    .btn-create-confirm:hover { background: #2ea043; }
+    @media (max-width: 768px) {
+      .pages-header { flex-direction: column; gap: 12px; align-items: flex-start; }
+      .pages-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div id="navbar"></div>
+
+  <div class="container">
+    <div class="pages-header">
+      <div>
+        <h1 class="page-title">Pages</h1>
+        <p class="page-subtitle">Gerez les pages de votre site</p>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button type="button" class="btn-new-page" id="btn-fix-villes" style="background:#58a6ff;border-color:#58a6ff66;display:none;" title="Mettre a jour les URLs des pages Villes en /location-photobooth/[ville]/">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          Corriger URLs Villes
+        </button>
+        <button type="button" class="btn-new-page" id="btn-new-page">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 2a.75.75 0 01.75.75v4.5h4.5a.75.75 0 010 1.5h-4.5v4.5a.75.75 0 01-1.5 0v-4.5h-4.5a.75.75 0 010-1.5h4.5v-4.5A.75.75 0 018 2z"/></svg>
+          Nouvelle page
+        </button>
+      </div>
+    </div>
+
+    <div class="pages-search">
+      <svg class="pages-search-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M11.5 7a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zm-.82 4.74a6 6 0 111.06-1.06l3.04 3.04a.75.75 0 11-1.06 1.06l-3.04-3.04z"/></svg>
+      <input type="text" id="search-input" placeholder="Rechercher une page par nom, slug ou dossier..." autocomplete="off">
+      <span class="pages-search-count" id="search-count"></span>
+    </div>
+
+    <div class="folder-tabs" id="folder-tabs"></div>
+
+    <div id="pages-loading" class="loading-spinner">Chargement des pages...</div>
+
+    <div id="pages-grid" class="pages-grid" style="display:none;"></div>
+
+    <div id="pages-empty" class="empty-state" style="display:none;">
+      <h3>Aucune page</h3>
+      <p>Il n'y a pas encore de pages dans le dossier previews/. Ajoutez des fichiers HTML pour commencer.</p>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="/js/auth.js"></script>
+  <script src="/js/components.js"></script>
+  <script>
+    (function() {
+      'use strict';
+
+      var FOLDERS = ['Bornes', 'Evenements', 'Villes', 'Blog', 'Autres'];
+      var SITE_DOMAIN = ''; // loaded from site-config
+      var currentUser = null;
+      var allPages = [];
+      var folderMap = {}; // slug -> folder name
+      var activeFolder = null; // null = all
+      var searchQuery = '';
+
+      function formatDate(isoString) {
+        if (!isoString) return '\u2014';
+        var d = new Date(isoString);
+        var day = String(d.getDate()).padStart(2, '0');
+        var month = String(d.getMonth() + 1).padStart(2, '0');
+        var year = d.getFullYear();
+        var hours = String(d.getHours()).padStart(2, '0');
+        var minutes = String(d.getMinutes()).padStart(2, '0');
+        return day + '/' + month + '/' + year + ' ' + hours + ':' + minutes;
+      }
+
+      function getStatusBadge(status) {
+        var labels = { published: 'Publie', draft: 'Brouillon', modified: 'Modifie' };
+        var label = labels[status] || status;
+        return '<span class="status-badge status-' + Components.escapeHtml(status) + '">' + Components.escapeHtml(label) + '</span>';
+      }
+
+      function getPageFolder(slug) {
+        return folderMap[slug] || 'Autres';
+      }
+
+      // ===== Folder map persistence =====
+      function loadFolderMap() {
+        return Auth.apiFetch('/api/pages/folders')
+          .then(function(r) { return r.json(); })
+          .then(function(data) { folderMap = data.folders || {}; })
+          .catch(function() { folderMap = {}; });
+      }
+
+      function saveFolderMap() {
+        return Auth.apiFetch('/api/pages/folders', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ folders: folderMap })
+        }).catch(function() {});
+      }
+
+      // ===== Render folder tabs =====
+      function renderFolderTabs() {
+        var counts = { _all: allPages.length };
+        for (var f = 0; f < FOLDERS.length; f++) counts[FOLDERS[f]] = 0;
+        for (var i = 0; i < allPages.length; i++) {
+          var folder = getPageFolder(allPages[i].slug);
+          counts[folder] = (counts[folder] || 0) + 1;
+        }
+
+        var html = '<button type="button" class="folder-tab' + (activeFolder === null ? ' active' : '') + '" data-folder="">';
+        html += 'Toutes <span class="folder-tab-count">' + counts._all + '</span></button>';
+        for (var f = 0; f < FOLDERS.length; f++) {
+          var isActive = activeFolder === FOLDERS[f];
+          html += '<button type="button" class="folder-tab' + (isActive ? ' active' : '') + '" data-folder="' + FOLDERS[f] + '">';
+          html += Components.escapeHtml(FOLDERS[f]) + ' <span class="folder-tab-count">' + (counts[FOLDERS[f]] || 0) + '</span></button>';
+        }
+        document.getElementById('folder-tabs').innerHTML = html;
+      }
+
+      // ===== Filter + search =====
+      function applyFilters() {
+        var q = searchQuery.toLowerCase();
+        var visibleCount = 0;
+        var cards = document.querySelectorAll('.page-card[data-slug]');
+        for (var i = 0; i < cards.length; i++) {
+          var card = cards[i];
+          var slug = card.getAttribute('data-slug');
+          var name = card.getAttribute('data-name').toLowerCase();
+          var folder = getPageFolder(slug);
+
+          var matchFolder = !activeFolder || folder === activeFolder;
+          var matchSearch = !q || name.indexOf(q) !== -1 || slug.indexOf(q) !== -1 || folder.toLowerCase().indexOf(q) !== -1;
+
+          if (matchFolder && matchSearch) {
+            card.classList.remove('hidden');
+            visibleCount++;
+          } else {
+            card.classList.add('hidden');
+          }
+        }
+
+        var countEl = document.getElementById('search-count');
+        if (q || activeFolder) {
+          countEl.textContent = visibleCount + '/' + allPages.length;
+        } else {
+          countEl.textContent = '';
+        }
+
+        var empty = document.getElementById('pages-empty');
+        var grid = document.getElementById('pages-grid');
+        if (visibleCount === 0 && allPages.length > 0) {
+          empty.style.display = 'block';
+          empty.innerHTML = '<h3>Aucun resultat</h3><p>Aucune page ne correspond a votre recherche.</p>';
+        } else if (allPages.length === 0) {
+          empty.style.display = 'block';
+        } else {
+          empty.style.display = 'none';
+        }
+      }
+
+      // ===== Render pages =====
+      function renderPages(pages) {
+        var loading = document.getElementById('pages-loading');
+        var grid = document.getElementById('pages-grid');
+        var empty = document.getElementById('pages-empty');
+
+        loading.style.display = 'none';
+        allPages = pages;
+
+        if (!pages || pages.length === 0) {
+          empty.style.display = 'block';
+          grid.style.display = 'none';
+          renderFolderTabs();
+          return;
+        }
+
+        grid.style.display = 'grid';
+        empty.style.display = 'none';
+
+        var html = '';
+        for (var i = 0; i < pages.length; i++) {
+          var page = pages[i];
+          var urlPath = page.slug === 'home' ? '/' : '/' + page.slug;
+          var folder = getPageFolder(page.slug);
+
+          html += '<div class="page-card" data-slug="' + Components.escapeHtml(page.slug) + '" data-name="' + Components.escapeHtml(page.name) + '">';
+          html += '<div class="page-card-header">';
+          html += '<div>';
+          html += '<h3 class="page-card-name">' + Components.escapeHtml(page.name);
+          html += '<span class="page-card-folder">' + Components.escapeHtml(folder) + '</span>';
+          html += '</h3>';
+          var displayUrl = page.urlPath || urlPath;
+          html += '<div class="page-card-slug">' + Components.escapeHtml(displayUrl) + '/</div>';
+          html += '</div>';
+          html += getStatusBadge(page.status);
+          html += '</div>';
+
+          html += '<div class="page-card-meta">';
+          html += '<span class="page-card-meta-item">';
+          html += '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M4.75 0a.75.75 0 01.75.75V2h5V.75a.75.75 0 011.5 0V2h1.25c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0113.25 16H2.75A1.75 1.75 0 011 14.25V3.75C1 2.784 1.784 2 2.75 2H4V.75A.75.75 0 014.75 0zm0 3.5H2.75a.25.25 0 00-.25.25V6h11V3.75a.25.25 0 00-.25-.25H4.75zm-2.25 4v6.75c0 .138.112.25.25.25h10.5a.25.25 0 00.25-.25V7.5z"/></svg>';
+          html += formatDate(page.lastModified);
+          html += '</span>';
+          html += '<span class="page-card-meta-item">';
+          html += '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.75C1.5.784 2.284 0 3.25 0h9.5C13.716 0 14.5.784 14.5 1.75v12.5A1.75 1.75 0 0112.75 16h-9.5A1.75 1.75 0 011.5 14.25zm1.75-.25a.25.25 0 00-.25.25v12.5c0 .138.112.25.25.25h9.5a.25.25 0 00.25-.25V1.75a.25.25 0 00-.25-.25zM5 5a.75.75 0 000 1.5h6A.75.75 0 0011 5zm-.75 3.75A.75.75 0 015 8h6a.75.75 0 010 1.5H5a.75.75 0 01-.75-.75zM5 11a.75.75 0 000 1.5h3a.75.75 0 000-1.5z"/></svg>';
+          html += (page.sections ? page.sections.length : 0) + ' sections';
+          html += '</span>';
+          html += '</div>';
+
+          if (page.sections && page.sections.length > 0) {
+            html += '<div class="page-card-sections">';
+            var maxShow = Math.min(page.sections.length, 5);
+            for (var j = 0; j < maxShow; j++) {
+              html += '<span class="section-tag">' + Components.escapeHtml(page.sections[j]) + '</span>';
+            }
+            if (page.sections.length > 5) {
+              html += '<span class="section-tag">+' + (page.sections.length - 5) + '</span>';
+            }
+            html += '</div>';
+          }
+
+          html += '<div class="page-card-actions">';
+          html += '<a href="/api/pages/' + encodeURIComponent(page.slug) + '/preview" target="_blank" class="btn-sm btn-view" title="Preview (brouillon)">';
+          html += '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 2c1.981 0 3.671.992 4.933 2.078 1.27 1.091 2.187 2.345 2.637 3.023a1.62 1.62 0 010 1.798c-.45.678-1.367 1.932-2.637 3.023C11.67 13.008 9.981 14 8 14c-1.981 0-3.671-.992-4.933-2.078C1.797 10.831.88 9.577.43 8.899a1.62 1.62 0 010-1.798c.45-.678 1.367-1.932 2.637-3.023C4.33 2.992 6.019 2 8 2zM1.679 7.932a.12.12 0 000 .136c.411.622 1.241 1.75 2.366 2.717C5.176 11.758 6.527 12.5 8 12.5c1.473 0 2.825-.742 3.955-1.715 1.124-.967 1.954-2.096 2.366-2.717a.12.12 0 000-.136c-.412-.621-1.242-1.75-2.366-2.717C10.824 4.242 9.473 3.5 8 3.5c-1.473 0-2.824.742-3.955 1.715-1.124.967-1.954 2.096-2.366 2.717zM8 10a2 2 0 110-4 2 2 0 010 4z"/></svg>';
+          html += 'Preview</a>';
+          var publicPath = (page.urlPath || urlPath);
+          if (!publicPath.startsWith('/')) publicPath = '/' + publicPath;
+          if (!publicPath.endsWith('/')) publicPath += '/';
+          // Point to local built site (/site/slug/)
+          var publicUrl = page.slug === 'home' ? '/site/' : '/site' + publicPath;
+          html += '<a href="' + publicUrl + '" target="_blank" class="btn-sm btn-view" title="URL publique : ' + Components.escapeHtml(publicUrl) + '" style="color:#3fb950;border-color:#16a34a44;">';
+          html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
+          html += 'Voir</a>';
+          html += '<a href="/editor.html?slug=' + encodeURIComponent(page.slug) + '" target="_blank" class="btn-sm btn-edit">';
+          html += '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M11.013 1.427a1.75 1.75 0 012.474 0l1.086 1.086a1.75 1.75 0 010 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 01-.927-.928l.929-3.25a1.75 1.75 0 01.445-.758l8.61-8.61zm1.414 1.06a.25.25 0 00-.354 0L3.463 11.098a.25.25 0 00-.064.108l-.631 2.208 2.208-.63a.25.25 0 00.108-.064l8.61-8.61a.25.25 0 000-.354z"/></svg>';
+          html += 'Editer</a>';
+          html += '<a href="/page-code.html?slug=' + encodeURIComponent(page.slug) + '" class="page-card-btn page-card-btn-code" title="Code &amp; Meta">';
+          html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>';
+          html += ' Code</a>';
+          html += '<a href="/redirections.html?source=/' + encodeURIComponent(page.slug) + '/" class="page-card-btn page-card-btn-redir" title="Redirections">';
+          html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
+          html += ' Redir</a>';
+          if (currentUser && currentUser.role === 'admin') {
+            if (page.slug !== 'home') {
+              html += '<button type="button" class="page-card-btn page-card-btn-rename" title="Renommer" data-rename-slug="' + Components.escapeHtml(page.slug) + '" data-rename-name="' + Components.escapeHtml(page.name) + '">';
+              html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>';
+              html += ' Renommer</button>';
+            }
+            html += '<button type="button" class="page-card-btn page-card-btn-import" title="Importer le contenu d\'une autre page" data-import-slug="' + Components.escapeHtml(page.slug) + '">';
+            html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+            html += ' Importer</button>';
+            html += '<button type="button" class="page-card-btn page-card-btn-dup" title="Dupliquer" data-dup-slug="' + Components.escapeHtml(page.slug) + '" data-dup-name="' + Components.escapeHtml(page.name) + '">';
+            html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+            html += ' Dupliquer</button>';
+            html += '<button type="button" class="page-card-btn page-card-btn-copy" title="Copier le contenu" data-copy-slug="' + Components.escapeHtml(page.slug) + '">';
+            html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>';
+            html += ' Copier</button>';
+            html += '<button type="button" class="page-card-btn page-card-btn-code" title="Changer l\'URL" data-url-slug="' + Components.escapeHtml(page.slug) + '" data-url-path="' + Components.escapeHtml(page.urlPath || urlPath) + '">';
+            html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>';
+            html += ' URL</button>';
+            html += '<button type="button" class="page-card-btn page-card-btn-folder" title="Changer de dossier" data-folder-slug="' + Components.escapeHtml(page.slug) + '">';
+            html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>';
+            html += ' Dossier</button>';
+            if (page.slug !== 'home') {
+              html += '<button type="button" class="page-card-btn page-card-btn-del" title="Supprimer" data-del-slug="' + Components.escapeHtml(page.slug) + '" data-del-name="' + Components.escapeHtml(page.name) + '">';
+              html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
+              html += ' Supprimer</button>';
+            }
+          }
+          html += '</div>';
+          html += '</div>';
+        }
+
+        grid.innerHTML = html;
+        renderFolderTabs();
+        applyFilters();
+      }
+
+      async function loadPages() {
+        try {
+          var response = await Auth.apiFetch('/api/pages');
+          if (!response.ok) throw new Error('Erreur ' + response.status);
+          var data = await response.json();
+          renderPages(data.pages || []);
+        } catch (err) {
+          document.getElementById('pages-loading').style.display = 'none';
+          document.getElementById('pages-empty').style.display = 'block';
+          document.getElementById('pages-empty').innerHTML =
+            '<h3>Erreur</h3><p>Impossible de charger les pages: ' + Components.escapeHtml(err.message) + '</p>';
+          Components.showToast('Erreur lors du chargement des pages', 'error');
+        }
+      }
+
+      // ===== Action handlers =====
+
+      function handleDuplicate(slug, name) {
+        var newName = prompt('Nom de la copie :', name + ' (copie)');
+        if (!newName) return;
+        var newSlug = newName.toLowerCase()
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        if (!newSlug) { Components.showToast('Slug invalide', 'error'); return; }
+        Auth.apiFetch('/api/pages/' + encodeURIComponent(slug) + '/duplicate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ newSlug: newSlug, newName: newName })
+        }).then(function(res) { return res.json(); })
+          .then(function(data) {
+            if (data.error) { Components.showToast(data.error, 'error'); return; }
+            // Copy folder assignment
+            folderMap[newSlug] = getPageFolder(slug);
+            saveFolderMap();
+            Components.showToast('Page "' + newName + '" dupliquee', 'success');
+            loadPages();
+          }).catch(function(err) { Components.showToast('Erreur: ' + err.message, 'error'); });
+      }
+
+      function handleCopyContent(slug) {
+        Auth.apiFetch('/api/pages/' + encodeURIComponent(slug) + '/content')
+          .then(function(res) { return res.json(); })
+          .then(function(data) {
+            if (data.error) { Components.showToast(data.error, 'error'); return; }
+            var blocks = data.blocks || [];
+            if (blocks.length === 0) { Components.showToast('Aucun contenu a copier', 'warning'); return; }
+            var assembled = '';
+            for (var i = 0; i < blocks.length; i++) {
+              var b = blocks[i];
+              var spacingInfo = b.spacing ? ' (spacing: ' + b.spacing + 'px)' : '';
+              assembled += '<!-- ===== ' + b.file + spacingInfo + ' ===== -->\n';
+              assembled += b.html.trim() + '\n\n';
+            }
+            return navigator.clipboard.writeText(assembled.trim()).then(function() {
+              Components.showToast(blocks.length + ' bloc(s) copie(s)', 'success');
+            });
+          }).catch(function(err) { Components.showToast('Erreur: ' + err.message, 'error'); });
+      }
+
+      function handleDelete(slug, name) {
+        Components.showConfirm('Supprimer la page "' + name + '" ? Cette action est irreversible.').then(function(confirmed) {
+          if (!confirmed) return;
+          Auth.apiFetch('/api/pages/' + encodeURIComponent(slug), { method: 'DELETE' })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+              if (data.error) { Components.showToast(data.error, 'error'); return; }
+              delete folderMap[slug];
+              saveFolderMap();
+              Components.showToast('Page "' + name + '" supprimee', 'success');
+              loadPages();
+            }).catch(function(err) { Components.showToast('Erreur: ' + err.message, 'error'); });
+        });
+      }
+
+      function handleRename(oldSlug, oldName) {
+        // Modal for rename with separate name and slug fields
+        var overlay = document.createElement('div');
+        overlay.className = 'import-modal-overlay';
+        var html = '<h3>Renommer la page</h3>';
+        html += '<div class="create-modal-field"><label>Nom de la page</label>';
+        html += '<input type="text" id="rename-name" value="' + Components.escapeHtml(oldName) + '"></div>';
+        html += '<div class="create-modal-field"><label>Slug interne (nom du dossier)</label>';
+        html += '<input type="text" id="rename-slug" value="' + Components.escapeHtml(oldSlug) + '"></div>';
+        html += '<p style="color:#d29922;font-size:12px;margin:4px 0 16px;">Si le slug change, une redirection 301 sera creee automatiquement.</p>';
+        html += '<div class="create-modal-actions">';
+        html += '<button type="button" class="btn-create-cancel">Annuler</button>';
+        html += '<button type="button" class="btn-create-confirm">Renommer</button>';
+        html += '</div>';
+        var modal = document.createElement('div');
+        modal.className = 'import-modal';
+        modal.innerHTML = html;
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        var nameInput = modal.querySelector('#rename-name');
+        var slugInput = modal.querySelector('#rename-slug');
+        setTimeout(function() { nameInput.focus(); nameInput.select(); }, 50);
+
+        function close() { overlay.remove(); }
+        overlay.addEventListener('click', function(e) { if (e.target === overlay) close(); });
+        modal.querySelector('.btn-create-cancel').addEventListener('click', close);
+
+        modal.querySelector('.btn-create-confirm').addEventListener('click', function() {
+          var newName = nameInput.value.trim();
+          var newSlug = slugInput.value.trim().toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+          if (!newName) { Components.showToast('Le nom est requis', 'error'); return; }
+          if (!newSlug) { Components.showToast('Slug invalide', 'error'); return; }
+          if (newName === oldName && newSlug === oldSlug) { close(); return; }
+          close();
+          Auth.apiFetch('/api/pages/' + encodeURIComponent(oldSlug) + '/rename', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ newSlug: newSlug, newName: newName })
+          }).then(function(r) { return r.json(); })
+            .then(function(data) {
+              if (data.error) { Components.showToast(data.error, 'error'); return; }
+              if (newSlug !== oldSlug && folderMap[oldSlug]) {
+                folderMap[newSlug] = folderMap[oldSlug];
+                delete folderMap[oldSlug];
+                saveFolderMap();
+              }
+              var toast = 'Page renommee en "' + newName + '"';
+              if (data.redirect301) toast += ' (redirection 301 creee)';
+              Components.showToast(toast, 'success');
+              cachedPages = [];
+              loadPages();
+            }).catch(function(err) { Components.showToast('Erreur: ' + err.message, 'error'); });
+        });
+
+        nameInput.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') modal.querySelector('.btn-create-confirm').click();
+        });
+        slugInput.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') modal.querySelector('.btn-create-confirm').click();
+        });
+      }
+
+      function handleChangeUrl(slug, currentUrl) {
+        var overlay = document.createElement('div');
+        overlay.className = 'import-modal-overlay';
+        var html = '<h3>Changer l\'URL</h3>';
+        html += '<p>Page : <strong>' + Components.escapeHtml(slug) + '</strong></p>';
+        html += '<div class="create-modal-field"><label>URL publique (sans domaine, sans / initial)</label>';
+        html += '<input type="text" id="url-input" value="' + Components.escapeHtml(currentUrl.replace(/^\//, '')) + '" placeholder="ex: location-photobooth/paris"></div>';
+        html += '<p style="color:#484f58;font-size:12px;margin:8px 0 16px;">Resultat : <span id="url-preview" style="color:#58a6ff;">/' + Components.escapeHtml(currentUrl.replace(/^\//, '')) + '/</span></p>';
+        html += '<p style="color:#d29922;font-size:12px;margin:0 0 16px;">Une redirection 301 sera creee depuis l\'ancienne URL.</p>';
+        html += '<div class="create-modal-actions">';
+        html += '<button type="button" class="btn-create-cancel">Annuler</button>';
+        html += '<button type="button" class="btn-create-confirm">Enregistrer</button>';
+        html += '</div>';
+        var modal = document.createElement('div');
+        modal.className = 'import-modal';
+        modal.innerHTML = html;
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        var input = modal.querySelector('#url-input');
+        var preview = modal.querySelector('#url-preview');
+        input.addEventListener('input', function() {
+          var val = input.value.replace(/^\/+|\/+$/g, '').toLowerCase();
+          preview.textContent = '/' + val + '/';
+        });
+        setTimeout(function() { input.focus(); input.select(); }, 50);
+
+        function close() { overlay.remove(); }
+        overlay.addEventListener('click', function(e) { if (e.target === overlay) close(); });
+        modal.querySelector('.btn-create-cancel').addEventListener('click', close);
+        modal.querySelector('.btn-create-confirm').addEventListener('click', function() {
+          var val = input.value.replace(/^\/+|\/+$/g, '').toLowerCase();
+          if (!val) { Components.showToast('URL requise', 'error'); return; }
+          close();
+          Auth.apiFetch('/api/pages/' + encodeURIComponent(slug) + '/url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ urlPath: val })
+          }).then(function(r) { return r.json(); })
+            .then(function(data) {
+              if (data.error) { Components.showToast(data.error, 'error'); return; }
+              var msg = 'URL changee en ' + data.urlPath;
+              if (data.redirect301) msg += ' (redirection 301 creee)';
+              Components.showToast(msg, 'success');
+              loadPages();
+            }).catch(function(err) { Components.showToast('Erreur: ' + err.message, 'error'); });
+        });
+        input.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') modal.querySelector('.btn-create-confirm').click();
+        });
+      }
+
+      function handleChangeFolder(slug) {
+        var current = getPageFolder(slug);
+        var overlay = document.createElement('div');
+        overlay.className = 'import-modal-overlay';
+        var html = '<h3>Changer de dossier</h3>';
+        html += '<p>Page : <strong>' + Components.escapeHtml(slug) + '</strong></p>';
+        html += '<div class="import-page-list">';
+        for (var i = 0; i < FOLDERS.length; i++) {
+          var isActive = FOLDERS[i] === current;
+          html += '<div class="import-page-item' + (isActive ? '" style="border-color:#58a6ff;background:#58a6ff11' : '') + '" data-folder-choice="' + FOLDERS[i] + '">';
+          html += '<span class="import-page-item-name">' + Components.escapeHtml(FOLDERS[i]) + '</span>';
+          if (isActive) html += '<span class="import-page-item-info">actuel</span>';
+          html += '</div>';
+        }
+        html += '</div>';
+        html += '<button type="button" class="import-modal-close">Annuler</button>';
+        var modal = document.createElement('div');
+        modal.className = 'import-modal';
+        modal.innerHTML = html;
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        function close() { overlay.remove(); }
+        overlay.addEventListener('click', function(e) { if (e.target === overlay) close(); });
+        modal.querySelector('.import-modal-close').addEventListener('click', close);
+        modal.querySelectorAll('[data-folder-choice]').forEach(function(item) {
+          item.addEventListener('click', function() {
+            var choice = item.getAttribute('data-folder-choice');
+            folderMap[slug] = choice;
+            saveFolderMap();
+            close();
+            Components.showToast('Page deplacee dans "' + choice + '"', 'success');
+            renderPages(allPages);
+          });
+        });
+      }
+
+      var cachedPages = [];
+
+      function handleImport(targetSlug) {
+        var pagesPromise = cachedPages.length > 0
+          ? Promise.resolve(cachedPages)
+          : Auth.apiFetch('/api/pages').then(function(r) { return r.json(); }).then(function(d) {
+              cachedPages = d.pages || []; return cachedPages;
+            });
+        pagesPromise.then(function(pages) {
+          var sources = pages.filter(function(p) { return p.slug !== targetSlug; });
+          if (sources.length === 0) { Components.showToast('Aucune autre page disponible', 'warning'); return; }
+          var overlay = document.createElement('div');
+          overlay.className = 'import-modal-overlay';
+          var replaceMode = true;
+          var modalHtml = '<h3>Importer le contenu</h3>';
+          modalHtml += '<p>Choisissez la page source et le mode d\'import dans <strong>' + Components.escapeHtml(targetSlug) + '</strong></p>';
+          modalHtml += '<div class="import-mode-toggle">';
+          modalHtml += '<button type="button" class="import-mode-btn active" data-mode="replace">Remplacer le contenu</button>';
+          modalHtml += '<button type="button" class="import-mode-btn" data-mode="append">Ajouter a la suite</button>';
+          modalHtml += '</div>';
+          modalHtml += '<div class="import-page-list">';
+          for (var i = 0; i < sources.length; i++) {
+            var s = sources[i];
+            modalHtml += '<div class="import-page-item" data-source="' + Components.escapeHtml(s.slug) + '">';
+            modalHtml += '<span class="import-page-item-name">' + Components.escapeHtml(s.name) + '</span>';
+            modalHtml += '<span class="import-page-item-info">' + (s.sections ? s.sections.length : 0) + ' sections</span>';
+            modalHtml += '</div>';
+          }
+          modalHtml += '</div>';
+          modalHtml += '<button type="button" class="import-modal-close">Annuler</button>';
+          var modal = document.createElement('div');
+          modal.className = 'import-modal';
+          modal.innerHTML = modalHtml;
+          overlay.appendChild(modal);
+          document.body.appendChild(overlay);
+          modal.querySelectorAll('.import-mode-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+              modal.querySelectorAll('.import-mode-btn').forEach(function(b) { b.classList.remove('active'); });
+              btn.classList.add('active');
+              replaceMode = btn.getAttribute('data-mode') === 'replace';
+            });
+          });
+          function closeModal() { overlay.remove(); }
+          overlay.addEventListener('click', function(e) { if (e.target === overlay) closeModal(); });
+          modal.querySelector('.import-modal-close').addEventListener('click', closeModal);
+          modal.querySelectorAll('.import-page-item').forEach(function(item) {
+            item.addEventListener('click', function() {
+              var sourceSlug = item.getAttribute('data-source');
+              var sourceName = item.querySelector('.import-page-item-name').textContent;
+              var action = replaceMode ? 'Remplacer' : 'Ajouter';
+              closeModal();
+              Components.showConfirm(action + ' le contenu de "' + targetSlug + '" avec celui de "' + sourceName + '" ?').then(function(confirmed) {
+                if (!confirmed) return;
+                Auth.apiFetch('/api/pages/' + encodeURIComponent(targetSlug) + '/import-content', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ sourceSlug: sourceSlug, replace: replaceMode })
+                }).then(function(r) { return r.json(); })
+                  .then(function(data) {
+                    if (data.error) { Components.showToast(data.error, 'error'); return; }
+                    Components.showToast(data.count + ' section(s) importee(s)', 'success');
+                    loadPages();
+                  }).catch(function(err) { Components.showToast('Erreur: ' + err.message, 'error'); });
+              });
+            });
+          });
+        }).catch(function(err) { Components.showToast('Erreur: ' + err.message, 'error'); });
+      }
+
+      // ===== Create page with folder =====
+      function showCreateModal() {
+        var overlay = document.createElement('div');
+        overlay.className = 'import-modal-overlay';
+        var html = '<h3>Nouvelle page</h3>';
+        html += '<div class="create-modal-field"><label>Nom de la page</label>';
+        html += '<input type="text" id="create-page-name" placeholder="Ex: Location Photobooth Mariage" autofocus></div>';
+        html += '<div class="create-modal-field"><label>Dossier</label>';
+        html += '<select id="create-page-folder">';
+        for (var i = 0; i < FOLDERS.length; i++) {
+          html += '<option value="' + FOLDERS[i] + '">' + Components.escapeHtml(FOLDERS[i]) + '</option>';
+        }
+        html += '</select></div>';
+        html += '<div class="create-modal-field"><label>URL publique (auto-generee, modifiable)</label>';
+        html += '<input type="text" id="create-page-url" placeholder="sera genere automatiquement">';
+        html += '<p style="color:#484f58;font-size:11px;margin:4px 0 0;">Resultat : <span id="create-url-preview" style="color:#58a6ff;">/...</span></p>';
+        html += '</div>';
+        html += '<div class="create-modal-actions">';
+        html += '<button type="button" class="btn-create-cancel">Annuler</button>';
+        html += '<button type="button" class="btn-create-confirm">Creer</button>';
+        html += '</div>';
+        var modal = document.createElement('div');
+        modal.className = 'import-modal';
+        modal.innerHTML = html;
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        function close() { overlay.remove(); }
+        overlay.addEventListener('click', function(e) { if (e.target === overlay) close(); });
+        modal.querySelector('.btn-create-cancel').addEventListener('click', close);
+
+        var nameInput = modal.querySelector('#create-page-name');
+        var folderSelect = modal.querySelector('#create-page-folder');
+        var urlInput = modal.querySelector('#create-page-url');
+        var urlPreview = modal.querySelector('#create-url-preview');
+        var urlManuallyEdited = false;
+
+        function slugify(str) {
+          return str.toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        }
+
+        function updateUrlSuggestion() {
+          if (urlManuallyEdited) {
+            urlPreview.textContent = '/' + urlInput.value.replace(/^\/+|\/+$/g, '') + '/';
+            return;
+          }
+          var s = slugify(nameInput.value);
+          var folder = folderSelect.value;
+          var url = s;
+          if (folder === 'Villes' && s) {
+            url = 'location-photobooth/' + s;
+          }
+          urlInput.value = url;
+          urlPreview.textContent = url ? '/' + url + '/' : '/...';
+        }
+
+        nameInput.addEventListener('input', updateUrlSuggestion);
+        folderSelect.addEventListener('change', function() { urlManuallyEdited = false; updateUrlSuggestion(); });
+        urlInput.addEventListener('input', function() {
+          urlManuallyEdited = true;
+          urlPreview.textContent = '/' + urlInput.value.replace(/^\/+|\/+$/g, '') + '/';
+        });
+
+        setTimeout(function() { nameInput.focus(); }, 50);
+
+        modal.querySelector('.btn-create-confirm').addEventListener('click', function() {
+          var name = nameInput.value.trim();
+          var folder = folderSelect.value;
+          var customUrl = urlInput.value.replace(/^\/+|\/+$/g, '').toLowerCase();
+          if (!name) { Components.showToast('Le nom est requis', 'error'); return; }
+          var slug = slugify(name);
+          if (!slug) { Components.showToast('Slug invalide', 'error'); return; }
+          close();
+          var editWindow = window.open('about:blank', '_blank');
+          Auth.apiFetch('/api/pages/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ slug: slug, name: name, urlPath: customUrl || slug })
+          }).then(function(res) { return res.json(); })
+            .then(function(data) {
+              if (data.error) {
+                Components.showToast(data.error, 'error');
+                if (editWindow) editWindow.close();
+                return;
+              }
+              folderMap[slug] = folder;
+              saveFolderMap();
+              Components.showToast('Page "' + (data.name || slug) + '" creee dans ' + folder, 'success');
+              if (editWindow) editWindow.location.href = '/editor.html?slug=' + encodeURIComponent(slug);
+              loadPages();
+            }).catch(function(err) {
+              Components.showToast('Erreur: ' + err.message, 'error');
+              if (editWindow) editWindow.close();
+            });
+        });
+
+        // Enter key to submit
+        modal.querySelector('#create-page-name').addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') modal.querySelector('.btn-create-confirm').click();
+        });
+      }
+
+      // ===== Delegated click handler =====
+      document.getElementById('pages-grid').addEventListener('click', function(e) {
+        var dupBtn = e.target.closest('[data-dup-slug]');
+        if (dupBtn) { handleDuplicate(dupBtn.getAttribute('data-dup-slug'), dupBtn.getAttribute('data-dup-name')); return; }
+        var copyBtn = e.target.closest('[data-copy-slug]');
+        if (copyBtn) { handleCopyContent(copyBtn.getAttribute('data-copy-slug')); return; }
+        var delBtn = e.target.closest('[data-del-slug]');
+        if (delBtn) { handleDelete(delBtn.getAttribute('data-del-slug'), delBtn.getAttribute('data-del-name')); return; }
+        var renameBtn = e.target.closest('[data-rename-slug]');
+        if (renameBtn) { handleRename(renameBtn.getAttribute('data-rename-slug'), renameBtn.getAttribute('data-rename-name')); return; }
+        var importBtn = e.target.closest('[data-import-slug]');
+        if (importBtn) { handleImport(importBtn.getAttribute('data-import-slug')); return; }
+        var urlBtn = e.target.closest('[data-url-slug]');
+        if (urlBtn) { handleChangeUrl(urlBtn.getAttribute('data-url-slug'), urlBtn.getAttribute('data-url-path')); return; }
+        var folderBtn = e.target.closest('[data-folder-slug]');
+        if (folderBtn) { handleChangeFolder(folderBtn.getAttribute('data-folder-slug')); return; }
+      });
+
+      // ===== Folder tab clicks =====
+      document.getElementById('folder-tabs').addEventListener('click', function(e) {
+        var tab = e.target.closest('.folder-tab');
+        if (!tab) return;
+        var folder = tab.getAttribute('data-folder');
+        activeFolder = folder || null;
+        renderFolderTabs();
+        applyFilters();
+        // Show/hide fix villes button
+        var fixBtn = document.getElementById('btn-fix-villes');
+        if (fixBtn) {
+          fixBtn.style.display = (activeFolder === 'Villes' && currentUser && currentUser.role === 'admin') ? 'inline-flex' : 'none';
+        }
+      });
+
+      // ===== Search =====
+      document.getElementById('search-input').addEventListener('input', function(e) {
+        searchQuery = e.target.value;
+        applyFilters();
+      });
+
+      // ===== Init =====
+      Components.initPage().then(function(user) {
+        currentUser = user;
+        if (user && user.role === 'admin') {
+          var btn = document.getElementById('btn-new-page');
+          btn.classList.add('visible');
+          btn.addEventListener('click', showCreateModal);
+        }
+        // Fix Villes URLs button
+        var fixBtn = document.getElementById('btn-fix-villes');
+        if (fixBtn) {
+          fixBtn.addEventListener('click', function() {
+            Components.showConfirm('Mettre a jour les URLs de toutes les pages Villes en /location-photobooth/[ville]/ ?\n\nDes redirections 301 seront creees.').then(function(ok) {
+              if (!ok) return;
+              Auth.apiFetch('/api/pages/fix-villes-urls', { method: 'POST' })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                  if (data.error) { Components.showToast(data.error, 'error'); return; }
+                  if (data.count === 0) {
+                    Components.showToast('Toutes les URLs Villes sont deja correctes', 'info');
+                  } else {
+                    Components.showToast(data.count + ' URL(s) mise(s) a jour', 'success');
+                    loadPages();
+                  }
+                }).catch(function(err) { Components.showToast('Erreur: ' + err.message, 'error'); });
+            });
+          });
+        }
+
+        // Load site domain for public URLs
+        Auth.apiFetch('/api/settings').then(function(r) { return r.json(); }).then(function(cfg) {
+          if (cfg && cfg.deploy && cfg.deploy.domain) {
+            SITE_DOMAIN = 'https://' + cfg.deploy.domain;
+          }
+        }).catch(function() {});
+
+        loadFolderMap().then(loadPages);
+      });
+    })();
+  </script>
+</body>
+</html>

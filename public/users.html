@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Utilisateurs — Gestionnaire de Site</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .users-table { width: 100%; border-collapse: collapse; }
+        .users-table th, .users-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid #30363d;
+        }
+        .users-table th {
+            background: #161b22;
+            color: #8b949e;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+        .users-table tr:hover { background: rgba(88, 166, 255, 0.04); }
+        .user-row { display: flex; align-items: center; gap: 12px; }
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #30363d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #8b949e;
+            font-size: 14px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        .user-info { min-width: 0; }
+        .user-name { color: #e6edf3; font-weight: 500; font-size: 14px; }
+        .user-email { color: #8b949e; font-size: 12px; }
+        .role-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .role-admin { background: rgba(248, 81, 73, 0.15); color: #f85149; }
+        .role-editor { background: rgba(88, 166, 255, 0.15); color: #58a6ff; }
+        .role-viewer { background: rgba(139, 148, 158, 0.15); color: #8b949e; }
+        .status-active { color: #3fb950; }
+        .status-inactive { color: #f85149; }
+        .user-actions { display: flex; gap: 8px; }
+        .user-actions button {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            cursor: pointer;
+            background: #21262d;
+            color: #e6edf3;
+            transition: all 0.15s;
+        }
+        .user-actions button:hover { border-color: #58a6ff; color: #58a6ff; }
+        .user-actions .btn-danger { color: #f85149; }
+        .user-actions .btn-danger:hover { border-color: #f85149; }
+        .user-actions .btn-sessions { color: #d29922; }
+        .user-actions .btn-sessions:hover { border-color: #d29922; }
+        .empty-state { text-align: center; padding: 48px; color: #8b949e; }
+        .sessions-panel {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            margin-top: 12px;
+            padding: 16px;
+        }
+        .sessions-panel h4 { margin: 0 0 12px; font-size: 14px; color: #e6edf3; }
+        .session-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+        }
+        .session-item:last-child { border-bottom: none; }
+        .session-info { flex: 1; }
+        .session-ip { font-family: monospace; font-size: 12px; color: #58a6ff; }
+        .session-ua { font-size: 11px; color: #484f58; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 400px; }
+        .session-date { font-size: 11px; color: #8b949e; }
+        .revoke-btn {
+            padding: 4px 10px;
+            font-size: 11px;
+            border-radius: 4px;
+            border: 1px solid #30363d;
+            cursor: pointer;
+            background: #21262d;
+            color: #f85149;
+            margin-left: 12px;
+            flex-shrink: 0;
+        }
+        .revoke-btn:hover { border-color: #f85149; }
+        .revoke-all-btn {
+            margin-top: 12px;
+            padding: 6px 14px;
+            font-size: 12px;
+            border-radius: 6px;
+            border: 1px solid #f85149;
+            cursor: pointer;
+            background: rgba(248, 81, 73, 0.1);
+            color: #f85149;
+        }
+        .revoke-all-btn:hover { background: rgba(248, 81, 73, 0.2); }
+    </style>
+</head>
+<body>
+    <div id="navbar"></div>
+
+    <div class="container">
+        <div class="section-header">
+            <h1 class="page-title">Utilisateurs</h1>
+            <button class="btn btn-primary" id="btn-create-user">+ Creer un utilisateur</button>
+        </div>
+
+        <div class="card" style="padding: 0; overflow: hidden;">
+            <div id="users-container">
+                <p class="text-muted" style="padding: 20px;">Chargement...</p>
+            </div>
+        </div>
+
+        <!-- Sessions Panel (shown below table when viewing a user's sessions) -->
+        <div id="sessions-section" style="display:none; margin-top: 24px;">
+            <div class="card" style="padding: 20px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                    <h3 style="margin:0;font-size:15px;color:#e6edf3;" id="sessions-title">Sessions</h3>
+                    <button class="btn btn-secondary" id="btn-close-sessions" style="padding:6px 12px;font-size:12px;">Fermer</button>
+                </div>
+                <div id="sessions-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create/Edit User Modal -->
+    <div class="modal-overlay" id="modal" style="display:none">
+        <div class="modal">
+            <h2 class="modal-title" id="modal-title">Creer un utilisateur</h2>
+            <form id="user-form">
+                <input type="hidden" id="user-id">
+                <div class="form-group">
+                    <label class="form-label">Email *</label>
+                    <input class="form-input" id="user-email" type="email" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Nom d'utilisateur *</label>
+                    <input class="form-input" id="user-username" required>
+                </div>
+                <div class="form-group" id="password-group">
+                    <label class="form-label" id="password-label">Mot de passe *</label>
+                    <input class="form-input" id="user-password" type="password" minlength="8">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Role</label>
+                    <select class="form-select" id="user-role">
+                        <option value="viewer">Viewer</option>
+                        <option value="editor">Editor</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div class="form-group" id="active-group" style="display:none">
+                    <label class="form-label">Statut</label>
+                    <select class="form-select" id="user-active">
+                        <option value="true">Actif</option>
+                        <option value="false">Inactif</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/components.js"></script>
+    <script>
+    var users = [];
+    var currentSessionsUserId = null;
+
+    async function loadUsers() {
+        await Components.initPage();
+        var res = await Auth.apiFetch('/api/users');
+        if (res.ok) {
+            var data = await res.json();
+            users = data.users || [];
+            renderUsers();
+        } else {
+            document.getElementById('users-container').innerHTML =
+                '<p class="text-muted" style="padding:20px;">Erreur lors du chargement.</p>';
+        }
+    }
+
+    function getInitials(user) {
+        var name = user.username || user.email || '';
+        var parts = name.split(/[\s@._-]+/);
+        if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+        return name.substring(0, 2).toUpperCase();
+    }
+
+    function renderUsers() {
+        var el = document.getElementById('users-container');
+        var me = Auth.getUser();
+
+        if (users.length === 0) {
+            el.innerHTML = '<div class="empty-state">Aucun utilisateur.</div>';
+            return;
+        }
+
+        var html = '<table class="users-table"><thead><tr>';
+        html += '<th>Utilisateur</th><th>Role</th><th>Statut</th><th>Derniere connexion</th><th>Actions</th>';
+        html += '</tr></thead><tbody>';
+
+        for (var i = 0; i < users.length; i++) {
+            var u = users[i];
+            var roleClass = 'role-' + u.role;
+            var isSelf = me && me.id === u.id;
+
+            html += '<tr>';
+            html += '<td><div class="user-row">';
+            html += '<div class="user-avatar">' + getInitials(u) + '</div>';
+            html += '<div class="user-info">';
+            html += '<div class="user-name">' + Components.escapeHtml(u.username || '—') + (isSelf ? ' <span style="color:#58a6ff;font-size:11px;">(vous)</span>' : '') + '</div>';
+            html += '<div class="user-email">' + Components.escapeHtml(u.email) + '</div>';
+            html += '</div></div></td>';
+            html += '<td><span class="role-badge ' + roleClass + '">' + Components.escapeHtml(u.role) + '</span></td>';
+            html += '<td><span class="' + (u.is_active ? 'status-active' : 'status-inactive') + '">' + (u.is_active ? 'Actif' : 'Inactif') + '</span></td>';
+            html += '<td style="color:#8b949e;font-size:13px;">' + (u.last_login ? Components.formatDate(u.last_login) : '—') + '</td>';
+            html += '<td><div class="user-actions">';
+            html += '<button data-action="edit" data-id="' + u.id + '">Modifier</button>';
+            html += '<button class="btn-sessions" data-action="sessions" data-id="' + u.id + '" data-name="' + Components.escapeHtml(u.username || u.email) + '">Sessions</button>';
+            if (!isSelf) {
+                html += '<button class="btn-danger" data-action="delete" data-id="' + u.id + '">Supprimer</button>';
+            }
+            html += '</div></td>';
+            html += '</tr>';
+        }
+        html += '</tbody></table>';
+        el.innerHTML = html;
+    }
+
+    function openCreateModal() {
+        document.getElementById('modal-title').textContent = 'Creer un utilisateur';
+        document.getElementById('user-id').value = '';
+        document.getElementById('user-form').reset();
+        document.getElementById('user-password').required = true;
+        document.getElementById('password-label').textContent = 'Mot de passe *';
+        document.getElementById('active-group').style.display = 'none';
+        document.getElementById('modal').style.display = 'flex';
+    }
+
+    function openEditModal(id) {
+        var u = users.find(function(x) { return x.id === id; });
+        if (!u) return;
+
+        document.getElementById('modal-title').textContent = 'Modifier l\'utilisateur';
+        document.getElementById('user-id').value = u.id;
+        document.getElementById('user-email').value = u.email;
+        document.getElementById('user-username').value = u.username || '';
+        document.getElementById('user-password').value = '';
+        document.getElementById('user-password').required = false;
+        document.getElementById('password-label').textContent = 'Mot de passe (laisser vide pour ne pas changer)';
+        document.getElementById('user-role').value = u.role;
+        document.getElementById('user-active').value = u.is_active ? 'true' : 'false';
+        document.getElementById('active-group').style.display = '';
+        document.getElementById('modal').style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('modal').style.display = 'none';
+    }
+
+    async function saveUser(e) {
+        e.preventDefault();
+        var id = document.getElementById('user-id').value;
+        var body = {
+            email: document.getElementById('user-email').value,
+            username: document.getElementById('user-username').value,
+            role: document.getElementById('user-role').value
+        };
+
+        var password = document.getElementById('user-password').value;
+        if (password) body.password = password;
+
+        if (id) {
+            body.is_active = document.getElementById('user-active').value === 'true';
+        }
+
+        var method = id ? 'PUT' : 'POST';
+        var url = id ? '/api/users/' + id : '/api/users';
+
+        if (!id && !password) {
+            Components.showToast('Le mot de passe est requis', 'error');
+            return;
+        }
+
+        var res = await Auth.apiFetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+
+        if (res.ok) {
+            Components.showToast(id ? 'Utilisateur mis a jour' : 'Utilisateur cree', 'success');
+            closeModal();
+            loadUsers();
+        } else {
+            var err = await res.json();
+            Components.showToast(err.error || 'Erreur', 'error');
+        }
+    }
+
+    async function deleteUser(id) {
+        var u = users.find(function(x) { return x.id === id; });
+        var name = u ? (u.username || u.email) : id;
+        var confirmed = await Components.showConfirm('Supprimer l\'utilisateur ' + name + ' ? Cette action est irreversible.');
+        if (!confirmed) return;
+
+        var res = await Auth.apiFetch('/api/users/' + id, { method: 'DELETE' });
+        if (res.ok) {
+            Components.showToast('Utilisateur supprime', 'success');
+            closeSessions();
+            loadUsers();
+        } else {
+            var err = await res.json();
+            Components.showToast(err.error || 'Erreur', 'error');
+        }
+    }
+
+    async function viewSessions(userId, username) {
+        currentSessionsUserId = userId;
+        document.getElementById('sessions-title').textContent = 'Sessions de ' + username;
+        document.getElementById('sessions-section').style.display = '';
+        document.getElementById('sessions-container').innerHTML = '<p class="text-muted">Chargement...</p>';
+
+        var res = await Auth.apiFetch('/api/users/' + userId + '/sessions');
+        if (res.ok) {
+            var data = await res.json();
+            var sessions = data.sessions || [];
+            renderSessions(userId, sessions);
+        } else {
+            document.getElementById('sessions-container').innerHTML =
+                '<p class="text-muted">Erreur lors du chargement des sessions.</p>';
+        }
+    }
+
+    function renderSessions(userId, sessions) {
+        var el = document.getElementById('sessions-container');
+
+        if (sessions.length === 0) {
+            el.innerHTML = '<p class="text-muted">Aucune session active.</p>';
+            return;
+        }
+
+        var html = '';
+        for (var i = 0; i < sessions.length; i++) {
+            var s = sessions[i];
+            var ua = s.user_agent || 'Inconnu';
+            // Shorten user agent
+            if (ua.length > 80) ua = ua.substring(0, 80) + '...';
+
+            html += '<div class="session-item">';
+            html += '<div class="session-info">';
+            html += '<div class="session-ip">' + Components.escapeHtml(s.ip_address || '—') + '</div>';
+            html += '<div class="session-ua">' + Components.escapeHtml(ua) + '</div>';
+            html += '<div class="session-date">Creee : ' + Components.formatDate(s.created_at) + ' — Expire : ' + Components.formatDate(s.expires_at) + '</div>';
+            html += '</div>';
+            html += '<button class="revoke-btn" data-action="revoke" data-user="' + userId + '" data-session="' + s.id + '">Revoquer</button>';
+            html += '</div>';
+        }
+
+        html += '<button class="revoke-all-btn" data-action="revoke-all" data-user="' + userId + '">Revoquer toutes les sessions</button>';
+        el.innerHTML = html;
+    }
+
+    function closeSessions() {
+        document.getElementById('sessions-section').style.display = 'none';
+        currentSessionsUserId = null;
+    }
+
+    async function revokeSession(userId, sessionId) {
+        var res = await Auth.apiFetch('/api/users/' + userId + '/sessions/' + sessionId, { method: 'DELETE' });
+        if (res.ok) {
+            Components.showToast('Session revoquee', 'success');
+            viewSessions(userId, document.getElementById('sessions-title').textContent.replace('Sessions de ', ''));
+        } else {
+            var err = await res.json();
+            Components.showToast(err.error || 'Erreur', 'error');
+        }
+    }
+
+    async function revokeAllSessions(userId) {
+        var confirmed = await Components.showConfirm('Revoquer toutes les sessions de cet utilisateur ?');
+        if (!confirmed) return;
+
+        var res = await Auth.apiFetch('/api/users/' + userId + '/sessions', { method: 'DELETE' });
+        if (res.ok) {
+            Components.showToast('Toutes les sessions revoquees', 'success');
+            viewSessions(userId, document.getElementById('sessions-title').textContent.replace('Sessions de ', ''));
+        } else {
+            var err = await res.json();
+            Components.showToast(err.error || 'Erreur', 'error');
+        }
+    }
+
+    // Event listeners (no inline onclick)
+    document.getElementById('btn-create-user').addEventListener('click', openCreateModal);
+    document.getElementById('btn-cancel-modal').addEventListener('click', closeModal);
+    document.getElementById('btn-close-sessions').addEventListener('click', closeSessions);
+    document.getElementById('user-form').addEventListener('submit', saveUser);
+    document.getElementById('modal').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+    });
+
+    // Delegation for user table actions
+    document.getElementById('users-container').addEventListener('click', function(e) {
+        var btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        var action = btn.dataset.action;
+        var id = btn.dataset.id;
+        if (action === 'edit') openEditModal(id);
+        else if (action === 'sessions') viewSessions(id, btn.dataset.name);
+        else if (action === 'delete') deleteUser(id);
+    });
+
+    // Delegation for session actions
+    document.getElementById('sessions-container').addEventListener('click', function(e) {
+        var btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        var action = btn.dataset.action;
+        if (action === 'revoke') revokeSession(btn.dataset.user, btn.dataset.session);
+        else if (action === 'revoke-all') revokeAllSessions(btn.dataset.user);
+    });
+
+    loadUsers();
+    </script>
+</body>
+</html>

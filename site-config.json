@@ -1,0 +1,160 @@
+{
+  "identity": {
+    "name": "Shootnbox",
+    "tagline": "Createur de souvenirs depuis 2019. Location de photobooths pour mariages, entreprises et evenements partout en France.",
+    "logo": "/images/logo/shootnbox-logo-new-1.webp",
+    "logoWhite": "/images/logo/shootnbox-logo-new-1.webp",
+    "favicon": "/images/logo/shootnbox-logo-new-1.webp"
+  },
+  "colors": {
+    "primary": "#E51981",
+    "secondary": "#0250FF",
+    "tertiary": "#7828C8",
+    "accent1": "#FF7A00",
+    "accent2": "#16A34A",
+    "textDark": "#323338",
+    "textLight": "#ffffff",
+    "bgMain": "#ffffff",
+    "bgAlt": "#f8eaff"
+  },
+  "typography": {
+    "fontMain": "Raleway",
+    "fontHeadings": "Raleway",
+    "sizes": {
+      "h1": { "desktop": "50px", "mobile": "32px", "weight": 900, "lineHeight": 1.08 },
+      "h2": { "desktop": "50px", "mobile": "28px", "weight": 900, "lineHeight": 1.15 },
+      "h3": { "desktop": "28px", "mobile": "22px", "weight": 700, "lineHeight": 1.3 },
+      "h4": { "desktop": "20px", "mobile": "18px", "weight": 600, "lineHeight": 1.4 },
+      "p": { "desktop": "16px", "mobile": "15px", "weight": 400, "lineHeight": 1.6 },
+      "small": { "desktop": "13px", "mobile": "12px", "weight": 400, "lineHeight": 1.5 }
+    }
+  },
+  "header": {
+    "logoPosition": "left",
+    "logoSize": "100px",
+    "sticky": true,
+    "transparentOnHero": false,
+    "scrollEffect": "shadow",
+    "height": { "desktop": "72px", "mobile": "60px" },
+    "ctaText": "Obtenir un devis",
+    "ctaLink": "/reservation/",
+    "phone": "01.45.01.66.66",
+    "topBanner": { "enabled": false, "text": "", "bgColor": "#E51981", "link": "" },
+    "mobileHamburger": "right",
+    "menuItems": [
+      { "label": "Location", "link": "/location-photobooth/" },
+      { "label": "Nos bornes", "link": "/nos-bornes/", "children": [
+        { "label": "Borne Ring", "link": "/borne-photo-ring/", "desc": "L'anneau lumineux iconique" },
+        { "label": "Borne Vegas", "link": "/borne-photo-vegas/", "desc": "Le photobooth glamour" },
+        { "label": "Borne Miroir", "link": "/borne-photo-miroir/", "desc": "Le miroir magique interactif" },
+        { "label": "Spinner 360\u00b0", "link": "/borne-photo-spinner/", "desc": "La video 360 virale" }
+      ]},
+      { "label": "Reservation", "link": "/reservation/" },
+      { "label": "Contact", "link": "/contact/" },
+      { "label": "Blog", "link": "/blog/" }
+    ]
+  },
+  "footer": {
+    "columns": [
+      {
+        "title": "Nos bornes",
+        "links": [
+          { "label": "Borne Ring", "url": "/borne-photo-ring/" },
+          { "label": "Borne Vegas", "url": "/borne-photo-vegas/" },
+          { "label": "Borne Miroir", "url": "/borne-photo-miroir/" },
+          { "label": "Spinner 360\u00b0", "url": "/borne-photo-spinner/" },
+          { "label": "Toutes nos bornes", "url": "/nos-bornes/" }
+        ]
+      },
+      {
+        "title": "Liens utiles",
+        "links": [
+          { "label": "Location Photobooth", "url": "/location-photobooth/" },
+          { "label": "Le Shootnblog", "url": "/blog/" },
+          { "label": "Ils nous font confiance", "url": "/ils-nous-font-confiance/" },
+          { "label": "FAQ", "url": "/faq/" },
+          { "label": "Contact", "url": "/contact/" }
+        ]
+      }
+    ],
+    "socials": {
+      "instagram": "https://www.instagram.com/shootnbox/",
+      "facebook": "https://www.facebook.com/shootnbox",
+      "linkedin": "",
+      "tiktok": "https://www.tiktok.com/@shootnbox",
+      "youtube": "https://www.youtube.com/@shootnbox"
+    },
+    "copyright": "\u00a9 2019-{year} Shootnbox | Tous droits reserves",
+    "legalPage": "/mentions-legales/"
+  },
+  "cta": {
+    "borderRadius": "25px",
+    "style": "gradient",
+    "hoverEffect": "shine",
+    "defaultText": "Obtenir un devis gratuit",
+    "defaultLink": "/reservation/"
+  },
+  "layout": {
+    "maxWidth": "1300px",
+    "sectionPadding": { "desktop": "60px", "mobile": "40px" },
+    "borderRadius": "12px"
+  },
+  "sections": {
+    "hero": {
+      "height": { "desktop": "520px", "tablet": "420px", "mobile": "360px" },
+      "padding": { "desktop": "40px 40px 50px", "tablet": "40px 20px 50px", "mobile": "30px 16px 40px" },
+      "titleSize": { "desktop": "52px", "tablet": "40px", "mobile": "32px" },
+      "subtitleSize": { "desktop": "17px", "tablet": "16px", "mobile": "15px" }
+    },
+    "background": {
+      "enabled": true,
+      "gradient": "linear-gradient(180deg, #f8eaff 0%, #f8eaff 8%, #fff0f8 18%, #f8eaff 30%, #FFF8EE 45%, #fff0f8 55%, #f0f0ff 65%, #FFF8EE 78%, #f8eaff 90%, #f5eaf9 100%)",
+      "glows": true,
+      "pictos": true
+    },
+    "standard": {
+      "padding": { "desktop": "80px 24px", "tablet": "60px 20px", "mobile": "48px 16px" },
+      "titleSize": { "desktop": "44px", "tablet": "36px", "mobile": "28px" },
+      "maxWidth": "1300px"
+    },
+    "compact": {
+      "padding": { "desktop": "48px 24px", "tablet": "36px 20px", "mobile": "28px 16px" },
+      "titleSize": { "desktop": "36px", "tablet": "30px", "mobile": "24px" },
+      "maxWidth": "1300px"
+    },
+    "cta": {
+      "padding": { "desktop": "60px 24px", "tablet": "48px 20px", "mobile": "40px 16px" },
+      "titleSize": { "desktop": "40px", "tablet": "32px", "mobile": "26px" },
+      "maxWidth": "860px"
+    }
+  },
+  "contact": {
+    "phone": "01.45.01.66.66",
+    "email": "contact@shootnbox.fr",
+    "address": "Paris & Bordeaux, France",
+    "hours": "7j/7",
+    "mapsPlaceId": "ChIJYTN4e3Bx5kcRIG4bJMuaZlA"
+  },
+  "seo": {
+    "titleTemplate": "%page% | Shootnbox - Location Photobooth",
+    "defaultDescription": "Location de photobooth pour mariages, entreprises et evenements. Borne Ring, Vegas, Miroir et Spinner 360. Livraison partout en France.",
+    "noindex": false,
+    "ogImageDefault": "/images/vegas-hero-group.webp",
+    "gtmId": "",
+    "searchConsoleId": ""
+  },
+  "scripts": {
+    "headCustom": "",
+    "bodyEndCustom": "",
+    "cookieConsent": { "enabled": false, "text": "" },
+    "chatWidget": ""
+  },
+  "deploy": {
+    "domain": "shootnbox.swipego.app",
+    "coolifyUuid": "usnz6o4qp48maw8q0lny22nl",
+    "coolifyToken": "",
+    "cacheMaxAge": "365d",
+    "compression": true,
+    "minify": true
+  }
+}

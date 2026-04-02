@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sites — Gestionnaire de Site</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div id="navbar"></div>
+
+    <div class="container">
+        <div class="section-header">
+            <h1 class="page-title">Sites</h1>
+            <button class="btn btn-primary" id="btn-add-site" style="display:none" onclick="openAddModal()">+ Ajouter un site</button>
+        </div>
+
+        <div id="sites-grid" class="grid">
+            <p class="text-muted">Chargement...</p>
+        </div>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div class="modal-overlay" id="modal" style="display:none">
+        <div class="modal">
+            <h2 class="modal-title" id="modal-title">Ajouter un site</h2>
+            <form id="site-form" onsubmit="saveSite(event)">
+                <input type="hidden" id="site-id">
+                <div class="form-group">
+                    <label class="form-label">Nom *</label>
+                    <input class="form-input" id="site-name" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">URL *</label>
+                    <input class="form-input" id="site-url" required placeholder="https://example.com">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-textarea" id="site-desc"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Statut</label>
+                    <select class="form-select" id="site-status">
+                        <option value="active">Actif</option>
+                        <option value="maintenance">Maintenance</option>
+                        <option value="inactive">Inactif</option>
+                        <option value="archived">Archive</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Categorie</label>
+                    <input class="form-input" id="site-category" placeholder="website, ecommerce, blog...">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Hebergeur</label>
+                    <input class="form-input" id="site-hosting" placeholder="OVH, Coolify, Vercel...">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/components.js"></script>
+    <script>
+    var sites = [];
+
+    async function loadSites() {
+        await Components.initPage();
+
+        // Show add button for admins
+        var user = Auth.getUser();
+        if (user && user.role === 'admin') {
+            document.getElementById('btn-add-site').style.display = '';
+        }
+
+        var res = await Auth.apiFetch('/api/sites');
+        var data = await res.json();
+        sites = Array.isArray(data) ? data : (data.sites || []);
+        renderSites();
+    }
+
+    function renderSites() {
+        var el = document.getElementById('sites-grid');
+        if (sites.length === 0) {
+            el.innerHTML = '<p class="text-muted">Aucun site. Cliquez sur "Ajouter un site" pour commencer.</p>';
+            return;
+        }
+        el.innerHTML = sites.map(function(site) {
+            var statusClass = site.status === 'active' ? 'badge-prod' :
+                             site.status === 'maintenance' ? 'badge-tool' : 'badge-infra';
+            return '<div class="card">' +
+                '<div class="card-icon">🌐</div>' +
+                '<div class="card-content">' +
+                    '<div class="card-name">' + Components.escapeHtml(site.name) + ' <span class="badge ' + statusClass + '">' + Components.escapeHtml(site.status).toUpperCase() + '</span></div>' +
+                    '<div class="card-desc">' + Components.escapeHtml(site.description || 'Pas de description') + '</div>' +
+                    '<div class="card-url">' + Components.escapeHtml(site.url) + '</div>' +
+                    (site.hosting_provider ? '<div style="font-size:11px;color:#6e7681;margin-top:4px">Hebergeur: ' + Components.escapeHtml(site.hosting_provider) + '</div>' : '') +
+                '</div>' +
+            '</div>';
+        }).join('');
+    }
+
+    function openAddModal() {
+        document.getElementById('modal-title').textContent = 'Ajouter un site';
+        document.getElementById('site-id').value = '';
+        document.getElementById('site-form').reset();
+        document.getElementById('modal').style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('modal').style.display = 'none';
+    }
+
+    async function saveSite(e) {
+        e.preventDefault();
+        var id = document.getElementById('site-id').value;
+        var body = {
+            name: document.getElementById('site-name').value,
+            url: document.getElementById('site-url').value,
+            description: document.getElementById('site-desc').value || null,
+            status: document.getElementById('site-status').value,
+            category: document.getElementById('site-category').value || 'website',
+            hosting_provider: document.getElementById('site-hosting').value || null
+        };
+
+        var method = id ? 'PUT' : 'POST';
+        var url = id ? '/api/sites/' + id : '/api/sites';
+        var res = await Auth.apiFetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+
+        if (res.ok) {
+            Components.showToast(id ? 'Site mis a jour' : 'Site cree', 'success');
+            closeModal();
+            var r = await Auth.apiFetch('/api/sites');
+            var d = await r.json();
+            sites = Array.isArray(d) ? d : (d.sites || []);
+            renderSites();
+        } else {
+            var err = await res.json();
+            Components.showToast(err.error || 'Erreur', 'error');
+        }
+    }
+
+    document.getElementById('modal').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+    });
+
+    loadSites();
+    </script>
+</body>
+</html>

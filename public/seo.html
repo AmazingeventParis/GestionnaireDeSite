@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SEO — Gestionnaire de Site</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        /* Tabs */
+        .seo-tabs {
+            display: flex;
+            gap: 0;
+            border-bottom: 1px solid #30363d;
+            margin-bottom: 24px;
+        }
+        .seo-tab {
+            padding: 12px 20px;
+            background: none;
+            border: none;
+            color: #8b949e;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.15s;
+        }
+        .seo-tab:hover {
+            color: #e6edf3;
+        }
+        .seo-tab.active {
+            color: #58a6ff;
+            border-bottom-color: #58a6ff;
+        }
+        .seo-panel {
+            display: none;
+        }
+        .seo-panel.active {
+            display: block;
+        }
+
+        /* Form fields */
+        .seo-form {
+            max-width: 700px;
+        }
+        .seo-field {
+            margin-bottom: 20px;
+        }
+        .seo-field label {
+            display: block;
+            color: #e6edf3;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+        .seo-field .field-hint {
+            color: #8b949e;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+        .seo-input {
+            width: 100%;
+            padding: 10px 14px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #e6edf3;
+            font-size: 14px;
+        }
+        .seo-input:focus {
+            outline: none;
+            border-color: #58a6ff;
+        }
+        .seo-input::placeholder {
+            color: #484f58;
+        }
+        .seo-textarea {
+            width: 100%;
+            padding: 10px 14px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #e6edf3;
+            font-size: 14px;
+            font-family: inherit;
+            min-height: 80px;
+            resize: vertical;
+        }
+        .seo-textarea:focus {
+            outline: none;
+            border-color: #58a6ff;
+        }
+        .char-count {
+            text-align: right;
+            font-size: 11px;
+            color: #8b949e;
+            margin-top: 4px;
+        }
+        .char-count.warn {
+            color: #d29922;
+        }
+        .char-count.over {
+            color: #f85149;
+        }
+
+        /* Toggle switch */
+        .toggle-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #30363d;
+            border-radius: 24px;
+            transition: 0.2s;
+        }
+        .toggle-slider:before {
+            content: '';
+            position: absolute;
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background: #e6edf3;
+            border-radius: 50%;
+            transition: 0.2s;
+        }
+        .toggle-switch input:checked + .toggle-slider {
+            background: #f85149;
+        }
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(20px);
+        }
+        .toggle-label {
+            color: #e6edf3;
+            font-size: 14px;
+        }
+        .toggle-hint {
+            color: #8b949e;
+            font-size: 12px;
+        }
+
+        /* Per-page table */
+        .pages-seo-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .pages-seo-table th {
+            text-align: left;
+            padding: 10px 14px;
+            color: #8b949e;
+            font-size: 12px;
+            text-transform: uppercase;
+            font-weight: 500;
+            border-bottom: 1px solid #30363d;
+        }
+        .pages-seo-table td {
+            padding: 12px 14px;
+            color: #e6edf3;
+            font-size: 14px;
+            border-bottom: 1px solid #21262d;
+        }
+        .pages-seo-table tr:hover td {
+            background: #161b22;
+        }
+        .seo-score {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .seo-score-good {
+            background: #23863633;
+            color: #3fb950;
+        }
+        .seo-score-ok {
+            background: #d299221a;
+            color: #d29922;
+        }
+        .seo-score-bad {
+            background: #da36331a;
+            color: #f85149;
+        }
+        .h1-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        .h1-yes {
+            background: #3fb950;
+        }
+        .h1-no {
+            background: #f85149;
+        }
+        .desc-length {
+            font-size: 12px;
+            color: #8b949e;
+        }
+
+        /* Robots textarea */
+        .robots-section {
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid #30363d;
+        }
+        .robots-section h3 {
+            color: #e6edf3;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+        .robots-textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 14px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            color: #e6edf3;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: vertical;
+        }
+        .robots-textarea:focus {
+            outline: none;
+            border-color: #58a6ff;
+        }
+
+        /* Sitemap section */
+        .sitemap-section {
+            margin-top: 24px;
+            padding: 16px;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .sitemap-info {
+            color: #e6edf3;
+            font-size: 14px;
+        }
+        .sitemap-info small {
+            display: block;
+            color: #8b949e;
+            font-size: 12px;
+            margin-top: 2px;
+        }
+
+        /* Action buttons */
+        .seo-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid #30363d;
+        }
+
+        .empty-pages {
+            text-align: center;
+            padding: 40px;
+            color: #8b949e;
+        }
+
+        @media (max-width: 768px) {
+            .pages-seo-table {
+                font-size: 13px;
+            }
+            .pages-seo-table th, .pages-seo-table td {
+                padding: 8px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="navbar"></div>
+
+    <div class="container">
+        <div class="section-header">
+            <h1 class="page-title">SEO</h1>
+        </div>
+
+        <!-- Tabs -->
+        <div class="seo-tabs">
+            <button class="seo-tab active" data-tab="global">Global</button>
+            <button class="seo-tab" data-tab="pages">Par page</button>
+            <button class="seo-tab" data-tab="injection">Injection de code</button>
+        </div>
+
+        <!-- Global tab -->
+        <div class="seo-panel active" id="panel-global">
+            <div class="seo-form">
+                <div class="seo-field">
+                    <label for="seo-title-template">Template de titre</label>
+                    <div class="field-hint">Utilisez %page% pour le nom de la page. Ex: %page% | Mon Site</div>
+                    <input type="text" class="seo-input" id="seo-title-template" placeholder="%page% | Mon Site">
+                </div>
+
+                <div class="seo-field">
+                    <label for="seo-description">Meta description par defaut</label>
+                    <div class="field-hint">Recommande : 150 a 160 caracteres</div>
+                    <textarea class="seo-textarea" id="seo-description" placeholder="Description par defaut du site..." maxlength="300"></textarea>
+                    <div class="char-count" id="desc-char-count">0 / 160</div>
+                </div>
+
+                <div class="seo-field">
+                    <label for="seo-og-image">Image Open Graph par defaut</label>
+                    <div class="field-hint">URL de l'image utilisee lors du partage sur les reseaux sociaux (1200x630 recommande)</div>
+                    <input type="text" class="seo-input" id="seo-og-image" placeholder="/images/og-default.jpg">
+                </div>
+
+                <div class="seo-field">
+                    <div class="toggle-group">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="seo-noindex">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <div>
+                            <div class="toggle-label">Noindex global</div>
+                            <div class="toggle-hint">Empeche les moteurs de recherche d'indexer le site</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="seo-field">
+                    <label for="seo-gtm">Google Tag Manager ID</label>
+                    <div class="field-hint">Ex: GTM-XXXXXXX</div>
+                    <input type="text" class="seo-input" id="seo-gtm" placeholder="GTM-XXXXXXX">
+                </div>
+
+                <div class="seo-field">
+                    <label for="seo-search-console">Google Search Console ID</label>
+                    <div class="field-hint">Contenu de la balise meta de verification Google</div>
+                    <input type="text" class="seo-input" id="seo-search-console" placeholder="google-site-verification=...">
+                </div>
+
+                <div class="seo-actions">
+                    <button class="btn btn-primary" id="btn-save-seo">Sauvegarder</button>
+                </div>
+            </div>
+
+            <!-- Sitemap -->
+            <div class="sitemap-section">
+                <div class="sitemap-info">
+                    Sitemap XML
+                    <small>Genere automatiquement a partir des pages publiees</small>
+                </div>
+                <div style="display:flex;gap:8px;">
+                    <a href="/api/seo/sitemap" target="_blank" class="btn btn-secondary">Voir le sitemap</a>
+                </div>
+            </div>
+
+            <!-- Robots.txt -->
+            <div class="robots-section">
+                <h3>robots.txt</h3>
+                <p class="field-hint" style="margin-bottom:10px;">Configurez les directives pour les robots d'indexation</p>
+                <textarea class="robots-textarea" id="robots-content" placeholder="User-agent: *&#10;Allow: /"></textarea>
+                <div class="seo-actions">
+                    <button class="btn btn-primary" id="btn-save-robots">Sauvegarder robots.txt</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Per-page tab -->
+        <div class="seo-panel" id="panel-pages">
+            <table class="pages-seo-table">
+                <thead>
+                    <tr>
+                        <th>Page</th>
+                        <th>Titre</th>
+                        <th>Description</th>
+                        <th>H1</th>
+                        <th>Score SEO</th>
+                    </tr>
+                </thead>
+                <tbody id="pages-seo-body">
+                    <tr><td colspan="5" class="empty-pages">Chargement...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Injection tab -->
+        <div class="seo-panel" id="panel-injection">
+            <div class="seo-form">
+                <div class="seo-field">
+                    <label for="inj-gtm">Google Tag Manager ID</label>
+                    <div class="field-hint">Ex: GTM-XXXXXXX — charge uniquement apres consentement cookies</div>
+                    <input type="text" class="seo-input" id="inj-gtm" placeholder="GTM-XXXXXXX">
+                </div>
+                <div class="seo-field">
+                    <label for="inj-theme-color">Theme color</label>
+                    <input type="text" class="seo-input" id="inj-theme-color" placeholder="#E51981" style="max-width:200px">
+                </div>
+                <div class="seo-field">
+                    <label for="inj-head">Scripts &lt;head&gt; (toutes les pages)</label>
+                    <div class="field-hint">Code injecte avant &lt;/head&gt; — analytics, meta tags, etc.</div>
+                    <textarea class="seo-textarea" id="inj-head" style="font-family:monospace;min-height:120px;" placeholder="<!-- Scripts head -->"></textarea>
+                </div>
+                <div class="seo-field">
+                    <label for="inj-body-start">Scripts debut &lt;body&gt;</label>
+                    <div class="field-hint">Code injecte juste apres &lt;body&gt; — GTM noscript, etc.</div>
+                    <textarea class="seo-textarea" id="inj-body-start" style="font-family:monospace;min-height:80px;" placeholder="<!-- Scripts body start -->"></textarea>
+                </div>
+                <div class="seo-field">
+                    <label for="inj-body-end">Scripts fin &lt;body&gt;</label>
+                    <div class="field-hint">Code injecte avant &lt;/body&gt; — widgets, chat, etc.</div>
+                    <textarea class="seo-textarea" id="inj-body-end" style="font-family:monospace;min-height:80px;" placeholder="<!-- Scripts body end -->"></textarea>
+                </div>
+                <div class="seo-field">
+                    <label>Banniere cookies</label>
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                        <input type="checkbox" id="inj-cookie-enabled">
+                        <label for="inj-cookie-enabled" style="font-size:13px;color:#8b949e;">Activer la banniere de consentement RGPD</label>
+                    </div>
+                </div>
+                <div class="seo-field">
+                    <label for="inj-chat">Widget chat</label>
+                    <textarea class="seo-textarea" id="inj-chat" style="font-family:monospace;min-height:60px;" placeholder="<!-- Code widget chat -->"></textarea>
+                </div>
+                <button class="seo-save" id="save-injection">Sauvegarder l'injection</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/components.js"></script>
+    <script>
+    (function() {
+        'use strict';
+
+        var seoConfig = {};
+
+        async function init() {
+            await Components.initPage();
+            setupTabs();
+            setupEvents();
+            loadSeoGlobal();
+            loadRobots();
+            loadPages();
+            loadInjection();
+        }
+
+        function setupTabs() {
+            var tabs = document.querySelectorAll('.seo-tab');
+            tabs.forEach(function(tab) {
+                tab.addEventListener('click', function() {
+                    tabs.forEach(function(t) { t.classList.remove('active'); });
+                    document.querySelectorAll('.seo-panel').forEach(function(p) { p.classList.remove('active'); });
+                    tab.classList.add('active');
+                    document.getElementById('panel-' + tab.getAttribute('data-tab')).classList.add('active');
+                });
+            });
+        }
+
+        function setupEvents() {
+            document.getElementById('btn-save-seo').addEventListener('click', saveSeoGlobal);
+            document.getElementById('btn-save-robots').addEventListener('click', saveRobots);
+            document.getElementById('save-injection').addEventListener('click', saveInjection);
+
+            // Character count for description
+            var descField = document.getElementById('seo-description');
+            descField.addEventListener('input', function() {
+                updateCharCount(descField.value.length);
+            });
+        }
+
+        function updateCharCount(len) {
+            var el = document.getElementById('desc-char-count');
+            el.textContent = len + ' / 160';
+            el.className = 'char-count';
+            if (len > 160) el.className = 'char-count over';
+            else if (len > 140) el.className = 'char-count warn';
+        }
+
+        async function loadSeoGlobal() {
+            try {
+                var res = await Auth.apiFetch('/api/seo/global');
+                if (!res.ok) throw new Error('Erreur');
+                var data = await res.json();
+                seoConfig = data.seo || {};
+
+                document.getElementById('seo-title-template').value = seoConfig.titleTemplate || '';
+                document.getElementById('seo-description').value = seoConfig.defaultDescription || '';
+                document.getElementById('seo-og-image').value = seoConfig.ogImageDefault || '';
+                document.getElementById('seo-noindex').checked = !!seoConfig.noindex;
+                document.getElementById('seo-gtm').value = seoConfig.gtmId || '';
+                document.getElementById('seo-search-console').value = seoConfig.searchConsoleId || '';
+
+                updateCharCount((seoConfig.defaultDescription || '').length);
+            } catch (err) {
+                Components.showToast('Erreur chargement SEO', 'error');
+            }
+        }
+
+        async function saveSeoGlobal() {
+            try {
+                var seo = {
+                    titleTemplate: document.getElementById('seo-title-template').value.trim(),
+                    defaultDescription: document.getElementById('seo-description').value.trim(),
+                    ogImageDefault: document.getElementById('seo-og-image').value.trim(),
+                    noindex: document.getElementById('seo-noindex').checked,
+                    gtmId: document.getElementById('seo-gtm').value.trim(),
+                    searchConsoleId: document.getElementById('seo-search-console').value.trim()
+                };
+
+                var res = await Auth.apiFetch('/api/seo/global', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ seo: seo })
+                });
+
+                if (!res.ok) {
+                    var err = await res.json();
+                    throw new Error(err.error || 'Erreur');
+                }
+
+                Components.showToast('Parametres SEO sauvegardes', 'success');
+            } catch (err) {
+                Components.showToast(err.message || 'Erreur de sauvegarde', 'error');
+            }
+        }
+
+        async function loadRobots() {
+            try {
+                var res = await Auth.apiFetch('/api/seo/robots');
+                if (!res.ok) throw new Error('Erreur');
+                var data = await res.json();
+                document.getElementById('robots-content').value = data.content || '';
+            } catch (err) {
+                // Use default
+                document.getElementById('robots-content').value = 'User-agent: *\nAllow: /\n\nSitemap: /api/seo/sitemap';
+            }
+        }
+
+        async function saveRobots() {
+            try {
+                var content = document.getElementById('robots-content').value;
+                var res = await Auth.apiFetch('/api/seo/robots', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: content })
+                });
+
+                if (!res.ok) {
+                    var err = await res.json();
+                    throw new Error(err.error || 'Erreur');
+                }
+
+                Components.showToast('robots.txt sauvegarde', 'success');
+            } catch (err) {
+                Components.showToast(err.message || 'Erreur de sauvegarde', 'error');
+            }
+        }
+
+        async function loadPages() {
+            try {
+                var res = await Auth.apiFetch('/api/pages');
+                if (!res.ok) throw new Error('Erreur');
+                var data = await res.json();
+                var pages = data.pages || [];
+
+                if (pages.length === 0) {
+                    document.getElementById('pages-seo-body').innerHTML = '<tr><td colspan="5" class="empty-pages">Aucune page trouvee</td></tr>';
+                    return;
+                }
+
+                var html = '';
+                for (var i = 0; i < pages.length; i++) {
+                    var page = pages[i];
+                    // Load page details for SEO info
+                    await loadPageSeoRow(page, function(rowHtml) {
+                        html += rowHtml;
+                    });
+                }
+
+                document.getElementById('pages-seo-body').innerHTML = html;
+            } catch (err) {
+                document.getElementById('pages-seo-body').innerHTML = '<tr><td colspan="5" class="empty-pages">Erreur de chargement</td></tr>';
+            }
+        }
+
+        async function loadPageSeoRow(page, callback) {
+            try {
+                var res = await Auth.apiFetch('/api/pages/' + encodeURIComponent(page.slug));
+                if (!res.ok) throw new Error('Erreur');
+                var data = await res.json();
+
+                var seo = data.seo || {};
+                var title = seo.title || '';
+                var description = seo.description || '';
+                var descLen = description.length;
+
+                // Check for H1 in sections
+                var hasH1 = false;
+                if (data.sections) {
+                    for (var j = 0; j < data.sections.length; j++) {
+                        if (data.sections[j].content && /<h1[\s>]/i.test(data.sections[j].content)) {
+                            hasH1 = true;
+                            break;
+                        }
+                    }
+                }
+
+                // Calculate SEO score
+                var score = calculateSeoScore(title, description, hasH1);
+
+                var scoreClass = 'seo-score-bad';
+                var scoreLabel = 'Faible';
+                if (score >= 80) { scoreClass = 'seo-score-good'; scoreLabel = 'Bon'; }
+                else if (score >= 50) { scoreClass = 'seo-score-ok'; scoreLabel = 'Moyen'; }
+
+                var descDisplay = '';
+                if (descLen === 0) {
+                    descDisplay = '<span style="color:#f85149">Manquante</span>';
+                } else if (descLen < 120) {
+                    descDisplay = '<span class="desc-length">' + descLen + ' car. (court)</span>';
+                } else if (descLen > 160) {
+                    descDisplay = '<span class="desc-length" style="color:#d29922">' + descLen + ' car. (long)</span>';
+                } else {
+                    descDisplay = '<span class="desc-length" style="color:#3fb950">' + descLen + ' car.</span>';
+                }
+
+                callback('<tr>' +
+                    '<td>' + Components.escapeHtml(page.name || page.slug) + '</td>' +
+                    '<td>' + Components.escapeHtml(title || 'Non defini') + '</td>' +
+                    '<td>' + descDisplay + '</td>' +
+                    '<td><span class="h1-indicator ' + (hasH1 ? 'h1-yes' : 'h1-no') + '" title="' + (hasH1 ? 'H1 present' : 'H1 manquant') + '"></span></td>' +
+                    '<td><span class="seo-score ' + scoreClass + '">' + score + ' - ' + scoreLabel + '</span></td>' +
+                    '</tr>');
+            } catch (err) {
+                callback('<tr><td>' + Components.escapeHtml(page.name || page.slug) + '</td><td colspan="4" style="color:#8b949e">Erreur de chargement</td></tr>');
+            }
+        }
+
+        function calculateSeoScore(title, description, hasH1) {
+            var score = 0;
+
+            // Title (30 points)
+            if (title) {
+                score += 15;
+                if (title.length >= 30 && title.length <= 60) score += 15;
+                else if (title.length > 0) score += 5;
+            }
+
+            // Description (30 points)
+            if (description) {
+                score += 15;
+                if (description.length >= 120 && description.length <= 160) score += 15;
+                else if (description.length > 0) score += 5;
+            }
+
+            // H1 (20 points)
+            if (hasH1) score += 20;
+
+            // Base points for having a page (20 points)
+            score += 20;
+
+            return Math.min(score, 100);
+        }
+
+        // ===== INJECTION TAB =====
+        async function loadInjection() {
+            try {
+                var res = await Auth.apiFetch('/api/seo/scripts');
+                if (!res.ok) return;
+                var data = await res.json();
+                document.getElementById('inj-gtm').value = data.gtmId || '';
+                document.getElementById('inj-theme-color').value = data.themeColor || '#E51981';
+                document.getElementById('inj-head').value = data.headCustom || '';
+                document.getElementById('inj-body-start').value = data.bodyStartCustom || '';
+                document.getElementById('inj-body-end').value = data.bodyEndCustom || '';
+                document.getElementById('inj-cookie-enabled').checked = !!(data.cookieConsent && data.cookieConsent.enabled);
+                document.getElementById('inj-chat').value = data.chatWidget || '';
+            } catch(e) {}
+        }
+
+        async function saveInjection() {
+            var btn = document.getElementById('save-injection');
+            btn.disabled = true;
+            btn.textContent = 'Sauvegarde...';
+            try {
+                var res = await Auth.apiFetch('/api/seo/scripts', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        gtmId: document.getElementById('inj-gtm').value,
+                        themeColor: document.getElementById('inj-theme-color').value,
+                        headCustom: document.getElementById('inj-head').value,
+                        bodyStartCustom: document.getElementById('inj-body-start').value,
+                        bodyEndCustom: document.getElementById('inj-body-end').value,
+                        cookieConsent: { enabled: document.getElementById('inj-cookie-enabled').checked },
+                        chatWidget: document.getElementById('inj-chat').value
+                    })
+                });
+                if (!res.ok) throw new Error('Erreur');
+                Components.showToast('Injection sauvegardee', 'success');
+            } catch(e) {
+                Components.showToast('Erreur: ' + e.message, 'error');
+            }
+            btn.disabled = false;
+            btn.textContent = 'Sauvegarder l\'injection';
+        }
+
+        init();
+    })();
+    </script>
+</body>
+</html>

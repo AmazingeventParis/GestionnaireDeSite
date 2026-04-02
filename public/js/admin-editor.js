@@ -1,0 +1,2673 @@
+(function() {
+  'use strict';
+
+  // ===== MODE DETECTION =====
+  const isEmbedded = window !== window.parent;
+
+  // ===== STATE =====
+  let changes = {};
+  let originalTexts = {};
+  let currentSlug = window.GDS_SLUG || 'home';
+  let seoData = {};
+  let imageChanges = 0;
+  let siteName = 'Site';
+
+  // ===== BUILD ADMIN BAR =====
+  function buildAdminBar() {
+    document.body.classList.add('gds-admin-mode');
+
+    // Try to get site name from parent frame or page title
+    try {
+      if (window.parent && window.parent.GDS_SITE_NAME) {
+        siteName = window.parent.GDS_SITE_NAME;
+      }
+    } catch (e) { /* cross-origin, ignore */ }
+    if (siteName === 'Site') {
+      siteName = document.title || 'Mon Site';
+    }
+
+    const bar = document.createElement('div');
+    bar.id = 'gds-admin-bar';
+    bar.innerHTML = `
+      <div class="gds-ab-logo">${escapeHtml(siteName)}</div>
+      <div class="gds-ab-sep"></div>
+      <select id="gdsPageSelect"></select>
+      <div class="gds-ab-changes" id="gdsChangesCount"></div>
+      <div class="gds-ab-spacer"></div>
+      <button class="gds-ab-btn gds-ab-btn-seo" id="gdsSeoBtn">SEO</button>
+      <button class="gds-ab-btn gds-ab-btn-publish" id="gdsPublishBtn" disabled>Publier</button>
+      <button class="gds-ab-btn gds-ab-btn-logout" id="gdsLogoutBtn">Deconnexion</button>
+    `;
+    document.body.prepend(bar);
+
+    // Toast
+    const toast = document.createElement('div');
+    toast.id = 'gds-admin-toast';
+    document.body.appendChild(toast);
+
+    // SEO Panel
+    const seoPanel = document.createElement('div');
+    seoPanel.id = 'gds-seo-panel';
+    seoPanel.innerHTML = `
+      <button class="gds-seo-close" id="gdsSeoClose">&times;</button>
+      <h3>SEO - Meta tags</h3>
+      <div class="gds-seo-grid">
+        <div class="gds-seo-field">
+          <label>Title</label>
+          <input type="text" id="gdsSeoTitle" placeholder="Titre de la page">
+        </div>
+        <div class="gds-seo-field">
+          <label>Meta Description</label>
+          <input type="text" id="gdsSeoDesc" placeholder="Description pour Google">
+        </div>
+        <div class="gds-seo-field">
+          <label>OG Title (reseaux sociaux)</label>
+          <input type="text" id="gdsSeoOgTitle" placeholder="Titre Facebook/LinkedIn">
+        </div>
+        <div class="gds-seo-field">
+          <label>OG Description</label>
+          <input type="text" id="gdsSeoOgDesc" placeholder="Description reseaux sociaux">
+        </div>
+      </div>
+    `;
+    document.body.appendChild(seoPanel);
+
+    // Events
+    document.getElementById('gdsPublishBtn').addEventListener('click', publish);
+    document.getElementById('gdsLogoutBtn').addEventListener('click', logout);
+    document.getElementById('gdsSeoBtn').addEventListener('click', () => seoPanel.classList.toggle('open'));
+    document.getElementById('gdsSeoClose').addEventListener('click', () => seoPanel.classList.remove('open'));
+
+    // SEO field changes
+    ['gdsSeoTitle', 'gdsSeoDesc', 'gdsSeoOgTitle', 'gdsSeoOgDesc'].forEach(id => {
+      document.getElementById(id).addEventListener('input', () => {
+        seoData._modified = true;
+        updateChangesCount();
+      });
+    });
+
+    // Load pages
+    loadPages();
+  }
+
+  // ===== LOAD PAGES =====
+  async function loadPages() {
+    try {
+      const res = await Auth.apiFetch('/api/pages');
+      const data = await res.json();
+      const pages = Array.isArray(data) ? data : (data.pages || []);
+      const select = document.getElementById('gdsPageSelect');
+      select.innerHTML = '';
+      pages.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.slug;
+        opt.textContent = p.name;
+        if (p.slug === currentSlug) {
+          opt.selected = true;
+        }
+        select.appendChild(opt);
+      });
+
+      select.addEventListener('change', () => {
+        const newSlug = select.value;
+        if (Object.keys(changes).length > 0 || seoData._modified) {
+          if (!confirm('Vous avez des modifications non publiees. Changer de page sans publier ?')) {
+            select.value = currentSlug;
+            return;
+          }
+        }
+        window.location.href = '/api/pages/' + encodeURIComponent(newSlug) + '/preview?edit=1';
+      });
+
+      // Load SEO data
+      loadSEO();
+    } catch (err) {
+      console.error('[GDS Admin] loadPages error:', err);
+    }
+
+    // Always init editing features regardless of page list loading
+    try { autoTagEditableElements(); } catch (e) { console.error('[GDS] autoTagEditableElements error:', e); }
+    try { initEditableElements(); } catch (e) { console.error('[GDS] initEditableElements error:', e); }
+    try { initEditableImages(); } catch (e) { console.error('[GDS] initEditableImages error:', e); }
+    try { initPlaceholderImages(); } catch (e) { console.error('[GDS] initPlaceholderImages error:', e); }
+    try { initBlockInserters(); } catch (e) { console.error('[GDS] initBlockInserters error:', e); }
+    try { initMurGallery(); } catch (e) { console.error('[GDS] initMurGallery error:', e); }
+  }
+
+  // ===== LOAD SEO =====
+  async function loadSEO() {
+    try {
+      const res = await Auth.apiFetch('/api/pages/' + currentSlug);
+      const data = await res.json();
+      seoData = data.seo || {};
+      document.getElementById('gdsSeoTitle').value = seoData.title || '';
+      document.getElementById('gdsSeoDesc').value = seoData.description || '';
+      document.getElementById('gdsSeoOgTitle').value = seoData.ogTitle || '';
+      document.getElementById('gdsSeoOgDesc').value = seoData.ogDescription || '';
+    } catch (e) { /* ignore */ }
+  }
+
+  // ===== AUTO-TAG EDITABLE ELEMENTS IN NEW BLOCKS =====
+  function autoTagEditableElements() {
+    // Find all section wrappers
+    const wrappers = document.querySelectorAll('.gds-section-wrapper');
+    let autoIdx = 0;
+
+    wrappers.forEach(wrapper => {
+      const file = wrapper.getAttribute('data-gds-file') || 'custom';
+      const sectionName = file.replace(/^\d+-/, '').replace('.html', '');
+
+      // Find h1-h4 and p elements that DON'T already have data-gds-edit
+      const candidates = wrapper.querySelectorAll('h1, h2, h3, h4, p, .hero-subtitle, .hero-tagline');
+      candidates.forEach(el => {
+        // Skip if already tagged
+        if (el.hasAttribute('data-gds-edit')) return;
+        // Skip if inside admin UI elements
+        if (el.closest('#gds-admin-bar, #gds-seo-panel, .gds-block-inserter, .gds-section-actions')) return;
+        // Skip if inside an element with onclick (FAQ toggles, accordions, etc.)
+        if (el.closest('[onclick]')) return;
+        // Skip if it's an empty or whitespace-only element
+        if (!el.textContent.trim()) return;
+        // Skip tiny elements (likely labels or decorations)
+        if (el.textContent.trim().length < 2) return;
+
+        const tag = el.tagName.toLowerCase();
+        const editId = `${sectionName}:${autoIdx}:${tag}`;
+        el.setAttribute('data-gds-edit', editId);
+        el.setAttribute('data-gds-section', sectionName);
+        el.setAttribute('data-gds-tag', tag.toUpperCase());
+        autoIdx++;
+      });
+    });
+
+    if (autoIdx > 0) {
+      console.log('[GDS Admin] Auto-tagged', autoIdx, 'elements in new blocks');
+    }
+  }
+
+  // ===== INIT EDITABLE ELEMENTS =====
+  function initEditableElements() {
+    const editables = document.querySelectorAll('[data-gds-edit]');
+    console.log('[GDS Admin] Found', editables.length, 'editable elements');
+    if (editables.length === 0) {
+      showToast('Aucun element editable trouve !', 'error');
+    }
+
+    editables.forEach(el => {
+      const id = el.getAttribute('data-gds-edit');
+      const tag = el.tagName.toLowerCase();
+
+      // Store original text
+      originalTexts[id] = el.innerHTML;
+
+      // Set tag badge
+      el.setAttribute('data-gds-tag', tag.toUpperCase());
+
+      // Store original tag
+      el.dataset.gdsOrigTag = tag;
+
+      // Make focusable
+      el.setAttribute('tabindex', '0');
+
+      // Build editing toolbar: tag selectors + formatting buttons
+      const tagBar = document.createElement('div');
+      tagBar.className = 'gds-tag-select';
+
+      // Tag buttons (H1-H4, P)
+      ['H1','H2','H3','H4','P'].forEach(t => {
+        const btn = document.createElement('button');
+        btn.className = 'gds-tag-btn' + (t === tag.toUpperCase() ? ' active' : '');
+        btn.textContent = t;
+        btn.type = 'button';
+        btn.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          changeTag(el, t.toLowerCase());
+        });
+        tagBar.appendChild(btn);
+      });
+
+      // Separator
+      const sep1 = document.createElement('div');
+      sep1.className = 'gds-toolbar-sep';
+      tagBar.appendChild(sep1);
+
+      // Formatting buttons
+      const formatBtns = [
+        { cmd: 'bold', icon: '<b>B</b>', title: 'Gras (Ctrl+B)' },
+        { cmd: 'italic', icon: '<i>I</i>', title: 'Italique (Ctrl+I)' },
+        { cmd: 'underline', icon: '<u>U</u>', title: 'Souligne (Ctrl+U)' },
+        { cmd: 'strikeThrough', icon: '<s>S</s>', title: 'Barre' },
+      ];
+      formatBtns.forEach(f => {
+        const btn = document.createElement('button');
+        btn.className = 'gds-tag-btn';
+        btn.innerHTML = f.icon;
+        btn.title = f.title;
+        btn.type = 'button';
+        btn.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          document.execCommand(f.cmd, false, null);
+        });
+        tagBar.appendChild(btn);
+      });
+
+      // Separator
+      const sep2 = document.createElement('div');
+      sep2.className = 'gds-toolbar-sep';
+      tagBar.appendChild(sep2);
+
+      // Link button
+      const linkBtn = document.createElement('button');
+      linkBtn.className = 'gds-tag-btn';
+      linkBtn.innerHTML = '&#128279;';
+      linkBtn.title = 'Inserer un lien';
+      linkBtn.type = 'button';
+      linkBtn.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const url = prompt('URL du lien :');
+        if (url) document.execCommand('createLink', false, url);
+      });
+      tagBar.appendChild(linkBtn);
+
+      // Unlink button
+      const unlinkBtn = document.createElement('button');
+      unlinkBtn.className = 'gds-tag-btn';
+      unlinkBtn.innerHTML = '&#10060;';
+      unlinkBtn.title = 'Supprimer le lien';
+      unlinkBtn.type = 'button';
+      unlinkBtn.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        document.execCommand('unlink', false, null);
+      });
+      tagBar.appendChild(unlinkBtn);
+
+      // Separator
+      const sep3 = document.createElement('div');
+      sep3.className = 'gds-toolbar-sep';
+      tagBar.appendChild(sep3);
+
+      // Clear formatting
+      const clearBtn = document.createElement('button');
+      clearBtn.className = 'gds-tag-btn';
+      clearBtn.innerHTML = '&#128465;';
+      clearBtn.title = 'Supprimer la mise en forme';
+      clearBtn.type = 'button';
+      clearBtn.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        document.execCommand('removeFormat', false, null);
+      });
+      tagBar.appendChild(clearBtn);
+
+      // Separator
+      const sep4 = document.createElement('div');
+      sep4.className = 'gds-toolbar-sep';
+      tagBar.appendChild(sep4);
+
+      // HTML source editor button
+      const htmlBtn = document.createElement('button');
+      htmlBtn.className = 'gds-tag-btn';
+      htmlBtn.innerHTML = '&lt;/&gt;';
+      htmlBtn.title = 'Editer le code HTML';
+      htmlBtn.type = 'button';
+      htmlBtn.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openHtmlEditor(el, id);
+      });
+      tagBar.appendChild(htmlBtn);
+
+      el.style.position = 'relative';
+      el.appendChild(tagBar);
+
+      // On click: enter edit mode
+      el.addEventListener('click', (e) => {
+        if (e.target.closest('.gds-tag-select')) return;
+        if (e.target.tagName === 'A' && !e.target.closest('[data-gds-edit]').getAttribute('contenteditable')) {
+          e.preventDefault();
+        }
+        el.setAttribute('contenteditable', 'true');
+        el.focus();
+      });
+
+      // On focus: show toolbar + enable editing
+      el.addEventListener('focus', () => {
+        el.setAttribute('contenteditable', 'true');
+        tagBar.style.display = 'flex';
+      });
+
+      // On blur: exit edit mode, track changes
+      el.addEventListener('blur', () => {
+        el.removeAttribute('contenteditable');
+        tagBar.style.display = 'none';
+        trackChange(el, id);
+      });
+
+      // Prevent Enter from creating divs
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          const t = el.tagName.toLowerCase();
+          if (['h1', 'h2', 'h3', 'h4', 'p'].includes(t)) {
+            e.preventDefault();
+            el.blur();
+          }
+        }
+        if (e.key === 'Escape') {
+          el.innerHTML = originalTexts[id];
+          el.blur();
+        }
+      });
+
+      // Prevent link clicks when editing
+      el.querySelectorAll('a').forEach(a => {
+        a.addEventListener('click', (e) => {
+          if (el.getAttribute('contenteditable') === 'true') {
+            e.preventDefault();
+          }
+        });
+      });
+    });
+  }
+
+  // ===== INIT EDITABLE IMAGES =====
+  function initEditableImages() {
+    const imgEls = document.querySelectorAll('[data-gds-img]');
+    const bgEls = document.querySelectorAll('[data-gds-bg]');
+    console.log('[GDS Admin] Found', imgEls.length, 'editable images +', bgEls.length, 'editable backgrounds');
+
+    // Double-click on any image/video in a section to open replacement modal (event delegation)
+    document.addEventListener('dblclick', (e) => {
+      const el = e.target.closest('.gds-section-wrapper img, .gds-section-wrapper video');
+      if (!el) return;
+      if (el.closest('.snb-header, .snb-nav, nav, header, .snb-footer, footer')) return;
+      if (el.src && el.src.includes('/logo/')) return;
+      e.preventDefault();
+      e.stopPropagation();
+      openImageReplaceModal(el);
+    });
+    // Style all current images as clickable
+    document.querySelectorAll('.gds-section-wrapper img, .gds-section-wrapper video').forEach(el => {
+      if (el.closest('.snb-header, .snb-nav, nav, header, .snb-footer, footer')) return;
+      el.style.cursor = 'pointer';
+    });
+
+    // Hidden file input
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*,video/mp4,video/webm';
+    fileInput.style.display = 'none';
+    document.body.appendChild(fileInput);
+
+    // Floating toolbar (change + position)
+    const toolbar = document.createElement('div');
+    toolbar.className = 'gds-img-toolbar';
+    toolbar.innerHTML = `
+      <div class="gds-img-tb-row">
+        <div class="gds-img-btn" id="gdsImgChangeBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Changer
+        </div>
+        <div class="gds-img-btn gds-img-pos-btn" id="gdsImgPosBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 9l-3 3 3 3"/><path d="M9 5l3-3 3 3"/><path d="M15 19l-3 3-3-3"/><path d="M19 9l3 3-3 3"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/></svg> Position
+        </div>
+      </div>
+      <div class="gds-img-btn" id="gdsImgFlipBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h3"/><path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"/><line x1="12" y1="2" x2="12" y2="22" stroke-dasharray="2 2"/></svg> Miroir
+      </div>
+      <div class="gds-img-sliders" id="gdsImgSliders" style="display:none">
+        <div class="gds-img-slider-row">
+          <label>H</label>
+          <input type="range" min="0" max="100" value="50" id="gdsPosX">
+          <span id="gdsPosXVal">50%</span>
+        </div>
+        <div class="gds-img-slider-row">
+          <label>V</label>
+          <input type="range" min="0" max="100" value="50" id="gdsPosY">
+          <span id="gdsPosYVal">50%</span>
+        </div>
+        <button class="gds-img-pos-save" id="gdsPosSave">Appliquer</button>
+      </div>
+    `;
+    toolbar.style.display = 'none';
+    document.body.appendChild(toolbar);
+
+    const changeBtn = document.getElementById('gdsImgChangeBtn');
+    const posBtn = document.getElementById('gdsImgPosBtn');
+    const slidersPanel = document.getElementById('gdsImgSliders');
+    const posX = document.getElementById('gdsPosX');
+    const posY = document.getElementById('gdsPosY');
+    const posXVal = document.getElementById('gdsPosXVal');
+    const posYVal = document.getElementById('gdsPosYVal');
+    const posSave = document.getElementById('gdsPosSave');
+
+    let activeEl = null;
+    let hideTimer = null;
+    let posOpen = false;
+
+    // Detect images via elementsFromPoint (works through overlays)
+    document.addEventListener('mousemove', (e) => {
+      if (toolbar.contains(e.target)) return;
+      if (posOpen) return; // Don't move toolbar while positioning
+
+      const els = document.elementsFromPoint(e.clientX, e.clientY);
+      let found = null;
+      for (const el of els) {
+        if (el.hasAttribute('data-gds-img') || el.hasAttribute('data-gds-bg')) {
+          found = el;
+          break;
+        }
+        // Also detect images/videos inside sections even without data-gds-img (e.g. JS-cloned elements)
+        if ((el.tagName === 'IMG' || el.tagName === 'VIDEO') && el.closest('.gds-section-wrapper') && !el.closest('.snb-header, .snb-nav, nav, header, .snb-footer, footer')) {
+          if (el.src && !el.src.includes('/logo/') && !el.src.startsWith('data:')) {
+            found = el;
+            break;
+          }
+        }
+      }
+
+      if (found && found !== activeEl) {
+        clearTimeout(hideTimer);
+        if (activeEl) activeEl.classList.remove('gds-img-hover');
+        activeEl = found;
+        activeEl.classList.add('gds-img-hover');
+        showToolbar(found);
+      } else if (!found && activeEl && !posOpen) {
+        clearTimeout(hideTimer);
+        hideTimer = setTimeout(() => {
+          if (activeEl) activeEl.classList.remove('gds-img-hover');
+          activeEl = null;
+          toolbar.style.display = 'none';
+          slidersPanel.style.display = 'none';
+          posOpen = false;
+        }, 400);
+      }
+    });
+
+    function showToolbar(el) {
+      const rect = el.getBoundingClientRect();
+      toolbar.style.display = 'block';
+      toolbar.style.top = (rect.top + window.scrollY + rect.height / 2 - 20) + 'px';
+      toolbar.style.left = (rect.left + window.scrollX + rect.width / 2 - 110) + 'px';
+      slidersPanel.style.display = 'none';
+      posOpen = false;
+
+      // Read current object-position
+      const computed = window.getComputedStyle(el);
+      const objPos = computed.objectPosition || computed.backgroundPosition || '50% 50%';
+      const parts = objPos.split(/\s+/);
+      const cx = parseInt(parts[0]) || 50;
+      const cy = parseInt(parts[1]) || 50;
+      posX.value = cx;
+      posY.value = cy;
+      posXVal.textContent = cx + '%';
+      posYVal.textContent = cy + '%';
+    }
+
+    toolbar.addEventListener('mouseenter', () => clearTimeout(hideTimer));
+    toolbar.addEventListener('mouseleave', (e) => {
+      if (posOpen) return;
+      hideTimer = setTimeout(() => {
+        if (activeEl) activeEl.classList.remove('gds-img-hover');
+        activeEl = null;
+        toolbar.style.display = 'none';
+      }, 300);
+    });
+
+    // Change image button
+    let uploadTarget = null; // Save reference before file dialog opens
+    changeBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (activeEl) {
+        uploadTarget = activeEl; // Save before dialog steals focus
+        fileInput.click();
+      }
+    });
+
+    // Position button - toggle sliders
+    posBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      posOpen = !posOpen;
+      slidersPanel.style.display = posOpen ? 'block' : 'none';
+    });
+
+    // Flip/Mirror button
+    const flipBtn = document.getElementById('gdsImgFlipBtn');
+    flipBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!activeEl) return;
+      // Toggle horizontal flip
+      const current = activeEl.style.transform || '';
+      const isFlipped = current.includes('scaleX(-1)');
+      if (isFlipped) {
+        activeEl.style.setProperty('transform', current.replace('scaleX(-1)', '').trim() || 'none', 'important');
+      } else {
+        activeEl.style.setProperty('transform', (current.replace('none', '').trim() + ' scaleX(-1)').trim(), 'important');
+      }
+      // Save to section file
+      const wrapper = activeEl.closest('.gds-section-wrapper');
+      if (wrapper) {
+        const file = wrapper.getAttribute('data-gds-file');
+        if (file) {
+          const sectionHtml = cleanSectionHtml(wrapper);
+          try {
+            await Auth.apiFetch('/api/pages/' + currentSlug + '/section/' + encodeURIComponent(file), {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ content: sectionHtml })
+            });
+            showToast(isFlipped ? 'Miroir retire' : 'Image retournee', 'success');
+          } catch (err) {
+            showToast('Erreur sauvegarde miroir', 'error');
+          }
+        }
+      }
+    });
+
+    // Live preview position
+    posX.addEventListener('input', () => {
+      posXVal.textContent = posX.value + '%';
+      if (activeEl) applyPosition(activeEl, posX.value, posY.value);
+    });
+    posY.addEventListener('input', () => {
+      posYVal.textContent = posY.value + '%';
+      if (activeEl) applyPosition(activeEl, posX.value, posY.value);
+    });
+
+    function applyPosition(el, x, y) {
+      // Use setProperty with !important to override any CSS
+      el.style.setProperty('object-position', x + '% ' + y + '%', 'important');
+      // Also ensure object-fit is set
+      if (!el.style.objectFit && el.tagName === 'IMG') {
+        el.style.setProperty('object-fit', 'cover', 'important');
+      }
+    }
+
+    // Save position — save directly to section file
+    posSave.addEventListener('click', async (e) => {
+      e.preventDefault();
+      if (!activeEl) return;
+
+      posSave.textContent = '...';
+      // Apply position with !important
+      applyPosition(activeEl, posX.value, posY.value);
+
+      // Save the section file with the new inline style
+      const wrapper = activeEl.closest('.gds-section-wrapper');
+      if (wrapper) {
+        const file = wrapper.getAttribute('data-gds-file');
+        if (file) {
+          const sectionHtml = cleanSectionHtml(wrapper);
+          try {
+            await Auth.apiFetch('/api/pages/' + currentSlug + '/section/' + encodeURIComponent(file), {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ content: sectionHtml })
+            });
+            showToast('Position sauvegardee !', 'success');
+          } catch (err) {
+            showToast('Erreur: ' + err.message, 'error');
+          }
+        }
+      }
+      posSave.textContent = 'Appliquer';
+      posOpen = false;
+      slidersPanel.style.display = 'none';
+    });
+
+    // Upload handler
+    fileInput.addEventListener('change', async () => {
+      const el = uploadTarget || activeEl;
+      if (!fileInput.files.length || !el) {
+        console.error('[GDS] Upload: no file or no target element');
+        return;
+      }
+      const file = fileInput.files[0];
+
+      const isImg = el.hasAttribute('data-gds-img') || el.tagName === 'IMG' || el.tagName === 'VIDEO';
+      const data = el.getAttribute('data-gds-img') || el.getAttribute('data-gds-bg');
+      let section, originalSrc;
+      if (data) {
+        const parts = data.split(':');
+        section = parts[0];
+        originalSrc = parts.slice(2).join(':');
+      } else {
+        // Fallback for elements without data-gds-img (e.g. JS-cloned carousel slides)
+        const wrapper = el.closest('.gds-section-wrapper');
+        const sectionFile = wrapper ? wrapper.getAttribute('data-gds-file') || 'custom' : 'custom';
+        section = sectionFile.replace(/^\d+-/, '').replace('.html', '');
+        originalSrc = el.src || '';
+      }
+
+      console.log('[GDS] Upload starting:', { section, originalSrc, file: file.name, size: file.size });
+      changeBtn.textContent = 'Upload...';
+
+      try {
+        const renderedW = el.offsetWidth || 800;
+        const renderedH = el.offsetHeight || 600;
+        const maxWidth = Math.max(renderedW * 2, 400);
+        const maxHeight = Math.max(renderedH * 2, 400);
+
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('originalSrc', originalSrc);
+        formData.append('section', section);
+        formData.append('slug', currentSlug);
+        formData.append('maxWidth', maxWidth);
+        formData.append('maxHeight', maxHeight);
+
+        console.log('[GDS] Upload sending...', originalSrc);
+        const res = await Auth.apiFetch('/api/pages/' + currentSlug + '/upload-image', {
+          method: 'POST',
+          body: formData
+        });
+        console.log('[GDS] Upload response:', res.status);
+        if (!res.ok) {
+          const errData = await res.json().catch(()=>({}));
+          throw new Error(errData.error || 'Erreur ' + res.status);
+        }
+        const result = await res.json();
+        console.log('[GDS] Upload result:', result);
+
+        const newSrc = result.newSrc + '?v=' + Date.now();
+        if (isImg) {
+          const isNewVideo = newSrc.match(/\.(mp4|webm|mov)/i);
+          const isCurrentVideo = el.tagName.toLowerCase() === 'video';
+
+          if (isNewVideo && !isCurrentVideo) {
+            // Replace <img> with <video>
+            const vid = document.createElement('video');
+            vid.src = newSrc;
+            vid.autoplay = true; vid.loop = true; vid.muted = true; vid.playsInline = true;
+            vid.setAttribute('playsinline', '');
+            vid.style.cssText = el.style.cssText || 'width:100%;height:100%;object-fit:cover;display:block;';
+            if (el.getAttribute('data-gds-img')) vid.setAttribute('data-gds-img', el.getAttribute('data-gds-img'));
+            el.replaceWith(vid);
+          } else if (!isNewVideo && isCurrentVideo) {
+            // Replace <video> with <img>
+            const img = document.createElement('img');
+            img.src = newSrc;
+            img.alt = 'Image';
+            img.style.cssText = el.style.cssText || 'width:100%;height:100%;object-fit:cover;display:block;';
+            if (el.getAttribute('data-gds-img')) img.setAttribute('data-gds-img', el.getAttribute('data-gds-img'));
+            el.replaceWith(img);
+          } else {
+            el.src = newSrc;
+          }
+        } else {
+          const currentStyle = el.getAttribute('style') || '';
+          el.setAttribute('style', currentStyle.replace(/url\([^)]+\)/, 'url(' + newSrc + ')'));
+        }
+        imageChanges++;
+        updateChangesCount();
+        showToast('Media mis a jour !', 'success');
+      } catch (err) {
+        showToast('Erreur: ' + err.message, 'error');
+      }
+
+      changeBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Changer`;
+      fileInput.value = '';
+      uploadTarget = null;
+    });
+  }
+
+  // ===== PLACEHOLDER IMAGE REPLACEMENT =====
+  function initPlaceholderImages() {
+    // Find placeholder elements by multiple strategies
+    const bySelector = document.querySelectorAll('.bento-placeholder, .image-placeholder, [data-gds-placeholder], [class*="placeholder"]');
+
+    // Also find elements with dashed borders that look like image placeholders
+    // (common pattern in blocks created by Claude)
+    const allDivs = document.querySelectorAll('.gds-section-wrapper div');
+    const extraPlaceholders = [];
+    allDivs.forEach(div => {
+      // Skip if already matched
+      if (div.matches('[class*="placeholder"], [data-gds-placeholder]')) return;
+      if (div.closest('[class*="placeholder"], [data-gds-placeholder]')) return;
+      // Skip if has a real image/video inside
+      if (div.querySelector('img, video')) return;
+      // Skip admin UI
+      if (div.closest('.gds-section-actions, .gds-block-inserter, #gds-admin-bar, .gds-spacing-control')) return;
+
+      const style = window.getComputedStyle(div);
+      const isDashed = style.borderTopStyle === 'dashed' || style.borderStyle === 'dashed' || style.borderStyle.includes('dashed');
+      const isEmptyish = div.children.length <= 5 && div.offsetHeight > 40;
+      const hasOnlySvgOrText = !div.querySelector('img, video, iframe, canvas');
+
+      if (isDashed && isEmptyish && hasOnlySvgOrText) {
+        extraPlaceholders.push(div);
+      }
+    });
+
+    const allPlaceholders = [...bySelector, ...extraPlaceholders];
+    // Deduplicate
+    const seen = new Set();
+    const placeholders = allPlaceholders.filter(el => {
+      if (seen.has(el)) return false;
+      seen.add(el);
+      // Skip elements that already have a real image inside
+      if (el.querySelector('img, video')) return false;
+      // Skip admin UI elements
+      if (el.closest('.gds-section-actions, .gds-block-inserter, #gds-admin-bar')) return false;
+      return true;
+    });
+
+    console.log('[GDS Admin] Found', placeholders.length, 'image placeholders (' + bySelector.length + ' by class, ' + extraPlaceholders.length + ' by dashed border)');
+
+    placeholders.forEach(ph => {
+      // For <img> elements: wrap in a div so we can add the overlay
+      let target = ph;
+      if (ph.tagName === 'IMG') {
+        const wrapper = document.createElement('div');
+        wrapper.style.position = 'relative';
+        wrapper.style.display = 'inline-block';
+        wrapper.style.width = ph.style.width || '100%';
+        wrapper.style.height = ph.style.height || 'auto';
+        wrapper.style.aspectRatio = ph.style.aspectRatio || '';
+        wrapper.style.cursor = 'pointer';
+        // Copy grid/layout relevant attributes
+        if (ph.className) wrapper.className = ph.className.split(' ').filter(c => !c.includes('cell-img')).join(' ') + ' gds-ph-img-wrap';
+        ph.parentNode.insertBefore(wrapper, ph);
+        wrapper.appendChild(ph);
+        // Reset img to fill wrapper
+        ph.style.width = '100%';
+        ph.style.height = '100%';
+        ph.style.display = 'block';
+        target = wrapper;
+      }
+
+      // Style as clickable
+      target.style.cursor = 'pointer';
+      target.style.transition = 'all 0.2s';
+      // Ensure position relative for overlay
+      const pos = window.getComputedStyle(target).position;
+      if (pos === 'static') target.style.position = 'relative';
+
+      // Add hover overlay
+      const overlay = document.createElement('div');
+      overlay.className = 'gds-ph-overlay';
+      overlay.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Ajouter une image';
+      overlay.style.zIndex = '50';
+      target.appendChild(overlay);
+
+      target.addEventListener('click', (e) => {
+        e.stopPropagation();
+        // Pass the actual img element to the modal, not the wrapper
+        const imgEl = target.tagName === 'IMG' ? target : target.querySelector('img[data-gds-placeholder]') || target;
+        openPlaceholderModal(imgEl);
+      });
+    });
+  }
+
+  // ===== IMAGE REPLACE MODAL (double-click on any image) =====
+  function openImageReplaceModal(imgEl) {
+    const existing = document.getElementById('gds-imgreplace-modal');
+    if (existing) existing.remove();
+
+    const isVideo = imgEl.tagName.toLowerCase() === 'video';
+    const currentSrc = imgEl.src || '';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'gds-imgreplace-modal';
+    overlay.className = 'gds-modal-overlay';
+    overlay.innerHTML = `
+      <div class="gds-modal" style="max-width:500px;">
+        <div class="gds-modal-header">
+          <h3>Remplacer ${isVideo ? 'la video' : "l'image"}</h3>
+          <button class="gds-modal-close" id="gds-ir-close">&times;</button>
+        </div>
+        <div class="gds-modal-body">
+          <div style="margin-bottom:16px;text-align:center;">
+            <${isVideo ? 'video autoplay loop muted playsinline' : 'img'} src="${escapeHtml(currentSrc)}" style="max-width:100%;max-height:150px;border-radius:8px;border:1px solid #30363d;">
+          </div>
+          <div style="display:flex;gap:12px;margin-bottom:16px;">
+            <button class="gds-ph-tab" id="gds-ir-tab-upload" style="flex:1;padding:10px;border:1px solid #30363d;border-radius:8px;background:#21262d;color:#e6edf3;font-size:13px;font-weight:600;cursor:pointer;">Uploader</button>
+            <button class="gds-ph-tab" id="gds-ir-tab-url" style="flex:1;padding:10px;border:1px solid #30363d;border-radius:8px;background:#0d1117;color:#8b949e;font-size:13px;font-weight:600;cursor:pointer;">URL</button>
+          </div>
+          <div id="gds-ir-upload-area">
+            <div class="gds-block-upload visible" id="gds-ir-dropzone" style="display:block;">
+              <input type="file" id="gds-ir-file" accept="image/*,video/mp4" style="display:none;">
+              <div style="font-size:24px;margin-bottom:6px;">&#128247;</div>
+              <div style="font-size:13px;">Cliquez pour choisir un fichier</div>
+            </div>
+          </div>
+          <div id="gds-ir-url-area" style="display:none;">
+            <input type="url" id="gds-ir-url-input" placeholder="https://example.com/image.jpg" style="width:100%;padding:10px 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:14px;">
+          </div>
+        </div>
+        <div class="gds-modal-footer">
+          <button class="gds-modal-btn gds-modal-btn-cancel" id="gds-ir-cancel">Annuler</button>
+          <button class="gds-modal-btn gds-modal-btn-submit" id="gds-ir-submit" disabled>Appliquer</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const close = () => overlay.remove();
+    document.getElementById('gds-ir-close').addEventListener('click', close);
+    document.getElementById('gds-ir-cancel').addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+    // Tab switching
+    document.getElementById('gds-ir-tab-upload').addEventListener('click', () => {
+      document.getElementById('gds-ir-upload-area').style.display = 'block';
+      document.getElementById('gds-ir-url-area').style.display = 'none';
+      document.getElementById('gds-ir-tab-upload').style.background = '#21262d';
+      document.getElementById('gds-ir-tab-upload').style.color = '#e6edf3';
+      document.getElementById('gds-ir-tab-url').style.background = '#0d1117';
+      document.getElementById('gds-ir-tab-url').style.color = '#8b949e';
+    });
+    document.getElementById('gds-ir-tab-url').addEventListener('click', () => {
+      document.getElementById('gds-ir-upload-area').style.display = 'none';
+      document.getElementById('gds-ir-url-area').style.display = 'block';
+      document.getElementById('gds-ir-tab-url').style.background = '#21262d';
+      document.getElementById('gds-ir-tab-url').style.color = '#e6edf3';
+      document.getElementById('gds-ir-tab-upload').style.background = '#0d1117';
+      document.getElementById('gds-ir-tab-upload').style.color = '#8b949e';
+    });
+
+    // Upload
+    const fileInput = document.getElementById('gds-ir-file');
+    let selectedFile = null;
+    document.getElementById('gds-ir-dropzone').addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) {
+        selectedFile = fileInput.files[0];
+        document.getElementById('gds-ir-dropzone').innerHTML = '<div style="color:#3fb950;font-size:13px;">&#10003; ' + selectedFile.name + '</div>';
+        document.getElementById('gds-ir-submit').disabled = false;
+      }
+    });
+
+    // URL input
+    document.getElementById('gds-ir-url-input').addEventListener('input', () => {
+      const url = document.getElementById('gds-ir-url-input').value.trim();
+      document.getElementById('gds-ir-submit').disabled = !(url.startsWith('http') || url.startsWith('/'));
+    });
+
+    // Submit
+    document.getElementById('gds-ir-submit').addEventListener('click', async () => {
+      const btn = document.getElementById('gds-ir-submit');
+      btn.disabled = true;
+      btn.textContent = 'Application...';
+
+      try {
+        let newSrc = '';
+
+        if (selectedFile) {
+          const formData = new FormData();
+          formData.append('images', selectedFile);
+          formData.append('slug', currentSlug);
+          const res = await Auth.apiFetch('/api/media/upload', { method: 'POST', body: formData });
+          if (!res.ok) throw new Error('Upload echoue');
+          const data = await res.json();
+          newSrc = (data.uploaded && data.uploaded[0] && data.uploaded[0].path) || '';
+        } else {
+          newSrc = document.getElementById('gds-ir-url-input').value.trim();
+        }
+
+        if (!newSrc) throw new Error('Aucune source');
+
+        const isNewVideo = newSrc.match(/\.(mp4|webm|mov)(\?|$)/i);
+
+        // Save wrapper reference BEFORE any replaceWith (which removes imgEl from DOM)
+        const saveWrapper = imgEl.closest('.gds-section-wrapper') || (imgEl.parentElement && imgEl.parentElement.closest('.gds-section-wrapper'));
+
+        if (isNewVideo && !isVideo) {
+          const vid = document.createElement('video');
+          vid.src = newSrc;
+          vid.autoplay = true; vid.loop = true; vid.muted = true; vid.playsInline = true;
+          vid.style.cssText = imgEl.style.cssText || 'width:100%;height:100%;object-fit:cover;';
+          imgEl.replaceWith(vid);
+        } else if (!isNewVideo && isVideo) {
+          const img = document.createElement('img');
+          img.src = newSrc;
+          img.alt = 'Image';
+          img.style.cssText = imgEl.style.cssText || 'width:100%;height:100%;object-fit:cover;';
+          imgEl.replaceWith(img);
+        } else {
+          imgEl.src = newSrc;
+        }
+
+        // Save the section
+        const wrapper = saveWrapper;
+        if (wrapper) {
+          const file = wrapper.getAttribute('data-gds-file');
+          if (file) {
+            const sectionHtml = cleanSectionHtml(wrapper);
+            await Auth.apiFetch('/api/pages/' + currentSlug + '/section/' + encodeURIComponent(file), {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ content: sectionHtml })
+            });
+          }
+        }
+
+        close();
+        showToast('Media remplace !', 'success');
+        imageChanges++;
+        updateChangesCount();
+      } catch (err) {
+        showToast('Erreur: ' + err.message, 'error');
+        btn.disabled = false;
+        btn.textContent = 'Appliquer';
+      }
+    });
+  }
+
+  function openPlaceholderModal(placeholderEl) {
+    const existing = document.getElementById('gds-ph-modal');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'gds-ph-modal';
+    overlay.className = 'gds-modal-overlay';
+    overlay.innerHTML = `
+      <div class="gds-modal" style="max-width:500px;">
+        <div class="gds-modal-header">
+          <h3>Ajouter une image</h3>
+          <button class="gds-modal-close" id="gds-ph-close">&times;</button>
+        </div>
+        <div class="gds-modal-body">
+          <div style="display:flex;gap:12px;margin-bottom:20px;">
+            <button class="gds-ph-tab active" data-tab="upload" id="gds-ph-tab-upload" style="flex:1;padding:12px;border:1px solid #30363d;border-radius:8px;background:#21262d;color:#e6edf3;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;">
+              <div style="font-size:24px;margin-bottom:4px;">&#128228;</div>
+              Uploader
+            </button>
+            <button class="gds-ph-tab" data-tab="url" id="gds-ph-tab-url" style="flex:1;padding:12px;border:1px solid #30363d;border-radius:8px;background:#0d1117;color:#8b949e;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;">
+              <div style="font-size:24px;margin-bottom:4px;">&#128279;</div>
+              URL
+            </button>
+          </div>
+          <div id="gds-ph-upload-area" class="gds-ph-area">
+            <div class="gds-block-upload visible" id="gds-ph-dropzone" style="display:block;">
+              <input type="file" id="gds-ph-file" accept="image/*,video/mp4" style="display:none;">
+              <div style="font-size:36px;margin-bottom:8px;">&#128247;</div>
+              <div>Cliquez ou glissez une image / GIF / video</div>
+              <div style="font-size:12px;color:#484f58;margin-top:6px;">JPG, PNG, WebP, GIF, MP4</div>
+            </div>
+            <div id="gds-ph-preview-img" style="display:none;text-align:center;">
+              <img id="gds-ph-preview-src" style="max-width:100%;max-height:200px;border-radius:8px;border:1px solid #30363d;">
+              <div style="margin-top:8px;font-size:12px;color:#3fb950;" id="gds-ph-file-name"></div>
+            </div>
+          </div>
+          <div id="gds-ph-url-area" class="gds-ph-area" style="display:none;">
+            <input type="url" id="gds-ph-url-input" placeholder="https://example.com/image.jpg" style="width:100%;padding:10px 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:14px;">
+            <div style="margin-top:8px;font-size:12px;color:#8b949e;">URL directe vers une image ou video (JPG, PNG, WebP, GIF, MP4)</div>
+            <div id="gds-ph-url-preview" style="display:none;margin-top:12px;text-align:center;">
+              <img id="gds-ph-url-preview-img" style="max-width:100%;max-height:200px;border-radius:8px;border:1px solid #30363d;">
+            </div>
+          </div>
+        </div>
+        <div class="gds-modal-footer">
+          <button class="gds-modal-btn gds-modal-btn-cancel" id="gds-ph-cancel">Annuler</button>
+          <button class="gds-modal-btn gds-modal-btn-submit" id="gds-ph-submit" disabled>Appliquer</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const close = () => overlay.remove();
+    document.getElementById('gds-ph-close').addEventListener('click', close);
+    document.getElementById('gds-ph-cancel').addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+    // Tab switching
+    const tabUpload = document.getElementById('gds-ph-tab-upload');
+    const tabUrl = document.getElementById('gds-ph-tab-url');
+    const areaUpload = document.getElementById('gds-ph-upload-area');
+    const areaUrl = document.getElementById('gds-ph-url-area');
+
+    tabUpload.addEventListener('click', () => {
+      tabUpload.style.background = '#21262d'; tabUpload.style.color = '#e6edf3';
+      tabUrl.style.background = '#0d1117'; tabUrl.style.color = '#8b949e';
+      areaUpload.style.display = 'block'; areaUrl.style.display = 'none';
+    });
+    tabUrl.addEventListener('click', () => {
+      tabUrl.style.background = '#21262d'; tabUrl.style.color = '#e6edf3';
+      tabUpload.style.background = '#0d1117'; tabUpload.style.color = '#8b949e';
+      areaUrl.style.display = 'block'; areaUpload.style.display = 'none';
+    });
+
+    // Upload dropzone
+    const dropzone = document.getElementById('gds-ph-dropzone');
+    const fileInput = document.getElementById('gds-ph-file');
+    let selectedFile = null;
+    let selectedUrl = '';
+
+    dropzone.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) {
+        selectedFile = fileInput.files[0];
+        selectedUrl = '';
+        const isVid = selectedFile.type.startsWith('video/');
+        // Show preview
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const previewContainer = document.getElementById('gds-ph-preview-img');
+          const previewEl = document.getElementById('gds-ph-preview-src');
+          if (isVid) {
+            // Replace img with video for preview
+            const vid = document.createElement('video');
+            vid.src = e.target.result;
+            vid.autoplay = true; vid.loop = true; vid.muted = true;
+            vid.style.cssText = 'max-width:100%;max-height:200px;border-radius:8px;border:1px solid #30363d;';
+            vid.id = 'gds-ph-preview-src';
+            previewEl.replaceWith(vid);
+          } else {
+            previewEl.src = e.target.result;
+          }
+          document.getElementById('gds-ph-file-name').textContent = selectedFile.name + ' (' + (selectedFile.size / 1024).toFixed(0) + ' KB)';
+          previewContainer.style.display = 'block';
+          dropzone.style.display = 'none';
+        };
+        reader.readAsDataURL(selectedFile);
+        document.getElementById('gds-ph-submit').disabled = false;
+      }
+    });
+
+    // URL input
+    const urlInput = document.getElementById('gds-ph-url-input');
+    let urlDebounce;
+    urlInput.addEventListener('input', () => {
+      clearTimeout(urlDebounce);
+      urlDebounce = setTimeout(() => {
+        const url = urlInput.value.trim();
+        if (url && (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('/'))) {
+          selectedUrl = url;
+          selectedFile = null;
+          // Try to show preview
+          const preview = document.getElementById('gds-ph-url-preview');
+          const previewImg = document.getElementById('gds-ph-url-preview-img');
+          previewImg.src = url;
+          previewImg.onload = () => { preview.style.display = 'block'; };
+          previewImg.onerror = () => { preview.style.display = 'none'; };
+          document.getElementById('gds-ph-submit').disabled = false;
+        } else {
+          document.getElementById('gds-ph-submit').disabled = true;
+          document.getElementById('gds-ph-url-preview').style.display = 'none';
+        }
+      }, 500);
+    });
+
+    // Submit
+    document.getElementById('gds-ph-submit').addEventListener('click', async () => {
+      const submitBtn = document.getElementById('gds-ph-submit');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Application...';
+
+      try {
+        let imgSrc = '';
+
+        if (selectedFile) {
+          // Upload image
+          const formData = new FormData();
+          formData.append('images', selectedFile);
+          formData.append('slug', currentSlug);
+
+          const res = await Auth.apiFetch('/api/media/upload', {
+            method: 'POST',
+            body: formData
+          });
+          if (!res.ok) throw new Error('Upload echoue');
+          const data = await res.json();
+          // upload returns { uploaded: [{ path, name, ... }] }
+          imgSrc = (data.uploaded && data.uploaded[0] && data.uploaded[0].path) || data.url || data.path || '';
+        } else if (selectedUrl) {
+          // If it's a local path (already on server), use it directly
+          if (selectedUrl.startsWith('/')) {
+            imgSrc = selectedUrl;
+          } else {
+            // External URL: download and re-upload to convert to WebP
+            try {
+              const urlRes = await fetch(selectedUrl);
+              if (urlRes.ok) {
+                const blob = await urlRes.blob();
+                const fileName = selectedUrl.split('/').pop().split('?')[0] || 'image.jpg';
+                const file = new File([blob], fileName, { type: blob.type });
+                const formData = new FormData();
+                formData.append('images', file);
+                formData.append('slug', currentSlug);
+
+                const uploadRes = await Auth.apiFetch('/api/media/upload', {
+                  method: 'POST',
+                  body: formData
+                });
+                if (uploadRes.ok) {
+                  const uploadData = await uploadRes.json();
+                  imgSrc = (uploadData.uploaded && uploadData.uploaded[0] && uploadData.uploaded[0].path) || '';
+                }
+              }
+            } catch (urlErr) {
+              console.warn('[GDS] URL download failed, using direct URL:', urlErr.message);
+            }
+            if (!imgSrc) imgSrc = selectedUrl;
+          }
+        }
+
+        if (!imgSrc) throw new Error('Aucune image');
+
+        // Replace placeholder with image/video
+        const isVideo = imgSrc.match(/\.(mp4|webm|mov)(\?|$)/i) || (selectedFile && selectedFile.type.startsWith('video/'));
+
+        // If the placeholder IS an <img>, just set its src directly
+        if (placeholderEl.tagName === 'IMG' && !isVideo) {
+          placeholderEl.src = imgSrc;
+          placeholderEl.removeAttribute('data-gds-placeholder');
+          placeholderEl.style.border = 'none';
+          placeholderEl.style.borderRadius = '';
+          placeholderEl.style.background = '';
+          // Remove the wrapper overlay if it exists
+          const phWrapper = placeholderEl.closest('.gds-ph-img-wrap');
+          if (phWrapper) {
+            const phOverlay = phWrapper.querySelector('.gds-ph-overlay');
+            if (phOverlay) phOverlay.remove();
+          }
+          // Find section context for data-gds-img
+          const wrapper = placeholderEl.closest('.gds-section-wrapper');
+          const sectionFile = wrapper ? wrapper.getAttribute('data-gds-file') || 'custom' : 'custom';
+          const sectionName = sectionFile.replace(/^\d+-/, '').replace('.html', '');
+          placeholderEl.setAttribute('data-gds-img', `${sectionName}:0:${imgSrc}`);
+        } else {
+          // Original logic for div placeholders or video replacement
+          const parent = placeholderEl.parentElement;
+          const caption = parent ? parent.querySelector('.bento-caption span') : null;
+          const altText = caption ? caption.textContent : 'Image';
+          const wrapper = (parent || placeholderEl).closest('.gds-section-wrapper');
+          const sectionFile = wrapper ? wrapper.getAttribute('data-gds-file') || 'custom' : 'custom';
+          const sectionName = sectionFile.replace(/^\d+-/, '').replace('.html', '');
+
+          let mediaEl;
+          if (isVideo) {
+            mediaEl = document.createElement('video');
+            mediaEl.src = imgSrc;
+            mediaEl.autoplay = true;
+            mediaEl.loop = true;
+            mediaEl.muted = true;
+            mediaEl.playsInline = true;
+            mediaEl.setAttribute('playsinline', '');
+            mediaEl.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+          } else {
+            mediaEl = document.createElement('img');
+            mediaEl.src = imgSrc;
+            mediaEl.alt = altText;
+            mediaEl.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+            mediaEl.setAttribute('data-gds-img', `${sectionName}:0:${imgSrc}`);
+          }
+          placeholderEl.replaceWith(mediaEl);
+        }
+
+        // Save the section file with the new content (cleaned of admin UI)
+        const saveWrapper = (placeholderEl.closest || placeholderEl.parentElement?.closest)
+          ? (placeholderEl.closest('.gds-section-wrapper') || placeholderEl.parentElement?.closest('.gds-section-wrapper'))
+          : null;
+        if (saveWrapper) {
+          const file = saveWrapper.getAttribute('data-gds-file');
+          if (file) {
+            const sectionHtml = cleanSectionHtml(saveWrapper);
+            await Auth.apiFetch('/api/pages/' + currentSlug + '/section/' + encodeURIComponent(file), {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ content: sectionHtml })
+            });
+          }
+        }
+
+        close();
+        showToast('Image ajoutee !', 'success');
+        imageChanges++;
+        updateChangesCount();
+      } catch (err) {
+        showToast('Erreur: ' + err.message, 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Appliquer';
+      }
+    });
+  }
+
+  // ===== CHANGE TAG (H1 <-> H2 etc) =====
+  // ===== HTML SOURCE EDITOR =====
+  function openHtmlEditor(el, id) {
+    // Remove existing modal
+    const existing = document.getElementById('gds-html-editor-modal');
+    if (existing) existing.remove();
+
+    // Get clean HTML (without tag bar)
+    const tagBar = el.querySelector('.gds-tag-select');
+    if (tagBar) tagBar.style.display = 'none';
+    // Remove tag bar temporarily to get clean HTML
+    const existingTagBar = el.querySelector('.gds-tag-select');
+    if (existingTagBar) existingTagBar.remove();
+    let currentHtml = el.innerHTML.trim();
+    if (existingTagBar) el.appendChild(existingTagBar);
+
+    // Format HTML for readability
+    currentHtml = currentHtml
+      .replace(/></g, '>\n<')
+      .replace(/\n\n+/g, '\n');
+
+    const overlay = document.createElement('div');
+    overlay.id = 'gds-html-editor-modal';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;';
+
+    overlay.innerHTML = `
+      <div style="background:#161b22;border:1px solid #30363d;border-radius:12px;width:100%;max-width:800px;max-height:90vh;display:flex;flex-direction:column;">
+        <div style="padding:16px 20px;border-bottom:1px solid #21262d;display:flex;justify-content:space-between;align-items:center;">
+          <h3 style="color:#e6edf3;font-size:15px;font-weight:600;margin:0;">Editer le HTML — <span style="color:#E51981">&lt;${el.tagName.toLowerCase()}&gt;</span></h3>
+          <button id="gds-html-close" style="background:none;border:none;color:#8b949e;font-size:20px;cursor:pointer;">&times;</button>
+        </div>
+        <div style="padding:16px 20px;flex:1;overflow:hidden;display:flex;flex-direction:column;">
+          <div style="font-size:11px;color:#8b949e;margin-bottom:8px;">Vous pouvez injecter du HTML responsive : tableaux, listes, divs, images, liens, etc.</div>
+          <textarea id="gds-html-textarea" style="flex:1;min-height:300px;width:100%;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:14px;color:#e6edf3;font-size:13px;font-family:'Consolas','Monaco','Courier New',monospace;line-height:1.6;resize:vertical;outline:none;tab-size:2;">${currentHtml.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+        </div>
+        <div style="padding:12px 20px;border-top:1px solid #21262d;display:flex;justify-content:flex-end;gap:8px;">
+          <button id="gds-html-cancel" style="padding:8px 20px;background:#21262d;color:#e6edf3;border:1px solid #30363d;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">Annuler</button>
+          <button id="gds-html-apply" style="padding:8px 20px;background:#238636;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">Appliquer</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const textarea = document.getElementById('gds-html-textarea');
+
+    // Tab key support
+    textarea.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const s = textarea.selectionStart, en = textarea.selectionEnd;
+        textarea.value = textarea.value.substring(0, s) + '  ' + textarea.value.substring(en);
+        textarea.selectionStart = textarea.selectionEnd = s + 2;
+      }
+    });
+
+    // Close
+    const close = () => overlay.remove();
+    document.getElementById('gds-html-close').addEventListener('click', close);
+    document.getElementById('gds-html-cancel').addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+    // Apply
+    document.getElementById('gds-html-apply').addEventListener('click', async () => {
+      const newHtml = textarea.value;
+      const hasBlocks = /<(div|table|section|article|ul|ol|blockquote|figure|header|footer|aside|nav|form|details|dl)\b/i.test(newHtml);
+      const currentTag = el.tagName.toLowerCase();
+
+      // If injecting block-level HTML into an inline element (p, span, h1-h6),
+      // save directly to the section file instead of trying to put blocks inside a p
+      if (hasBlocks || newHtml.includes('<style>')) {
+        // Save the full section with the replacement applied server-side
+        const wrapper = el.closest('.gds-section-wrapper');
+        if (wrapper) {
+          const file = wrapper.getAttribute('data-gds-file');
+          if (file) {
+            // Replace the element in the section with the new HTML
+            // Use a temporary marker to find and replace
+            const marker = '<!--GDS-HTML-REPLACE-' + Date.now() + '-->';
+            el.outerHTML = marker;
+
+            // Get clean section HTML
+            const cleanHtml = cleanSectionHtml(wrapper).replace(marker, newHtml);
+
+            try {
+              const res = await Auth.apiFetch('/api/pages/' + currentSlug + '/section/' + encodeURIComponent(file), {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: cleanHtml })
+              });
+              if (!res.ok) throw new Error('Erreur sauvegarde');
+              close();
+              showToast('HTML injecte et sauvegarde — rechargement...', 'success');
+              setTimeout(() => window.location.reload(), 500);
+              return;
+            } catch (err) {
+              showToast('Erreur: ' + err.message, 'error');
+              return;
+            }
+          }
+        }
+      }
+
+      // Simple inline HTML: just replace innerHTML
+      el.innerHTML = newHtml;
+      if (tagBar) el.appendChild(tagBar);
+      trackChange(el, id);
+      el.classList.add('gds-modified');
+      close();
+      showToast('HTML mis a jour', 'success');
+    });
+
+    textarea.focus();
+  }
+
+  function changeTag(el, newTag) {
+    const id = el.getAttribute('data-gds-edit');
+    const currentTag = el.tagName.toLowerCase();
+    if (currentTag === newTag) return;
+
+    // Create new element with the new tag
+    const newEl = document.createElement(newTag);
+    // Copy all attributes
+    for (const attr of el.attributes) {
+      newEl.setAttribute(attr.name, attr.value);
+    }
+    // Copy content
+    newEl.innerHTML = el.innerHTML;
+    // Update tag badge
+    newEl.setAttribute('data-gds-tag', newTag.toUpperCase());
+
+    // Replace in DOM
+    el.parentNode.replaceChild(newEl, el);
+
+    // Re-init this element (events + tag bar)
+    initSingleEditable(newEl);
+
+    // Track the change
+    trackChange(newEl, id);
+
+    // Focus the new element
+    newEl.setAttribute('contenteditable', 'true');
+    newEl.focus();
+  }
+
+  function trackChange(el, id) {
+    // Temporarily remove the tag bar from DOM to get clean innerHTML
+    const tagBar = el.querySelector('.gds-tag-select');
+    if (tagBar) tagBar.remove();
+    const cleanText = el.innerHTML.trim();
+    if (tagBar) el.appendChild(tagBar);
+
+    const currentTag = el.tagName.toLowerCase();
+    const origTag = el.dataset.gdsOrigTag || currentTag;
+
+    if (cleanText !== originalTexts[id] || currentTag !== origTag) {
+      changes[id] = { id, text: cleanText, tag: currentTag, tagChanged: currentTag !== origTag };
+      el.classList.add('gds-modified');
+    } else {
+      delete changes[id];
+      el.classList.remove('gds-modified');
+    }
+    updateChangesCount();
+  }
+
+  function initSingleEditable(el) {
+    const id = el.getAttribute('data-gds-edit');
+    const tag = el.tagName.toLowerCase();
+
+    el.dataset.gdsOrigTag = el.dataset.gdsOrigTag || tag;
+    el.setAttribute('tabindex', '0');
+
+    // Rebuild tag bar
+    let tagBar = el.querySelector('.gds-tag-select');
+    if (!tagBar) {
+      tagBar = document.createElement('div');
+      tagBar.className = 'gds-tag-select';
+      el.style.position = 'relative';
+      el.appendChild(tagBar);
+    }
+    tagBar.innerHTML = '';
+    // Tag buttons
+    ['H1','H2','H3','H4','P'].forEach(t => {
+      const btn = document.createElement('button');
+      btn.className = 'gds-tag-btn' + (t === tag.toUpperCase() ? ' active' : '');
+      btn.textContent = t;
+      btn.type = 'button';
+      btn.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); changeTag(el, t.toLowerCase()); });
+      tagBar.appendChild(btn);
+    });
+    // Separator + formatting buttons
+    const sep = document.createElement('div'); sep.className = 'gds-toolbar-sep'; tagBar.appendChild(sep);
+    [{ cmd:'bold', icon:'<b>B</b>' }, { cmd:'italic', icon:'<i>I</i>' }, { cmd:'underline', icon:'<u>U</u>' }, { cmd:'strikeThrough', icon:'<s>S</s>' }].forEach(f => {
+      const btn = document.createElement('button'); btn.className = 'gds-tag-btn'; btn.innerHTML = f.icon; btn.type = 'button';
+      btn.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); document.execCommand(f.cmd, false, null); });
+      tagBar.appendChild(btn);
+    });
+    const sep2 = document.createElement('div'); sep2.className = 'gds-toolbar-sep'; tagBar.appendChild(sep2);
+    const lb = document.createElement('button'); lb.className = 'gds-tag-btn'; lb.innerHTML = '&#128279;'; lb.type = 'button';
+    lb.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); const url = prompt('URL du lien :'); if (url) document.execCommand('createLink', false, url); });
+    tagBar.appendChild(lb);
+    const cb = document.createElement('button'); cb.className = 'gds-tag-btn'; cb.innerHTML = '&#128465;'; cb.type = 'button';
+    cb.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); document.execCommand('removeFormat', false, null); });
+    tagBar.appendChild(cb);
+    const sep3b = document.createElement('div'); sep3b.className = 'gds-toolbar-sep'; tagBar.appendChild(sep3b);
+    const hb = document.createElement('button'); hb.className = 'gds-tag-btn'; hb.innerHTML = '&lt;/&gt;'; hb.title = 'Editer HTML'; hb.type = 'button';
+    hb.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); openHtmlEditor(el, id); });
+    tagBar.appendChild(hb);
+    tagBar.style.display = 'none';
+
+    el.addEventListener('click', (e) => {
+      if (e.target.closest('.gds-tag-select')) return;
+      if (e.target.tagName === 'A') e.preventDefault();
+      el.setAttribute('contenteditable', 'true');
+      el.focus();
+    });
+
+    el.addEventListener('focus', () => {
+      el.setAttribute('contenteditable', 'true');
+      tagBar.style.display = 'flex';
+    });
+
+    el.addEventListener('blur', () => {
+      el.removeAttribute('contenteditable');
+      tagBar.style.display = 'none';
+      trackChange(el, id);
+    });
+
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        if (['h1','h2','h3','h4','p'].includes(el.tagName.toLowerCase())) {
+          e.preventDefault();
+          el.blur();
+        }
+      }
+      if (e.key === 'Escape') {
+        el.innerHTML = originalTexts[id];
+        initSingleEditable(el);
+        el.blur();
+      }
+    });
+
+    el.querySelectorAll('a').forEach(a => {
+      a.addEventListener('click', (e) => {
+        if (el.getAttribute('contenteditable') === 'true') e.preventDefault();
+      });
+    });
+  }
+
+  // ===== UPDATE CHANGES COUNT =====
+  function updateChangesCount() {
+    const count = Object.keys(changes).length + (seoData._modified ? 1 : 0) + imageChanges;
+
+    // Update admin bar elements (only in standalone mode)
+    const el = document.getElementById('gdsChangesCount');
+    const btn = document.getElementById('gdsPublishBtn');
+    if (el && btn) {
+      if (count > 0) {
+        el.textContent = count + ' modification' + (count > 1 ? 's' : '');
+        el.classList.add('show');
+        btn.disabled = false;
+      } else {
+        el.classList.remove('show');
+        btn.disabled = true;
+      }
+    }
+
+    // Notify parent frame of changes count
+    notifyParent('changesCount', { count });
+  }
+
+  // ===== PUBLISH =====
+  async function publish() {
+    // Force blur to capture pending edits
+    const activeEditable = document.querySelector('[contenteditable="plaintext-only"], [contenteditable="true"]');
+    if (activeEditable) {
+      activeEditable.blur();
+      await new Promise(r => setTimeout(r, 50));
+    }
+
+    const btn = document.getElementById('gdsPublishBtn');
+    btn.disabled = true;
+    btn.textContent = 'Sauvegarde...';
+
+    try {
+      // Collect SEO changes
+      const seo = seoData._modified ? {
+        title: document.getElementById('gdsSeoTitle').value,
+        description: document.getElementById('gdsSeoDesc').value,
+        ogTitle: document.getElementById('gdsSeoOgTitle').value,
+        ogDescription: document.getElementById('gdsSeoOgDesc').value
+      } : null;
+
+      // Clean tag bar HTML from change texts before saving
+      const cleanChanges = Object.values(changes).map(c => ({
+        ...c,
+        text: c.text
+      }));
+
+      // Save content
+      const saveRes = await Auth.apiFetch('/api/pages/' + currentSlug + '/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          changes: cleanChanges,
+          seo
+        })
+      });
+
+      if (!saveRes.ok) {
+        const errData = await saveRes.json().catch(() => ({}));
+        throw new Error(errData.error || 'Erreur sauvegarde (' + saveRes.status + ')');
+      }
+      showToast('Sauvegarde OK, publication en cours...', 'success');
+
+      btn.textContent = 'Publication...';
+
+      // Publish / rebuild
+      const publishRes = await Auth.apiFetch('/api/pages/' + currentSlug + '/publish', { method: 'POST' });
+      if (!publishRes.ok) {
+        const errData = await publishRes.json().catch(() => ({}));
+        throw new Error(errData.error || 'Erreur publication (' + publishRes.status + ')');
+      }
+
+      showToast('Modifications publiees !', 'success');
+
+      // Reset state
+      changes = {};
+      seoData._modified = false;
+      imageChanges = 0;
+      document.querySelectorAll('.gds-modified').forEach(el => el.classList.remove('gds-modified'));
+      updateChangesCount();
+
+      // Update original texts to new values
+      document.querySelectorAll('[data-gds-edit]').forEach(el => {
+        originalTexts[el.getAttribute('data-gds-edit')] = el.innerHTML;
+      });
+
+      // Notify parent frame
+      notifyParent('published', { slug: currentSlug });
+
+    } catch (err) {
+      showToast('Erreur: ' + err.message, 'error');
+    }
+
+    btn.textContent = 'Publier';
+    btn.disabled = Object.keys(changes).length === 0;
+  }
+
+  // ===== LOGOUT =====
+  async function logout() {
+    await Auth.logout();
+  }
+
+  // ===== TOAST =====
+  function showToast(msg, type) {
+    const toast = document.getElementById('gds-admin-toast');
+    toast.textContent = msg;
+    toast.className = 'show ' + (type || '');
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => { toast.className = ''; }, 3000);
+  }
+
+  // ===== MUR GALLERY MANAGER =====
+  function initMurGallery() {
+    const murSection = document.querySelector('.gds-mur');
+    if (!murSection) return;
+
+    // Add "Gerer les photos" button
+    const murBtn = document.createElement('div');
+    murBtn.className = 'gds-mur-manage-btn';
+    murBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg> Gerer les photos du mur`;
+    murSection.style.position = 'relative';
+    murSection.appendChild(murBtn);
+
+    murBtn.addEventListener('click', openMurPanel);
+  }
+
+  async function openMurPanel() {
+    // Remove existing panel
+    const old = document.getElementById('gds-mur-panel');
+    if (old) old.remove();
+
+    const panel = document.createElement('div');
+    panel.id = 'gds-mur-panel';
+    panel.innerHTML = `
+      <div class="gds-mur-panel-inner">
+        <div class="gds-mur-panel-header">
+          <h3>Photos du mur</h3>
+          <button class="gds-mur-close">&times;</button>
+        </div>
+        <div class="gds-mur-panel-body" id="gdsMurBody">
+          <div class="gds-mur-loading">Chargement...</div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(panel);
+    panel.querySelector('.gds-mur-close').addEventListener('click', () => panel.remove());
+    panel.addEventListener('click', (e) => { if (e.target === panel) panel.remove(); });
+
+    // Load photos
+    try {
+      const res = await Auth.apiFetch('/api/pages/' + currentSlug + '/mur-photos');
+      const photos = await res.json();
+      renderMurPhotos(photos);
+    } catch (err) {
+      document.getElementById('gdsMurBody').innerHTML = '<div class="gds-mur-loading">Erreur de chargement</div>';
+    }
+  }
+
+  function renderMurPhotos(photos) {
+    const body = document.getElementById('gdsMurBody');
+    const cats = [
+      { key: 'portrait', label: 'Portrait', color: '#58a6ff' },
+      { key: 'paysage', label: 'Paysage', color: '#3fb950' },
+      { key: 'slim', label: 'Strip', color: '#bc8cff' }
+    ];
+
+    let html = '';
+    cats.forEach(cat => {
+      const items = photos[cat.key] || [];
+      html += `
+        <div class="gds-mur-cat">
+          <div class="gds-mur-cat-header">
+            <span class="gds-mur-cat-label" style="background:${cat.color}">${cat.label}</span>
+            <span class="gds-mur-cat-count">${items.length} photos</span>
+            <label class="gds-mur-add-btn" style="border-color:${cat.color};color:${cat.color}">
+              + Ajouter
+              <input type="file" accept="image/*" multiple data-cat="${cat.key}" style="display:none">
+            </label>
+          </div>
+          <div class="gds-mur-cat-grid">
+            ${items.map(src => `
+              <div class="gds-mur-thumb">
+                <img src="${src}" alt="">
+                <button class="gds-mur-del" data-src="${src}" title="Supprimer">&times;</button>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    });
+    body.innerHTML = html;
+
+    // Add upload handlers
+    body.querySelectorAll('input[type="file"]').forEach(input => {
+      input.addEventListener('change', async () => {
+        const cat = input.dataset.cat;
+        const files = Array.from(input.files);
+        if (!files.length) return;
+
+        for (const file of files) {
+          const label = input.closest('.gds-mur-add-btn');
+          label.textContent = 'Upload...';
+          label.style.opacity = '0.6';
+
+          try {
+            const formData = new FormData();
+            formData.append('image', file);
+            formData.append('category', cat);
+            const res = await Auth.apiFetch('/api/pages/' + currentSlug + '/mur-photos', {
+              method: 'POST',
+              body: formData
+            });
+            if (!res.ok) throw new Error((await res.json().catch(()=>({}))).error || 'Erreur');
+          } catch (err) {
+            showToast('Erreur: ' + err.message, 'error');
+          }
+        }
+
+        showToast(files.length + ' photo(s) ajoutee(s) — rechargement...', 'success');
+        window.location.reload(true);
+      });
+    });
+
+    // Add delete handlers
+    body.querySelectorAll('.gds-mur-del').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const src = btn.dataset.src;
+        if (!confirm('Supprimer cette photo du mur ?')) return;
+        btn.textContent = '...';
+        try {
+          const res = await Auth.apiFetch('/api/pages/' + currentSlug + '/mur-photos', {
+            method: 'DELETE',
+            body: JSON.stringify({ src })
+          });
+          if (!res.ok) throw new Error('Erreur suppression');
+          imageChanges++;
+          updateChangesCount();
+          showToast('Photo supprimee', 'success');
+          const res2 = await Auth.apiFetch('/api/pages/' + currentSlug + '/mur-photos');
+          renderMurPhotos(await res2.json());
+        } catch (err) {
+          showToast('Erreur: ' + err.message, 'error');
+        }
+      });
+    });
+  }
+
+  // ===== SAVE WITHOUT PUBLISH =====
+  async function saveOnly() {
+    // Force blur on any actively edited element to trigger trackChange
+    const activeEditable = document.querySelector('[contenteditable="plaintext-only"], [contenteditable="true"]');
+    if (activeEditable) {
+      activeEditable.blur();
+      // Small delay to let blur handler run
+      await new Promise(r => setTimeout(r, 50));
+    }
+
+    const changeCount = Object.keys(changes).length;
+    const hasSeoChanges = seoData._modified;
+    if (changeCount === 0 && !hasSeoChanges) return;
+
+    // Collect SEO changes
+    const seo = hasSeoChanges ? {
+      title: document.getElementById('gdsSeoTitle')?.value,
+      description: document.getElementById('gdsSeoDesc')?.value,
+      ogTitle: document.getElementById('gdsSeoOgTitle')?.value,
+      ogDescription: document.getElementById('gdsSeoOgDesc')?.value
+    } : null;
+
+    // Clean tag bar HTML from change texts
+    // The tag-select contains nested <div class="gds-toolbar-sep"> so simple lazy match fails
+    // Use a function to find the matching closing </div> by counting depth
+    const cleanChanges = Object.values(changes).map(c => ({
+      ...c,
+      text: c.text.replace(/<div class="gds-tag-select"[\s\S]*$/, (match) => {
+        let depth = 0, i = 0;
+        while (i < match.length) {
+          if (match.substring(i, i+4) === '<div') { depth++; const end = match.indexOf('>', i); i = end + 1; }
+          else if (match.substring(i, i+6) === '</div>') { depth--; if (depth === 0) return match.substring(i + 6); i += 6; }
+          else i++;
+        }
+        return '';
+      })
+    }));
+
+    try {
+      const res = await Auth.apiFetch('/api/pages/' + currentSlug + '/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ changes: cleanChanges, seo })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Erreur sauvegarde');
+      }
+
+      // Reset state
+      changes = {};
+      seoData._modified = false;
+      imageChanges = 0;
+      document.querySelectorAll('.gds-modified').forEach(el => el.classList.remove('gds-modified'));
+      updateChangesCount();
+
+      // Update original texts to new values
+      document.querySelectorAll('[data-gds-edit]').forEach(el => {
+        originalTexts[el.getAttribute('data-gds-edit')] = el.innerHTML;
+      });
+
+      showToast('Sauvegarde OK', 'success');
+      notifyParent('saved', { slug: currentSlug });
+    } catch (err) {
+      showToast('Erreur: ' + err.message, 'error');
+    }
+  }
+
+  // ===== AUTO-SAVE =====
+  let autoSaveTimer = null;
+  function scheduleAutoSave() {
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(async () => {
+      const count = Object.keys(changes).length + (seoData._modified ? 1 : 0);
+      if (count > 0) {
+        console.log('[GDS Admin] Auto-saving', count, 'change(s)...');
+        await saveOnly();
+      }
+    }, 30000); // 30 seconds
+  }
+
+  // Hook auto-save into change tracking
+  const _origTrackChange = trackChange;
+  // We can't override trackChange directly since it's already defined,
+  // so we schedule auto-save from updateChangesCount instead
+
+  // Override updateChangesCount to also schedule auto-save
+  const _origUpdateChangesCount = updateChangesCount;
+  updateChangesCount = function() {
+    _origUpdateChangesCount();
+    const count = Object.keys(changes).length + (seoData._modified ? 1 : 0) + imageChanges;
+    if (count > 0) {
+      scheduleAutoSave();
+    }
+  };
+
+  // ===== PARENT FRAME COMMUNICATION =====
+  function notifyParent(type, data) {
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ source: 'gds-editor', type, ...data }, '*');
+      }
+    } catch (e) { /* cross-origin, ignore */ }
+  }
+
+  // Listen for messages from parent frame
+  window.addEventListener('message', (e) => {
+    if (!e.data || e.data.source !== 'gds-parent') return;
+    const msg = e.data;
+
+    switch (msg.type) {
+      case 'setSiteName':
+        siteName = msg.name || 'Site';
+        const logoEl = document.querySelector('.gds-ab-logo');
+        if (logoEl) logoEl.textContent = siteName;
+        break;
+      case 'setSlug':
+        if (msg.slug && msg.slug !== currentSlug) {
+          currentSlug = msg.slug;
+          loadSEO();
+        }
+        break;
+      case 'getChangesCount':
+        notifyParent('changesCount', {
+          count: Object.keys(changes).length + (seoData._modified ? 1 : 0) + imageChanges
+        });
+        break;
+      case 'save':
+        // Parent frame asks us to save (without publishing)
+        saveOnly();
+        break;
+      case 'publish':
+        // Parent frame asks us to save AND publish
+        if (Object.keys(changes).length > 0 || seoData._modified) {
+          publish();
+        }
+        break;
+    }
+  });
+
+  // ===== UTILITIES =====
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  // ===== CLEAN SECTION HTML (remove admin UI before saving) =====
+  function cleanSectionHtml(wrapper) {
+    const clone = wrapper.cloneNode(true);
+    // Remove admin UI elements
+    clone.querySelectorAll('.gds-section-label, .gds-tag-select, .gds-section-actions, .gds-block-inserter, .gds-ph-overlay, .gds-img-toolbar, #gds-admin-bar').forEach(el => el.remove());
+    // Remove admin attributes
+    clone.querySelectorAll('[data-gds-edit]').forEach(el => {
+      el.removeAttribute('data-gds-edit');
+      el.removeAttribute('data-gds-section');
+      el.removeAttribute('data-gds-tag');
+      el.removeAttribute('data-gds-orig-tag');
+      el.removeAttribute('tabindex');
+      el.removeAttribute('contenteditable');
+      // Only remove position:relative if it was added by editor (not in original style)
+      if (el.style.position === 'relative' && !el.className) {
+        el.style.removeProperty('position');
+      }
+    });
+    // Remove contenteditable from any element
+    clone.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
+    // Remove gds-modified class
+    clone.querySelectorAll('.gds-modified').forEach(el => el.classList.remove('gds-modified'));
+    clone.querySelectorAll('.gds-img-hover').forEach(el => el.classList.remove('gds-img-hover'));
+    // Unwrap gds-ph-img-wrap divs — these are added by the placeholder system
+    // and accumulate on each save. Replace each wrapper with its children.
+    clone.querySelectorAll('.gds-ph-img-wrap').forEach(wrap => {
+      while (wrap.firstChild) wrap.parentNode.insertBefore(wrap.firstChild, wrap);
+      wrap.remove();
+    });
+    return clone.innerHTML;
+  }
+
+  // ===== BLOCK INSERTER =====
+  function initBlockInserters() {
+    console.log('[GDS Admin] initBlockInserters START');
+
+    // Find section wrappers injected by the preview route
+    const wrappers = document.querySelectorAll('.gds-section-wrapper');
+    const main = document.querySelector('main.snb-page-content');
+
+    console.log('[GDS Admin] main:', !!main, 'wrappers:', wrappers.length);
+
+    if (!main) {
+      console.warn('[GDS Admin] No main.snb-page-content found — checking DOM...');
+      console.log('[GDS Admin] All main tags:', document.querySelectorAll('main').length);
+      console.log('[GDS Admin] Body children:', document.body.children.length);
+      return;
+    }
+
+    console.log('[GDS Admin] Found', wrappers.length, 'section wrappers');
+
+    function createInserter(index, wrapperAbove, wrapperBelow) {
+      const inserter = document.createElement('div');
+      inserter.className = 'gds-block-inserter';
+      inserter.innerHTML = `
+        <button class="gds-block-inserter-btn" title="Ajouter un bloc">+</button>
+        <div class="gds-spacing-control" style="display:none;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#E51981" stroke-width="2" style="flex-shrink:0"><path d="M12 5v14M5 12h14"/></svg>
+          <input type="range" min="-100" max="200" value="0" class="gds-spacing-slider" title="Espacement">
+          <span class="gds-spacing-value">0px</span>
+        </div>
+      `;
+      inserter.querySelector('.gds-block-inserter-btn').addEventListener('click', () => {
+        openBlockModal(index);
+      });
+
+      const slider = inserter.querySelector('.gds-spacing-slider');
+      const valueLabel = inserter.querySelector('.gds-spacing-value');
+      const controlDiv = inserter.querySelector('.gds-spacing-control');
+
+      // Read current spacing from the wrapper below's margin-top
+      if (wrapperBelow) {
+        const mt = parseInt(wrapperBelow.style.marginTop) || 0;
+        slider.value = mt;
+        valueLabel.textContent = mt + 'px';
+        if (mt > 0) inserter.style.height = mt + 'px';
+      }
+
+      // Toggle on line click
+      inserter.addEventListener('click', (e) => {
+        if (e.target.closest('.gds-block-inserter-btn') || e.target.closest('.gds-spacing-control')) return;
+        controlDiv.style.display = controlDiv.style.display === 'none' ? 'flex' : 'none';
+      });
+
+      // Apply spacing live
+      slider.addEventListener('input', () => {
+        const val = parseInt(slider.value);
+        valueLabel.textContent = val + 'px';
+        // Visual: inserter height for positive, margin-top for negative
+        inserter.style.height = Math.max(val, 24) + 'px';
+        if (wrapperBelow) {
+          wrapperBelow.style.marginTop = val + 'px';
+        }
+      });
+
+      // Save: store spacing as margin-top on the wrapper below
+      slider.addEventListener('change', async () => {
+        const val = parseInt(slider.value);
+        if (wrapperBelow) {
+          wrapperBelow.style.marginTop = val + 'px';
+          // Save to a per-page spacing config
+          const file = wrapperBelow.getAttribute('data-gds-file');
+          if (file) {
+            try {
+              await Auth.apiFetch('/api/pages/' + currentSlug + '/spacing', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ file: file, spacing: val })
+              });
+              showToast('Espacement: ' + val + 'px', 'success');
+            } catch (e) {
+              showToast('Erreur espacement', 'error');
+            }
+          }
+        }
+      });
+
+      return inserter;
+    }
+
+    if (wrappers.length === 0) {
+      // Empty page — single inserter
+      main.appendChild(createInserter(0, null, null));
+      console.log('[GDS Admin] Empty page — added 1 inserter');
+      return;
+    }
+
+    // Before first wrapper
+    wrappers[0].parentNode.insertBefore(createInserter(0, null, wrappers[0]), wrappers[0]);
+
+    // After each wrapper
+    wrappers.forEach((wrapper, idx) => {
+      const below = wrappers[idx + 1] || null;
+      const inserter = createInserter(idx + 1, wrapper, below);
+      wrapper.parentNode.insertBefore(inserter, wrapper.nextSibling);
+    });
+
+    // Add permanent label bar at the top of each section wrapper
+    wrappers.forEach((wrapper) => {
+      const file = wrapper.getAttribute('data-gds-file');
+      if (!file) return;
+
+      const label = document.createElement('div');
+      label.className = 'gds-section-label';
+      label.innerHTML = `
+        <span class="gds-section-label-name">${file}</span>
+        <button class="gds-section-label-btn" title="Modifier le code HTML" data-action="code">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        </button>
+        <button class="gds-section-label-btn" title="Sauvegarder dans la bibliotheque" data-action="save">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        </button>
+        <button class="gds-section-label-btn" title="Supprimer ce bloc" data-action="delete" style="border-color:rgba(248,81,73,0.3)">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        </button>
+      `;
+      wrapper.insertBefore(label, wrapper.firstChild);
+
+      label.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        e.stopPropagation();
+        const action = btn.dataset.action;
+        if (action === 'code') openCodeModal(file, wrapper);
+        else if (action === 'save') openSaveToLibraryModal(file, wrapper);
+        else if (action === 'delete') openDeleteModal(file, wrapper);
+      });
+    });
+
+    console.log('[GDS Admin] Inserted', wrappers.length + 1, 'block inserters');
+  }
+
+  let currentInsertIndex = 0;
+
+  function openBlockModal(insertIndex) {
+    currentInsertIndex = insertIndex;
+    // Remove existing modal
+    const existing = document.getElementById('gds-block-modal');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'gds-block-modal';
+    overlay.className = 'gds-modal-overlay';
+    overlay.innerHTML = `
+      <div class="gds-modal">
+        <div class="gds-modal-header">
+          <h3>Ajouter un bloc</h3>
+          <button class="gds-modal-close" id="gds-modal-close-btn">&times;</button>
+        </div>
+        <div class="gds-modal-body">
+          <div class="gds-block-types">
+            <div class="gds-block-type" data-type="library">
+              <div class="gds-block-type-icon">&#128218;</div>
+              <div class="gds-block-type-label">Bibliotheque</div>
+            </div>
+            <div class="gds-block-type" data-type="html">
+              <div class="gds-block-type-icon">&lt;/&gt;</div>
+              <div class="gds-block-type-label">Code HTML</div>
+            </div>
+            <div class="gds-block-type" data-type="image">
+              <div class="gds-block-type-icon">&#128247;</div>
+              <div class="gds-block-type-label">Image</div>
+            </div>
+            <div class="gds-block-type" data-type="plugin">
+              <div class="gds-block-type-icon">&#9881;</div>
+              <div class="gds-block-type-label">Plugin</div>
+            </div>
+          </div>
+          <div class="gds-block-library" id="gds-block-library-area">
+            <div style="color:#8b949e;text-align:center;padding:20px;">Chargement...</div>
+          </div>
+          <div class="gds-block-code" id="gds-block-code-area">
+            <textarea id="gds-block-html-input" placeholder="Collez votre code HTML ici..."></textarea>
+          </div>
+          <div class="gds-block-upload" id="gds-block-upload-area">
+            <input type="file" id="gds-block-file-input" accept="image/*">
+            <div style="font-size:36px;margin-bottom:8px">&#128247;</div>
+            <div>Cliquez ou glissez une image</div>
+          </div>
+          <div class="gds-block-plugins" id="gds-block-plugins-area">
+            <div class="gds-plugin-card" data-plugin="google-reviews">
+              <div class="gds-plugin-card-name">Avis Google</div>
+              <div class="gds-plugin-card-desc">Afficher les avis Google My Business</div>
+            </div>
+            <div class="gds-plugin-card" data-plugin="contact-form">
+              <div class="gds-plugin-card-name">Formulaire de contact</div>
+              <div class="gds-plugin-card-desc">Formulaire email simple</div>
+            </div>
+            <div class="gds-plugin-card" data-plugin="map">
+              <div class="gds-plugin-card-name">Carte Google Maps</div>
+              <div class="gds-plugin-card-desc">Carte interactive avec votre adresse</div>
+            </div>
+            <div class="gds-plugin-card" data-plugin="cta">
+              <div class="gds-plugin-card-name">Bloc CTA</div>
+              <div class="gds-plugin-card-desc">Appel a l'action avec bouton</div>
+            </div>
+          </div>
+        </div>
+        <div class="gds-modal-footer">
+          <button class="gds-modal-btn gds-modal-btn-cancel" id="gds-modal-cancel-btn">Annuler</button>
+          <button class="gds-modal-btn gds-modal-btn-submit" id="gds-block-submit" disabled>Inserer le bloc</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    // Close buttons
+    const closeModal = () => overlay.remove();
+    document.getElementById('gds-modal-close-btn').addEventListener('click', closeModal);
+    document.getElementById('gds-modal-cancel-btn').addEventListener('click', closeModal);
+
+    // Upload area click
+    document.getElementById('gds-block-upload-area').addEventListener('click', () => {
+      document.getElementById('gds-block-file-input').click();
+    });
+
+    // Close on overlay click
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.remove();
+    });
+
+    // Block type selection
+    let selectedType = null;
+    overlay.querySelectorAll('.gds-block-type').forEach(btn => {
+      btn.addEventListener('click', () => {
+        overlay.querySelectorAll('.gds-block-type').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        selectedType = btn.dataset.type;
+
+        document.getElementById('gds-block-code-area').classList.toggle('visible', selectedType === 'html');
+        document.getElementById('gds-block-upload-area').classList.toggle('visible', selectedType === 'image');
+        document.getElementById('gds-block-plugins-area').classList.toggle('visible', selectedType === 'plugin');
+        document.getElementById('gds-block-library-area').classList.toggle('visible', selectedType === 'library');
+        document.getElementById('gds-block-submit').disabled = selectedType === 'plugin' || selectedType === 'library';
+        if (selectedType === 'html') document.getElementById('gds-block-submit').disabled = false;
+        if (selectedType === 'image') document.getElementById('gds-block-submit').disabled = false;
+        if (selectedType === 'library') loadBlockLibrary(overlay);
+      });
+    });
+
+    // HTML input change
+    const htmlInput = document.getElementById('gds-block-html-input');
+    htmlInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const s = htmlInput.selectionStart;
+        htmlInput.value = htmlInput.value.substring(0, s) + '  ' + htmlInput.value.substring(htmlInput.selectionEnd);
+        htmlInput.selectionStart = htmlInput.selectionEnd = s + 2;
+      }
+    });
+
+    // Image file selection
+    document.getElementById('gds-block-file-input').addEventListener('change', (e) => {
+      if (e.target.files[0]) {
+        const fileName = e.target.files[0].name;
+        document.getElementById('gds-block-upload-area').innerHTML =
+          '<div style="color:#3fb950;font-size:14px">&#10003; ' + fileName + '</div>';
+        document.getElementById('gds-block-submit').disabled = false;
+      }
+    });
+
+    // Plugin selection
+    overlay.querySelectorAll('.gds-plugin-card').forEach(card => {
+      card.addEventListener('click', () => {
+        overlay.querySelectorAll('.gds-plugin-card').forEach(c => c.style.borderColor = '#30363d');
+        card.style.borderColor = '#E51981';
+        card.dataset.selected = 'true';
+        document.getElementById('gds-block-submit').disabled = false;
+      });
+    });
+
+    // Submit
+    document.getElementById('gds-block-submit').addEventListener('click', () => {
+      submitBlock(selectedType, overlay);
+    });
+  }
+
+  async function submitBlock(type, modal) {
+    let htmlContent = '';
+
+    if (type === 'library') {
+      if (!selectedLibraryBlock) { showToast('Selectionnez un bloc', 'error'); return; }
+      // Fetch block content from API
+      try {
+        const res = await Auth.apiFetch('/api/blocks/' + selectedLibraryBlock);
+        if (!res.ok) throw new Error('Erreur chargement bloc');
+        const blockData = await res.json();
+        htmlContent = blockData.html || '';
+        if (!htmlContent) { showToast('Bloc vide', 'error'); return; }
+      } catch (err) {
+        showToast('Erreur: ' + err.message, 'error');
+        return;
+      }
+    } else if (type === 'html') {
+      htmlContent = document.getElementById('gds-block-html-input').value;
+      if (!htmlContent.trim()) {
+        showToast('Le code HTML est vide', 'error');
+        return;
+      }
+    } else if (type === 'image') {
+      const file = document.getElementById('gds-block-file-input').files[0];
+      if (!file) { showToast('Aucune image selectionnee', 'error'); return; }
+
+      // Upload image first
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('slug', currentSlug);
+      try {
+        const uploadRes = await Auth.apiFetch('/api/media/upload', { method: 'POST', body: formData });
+        if (!uploadRes.ok) throw new Error('Upload echoue');
+        const uploadData = await uploadRes.json();
+        const imgUrl = uploadData.url || uploadData.path || '/images/' + file.name;
+        htmlContent = `<section style="padding:60px 20px;text-align:center;">
+  <img src="${imgUrl}" alt="${file.name.replace(/\.[^.]+$/, '')}" style="max-width:100%;height:auto;border-radius:12px;" data-gds-img="custom:0:${imgUrl}">
+</section>`;
+      } catch (err) {
+        // Fallback: use placeholder
+        htmlContent = `<section style="padding:60px 20px;text-align:center;">
+  <img src="" alt="Image" style="max-width:100%;height:auto;border-radius:12px;" data-gds-img="custom:0:">
+  <p style="color:#999;margin-top:12px;">Image a remplacer via l'editeur</p>
+</section>`;
+      }
+    } else if (type === 'plugin') {
+      const selected = modal.querySelector('.gds-plugin-card[data-selected="true"]');
+      if (!selected) { showToast('Selectionnez un plugin', 'error'); return; }
+      htmlContent = getPluginHtml(selected.dataset.plugin);
+    }
+
+    if (!htmlContent) return;
+
+    // Save the block via API
+    const submitBtn = document.getElementById('gds-block-submit');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Insertion...';
+
+    try {
+      const res = await Auth.apiFetch('/api/pages/' + currentSlug + '/add-section', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ html: htmlContent, position: currentInsertIndex })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Erreur');
+      }
+      modal.remove();
+      showToast('Bloc ajoute ! Rechargement...', 'success');
+      // Force reload with cache bust to show the new block
+      setTimeout(() => {
+        window.location.href = window.location.pathname + window.location.search + (window.location.search ? '&' : '?') + '_t=' + Date.now();
+      }, 300);
+    } catch (err) {
+      showToast('Erreur: ' + err.message, 'error');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Inserer le bloc';
+    }
+  }
+
+  // ===== BLOCK LIBRARY =====
+  let selectedLibraryBlock = null;
+
+  async function loadBlockLibrary(modal) {
+    const area = document.getElementById('gds-block-library-area');
+    area.innerHTML = '<div style="color:#8b949e;text-align:center;padding:20px;">Chargement...</div>';
+
+    try {
+      const res = await Auth.apiFetch('/api/blocks');
+      if (!res.ok) throw new Error('Erreur chargement');
+      const data = await res.json();
+      const blocks = data.blocks || [];
+
+      if (blocks.length === 0) {
+        area.innerHTML = '<div style="color:#8b949e;text-align:center;padding:30px;font-size:14px;">Aucun bloc sauvegarde.<br><span style="font-size:12px;margin-top:8px;display:block;">Utilisez le bouton &#128218; sur une section existante pour la sauvegarder.</span></div>';
+        return;
+      }
+
+      // Group by category
+      const cats = {};
+      blocks.forEach(b => {
+        const cat = b.category || 'custom';
+        if (!cats[cat]) cats[cat] = [];
+        cats[cat].push(b);
+      });
+
+      const catLabels = { section: 'Sections de page', custom: 'Blocs personnalises', plugin: 'Plugins' };
+
+      let html = '';
+      for (const [cat, items] of Object.entries(cats)) {
+        html += '<div style="margin-bottom:16px;">';
+        html += '<div style="font-size:11px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">' + (catLabels[cat] || cat) + '</div>';
+        html += '<div class="gds-library-grid">';
+        items.forEach(b => {
+          html += '<div class="gds-library-card" data-block-id="' + b.id + '">';
+          html += '<div class="gds-library-card-name">' + escapeHtml(b.name) + '</div>';
+          if (b.description) html += '<div class="gds-library-card-desc">' + escapeHtml(b.description) + '</div>';
+          html += '<div class="gds-library-card-size">' + (b.size / 1024).toFixed(1) + ' KB</div>';
+          html += '</div>';
+        });
+        html += '</div></div>';
+      }
+      area.innerHTML = html;
+
+      // Click handlers
+      area.querySelectorAll('.gds-library-card').forEach(card => {
+        card.addEventListener('click', () => {
+          area.querySelectorAll('.gds-library-card').forEach(c => c.classList.remove('selected'));
+          card.classList.add('selected');
+          selectedLibraryBlock = card.dataset.blockId;
+          document.getElementById('gds-block-submit').disabled = false;
+        });
+      });
+    } catch (err) {
+      area.innerHTML = '<div style="color:#f85149;text-align:center;padding:20px;">Erreur: ' + err.message + '</div>';
+    }
+  }
+
+  function openSaveToLibraryModal(file, wrapper) {
+    const existing = document.getElementById('gds-savelibrary-modal');
+    if (existing) existing.remove();
+
+    const firstHeading = wrapper.querySelector('h1, h2, h3, h4');
+    const defaultName = firstHeading ? firstHeading.textContent.trim().substring(0, 50) : file.replace(/^\d+-/, '').replace('.html', '');
+
+    const overlay = document.createElement('div');
+    overlay.id = 'gds-savelibrary-modal';
+    overlay.className = 'gds-modal-overlay';
+    overlay.innerHTML = `
+      <div class="gds-modal" style="max-width:440px;">
+        <div class="gds-modal-header">
+          <h3>Sauvegarder dans la bibliotheque</h3>
+          <button class="gds-modal-close" id="gds-sl-close">&times;</button>
+        </div>
+        <div class="gds-modal-body">
+          <div style="margin-bottom:14px;">
+            <label style="font-size:12px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px;">Nom du bloc</label>
+            <input type="text" id="gds-sl-name" value="${escapeHtml(defaultName)}" style="width:100%;padding:8px 12px;background:#0d1117;border:1px solid #30363d;border-radius:6px;color:#e6edf3;font-size:14px;">
+          </div>
+          <div style="margin-bottom:14px;">
+            <label style="font-size:12px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px;">Description (optionnel)</label>
+            <input type="text" id="gds-sl-desc" placeholder="Courte description du bloc" style="width:100%;padding:8px 12px;background:#0d1117;border:1px solid #30363d;border-radius:6px;color:#e6edf3;font-size:14px;">
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px;">Categorie</label>
+            <select id="gds-sl-cat" style="width:100%;padding:8px 12px;background:#0d1117;border:1px solid #30363d;border-radius:6px;color:#e6edf3;font-size:14px;">
+              <option value="section">Section de page</option>
+              <option value="custom">Bloc personnalise</option>
+              <option value="plugin">Plugin</option>
+            </select>
+          </div>
+        </div>
+        <div class="gds-modal-footer">
+          <button class="gds-modal-btn gds-modal-btn-cancel" id="gds-sl-cancel">Annuler</button>
+          <button class="gds-modal-btn gds-modal-btn-submit" id="gds-sl-save">Sauvegarder</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const close = () => overlay.remove();
+    document.getElementById('gds-sl-close').addEventListener('click', close);
+    document.getElementById('gds-sl-cancel').addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+    document.getElementById('gds-sl-name').focus();
+
+    document.getElementById('gds-sl-save').addEventListener('click', async () => {
+      const name = document.getElementById('gds-sl-name').value.trim();
+      if (!name) { showToast('Nom requis', 'error'); return; }
+
+      const btn = document.getElementById('gds-sl-save');
+      btn.disabled = true;
+      btn.textContent = 'Sauvegarde...';
+
+      try {
+        const res = await Auth.apiFetch('/api/blocks/from-section', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            slug: currentSlug,
+            file: file,
+            name: name,
+            description: document.getElementById('gds-sl-desc').value.trim(),
+            category: document.getElementById('gds-sl-cat').value
+          })
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Erreur');
+        }
+
+        close();
+        showToast('Bloc sauvegarde dans la bibliotheque !', 'success');
+      } catch (err) {
+        showToast('Erreur: ' + err.message, 'error');
+        btn.disabled = false;
+        btn.textContent = 'Sauvegarder';
+      }
+    });
+  }
+
+  // ===== CODE EDITOR MODAL =====
+  async function openCodeModal(file, wrapper) {
+    const existing = document.getElementById('gds-code-modal');
+    if (existing) existing.remove();
+
+    // Load current HTML from server
+    let htmlContent = '';
+    try {
+      const res = await Auth.apiFetch('/api/pages/' + currentSlug + '/section/' + encodeURIComponent(file));
+      if (!res.ok) throw new Error('Erreur chargement');
+      const data = await res.json();
+      htmlContent = data.content || '';
+    } catch (err) {
+      showToast('Erreur: ' + err.message, 'error');
+      return;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.id = 'gds-code-modal';
+    overlay.className = 'gds-modal-overlay';
+    overlay.innerHTML = `
+      <div class="gds-modal" style="max-width:900px;height:85vh;display:flex;flex-direction:column;">
+        <div class="gds-modal-header">
+          <h3 style="display:flex;align-items:center;gap:8px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            Code HTML — ${escapeHtml(file)}
+          </h3>
+          <button class="gds-modal-close" id="gds-code-close">&times;</button>
+        </div>
+        <div class="gds-modal-body" style="flex:1;overflow:hidden;padding:0;display:flex;flex-direction:column;">
+          <textarea id="gds-code-editor" style="
+            flex:1;width:100%;border:none;background:#0d1117;color:#c9d1d9;
+            font-family:'Courier New',monospace;font-size:13px;line-height:1.6;
+            padding:16px;resize:none;tab-size:2;outline:none;
+          ">${escapeHtml(htmlContent)}</textarea>
+        </div>
+        <div class="gds-modal-footer">
+          <span id="gds-code-status" style="color:#8b949e;font-size:12px;margin-right:auto;"></span>
+          <button class="gds-modal-btn gds-modal-btn-cancel" id="gds-code-cancel">Annuler</button>
+          <button class="gds-modal-btn gds-modal-btn-submit" id="gds-code-save">Sauvegarder</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const editor = document.getElementById('gds-code-editor');
+    const status = document.getElementById('gds-code-status');
+
+    // Tab support in textarea
+    editor.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const s = editor.selectionStart;
+        editor.value = editor.value.substring(0, s) + '  ' + editor.value.substring(editor.selectionEnd);
+        editor.selectionStart = editor.selectionEnd = s + 2;
+      }
+    });
+
+    // Show line count
+    function updateStatus() {
+      const lines = editor.value.split('\n').length;
+      const size = new Blob([editor.value]).size;
+      status.textContent = lines + ' lignes | ' + (size / 1024).toFixed(1) + ' KB';
+    }
+    editor.addEventListener('input', updateStatus);
+    updateStatus();
+
+    // Close
+    const close = () => overlay.remove();
+    document.getElementById('gds-code-close').addEventListener('click', close);
+    document.getElementById('gds-code-cancel').addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+    // Save
+    document.getElementById('gds-code-save').addEventListener('click', async () => {
+      const saveBtn = document.getElementById('gds-code-save');
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Sauvegarde...';
+
+      try {
+        const res = await Auth.apiFetch('/api/pages/' + currentSlug + '/section/' + encodeURIComponent(file), {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: editor.value })
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Erreur');
+        }
+
+        close();
+        showToast('Code sauvegarde !', 'success');
+        window.location.reload(true);
+      } catch (err) {
+        showToast('Erreur: ' + err.message, 'error');
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Sauvegarder';
+      }
+    });
+
+    // Ctrl+S shortcut inside the modal
+    editor.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        document.getElementById('gds-code-save').click();
+      }
+    });
+
+    // Focus editor
+    editor.focus();
+  }
+
+  function openDeleteModal(file, wrapper) {
+    // Remove existing modal
+    const existing = document.getElementById('gds-delete-modal');
+    if (existing) existing.remove();
+
+    // Get a preview of the section content
+    const firstHeading = wrapper.querySelector('h1, h2, h3, h4');
+    const sectionLabel = firstHeading ? firstHeading.textContent.trim().substring(0, 60) : file;
+
+    const overlay = document.createElement('div');
+    overlay.id = 'gds-delete-modal';
+    overlay.className = 'gds-modal-overlay';
+    overlay.innerHTML = `
+      <div class="gds-modal" style="max-width:440px;">
+        <div class="gds-modal-header">
+          <h3>Supprimer le bloc</h3>
+          <button class="gds-modal-close" id="gds-delete-close">&times;</button>
+        </div>
+        <div class="gds-modal-body" style="text-align:center;padding:24px 20px;">
+          <div style="width:48px;height:48px;margin:0 auto 16px;background:rgba(248,81,73,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f85149" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </div>
+          <p style="color:#e6edf3;font-size:15px;margin:0 0 8px;font-weight:600;">Etes-vous sur de vouloir supprimer ce bloc ?</p>
+          <p style="color:#8b949e;font-size:13px;margin:0 0 4px;">${escapeHtml(sectionLabel)}</p>
+          <p style="color:#f85149;font-size:12px;margin:0;"><strong>Cette action est irreversible.</strong></p>
+        </div>
+        <div class="gds-modal-footer" style="justify-content:center;gap:12px;">
+          <button class="gds-modal-btn gds-modal-btn-cancel" id="gds-delete-cancel">Annuler</button>
+          <button class="gds-modal-btn" id="gds-delete-confirm" style="background:#da3633;border-color:#f8514933;color:#fff;">Supprimer</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    // Close handlers
+    const close = () => overlay.remove();
+    document.getElementById('gds-delete-close').addEventListener('click', close);
+    document.getElementById('gds-delete-cancel').addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+    // Confirm delete
+    document.getElementById('gds-delete-confirm').addEventListener('click', async () => {
+      const confirmBtn = document.getElementById('gds-delete-confirm');
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'Suppression...';
+
+      try {
+        const res = await Auth.apiFetch('/api/pages/' + currentSlug + '/delete-section', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ file: file })
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Erreur');
+        }
+
+        close();
+        showToast('Bloc supprime !', 'success');
+        // Reload page to reflect changes
+        window.location.reload(true);
+      } catch (err) {
+        showToast('Erreur: ' + err.message, 'error');
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Supprimer';
+      }
+    });
+  }
+
+  function getPluginHtml(pluginId) {
+    const plugins = {
+      'google-reviews': `<section style="padding:60px 20px;background:#f8f9fa;">
+  <div style="max-width:1300px;margin:0 auto;text-align:center;">
+    <h2 style="font-size:36px;font-weight:900;font-style:italic;margin-bottom:8px;" data-gds-edit="plugin-avis:0:h2" data-gds-section="plugin-avis" data-gds-tag="H2">Ce que disent nos clients</h2>
+    <p style="color:#666;margin-bottom:30px;" data-gds-edit="plugin-avis:0:p" data-gds-section="plugin-avis" data-gds-tag="P">4.8/5 sur Google - Plus de 1000 avis</p>
+    <div style="background:#fff;border-radius:12px;padding:30px;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+      <p style="color:#999;">Les avis Google seront charges ici automatiquement.</p>
+    </div>
+  </div>
+</section>`,
+      'contact-form': `<section style="padding:60px 20px;background:#fff;">
+  <div style="max-width:600px;margin:0 auto;">
+    <h2 style="font-size:36px;font-weight:900;font-style:italic;text-align:center;margin-bottom:30px;" data-gds-edit="plugin-contact:0:h2" data-gds-section="plugin-contact" data-gds-tag="H2">Contactez-nous</h2>
+    <form style="display:flex;flex-direction:column;gap:16px;">
+      <input type="text" placeholder="Votre nom" style="padding:14px 18px;border:1px solid #ddd;border-radius:8px;font-size:15px;">
+      <input type="email" placeholder="Votre email" style="padding:14px 18px;border:1px solid #ddd;border-radius:8px;font-size:15px;">
+      <textarea placeholder="Votre message" rows="5" style="padding:14px 18px;border:1px solid #ddd;border-radius:8px;font-size:15px;resize:vertical;"></textarea>
+      <button type="submit" style="padding:14px;background:linear-gradient(135deg,#E51981,#ff3fac);color:#fff;border:none;border-radius:25px;font-size:16px;font-weight:700;cursor:pointer;">Envoyer</button>
+    </form>
+  </div>
+</section>`,
+      'map': `<section style="padding:0;">
+  <div style="width:100%;height:400px;background:#e0e0e0;display:flex;align-items:center;justify-content:center;">
+    <p style="color:#999;" data-gds-edit="plugin-map:0:p" data-gds-section="plugin-map" data-gds-tag="P">Carte Google Maps — Integrez votre iframe ici</p>
+  </div>
+</section>`,
+      'cta': `<section style="padding:80px 20px;background:linear-gradient(135deg,#2d0535,#1a0a22);text-align:center;">
+  <h2 style="font-size:42px;font-weight:900;font-style:italic;color:#fff;margin-bottom:12px;" data-gds-edit="plugin-cta:0:h2" data-gds-section="plugin-cta" data-gds-tag="H2">Pret a vous lancer ?</h2>
+  <p style="font-size:18px;color:rgba(255,255,255,0.7);margin-bottom:30px;" data-gds-edit="plugin-cta:0:p" data-gds-section="plugin-cta" data-gds-tag="P">Recevez votre devis personnalise en quelques minutes.</p>
+  <a href="/reservation/" style="display:inline-block;padding:16px 40px;background:linear-gradient(135deg,#E51981,#ff3fac);color:#fff;border-radius:30px;font-weight:700;font-size:18px;text-decoration:none;">Obtenir un devis gratuit</a>
+</section>`
+    };
+    return plugins[pluginId] || '<section><p>Plugin non disponible</p></section>';
+  }
+
+  // ===== WARN BEFORE LEAVING =====
+  window.addEventListener('beforeunload', (e) => {
+    if (Object.keys(changes).length > 0 || seoData._modified) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+
+  // ===== EMBEDDED MODE: direct init without admin bar =====
+  function initEmbedded() {
+    document.body.classList.add('gds-admin-mode');
+    try { autoTagEditableElements(); } catch (e) { console.error('[GDS] autoTagEditableElements error:', e); }
+    try { initEditableElements(); } catch (e) { console.error('[GDS] initEditableElements error:', e); }
+    try { initEditableImages(); } catch (e) { console.error('[GDS] initEditableImages error:', e); }
+    try { initPlaceholderImages(); } catch (e) { console.error('[GDS] initPlaceholderImages error:', e); }
+    try { initBlockInserters(); } catch (e) { console.error('[GDS] initBlockInserters error:', e); }
+    try { initMurGallery(); } catch (e) { console.error('[GDS] initMurGallery error:', e); }
+    console.log('[GDS Admin] Embedded mode — slug:', currentSlug);
+  }
+
+  // ===== INIT =====
+  function startup() {
+    if (isEmbedded) {
+      initEmbedded();
+    } else {
+      buildAdminBar();
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startup);
+  } else {
+    startup();
+  }
+})();

@@ -1,0 +1,234 @@
+<style>
+.snb-bornes * { margin: 0; padding: 0; box-sizing: border-box; }
+.snb-bornes { font-family: "Raleway", sans-serif; padding: 0; background: linear-gradient(180deg, #f8eaff 0%, #fce8f4 30%, #f0e4ff 60%, #eaf0ff 100%); position: relative; overflow: hidden; }
+.snb-bornes-bg { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.snb-bornes-glow1 { position: absolute; width: 600px; height: 600px; border-radius: 50%; background: radial-gradient(circle, rgba(229,25,129,0.12) 0%, transparent 70%); top: -200px; left: -150px; filter: blur(80px); }
+.snb-bornes-glow2 { position: absolute; width: 500px; height: 500px; border-radius: 50%; background: radial-gradient(circle, rgba(100,60,255,0.08) 0%, transparent 70%); bottom: -150px; right: -100px; filter: blur(80px); }
+.snb-bornes-glow3 { position: absolute; width: 400px; height: 400px; border-radius: 50%; background: radial-gradient(circle, rgba(2,80,255,0.06) 0%, transparent 70%); top: 50%; left: 50%; transform: translate(-50%,-50%); filter: blur(60px); }
+.snb-bornes-sep { width: 180px; height: 3px; background: linear-gradient(90deg, transparent, #E51981, transparent); border-radius: 3px; margin: 0 auto 40px; }
+.snb-bornes-inner { position: relative; z-index: 2; padding: 60px 20px 60px; }
+.snb-bornes-title { text-align: center; margin-bottom: 40px; }
+.snb-bornes-title h2 { font-size: 42px; font-weight: 900; font-style: italic; color: #1a0a22; margin-bottom: 10px; }
+.snb-bornes-title h2 span { background: linear-gradient(135deg, #E51981, #ff6eb4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.snb-bornes-title p { font-size: 16px; color: #5a4a6a; }
+.snb-bornes-cards { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; max-width: 1400px; margin: 0 auto; align-items: stretch; }
+.snb-b-card { position: relative; width: 283px; min-width: 283px; max-width: 283px; display: flex; flex-direction: column; background: #1e1e2e; border-radius: 18px; overflow: hidden; box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 20px 60px -15px rgba(0,0,0,0.3); transition: transform 0.3s ease, box-shadow 0.3s ease; }
+.snb-b-card:hover { transform: translateY(-8px) scale(1.05); }
+.snb-b-card-ring:hover { box-shadow: 0 0 0 2px #FF7A00, 0 0 30px rgba(255,122,0,0.35), 0 0 60px rgba(255,122,0,0.15); }
+.snb-b-card-vegas:hover { box-shadow: 0 0 0 2px #E51981, 0 0 30px rgba(229,25,129,0.35), 0 0 60px rgba(229,25,129,0.15); }
+.snb-b-card-miroir:hover { box-shadow: 0 0 0 2px #0250FF, 0 0 30px rgba(2,80,255,0.35), 0 0 60px rgba(2,80,255,0.15); }
+.snb-b-card-spinner:hover { box-shadow: 0 0 0 2px #16A34A, 0 0 30px rgba(22,163,74,0.35), 0 0 60px rgba(22,163,74,0.15); }
+.snb-b-card::before { content: ""; position: absolute; inset: 0; background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.5) 50%, transparent 60%); transform: translateX(-150%) translateY(-150%); transition: none; z-index: 20; pointer-events: none; }
+.snb-b-card:hover::before { transform: translateX(150%) translateY(150%); transition: transform 0.8s ease; }
+.snb-b-card.snb-b-best { box-shadow: 0 0 0 2px #E51981, 0 20px 60px -15px rgba(0,0,0,0.1), 0 0 40px -10px rgba(229,25,129,0.15); }
+.snb-b-promo { position: absolute; top: 13px; right: -22px; color: #fff; font-weight: 700; font-size: 7px; letter-spacing: 1px; text-transform: uppercase; padding: 5px 30px; transform: rotate(40deg); z-index: 10; }
+.snb-b-card-ring .snb-b-promo { background: #FF7A00; box-shadow: 0 4px 20px rgba(255,122,0,0.3); }
+.snb-b-card-vegas .snb-b-promo { background: #E51981; box-shadow: 0 4px 20px rgba(229,25,129,0.3); }
+.snb-b-badge { position: absolute; top: 10px; left: 10px; background: linear-gradient(135deg, #E51981, #ff6eb4); color: #fff; font-weight: 700; font-size: 7px; letter-spacing: 1px; text-transform: uppercase; padding: 4px 10px; border-radius: 14px; z-index: 10; }
+.snb-b-card-ring .snb-b-badge { background: linear-gradient(135deg, #FF7A00, #ff9a3c); }
+.snb-b-slide { position: relative; height: 213px; overflow: hidden; }
+.snb-b-slide > img, .snb-b-slide > picture { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; }
+.snb-b-slide > img { object-fit: cover; object-position: center 30%; }
+.snb-b-slide > picture img { width: 100%; height: 100%; object-fit: cover; object-position: center 30%; display: block; opacity: 1 !important; }
+.snb-b-slide-ring > img, .snb-b-slide-ring > picture { animation: snbFadeRing 18s infinite; }
+.snb-b-slide-ring > :nth-child(1) { opacity: 1 !important; animation: none !important; }
+.snb-b-slide-ring > :nth-child(2) { animation-delay: 0.5s; }
+.snb-b-slide-ring > :nth-child(3) { animation-delay: 3.5s; }
+.snb-b-slide-ring > :nth-child(4) { animation-delay: 6.5s; }
+.snb-b-slide-ring > :nth-child(5) { animation-delay: 9.5s; }
+.snb-b-slide-ring > :nth-child(6) { animation-delay: 12.5s; }
+@keyframes snbFadeRing { 0%{opacity:0} 3.33%{opacity:1} 20%{opacity:1} 23.33%{opacity:0} 100%{opacity:0} }
+.snb-b-slide-vegas > img, .snb-b-slide-vegas > picture { animation: snbFadeVegas 15s infinite; }
+.snb-b-slide-vegas > :nth-child(1) { opacity: 1 !important; animation: none !important; }
+.snb-b-slide-vegas > :nth-child(2) { animation-delay: 1.5s; }
+.snb-b-slide-vegas > :nth-child(3) { animation-delay: 4.5s; }
+.snb-b-slide-vegas > :nth-child(4) { animation-delay: 7.5s; }
+.snb-b-slide-vegas > :nth-child(5) { animation-delay: 10.5s; }
+@keyframes snbFadeVegas { 0%{opacity:0} 4%{opacity:1} 24%{opacity:1} 28%{opacity:0} 100%{opacity:0} }
+.snb-b-slide-miroir > img, .snb-b-slide-miroir > picture { animation: snbFadeMiroir 9s infinite; }
+.snb-b-slide-miroir > :nth-child(1) { opacity: 1 !important; animation: none !important; }
+.snb-b-slide-miroir > :nth-child(2) { animation-delay: 1s; }
+.snb-b-slide-miroir > :nth-child(3) { animation-delay: 4s; }
+@keyframes snbFadeMiroir { 0%{opacity:0} 11%{opacity:1} 44%{opacity:1} 55%{opacity:0} 100%{opacity:0} }
+.snb-b-spinner-zone { position: relative; height: 213px; overflow: hidden; }
+.snb-b-spinner-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 30%; z-index: 2; animation: snbFadeSpinner 4s forwards; }
+.snb-b-spinner-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+@keyframes snbFadeSpinner { 0%,75%{opacity:1} 100%{opacity:0} }
+.snb-b-content { padding: 10px 14px 14px; display: flex; flex-direction: column; flex: 1; }
+.snb-b-type { font-size: 8px; font-weight: 600; color: #9ca3af; letter-spacing: 1.5px; text-transform: uppercase; }
+.snb-b-name { font-size: 18px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px; margin-bottom: 2px; }
+.snb-b-card-ring .snb-b-name span { background: linear-gradient(135deg, #FF7A00, #ff9a3c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.snb-b-card-vegas .snb-b-name span { background: linear-gradient(135deg, #E51981, #ff6eb4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.snb-b-card-miroir .snb-b-name span { background: linear-gradient(135deg, #0250FF, #4d8bff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.snb-b-card-spinner .snb-b-name span { background: linear-gradient(135deg, #16A34A, #4ade80); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.snb-b-price { display: flex; align-items: baseline; gap: 7px; margin: 6px 0 8px; padding: 8px 12px; border-radius: 10px; background: rgba(255,255,255,0.06); border: 2px solid rgba(255,255,255,0.1); transition: border-color 0.3s ease; }
+.snb-b-card-ring:hover .snb-b-price { border-color: #FF7A00; }
+.snb-b-card-vegas:hover .snb-b-price { border-color: #E51981; }
+.snb-b-card-miroir:hover .snb-b-price { border-color: #0250FF; }
+.snb-b-card-spinner:hover .snb-b-price { border-color: #16A34A; }
+.snb-b-amount { font-size: 27px; font-weight: 800; line-height: 1; }
+.snb-b-card-ring .snb-b-amount { background: linear-gradient(135deg, #FF7A00, #ff9a3c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.snb-b-card-vegas .snb-b-amount { background: linear-gradient(135deg, #E51981, #ff6eb4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.snb-b-card-miroir .snb-b-amount { background: linear-gradient(135deg, #0250FF, #4d8bff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.snb-b-card-spinner .snb-b-amount { background: linear-gradient(135deg, #16A34A, #4ade80); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.snb-b-old { font-size: 12px; color: rgba(255,255,255,0.4); text-decoration: line-through; }
+.snb-b-tag { margin-left: auto; color: #fff; font-size: 7px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; padding: 4px 7px; border-radius: 6px; }
+.snb-b-card-ring .snb-b-tag { background: #FF7A00; }
+.snb-b-card-vegas .snb-b-tag { background: #E51981; }
+.snb-b-feats { display: grid; grid-template-columns: 1fr; gap: 5px; margin-bottom: 8px; flex: 1; }
+.snb-b-feat { display: flex; align-items: center; gap: 7px; padding: 8px 10px; border-radius: 8px; }
+.snb-b-card-ring .snb-b-feat { background: rgba(255,122,0,0.12); border: 1px solid rgba(255,122,0,0.25); }
+.snb-b-card-vegas .snb-b-feat { background: rgba(229,25,129,0.12); border: 1px solid rgba(229,25,129,0.25); }
+.snb-b-card-miroir .snb-b-feat { background: rgba(2,80,255,0.12); border: 1px solid rgba(2,80,255,0.25); }
+.snb-b-card-spinner .snb-b-feat { background: rgba(22,163,74,0.12); border: 1px solid rgba(22,163,74,0.25); }
+.snb-b-feat-icon { width: 28px; height: 28px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; background: rgba(255,255,255,0.1); }
+.snb-b-feat-text { font-size: 12px; font-weight: 700; color: #f0f0f5; line-height: 1.3; }
+.snb-b-feat-text small { display: block; font-size: 10px; font-weight: 500; color: #b0b5c0; margin-top: 2px; }
+.snb-b-cta, .snb-b-cta:link, .snb-b-cta:visited, .snb-b-cta:hover, .snb-b-cta:active { display: block; width: 100%; padding: 10px; border: none; border-radius: 10px; color: #fff !important; font-family: "Raleway",sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; cursor: pointer; text-align: center; text-decoration: none !important; position: relative; overflow: hidden; transition: all 0.3s ease; }
+.snb-b-card-ring .snb-b-cta { background: linear-gradient(135deg, #FF7A00, #ff9a3c); }
+.snb-b-card-vegas .snb-b-cta { background: linear-gradient(135deg, #E51981, #ff6eb4); }
+.snb-b-card-miroir .snb-b-cta { background: linear-gradient(135deg, #0250FF, #4d8bff); }
+.snb-b-card-spinner .snb-b-cta { background: linear-gradient(135deg, #16A34A, #4ade80); }
+.snb-b-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.15); }
+@media (max-width: 1000px) { .snb-b-card { width: 210px; min-width: 210px; max-width: 210px; } .snb-bornes-cards { gap: 14px; } }
+@media (max-width: 900px) { .snb-bornes-cards { display: grid; grid-template-columns: 1fr 1fr; max-width: 500px; } .snb-b-card { width: 100%; min-width: auto; max-width: none; } }
+@media (max-width: 480px) { .snb-bornes-cards { grid-template-columns: 1fr; max-width: 92vw; } .snb-bornes-title h2 { font-size: 32px; font-weight: 900; } .snb-bornes-title p { font-size: 15px; } .snb-b-card { border-radius: 16px; } }
+/* ========= TARIFS MODULE ========= */
+.snb-tarifs { max-width: 1340px; margin: 120px auto 0; padding: 0; position: relative; }
+.snb-tarifs-blob { position: absolute; border-radius: 50%; pointer-events: none; filter: blur(60px); z-index: 0; }
+.snb-tarifs-blob1 { width: 350px; height: 350px; background: rgba(229,25,129,0.14); top: -100px; left: -80px; animation: snbBlobPulse 6s ease-in-out infinite; }
+.snb-tarifs-blob2 { width: 280px; height: 280px; background: rgba(100,60,255,0.1); bottom: -80px; right: -60px; animation: snbBlobPulse 6s ease-in-out infinite 3s; }
+@keyframes snbBlobPulse { 0%,100%{transform:scale(1);opacity:0.7} 50%{transform:scale(1.15);opacity:1} }
+.snb-tarifs-layout { position: relative; z-index: 1; display: grid; grid-template-columns: 1.3fr 0.7fr; gap: 24px; align-items: stretch; }
+.snb-tarifs-left { position: relative; padding: 40px 40px 36px; background: linear-gradient(160deg, rgba(255,255,255,0.75), rgba(255,240,250,0.5), rgba(240,235,255,0.6)); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 28px; border: 1.5px solid rgba(229,25,129,0.12); box-shadow: 0 30px 80px rgba(229,25,129,0.07), 0 0 0 1px rgba(255,255,255,0.6) inset, 0 1px 0 rgba(255,255,255,0.8) inset; overflow: hidden; display: flex; flex-direction: column; }
+.snb-tarifs-left::before { content:''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #E51981, #ff6eb4, #a855f7, #3b82f6, #E51981); background-size: 200% 100%; animation: snbShimmer 4s linear infinite; }
+@keyframes snbShimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+.snb-tarifs-sparkle { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: #E51981; pointer-events: none; animation: snbSparkle 3s ease-in-out infinite; }
+.snb-tarifs-sparkle:nth-child(1) { top: 18px; right: 50px; }
+.snb-tarifs-sparkle:nth-child(2) { top: 45%; left: 24px; animation-delay: 1.2s; opacity: 0.5; width: 3px; height: 3px; }
+.snb-tarifs-sparkle:nth-child(3) { bottom: 24px; right: 100px; animation-delay: 2.2s; opacity: 0.6; }
+@keyframes snbSparkle { 0%,100%{transform:scale(0.5);opacity:0.2} 50%{transform:scale(1.5);opacity:1} }
+.snb-tarifs-left::after { content:''; position: absolute; top: -80px; right: -80px; width: 300px; height: 300px; border-radius: 50%; background: radial-gradient(circle, rgba(229,25,129,0.05) 0%, transparent 60%); pointer-events: none; }
+.snb-tarifs-h2 { font-size: 32px; font-weight: 900; font-style: italic; color: #1a0a22; margin: 0 0 20px; line-height: 1.2; position: relative; z-index: 1; }
+.snb-tarifs-h2 span { background: linear-gradient(135deg, #E51981, #ff6eb4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.snb-tarifs-checks { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; position: relative; z-index: 1; }
+.snb-tarifs-check { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: linear-gradient(135deg, rgba(255,255,255,0.8), rgba(255,255,255,0.35)); border-radius: 12px; border: 1px solid rgba(229,25,129,0.06); box-shadow: 0 4px 14px rgba(0,0,0,0.03); transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease; cursor: default; }
+.snb-tarifs-check:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(229,25,129,0.1); border-color: rgba(229,25,129,0.18); }
+.snb-tarifs-check-icon { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #fff; font-size: 14px; font-weight: 700; }
+.snb-tarifs-check:nth-child(1) .snb-tarifs-check-icon { background: linear-gradient(135deg, #E51981, #ff6eb4); box-shadow: 0 4px 12px rgba(229,25,129,0.3); }
+.snb-tarifs-check:nth-child(2) .snb-tarifs-check-icon { background: linear-gradient(135deg, #a855f7, #c084fc); box-shadow: 0 4px 12px rgba(168,85,247,0.3); }
+.snb-tarifs-check:nth-child(3) .snb-tarifs-check-icon { background: linear-gradient(135deg, #3b82f6, #60a5fa); box-shadow: 0 4px 12px rgba(59,130,246,0.3); }
+.snb-tarifs-check:nth-child(4) .snb-tarifs-check-icon { background: linear-gradient(135deg, #FF7A00, #ff9a3c); box-shadow: 0 4px 12px rgba(255,122,0,0.3); }
+.snb-tarifs-check-text { font-size: 13px; font-weight: 800; color: #1a0a22; line-height: 1.2; }
+.snb-tarifs-check-text small { display: block; font-size: 10px; font-weight: 500; color: #7a6a8a; margin-top: 2px; }
+.snb-tarifs-sep { width: 120px; height: 2px; background: linear-gradient(90deg, transparent, rgba(229,25,129,0.25), transparent); border-radius: 2px; margin: 0 0 18px; position: relative; z-index: 1; }
+.snb-tarifs-desc { font-size: 15px; color: #4a3a5a; line-height: 1.7; margin: 0 0 28px; position: relative; z-index: 1; flex: 1; }
+.snb-tarifs-desc strong { color: #1a0a22; font-weight: 700; }
+.snb-tarifs-cta { display: inline-flex; align-items: center; gap: 8px; padding: 14px 38px; background: linear-gradient(135deg, #E51981, #ff3fac); color: #fff; font-family: "Raleway",sans-serif; font-size: 14px; font-weight: 700; border-radius: 50px; text-decoration: none; position: relative; overflow: hidden; transition: transform 0.3s ease, box-shadow 0.3s ease; box-shadow: 0 6px 24px rgba(229,25,129,0.35); z-index: 1; }
+.snb-tarifs-cta:hover { transform: translateY(-3px); box-shadow: 0 10px 36px rgba(229,25,129,0.45); }
+.snb-tarifs-cta::before { content:''; position: absolute; inset: 0; background: linear-gradient(135deg, transparent 30%, rgba(255,255,255,0.3) 50%, transparent 70%); transform: translateX(-100%); transition: transform 0.6s ease; }
+.snb-tarifs-cta:hover::before { transform: translateX(100%); }
+.snb-tarifs-right { background: linear-gradient(160deg, #f0dff5, #e8d4f0, #f2e6f8); border-radius: 22px; padding: 20px 18px; display: flex; flex-direction: column; gap: 12px; box-shadow: 12px 12px 30px rgba(180,140,200,0.25), -8px -8px 24px rgba(255,255,255,0.8); }
+.snb-tarifs-arg { position: relative; display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: linear-gradient(145deg, #f5eaf9, #ecdaf3); border-radius: 14px; box-shadow: inset 4px 4px 8px rgba(180,140,200,0.15), inset -3px -3px 6px rgba(255,255,255,0.7), 4px 4px 12px rgba(180,140,200,0.12), -3px -3px 8px rgba(255,255,255,0.6); overflow: hidden; transition: transform 0.35s ease, box-shadow 0.35s ease; flex: 1; cursor: default; }
+.snb-tarifs-arg:nth-child(1) { border: 1.5px solid rgba(229,25,129,0.4); box-shadow: inset 4px 4px 8px rgba(180,140,200,0.15), inset -3px -3px 6px rgba(255,255,255,0.7), 4px 4px 12px rgba(180,140,200,0.12), -3px -3px 8px rgba(255,255,255,0.6), 0 0 12px rgba(229,25,129,0.15), 0 0 30px rgba(229,25,129,0.08); }
+.snb-tarifs-arg:nth-child(2) { border: 1.5px solid rgba(168,85,247,0.4); box-shadow: inset 4px 4px 8px rgba(180,140,200,0.15), inset -3px -3px 6px rgba(255,255,255,0.7), 4px 4px 12px rgba(180,140,200,0.12), -3px -3px 8px rgba(255,255,255,0.6), 0 0 12px rgba(168,85,247,0.15), 0 0 30px rgba(168,85,247,0.08); }
+.snb-tarifs-arg:nth-child(3) { border: 1.5px solid rgba(22,163,74,0.4); box-shadow: inset 4px 4px 8px rgba(180,140,200,0.15), inset -3px -3px 6px rgba(255,255,255,0.7), 4px 4px 12px rgba(180,140,200,0.12), -3px -3px 8px rgba(255,255,255,0.6), 0 0 12px rgba(22,163,74,0.15), 0 0 30px rgba(22,163,74,0.08); }
+.snb-tarifs-arg:hover { transform: translateY(-4px) scale(1.01); }
+.snb-tarifs-arg:nth-child(1):hover { border-color: rgba(229,25,129,0.7); box-shadow: inset 4px 4px 8px rgba(180,140,200,0.15), inset -3px -3px 6px rgba(255,255,255,0.7), 0 0 18px rgba(229,25,129,0.3), 0 0 45px rgba(229,25,129,0.12); }
+.snb-tarifs-arg:nth-child(2):hover { border-color: rgba(168,85,247,0.7); box-shadow: inset 4px 4px 8px rgba(180,140,200,0.15), inset -3px -3px 6px rgba(255,255,255,0.7), 0 0 18px rgba(168,85,247,0.3), 0 0 45px rgba(168,85,247,0.12); }
+.snb-tarifs-arg:nth-child(3):hover { border-color: rgba(22,163,74,0.7); box-shadow: inset 4px 4px 8px rgba(180,140,200,0.15), inset -3px -3px 6px rgba(255,255,255,0.7), 0 0 18px rgba(22,163,74,0.3), 0 0 45px rgba(22,163,74,0.12); }
+.snb-tarifs-arg-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; position: relative; }
+.snb-tarifs-arg:nth-child(1) .snb-tarifs-arg-icon { background: linear-gradient(145deg, #ff6eb4, #E51981); box-shadow: 0 6px 18px rgba(229,25,129,0.35), inset 0 2px 4px rgba(255,255,255,0.3); color: #fff; }
+.snb-tarifs-arg:nth-child(2) .snb-tarifs-arg-icon { background: linear-gradient(145deg, #c084fc, #a855f7); box-shadow: 0 6px 18px rgba(168,85,247,0.35), inset 0 2px 4px rgba(255,255,255,0.3); color: #fff; }
+.snb-tarifs-arg:nth-child(3) .snb-tarifs-arg-icon { background: linear-gradient(145deg, #4ade80, #16A34A); box-shadow: 0 6px 18px rgba(22,163,74,0.35), inset 0 2px 4px rgba(255,255,255,0.3); color: #fff; }
+.snb-tarifs-arg-icon::after { content:''; position: absolute; top: 3px; left: 4px; right: 4px; height: 45%; background: linear-gradient(180deg, rgba(255,255,255,0.45), transparent); border-radius: 12px 12px 50% 50%; pointer-events: none; }
+.snb-tarifs-arg-content { flex: 1; min-width: 0; }
+.snb-tarifs-arg-title { font-size: 15px; font-weight: 800; color: #2a1540; margin-bottom: 4px; line-height: 1.25; }
+.snb-tarifs-arg-text { font-size: 13.5px; color: #6a5a7a; line-height: 1.55; }
+.snb-tarifs-arg-text strong { color: #2a1540; font-weight: 700; }
+.snb-tarifs-arg-num { position: absolute; top: -4px; right: 10px; font-size: 38px; font-weight: 900; font-style: italic; line-height: 1; pointer-events: none; }
+.snb-tarifs-arg:nth-child(1) .snb-tarifs-arg-num { color: rgba(229,25,129,0.12); }
+.snb-tarifs-arg:nth-child(2) .snb-tarifs-arg-num { color: rgba(168,85,247,0.12); }
+.snb-tarifs-arg:nth-child(3) .snb-tarifs-arg-num { color: rgba(22,163,74,0.12); }
+@media (max-width: 900px) { .snb-tarifs-layout { grid-template-columns: 1fr; } .snb-tarifs-right { flex-direction: row; flex-wrap: wrap; } .snb-tarifs-arg { flex: 1 1 280px; } }
+@media (max-width: 680px) { .snb-tarifs-left { padding: 28px 20px; border-radius: 22px; } .snb-tarifs-h2 { font-size: 26px; } .snb-tarifs-checks { grid-template-columns: 1fr; gap: 8px; } .snb-tarifs-desc { font-size: 14px; } .snb-tarifs-blob1 { width: 200px; height: 200px; } .snb-tarifs-blob2 { width: 180px; height: 180px; } .snb-tarifs-right { flex-direction: column; } .snb-tarifs-arg { flex: auto; padding: 20px; border-radius: 18px; } }
+</style>
+<div class="snb-bornes">
+<div class="snb-bornes-bg"><div class="snb-bornes-glow1"></div><div class="snb-bornes-glow2"></div><div class="snb-bornes-glow3"></div></div>
+<div class="snb-bornes-inner">
+<div class="snb-bornes-sep"></div>
+<div class="snb-bornes-title"><h2 data-gds-edit="bornes:0:h2" data-gds-section="bornes" data-gds-tag="H2">Choisissez votre <span>Borne Photo</span></h2></div>
+<div class="snb-bornes-cards">
+<div class="snb-b-card snb-b-card-ring">
+<div class="snb-b-promo">Promo W-E</div>
+<div class="snb-b-badge">Sans impression</div>
+<div class="snb-b-slide snb-b-slide-ring">
+<img decoding="async" src="/images/bornes/ring-1.webp" alt="Borne Ring Shootnbox" width="930" height="623" loading="lazy" data-gds-img="bornes:11:/images/bornes/ring-1.webp">
+<img decoding="async" src="/images/bornes/ring-2.webp" alt="Ring Shootnbox 2" width="930" height="698" loading="lazy" data-gds-img="bornes:12:/images/bornes/ring-2.webp">
+<img decoding="async" src="/images/bornes/ring-3.webp" alt="Ring Shootnbox 3" width="930" height="667" loading="lazy" data-gds-img="bornes:13:/images/bornes/ring-3.webp">
+<img decoding="async" src="/images/bornes/ring-4.webp" alt="Ring Shootnbox 4" width="930" height="620" loading="lazy" data-gds-img="bornes:14:/images/bornes/ring-4.webp">
+<img decoding="async" src="/images/bornes/ring-5.webp" alt="Ring Shootnbox 5" width="930" height="629" loading="lazy" data-gds-img="bornes:15:/images/bornes/ring-5.webp">
+<img decoding="async" src="/images/bornes/ring-6.webp" alt="Ring Shootnbox 6" width="930" height="606" loading="lazy" data-gds-img="bornes:16:/images/bornes/ring-6.webp">
+</div>
+<div class="snb-b-content">
+<div class="snb-b-type">Photobooth</div>
+<div class="snb-b-name" data-gds-edit="bornes:2:div" data-gds-section="bornes" data-gds-tag="DIV">LE <span>RING</span></div>
+<div class="snb-b-price"><div class="snb-b-amount">149€</div><div class="snb-b-old">199€</div><div class="snb-b-tag">Week-end</div></div>
+<div class="snb-b-feats">
+<div class="snb-b-feat"><div class="snb-b-feat-icon">📱</div><div class="snb-b-feat-text" data-gds-edit="bornes:6:div" data-gds-section="bornes" data-gds-tag="DIV">100% numérique<small>Email &amp; SMS</small></div></div>
+<div class="snb-b-feat"><div class="snb-b-feat-icon">📸</div><div class="snb-b-feat-text" data-gds-edit="bornes:7:div" data-gds-section="bornes" data-gds-tag="DIV">Photos, gifs &amp; boomerangs illimités<small>Sans limite</small></div></div>
+</div>
+<a href="/ring/" class="snb-b-cta">En savoir +</a>
+</div></div>
+<div class="snb-b-card snb-b-card-vegas snb-b-best">
+<div class="snb-b-promo">Promo W-E</div>
+<div class="snb-b-badge">✳ Best-seller</div>
+<div class="snb-b-slide snb-b-slide-vegas">
+<img decoding="async" src="/images/bornes/vegas-1.webp" alt="Borne Vegas Shootnbox" width="1200" height="800" loading="lazy" data-gds-img="bornes:17:/images/bornes/vegas-1.webp">
+<img decoding="async" src="/images/bornes/vegas-2.webp" alt="Vegas Shootnbox 2" width="1200" height="800" loading="lazy" data-gds-img="bornes:18:/images/bornes/vegas-2.webp">
+<img decoding="async" src="/images/bornes/vegas-3.webp" alt="Vegas Shootnbox 3" width="1200" height="800" loading="lazy" data-gds-img="bornes:19:/images/bornes/vegas-3.webp">
+<img decoding="async" src="/images/bornes/vegas-4.webp" alt="Vegas Shootnbox 4" width="1200" height="800" loading="lazy" data-gds-img="bornes:20:/images/bornes/vegas-4.webp">
+<img decoding="async" src="/images/bornes/vegas-5.webp" alt="Vegas Shootnbox 5" width="1200" height="800" loading="lazy" data-gds-img="bornes:21:/images/bornes/vegas-5.webp">
+</div>
+<div class="snb-b-content">
+<div class="snb-b-type">Photobooth</div>
+<div class="snb-b-name" data-gds-edit="bornes:3:div" data-gds-section="bornes" data-gds-tag="DIV">LE <span>VEGAS</span></div>
+<div class="snb-b-price"><div class="snb-b-amount">299€</div><div class="snb-b-old">399€</div><div class="snb-b-tag">Week-end</div></div>
+<div class="snb-b-feats">
+<div class="snb-b-feat"><div class="snb-b-feat-icon">🖨️</div><div class="snb-b-feat-text" data-gds-edit="bornes:8:div" data-gds-section="bornes" data-gds-tag="DIV">600 impressions<small>Format 10×15 cm</small></div></div>
+<div class="snb-b-feat"><div class="snb-b-feat-icon">📸</div><div class="snb-b-feat-text" data-gds-edit="bornes:9:div" data-gds-section="bornes" data-gds-tag="DIV">Photos illimitées<small>100% numérique</small></div></div>
+</div>
+<a href="/vegas/" class="snb-b-cta">En savoir +</a>
+</div></div>
+<div class="snb-b-card snb-b-card-miroir">
+<div class="snb-b-slide snb-b-slide-miroir">
+<img decoding="async" src="/images/bornes/miroir-1.webp" alt="Borne Miroir Shootnbox" width="1200" height="800" loading="lazy" data-gds-img="bornes:22:/images/bornes/miroir-1.webp">
+<img decoding="async" src="/images/bornes/miroir-2.webp" alt="Miroir Shootnbox 2" width="1200" height="800" loading="lazy" data-gds-img="bornes:23:/images/bornes/miroir-2.webp">
+<img decoding="async" src="/images/bornes/miroir-3.webp" alt="Miroir Shootnbox 3" width="1200" height="800" loading="lazy" data-gds-img="bornes:24:/images/bornes/miroir-3.webp">
+</div>
+<div class="snb-b-content">
+<div class="snb-b-type">Photobooth</div>
+<div class="snb-b-name" data-gds-edit="bornes:4:div" data-gds-section="bornes" data-gds-tag="DIV">LE <span>MIROIR</span></div>
+<div class="snb-b-price"><div class="snb-b-amount">799€</div></div>
+<div class="snb-b-feats">
+<div class="snb-b-feat"><div class="snb-b-feat-icon">🖨️</div><div class="snb-b-feat-text" data-gds-edit="bornes:10:div" data-gds-section="bornes" data-gds-tag="DIV">600 impressions<small>Format 10×15 cm</small></div></div>
+<div class="snb-b-feat"><div class="snb-b-feat-icon">📸</div><div class="snb-b-feat-text" data-gds-edit="bornes:11:div" data-gds-section="bornes" data-gds-tag="DIV">Photos illimitées<small>Haute qualité</small></div></div>
+</div>
+<a href="/miroir/" class="snb-b-cta">En savoir +</a>
+</div></div>
+<div class="snb-b-card snb-b-card-spinner">
+<div class="snb-b-spinner-zone">
+<img decoding="async" src="/images/bornes/spinner-1.webp" alt="Borne Spinner Shootnbox" class="snb-b-spinner-photo" width="1200" height="800" loading="lazy" data-gds-img="bornes:25:/images/bornes/spinner-1.webp">
+<video autoplay="" loop="" muted="" playsinline="" class="snb-b-spinner-video"><source src="/images/bornes/spinner-video.mp4" type="video/mp4"></video>
+</div>
+<div class="snb-b-content">
+<div class="snb-b-type">Vidéobooth</div>
+<div class="snb-b-name" data-gds-edit="bornes:5:div" data-gds-section="bornes" data-gds-tag="DIV">LE <span>SPINNER</span></div>
+<div class="snb-b-price"><div class="snb-b-amount">899€</div></div>
+<div class="snb-b-feats">
+<div class="snb-b-feat"><div class="snb-b-feat-icon">🎥</div><div class="snb-b-feat-text" data-gds-edit="bornes:12:div" data-gds-section="bornes" data-gds-tag="DIV">Vidéos illimitées<small>360° spectaculaire</small></div></div>
+<div class="snb-b-feat"><div class="snb-b-feat-icon">👨‍🔧</div><div class="snb-b-feat-text" data-gds-edit="bornes:13:div" data-gds-section="bornes" data-gds-tag="DIV">Technicien présent<small>Assistance sur place</small></div></div>
+</div>
+<a href="/spinner/" class="snb-b-cta">En savoir +</a>
+</div></div>
+</div>

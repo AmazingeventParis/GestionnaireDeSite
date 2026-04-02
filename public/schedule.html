@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planification — Gestionnaire de Site</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .schedule-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+        @media (max-width: 768px) { .schedule-grid { grid-template-columns: 1fr; } }
+        .schedule-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 24px;
+        }
+        .schedule-card h3 { margin: 0 0 16px; color: #e6edf3; font-size: 15px; }
+        .schedule-table { width: 100%; border-collapse: collapse; }
+        .schedule-table th, .schedule-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid #30363d;
+        }
+        .schedule-table th {
+            background: #161b22;
+            color: #8b949e;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+        .schedule-table tr:hover { background: rgba(88, 166, 255, 0.04); }
+        .status-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status-pending { background: rgba(210, 153, 34, 0.15); color: #d29922; }
+        .status-published { background: rgba(63, 185, 80, 0.15); color: #3fb950; }
+        .status-cancelled { background: rgba(248, 81, 73, 0.15); color: #f85149; }
+        .status-failed { background: rgba(248, 81, 73, 0.15); color: #f85149; }
+        .maintenance-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 0;
+        }
+        .maintenance-info { flex: 1; }
+        .maintenance-info h4 { margin: 0 0 4px; color: #e6edf3; font-size: 14px; }
+        .maintenance-info p { margin: 0; color: #8b949e; font-size: 13px; }
+        .toggle-switch-lg {
+            position: relative;
+            width: 52px;
+            height: 28px;
+            display: inline-block;
+        }
+        .toggle-switch-lg input { display: none; }
+        .toggle-slider-lg {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #30363d;
+            border-radius: 28px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .toggle-slider-lg::before {
+            content: '';
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            left: 3px;
+            bottom: 3px;
+            background: #e6edf3;
+            border-radius: 50%;
+            transition: all 0.2s;
+        }
+        .toggle-switch-lg input:checked + .toggle-slider-lg { background: #f85149; }
+        .toggle-switch-lg input:checked + .toggle-slider-lg::before { transform: translateX(24px); }
+        .cancel-btn {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            cursor: pointer;
+            background: #21262d;
+            color: #f85149;
+            transition: all 0.15s;
+        }
+        .cancel-btn:hover { border-color: #f85149; }
+        .empty-state { text-align: center; padding: 48px; color: #8b949e; }
+    </style>
+</head>
+<body>
+    <div id="navbar"></div>
+
+    <div class="container">
+        <div class="section-header">
+            <h1 class="page-title">Planification</h1>
+            <button class="btn btn-primary" id="btn-add" style="display:none" onclick="openAddModal()">+ Planifier</button>
+        </div>
+
+        <div class="schedule-grid">
+            <!-- Schedule Form Card -->
+            <div class="schedule-card" id="admin-card" style="display:none">
+                <h3>Mode maintenance</h3>
+                <div class="maintenance-toggle">
+                    <div class="maintenance-info">
+                        <h4>Activer le mode maintenance</h4>
+                        <p>Affiche une page de maintenance aux visiteurs du site.</p>
+                    </div>
+                    <label class="toggle-switch-lg">
+                        <input type="checkbox" id="maintenance-toggle" onchange="toggleMaintenance()">
+                        <span class="toggle-slider-lg"></span>
+                    </label>
+                </div>
+                <div id="maintenance-status" style="margin-top: 8px;"></div>
+            </div>
+
+            <!-- Stats Card -->
+            <div class="schedule-card">
+                <h3>Statistiques</h3>
+                <div id="stats-content">
+                    <p class="text-muted">Chargement...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scheduled Publishes Table -->
+        <div class="card" style="padding: 0; overflow: hidden;">
+            <div style="padding: 16px 20px; border-bottom: 1px solid #30363d;">
+                <h3 style="margin: 0; font-size: 15px; color: #e6edf3;">Publications planifiees</h3>
+            </div>
+            <div id="schedule-container">
+                <p class="text-muted" style="padding: 20px;">Chargement...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Schedule Modal -->
+    <div class="modal-overlay" id="modal" style="display:none">
+        <div class="modal">
+            <h2 class="modal-title">Planifier une publication</h2>
+            <form id="schedule-form" onsubmit="createSchedule(event)">
+                <div class="form-group">
+                    <label class="form-label">Page (slug) *</label>
+                    <input class="form-input" id="sched-page" required placeholder="ma-page">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Date et heure de publication *</label>
+                    <input class="form-input" type="datetime-local" id="sched-date" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Planifier</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/components.js"></script>
+    <script>
+    var schedules = [];
+
+    async function init() {
+        await Components.initPage();
+        var user = Auth.getUser();
+        if (user && (user.role === 'admin' || user.role === 'editor')) {
+            document.getElementById('btn-add').style.display = '';
+        }
+        if (user && user.role === 'admin') {
+            document.getElementById('admin-card').style.display = '';
+            loadMaintenanceStatus();
+        }
+        loadSchedules();
+    }
+
+    async function loadMaintenanceStatus() {
+        try {
+            var res = await Auth.apiFetch('/api/schedule/maintenance');
+            if (res.ok) {
+                var data = await res.json();
+                document.getElementById('maintenance-toggle').checked = data.maintenance;
+                var statusEl = document.getElementById('maintenance-status');
+                if (data.maintenance) {
+                    statusEl.innerHTML = '<span style="color:#f85149;font-size:13px;">Mode maintenance actif</span>';
+                } else {
+                    statusEl.innerHTML = '<span style="color:#3fb950;font-size:13px;">Site en ligne</span>';
+                }
+            }
+        } catch (e) { /* ignore */ }
+    }
+
+    async function loadSchedules() {
+        var res = await Auth.apiFetch('/api/schedule');
+        if (res.ok) {
+            var data = await res.json();
+            schedules = data.schedules || [];
+            renderSchedules();
+            renderStats();
+        } else {
+            document.getElementById('schedule-container').innerHTML =
+                '<p class="text-muted" style="padding:20px;">Erreur lors du chargement.</p>';
+        }
+    }
+
+    function renderStats() {
+        var pending = schedules.filter(function(s) { return s.status === 'pending'; }).length;
+        var published = schedules.filter(function(s) { return s.status === 'published'; }).length;
+        var cancelled = schedules.filter(function(s) { return s.status === 'cancelled'; }).length;
+
+        var el = document.getElementById('stats-content');
+        el.innerHTML =
+            '<div style="display:flex;gap:24px;">' +
+            '<div style="text-align:center;flex:1;"><div style="font-size:28px;font-weight:700;color:#d29922;">' + pending + '</div><div style="font-size:12px;color:#8b949e;">En attente</div></div>' +
+            '<div style="text-align:center;flex:1;"><div style="font-size:28px;font-weight:700;color:#3fb950;">' + published + '</div><div style="font-size:12px;color:#8b949e;">Publiees</div></div>' +
+            '<div style="text-align:center;flex:1;"><div style="font-size:28px;font-weight:700;color:#f85149;">' + cancelled + '</div><div style="font-size:12px;color:#8b949e;">Annulees</div></div>' +
+            '</div>';
+    }
+
+    function renderSchedules() {
+        var el = document.getElementById('schedule-container');
+        var user = Auth.getUser();
+        var canCancel = user && (user.role === 'admin' || user.role === 'editor');
+
+        if (schedules.length === 0) {
+            el.innerHTML = '<div class="empty-state">Aucune publication planifiee.</div>';
+            return;
+        }
+
+        var html = '<table class="schedule-table"><thead><tr><th>Page</th><th>Date planifiee</th><th>Statut</th>';
+        if (canCancel) html += '<th>Actions</th>';
+        html += '</tr></thead><tbody>';
+
+        for (var i = 0; i < schedules.length; i++) {
+            var s = schedules[i];
+            var statusClass = 'status-' + (s.status || 'pending');
+            var statusLabel = s.status === 'pending' ? 'En attente' :
+                              s.status === 'published' ? 'Publiee' :
+                              s.status === 'cancelled' ? 'Annulee' :
+                              s.status === 'failed' ? 'Echouee' : s.status;
+
+            html += '<tr>';
+            html += '<td style="color:#58a6ff;font-family:monospace;">' + Components.escapeHtml(s.page_slug) + '</td>';
+            html += '<td>' + Components.formatDate(s.scheduled_at) + '</td>';
+            html += '<td><span class="status-badge ' + statusClass + '">' + Components.escapeHtml(statusLabel) + '</span></td>';
+            if (canCancel) {
+                html += '<td>';
+                if (s.status === 'pending') {
+                    html += '<button class="cancel-btn" onclick="cancelSchedule(\'' + s.id + '\')">Annuler</button>';
+                } else {
+                    html += '<span style="color:#484f58;">—</span>';
+                }
+                html += '</td>';
+            }
+            html += '</tr>';
+        }
+        html += '</tbody></table>';
+        el.innerHTML = html;
+    }
+
+    function openAddModal() {
+        document.getElementById('schedule-form').reset();
+        // Set min datetime to now
+        var now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        document.getElementById('sched-date').min = now.toISOString().slice(0, 16);
+        document.getElementById('modal').style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('modal').style.display = 'none';
+    }
+
+    async function createSchedule(e) {
+        e.preventDefault();
+        var body = {
+            page_slug: document.getElementById('sched-page').value,
+            scheduled_at: new Date(document.getElementById('sched-date').value).toISOString()
+        };
+
+        var res = await Auth.apiFetch('/api/schedule', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+
+        if (res.ok) {
+            Components.showToast('Publication planifiee', 'success');
+            closeModal();
+            loadSchedules();
+        } else {
+            var err = await res.json();
+            Components.showToast(err.error || 'Erreur', 'error');
+        }
+    }
+
+    async function cancelSchedule(id) {
+        var confirmed = await Components.showConfirm('Annuler cette publication planifiee ?');
+        if (!confirmed) return;
+
+        var res = await Auth.apiFetch('/api/schedule/' + id, { method: 'DELETE' });
+        if (res.ok) {
+            Components.showToast('Publication annulee', 'success');
+            loadSchedules();
+        } else {
+            var err = await res.json();
+            Components.showToast(err.error || 'Erreur', 'error');
+        }
+    }
+
+    async function toggleMaintenance() {
+        var res = await Auth.apiFetch('/api/schedule/maintenance', { method: 'POST' });
+        if (res.ok) {
+            var data = await res.json();
+            Components.showToast(data.message, 'success');
+            loadMaintenanceStatus();
+        } else {
+            var err = await res.json();
+            Components.showToast(err.error || 'Erreur', 'error');
+            loadMaintenanceStatus();
+        }
+    }
+
+    document.getElementById('modal').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+    });
+
+    init();
+    </script>
+</body>
+</html>

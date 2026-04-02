@@ -1,0 +1,20 @@
+{
+  "title": "Location Photobooth Paris | Borne Photo Mariage & Entreprise - Shootnbox",
+  "description": "Louez un photobooth professionnel a Paris et en Ile-de-France. Borne photo Ring, Vegas, Miroir, Spinner 360. Mariages, soirees, evenements d'entreprise.",
+  "ogTitle": "Location Photobooth Paris - Shootnbox",
+  "ogDescription": "Louez un photobooth professionnel pour vos evenements. 4 bornes au choix, livraison partout en France.",
+  "ogImage": "/site-images/og/location-photobooth.webp",
+  "schemaType": "Service",
+  "noindex": false,
+  "status": "published",
+  "urlPath": "location-photobooth",
+  "sitemap": {
+    "include": true,
+    "priority": "0.9",
+    "changefreq": "monthly"
+  },
+  "relatedPages": [
+    "location-photobooth-entreprise"
+  ],
+  "lastModifiedAt": "2026-03-26T12:00:00.000Z"
+}

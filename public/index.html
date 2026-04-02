@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — Gestionnaire de Site</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div id="navbar"></div>
+
+    <div class="container">
+        <h1 class="page-title">Dashboard</h1>
+        <p class="page-subtitle">Vue d'ensemble de vos sites et taches</p>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="stat-sites">-</div>
+                <div class="stat-label">Sites actifs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-tasks">-</div>
+                <div class="stat-label">Taches en cours</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-monitors">-</div>
+                <div class="stat-label">Monitors UP</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-total">-</div>
+                <div class="stat-label">Total sites</div>
+            </div>
+        </div>
+
+        <!-- Recent sites -->
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">Sites recents</h2>
+                <a href="/sites.html" class="btn btn-primary">Voir tous</a>
+            </div>
+            <div id="recent-sites" class="grid">
+                <p class="text-muted">Chargement...</p>
+            </div>
+        </div>
+
+        <!-- Recent tasks -->
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">Taches recentes</h2>
+                <a href="/tasks.html" class="btn btn-primary">Voir toutes</a>
+            </div>
+            <div id="recent-tasks">
+                <p class="text-muted">Chargement...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/components.js"></script>
+    <script>
+    async function loadDashboard() {
+        await Components.initPage();
+
+        try {
+            var [statsRes, sitesRes] = await Promise.all([
+                Auth.apiFetch('/api/stats'),
+                Auth.apiFetch('/api/sites')
+            ]);
+            var stats = await statsRes.json();
+            var sites = await sitesRes.json();
+
+            document.getElementById('stat-sites').textContent = stats.active_sites || 0;
+            document.getElementById('stat-tasks').textContent = stats.pending_tasks || 0;
+            document.getElementById('stat-monitors').textContent = (stats.monitors_up || 0) + '/' + (stats.monitors_total || 0);
+            document.getElementById('stat-total').textContent = stats.total_sites || 0;
+
+            var recentEl = document.getElementById('recent-sites');
+            if (!Array.isArray(sites) || sites.length === 0) {
+                recentEl.innerHTML = '<p class="text-muted">Aucun site. <a href="/sites.html">Ajouter un site</a></p>';
+            } else {
+                recentEl.innerHTML = sites.slice(0, 6).map(function(site) {
+                    var statusClass = site.status === 'active' ? 'badge-prod' :
+                                     site.status === 'maintenance' ? 'badge-tool' : 'badge-infra';
+                    return '<div class="card">' +
+                        '<div class="card-icon">' + (site.favicon_url ? '<img src="' + Components.escapeHtml(site.favicon_url) + '" width="32">' : '🌐') + '</div>' +
+                        '<div class="card-content">' +
+                            '<div class="card-name">' + Components.escapeHtml(site.name) + ' <span class="badge ' + statusClass + '">' + Components.escapeHtml(site.status).toUpperCase() + '</span></div>' +
+                            '<div class="card-desc">' + Components.escapeHtml(site.description || '') + '</div>' +
+                            '<div class="card-url">' + Components.escapeHtml(site.url) + '</div>' +
+                        '</div>' +
+                    '</div>';
+                }).join('');
+            }
+
+            // Load recent tasks
+            var tasksRes = await Auth.apiFetch('/api/tasks?limit=5');
+            var allTasks = await tasksRes.json();
+            if (Array.isArray(allTasks)) {
+                allTasks = allTasks.filter(function(t) { return t.status !== 'done' && t.status !== 'cancelled'; }).slice(0, 5);
+            }
+
+            var tasksEl = document.getElementById('recent-tasks');
+            if (!Array.isArray(allTasks) || allTasks.length === 0) {
+                tasksEl.innerHTML = '<p class="text-muted">Aucune tache en cours.</p>';
+            } else {
+                tasksEl.innerHTML = '<table class="table"><thead><tr><th>Tache</th><th>Priorite</th><th>Statut</th></tr></thead><tbody>' +
+                    allTasks.map(function(t) {
+                        var prioClass = t.priority === 'urgent' ? 'badge-danger' :
+                                       t.priority === 'high' ? 'badge-tool' : '';
+                        return '<tr><td>' + Components.escapeHtml(t.title) + '</td><td><span class="badge ' + prioClass + '">' + Components.escapeHtml(t.priority) + '</span></td><td>' + Components.escapeHtml(t.status) + '</td></tr>';
+                    }).join('') +
+                '</tbody></table>';
+            }
+        } catch(e) {
+            console.error('Dashboard error:', e);
+        }
+    }
+    loadDashboard();
+    </script>
+</body>
+</html>

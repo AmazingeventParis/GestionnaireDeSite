@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deploiement — Gestionnaire de Site</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .deploy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+        @media (max-width: 768px) { .deploy-grid { grid-template-columns: 1fr; } }
+        .status-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 24px;
+        }
+        .status-card h3 { margin: 0 0 16px; color: #e6edf3; font-size: 15px; }
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+        }
+        .status-row:last-child { border-bottom: none; }
+        .status-label { color: #8b949e; font-size: 13px; }
+        .status-value { color: #e6edf3; font-size: 13px; font-weight: 500; }
+        .status-running { color: #3fb950; }
+        .status-stopped { color: #f85149; }
+        .status-unknown { color: #d29922; }
+        .deploy-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 32px;
+            text-align: center;
+        }
+        .deploy-card h3 { margin: 0 0 12px; color: #e6edf3; }
+        .deploy-card p { color: #8b949e; margin-bottom: 24px; font-size: 14px; }
+        .btn-deploy {
+            background: linear-gradient(135deg, #238636, #2ea043);
+            color: #fff;
+            border: none;
+            padding: 16px 48px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-deploy:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(46, 160, 67, 0.3); }
+        .btn-deploy:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+        .history-table { width: 100%; border-collapse: collapse; }
+        .history-table th, .history-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid #30363d;
+        }
+        .history-table th {
+            background: #161b22;
+            color: #8b949e;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+        .history-table tr:hover { background: rgba(88, 166, 255, 0.04); }
+        .config-item { font-family: monospace; font-size: 13px; color: #58a6ff; word-break: break-all; }
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div id="navbar"></div>
+
+    <div class="container">
+        <div class="section-header">
+            <h1 class="page-title">Deploiement</h1>
+        </div>
+
+        <div class="deploy-grid">
+            <!-- Status Card -->
+            <div class="status-card">
+                <h3>Statut de l'application</h3>
+                <div id="status-content">
+                    <p class="text-muted">Chargement...</p>
+                </div>
+            </div>
+
+            <!-- Config Card -->
+            <div class="status-card">
+                <h3>Configuration Coolify</h3>
+                <div id="config-content">
+                    <p class="text-muted">Chargement...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Deploy Button -->
+        <div class="deploy-card">
+            <h3>Deployer en production</h3>
+            <p>Declenche un deploiement via Coolify. Le site sera reconstruit et redeploy automatiquement.</p>
+            <button class="btn-deploy" id="btn-deploy" onclick="triggerDeploy()">Deployer en production</button>
+        </div>
+
+        <!-- Deploy History -->
+        <div class="card" style="padding: 0; overflow: hidden; margin-top: 24px;">
+            <div style="padding: 16px 20px; border-bottom: 1px solid #30363d;">
+                <h3 style="margin: 0; font-size: 15px; color: #e6edf3;">Historique des deploiements</h3>
+            </div>
+            <div id="history-container">
+                <p class="text-muted" style="padding: 20px;">Chargement...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/components.js"></script>
+    <script>
+    async function init() {
+        await Components.initPage();
+        loadStatus();
+        loadHistory();
+    }
+
+    async function loadStatus() {
+        var statusEl = document.getElementById('status-content');
+        var configEl = document.getElementById('config-content');
+
+        try {
+            var res = await Auth.apiFetch('/api/deploy/status');
+            if (res.ok) {
+                var data = await res.json();
+                var statusClass = data.status === 'running' ? 'status-running' :
+                                  data.status === 'stopped' ? 'status-stopped' : 'status-unknown';
+
+                statusEl.innerHTML =
+                    '<div class="status-row"><span class="status-label">Statut</span><span class="status-value ' + statusClass + '">' +
+                    Components.escapeHtml(data.status || 'Inconnu').toUpperCase() + '</span></div>' +
+                    '<div class="status-row"><span class="status-label">Nom</span><span class="status-value">' +
+                    Components.escapeHtml(data.name || '—') + '</span></div>' +
+                    '<div class="status-row"><span class="status-label">Dernier deploiement</span><span class="status-value">' +
+                    (data.last_deployment ? Components.formatDate(data.last_deployment) : '—') + '</span></div>' +
+                    '<div class="status-row"><span class="status-label">Repository</span><span class="status-value">' +
+                    Components.escapeHtml(data.repository || '—') + '</span></div>';
+
+                configEl.innerHTML =
+                    '<div class="status-row"><span class="status-label">UUID</span><span class="config-item">' +
+                    Components.escapeHtml(data.uuid || '—') + '</span></div>' +
+                    '<div class="status-row"><span class="status-label">Domaine</span><span class="config-item">' +
+                    Components.escapeHtml(data.fqdn || '—') + '</span></div>';
+            } else {
+                var err = await res.json();
+                statusEl.innerHTML = '<p class="text-muted">' + Components.escapeHtml(err.error || 'Impossible de recuperer le statut') + '</p>';
+                configEl.innerHTML = '<p class="text-muted">Configuration non disponible</p>';
+            }
+        } catch (e) {
+            statusEl.innerHTML = '<p class="text-muted">Erreur de connexion</p>';
+            configEl.innerHTML = '<p class="text-muted">Erreur de connexion</p>';
+        }
+    }
+
+    async function loadHistory() {
+        var el = document.getElementById('history-container');
+        try {
+            var res = await Auth.apiFetch('/api/deploy/history');
+            if (res.ok) {
+                var data = await res.json();
+                var entries = data.entries || [];
+                if (entries.length === 0) {
+                    el.innerHTML = '<p class="text-muted" style="padding:20px;text-align:center;">Aucun deploiement enregistre.</p>';
+                    return;
+                }
+
+                var html = '<table class="history-table"><thead><tr><th>Date</th><th>Utilisateur</th><th>Resultat</th><th>IP</th></tr></thead><tbody>';
+                for (var i = 0; i < entries.length; i++) {
+                    var e = entries[i];
+                    var details = e.details || {};
+                    var statusCode = details.status || '—';
+                    var statusClass = statusCode === 200 ? 'status-running' : 'status-stopped';
+
+                    html += '<tr>';
+                    html += '<td>' + Components.formatDate(e.created_at) + '</td>';
+                    html += '<td style="color:#8b949e">' + Components.escapeHtml(e.user_id ? e.user_id.substring(0, 8) + '...' : '—') + '</td>';
+                    html += '<td><span class="' + statusClass + '">' + Components.escapeHtml(String(statusCode)) + '</span></td>';
+                    html += '<td style="color:#8b949e;font-family:monospace;font-size:12px;">' + Components.escapeHtml(e.ip_address || '—') + '</td>';
+                    html += '</tr>';
+                }
+                html += '</tbody></table>';
+                el.innerHTML = html;
+            } else {
+                el.innerHTML = '<p class="text-muted" style="padding:20px;">Erreur lors du chargement de l\'historique.</p>';
+            }
+        } catch (e) {
+            el.innerHTML = '<p class="text-muted" style="padding:20px;">Erreur de connexion.</p>';
+        }
+    }
+
+    async function triggerDeploy() {
+        var confirmed = await Components.showConfirm('Etes-vous sur de vouloir deployer en production ?');
+        if (!confirmed) return;
+
+        var btn = document.getElementById('btn-deploy');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span>Deploiement en cours...';
+
+        try {
+            var res = await Auth.apiFetch('/api/deploy', { method: 'POST' });
+            if (res.ok) {
+                Components.showToast('Deploiement declenche avec succes', 'success');
+                loadHistory();
+                // Reload status after a delay
+                setTimeout(function() { loadStatus(); }, 5000);
+            } else {
+                var err = await res.json();
+                Components.showToast(err.error || 'Erreur lors du deploiement', 'error');
+            }
+        } catch (e) {
+            Components.showToast('Erreur de connexion', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Deployer en production';
+        }
+    }
+
+    init();
+    </script>
+</body>
+</html>

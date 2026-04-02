@@ -1,0 +1,407 @@
+<style>
+.snb-couv {
+  font-family: 'Raleway', sans-serif;
+  width: 100%;
+  background: linear-gradient(180deg, #eaf0ff, #e4ecff, #f0f4ff);
+  padding: 40px 5%;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Blobs */
+.snb-couv-blob { position: absolute; border-radius: 50%; pointer-events: none; filter: blur(70px); z-index: 0; }
+.snb-couv-blob-1 { width: 400px; height: 400px; background: rgba(229,25,129,0.06); top: -100px; right: -80px; animation: snbCouvBlob 7s ease-in-out infinite; }
+.snb-couv-blob-2 { width: 350px; height: 350px; background: rgba(168,85,247,0.05); bottom: -80px; left: -60px; animation: snbCouvBlob 7s ease-in-out infinite 3s; }
+@keyframes snbCouvBlob { 0%,100%{transform:scale(1);opacity:0.6} 50%{transform:scale(1.15);opacity:1} }
+
+.snb-couv-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+/* Panel global */
+.snb-couv-panel {
+  border-radius: 28px;
+  border: 1.5px solid rgba(255,255,255,0.7);
+  background: rgba(210,180,225,0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 20px 70px rgba(214,118,180,0.22);
+  padding: 28px 24px;
+}
+
+/* Header */
+.snb-couv-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  border-radius: 50px;
+  border: 1px solid rgba(229,25,129,0.2);
+  background: rgba(255,255,255,0.8);
+  padding: 6px 18px;
+  font-size: 13px; font-weight: 700; color: #C91473;
+  margin: 0 auto;
+}
+.snb-couv-header { text-align: center; }
+
+.snb-couv h2 {
+  font-size: 30px;
+  font-weight: 900;
+  font-style: italic;
+  line-height: 1.15;
+  letter-spacing: -0.5px;
+  color: #2E1831;
+  margin: 10px 0 0;
+}
+.snb-couv h2 .snb-couv-acc { color: #E51981; }
+
+.snb-couv-subtitle {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #6C586D;
+  max-width: 700px;
+  margin: 8px auto 16px;
+}
+
+/* Grid principal */
+.snb-couv-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 18px;
+  margin-top: 20px;
+}
+
+/* Carte map */
+.snb-couv-map-card {
+  border-radius: 22px;
+  padding: 16px 18px;
+  background: linear-gradient(145deg, #ffffff, #f8f0fc, #f2e8f6);
+  border: 1.5px solid rgba(168,85,247,0.15);
+  box-shadow:
+    inset 4px 4px 8px rgba(180,140,200,0.1),
+    inset -3px -3px 6px rgba(255,255,255,0.7),
+    6px 6px 20px rgba(180,140,200,0.12),
+    -4px -4px 12px rgba(255,255,255,0.6);
+}
+.snb-couv-map-top {
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+  margin-bottom: 12px;
+}
+.snb-couv-map-title {
+  font-size: 16px; font-weight: 800; color: #2E1831; margin: 0; line-height: 1.3;
+}
+.snb-couv-map-desc {
+  font-size: 12px; color: #6C586D; margin: 3px 0 0; line-height: 1.5;
+}
+.snb-couv-reseau-badge {
+  border-radius: 50px;
+  border: 1px solid rgba(229,25,129,0.15);
+  background: rgba(255,240,247,0.8);
+  padding: 6px 14px;
+  font-size: 12px; font-weight: 700; color: #C91473;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Galerie photos */
+.snb-couv-gallery {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 115px;
+  gap: 8px;
+}
+.snb-couv-photo {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1.5px solid rgba(168,85,247,0.12);
+  box-shadow:
+    inset 2px 2px 4px rgba(180,140,200,0.06),
+    inset -2px -2px 3px rgba(255,255,255,0.5),
+    4px 4px 12px rgba(180,140,200,0.1),
+    -2px -2px 6px rgba(255,255,255,0.5);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+}
+.snb-couv-photo:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow:
+    inset 2px 2px 4px rgba(180,140,200,0.06),
+    inset -2px -2px 3px rgba(255,255,255,0.5),
+    6px 8px 20px rgba(180,140,200,0.16),
+    -2px -2px 6px rgba(255,255,255,0.5),
+    0 0 16px rgba(168,85,247,0.06);
+  z-index: 2;
+}
+.snb-couv-photo img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
+/* Grande photo */
+.snb-couv-photo--big {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+.snb-couv-photo--big { border-color: rgba(229,25,129,0.15); }
+
+@media (max-width: 640px) {
+  .snb-couv-gallery {
+    grid-template-columns: repeat(2, 1fr);
+    grid-auto-rows: 120px;
+    gap: 8px;
+  }
+  .snb-couv-photo { border-radius: 14px; }
+}
+
+/* Colonne droite */
+.snb-couv-right { display: flex; flex-direction: column; gap: 12px; }
+
+/* Cartes info */
+.snb-couv-info {
+  border-radius: 20px;
+  padding: 16px 18px;
+  background: linear-gradient(145deg, #ffffff, #f8f0fc, #f2e8f6);
+  border: 1.5px solid rgba(168,85,247,0.15);
+  box-shadow:
+    inset 4px 4px 8px rgba(180,140,200,0.1),
+    inset -3px -3px 6px rgba(255,255,255,0.7),
+    6px 6px 20px rgba(180,140,200,0.12),
+    -4px -4px 12px rgba(255,255,255,0.6);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.snb-couv-info:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    inset 4px 4px 8px rgba(180,140,200,0.1),
+    inset -3px -3px 6px rgba(255,255,255,0.7),
+    8px 12px 30px rgba(180,140,200,0.18),
+    -4px -4px 12px rgba(255,255,255,0.6),
+    0 0 20px rgba(168,85,247,0.06);
+}
+.snb-couv-info-top {
+  display: flex; align-items: flex-start; gap: 14px;
+}
+.snb-couv-info-icon {
+  width: 38px; height: 38px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+  background: linear-gradient(145deg, #ffd7eb, #ffc2df);
+  box-shadow: inset 2px 2px 4px rgba(229,25,129,0.06), 2px 2px 8px rgba(229,25,129,0.1);
+  position: relative;
+}
+.snb-couv-info-icon::after {
+  content: '';
+  position: absolute; top: 2px; left: 4px; right: 4px; height: 40%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.35), transparent);
+  border-radius: 8px 8px 50% 50%;
+  pointer-events: none;
+}
+.snb-couv-info h3 {
+  font-size: 14px; font-weight: 800; color: #2E1831; margin: 0; line-height: 1.3;
+}
+.snb-couv-info p {
+  font-size: 12px; color: #6C586D; margin: 5px 0 0; line-height: 1.55;
+}
+
+/* Tags dans les cartes info */
+.snb-couv-tags {
+  display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px;
+}
+.snb-couv-tag {
+  border-radius: 50px;
+  border: 1px solid rgba(229,25,129,0.12);
+  background: linear-gradient(145deg, #fff4f9, #ffe8f2);
+  padding: 4px 10px;
+  font-size: 11px; font-weight: 700; color: #C91473;
+  box-shadow: inset 1px 1px 3px rgba(229,25,129,0.04), 2px 2px 6px rgba(229,25,129,0.06);
+}
+
+/* Carte highlight */
+.snb-couv-highlight {
+  border-radius: 18px;
+  padding: 14px 16px;
+  background: linear-gradient(145deg, #fff4f9, #ffe8f2, #fff0f7);
+  border: 1.5px solid rgba(229,25,129,0.2);
+  box-shadow:
+    inset 4px 4px 8px rgba(229,25,129,0.05),
+    inset -3px -3px 6px rgba(255,255,255,0.7),
+    6px 6px 20px rgba(229,25,129,0.1),
+    -4px -4px 12px rgba(255,255,255,0.6),
+    0 0 20px rgba(229,25,129,0.05);
+}
+.snb-couv-highlight-label {
+  font-size: 10px; font-weight: 700; color: #C91473;
+  text-transform: uppercase; letter-spacing: 0.18em;
+  margin: 0;
+}
+.snb-couv-highlight h3 {
+  font-size: 16px; font-weight: 700; color: #2E1831; margin: 6px 0 0; line-height: 1.3;
+}
+.snb-couv-highlight p {
+  font-size: 12px; color: #6C586D; margin: 4px 0 0; line-height: 1.55;
+}
+
+/* Google Maps embed */
+.snb-couv-map-embed {
+  border-radius: 22px;
+  overflow: hidden;
+  border: 1.5px solid rgba(229,25,129,0.15);
+  box-shadow:
+    inset 3px 3px 6px rgba(180,140,200,0.08),
+    inset -2px -2px 4px rgba(255,255,255,0.5),
+    4px 4px 14px rgba(180,140,200,0.1),
+    -2px -2px 8px rgba(255,255,255,0.5);
+  margin-top: 0;
+}
+.snb-couv-map-embed iframe {
+  display: block;
+  width: 100%;
+  height: 150px;
+  border: none;
+}
+
+/* Badges bas */
+.snb-couv-badges {
+  margin-top: 24px;
+  border-radius: 24px;
+  border: 1.5px solid rgba(255,255,255,0.7);
+  background: rgba(255,255,255,0.5);
+  box-shadow: 0 10px 24px rgba(50,20,50,0.06);
+  padding: 14px 20px;
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;
+}
+.snb-couv-badge {
+  border-radius: 50px;
+  border: 1px solid rgba(229,25,129,0.1);
+  background: rgba(255,255,255,0.9);
+  padding: 7px 16px;
+  font-size: 12px; font-weight: 700; color: #5f4a62;
+  box-shadow: 0 2px 6px rgba(180,140,200,0.06);
+}
+
+/* CTA */
+.snb-couv-cta {
+  margin-top: 16px;
+  text-align: center;
+}
+.snb-couv-cta a {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 28px;
+  border-radius: 50px;
+  background: linear-gradient(135deg, #E51981, #ff3fac);
+  color: #fff;
+  font-size: 16px; font-weight: 800;
+  font-family: 'Raleway', sans-serif;
+  box-shadow: 0 8px 30px rgba(229,25,129,0.3);
+  position: relative; overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.25,0.46,0.45,0.94);
+}
+.snb-couv-cta a::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%; width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  transition: left 0.5s ease;
+}
+.snb-couv-cta a:hover::before { left: 100%; }
+.snb-couv-cta a:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 12px 40px rgba(229,25,129,0.4);
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .snb-couv-grid { grid-template-columns: 1fr; }
+  .snb-couv-reseau-badge { display: none; }
+}
+@media (max-width: 640px) {
+  .snb-couv { padding: 40px 12px; }
+  .snb-couv-panel { padding: 24px 16px; border-radius: 24px; }
+  .snb-couv h2 { font-size: 26px; }
+  .snb-couv-map-card { padding: 16px; border-radius: 22px; }
+  .snb-couv-info { padding: 16px 18px; border-radius: 20px; }
+  .snb-couv-highlight { padding: 16px 18px; border-radius: 20px; }
+  .snb-couv-badges { gap: 6px; padding: 10px; }
+  .snb-couv-badge { font-size: 11px; padding: 5px 12px; }
+}
+</style>
+<section class="snb-couv">
+<div class="snb-couv-blob snb-couv-blob-1"></div>
+<div class="snb-couv-blob snb-couv-blob-2"></div>
+<div class="snb-couv-inner">
+<div class="snb-couv-header">
+<h2 data-gds-edit="couverture:0:h2" data-gds-section="couverture" data-gds-tag="H2">
+Où louer votre <span class="snb-couv-acc">photobooth Shootnbox</span>
+<br>en France&nbsp;?
+</h2>
+<p class="snb-couv-subtitle" data-gds-edit="couverture:5:p" data-gds-section="couverture" data-gds-tag="P">
+Retrait gratuit à Paris ou livraison sécurisée partout en France, directement sur le lieu de votre événement.
+</p>
+</div>
+<div class="snb-couv-panel">
+<div class="snb-couv-grid">
+<div class="snb-couv-map-card">
+<div class="snb-couv-map-top">
+<div>
+<h3 class="snb-couv-map-title" data-gds-edit="couverture:1:h3" data-gds-section="couverture" data-gds-tag="H3">Notre équipe et nos locaux</h3>
+<p class="snb-couv-map-desc" data-gds-edit="couverture:6:p" data-gds-section="couverture" data-gds-tag="P">Basés à Paris, nous préparons chaque borne avec soin avant de vous l’expédier.</p>
+</div>
+</div>
+<div class="snb-couv-gallery">
+<div class="snb-couv-photo snb-couv-photo--big"><img src="/images/couverture/bureau-bis.webp" alt="Bureau Shootnbox" width="1200" height="800" loading="lazy" decoding="async" data-gds-img="couverture:81:/images/couverture/bureau-bis.webp"></div>
+<div class="snb-couv-photo"><img src="/images/couverture/paris-51.webp" alt="Shootnbox Paris" width="1200" height="900" loading="lazy" decoding="async" data-gds-img="couverture:82:/images/couverture/paris-51.webp"></div>
+<div class="snb-couv-photo"><img src="/images/couverture/paris-52.webp" alt="Shootnbox Paris" width="900" height="1200" loading="lazy" decoding="async" data-gds-img="couverture:83:/images/couverture/paris-52.webp"></div>
+<div class="snb-couv-photo"><img src="/images/couverture/team-021.webp" alt="Équipe Shootnbox" width="1200" height="796" loading="lazy" decoding="async" data-gds-img="couverture:84:/images/couverture/team-021.webp"></div>
+<div class="snb-couv-photo"><img src="/images/couverture/paris-53.webp" alt="Shootnbox Paris" width="900" height="1200" loading="lazy" decoding="async" data-gds-img="couverture:85:/images/couverture/paris-53.webp"></div>
+<div class="snb-couv-photo"><img src="/images/couverture/team-028.webp" alt="Équipe Shootnbox" width="1200" height="800" loading="lazy" decoding="async" data-gds-img="couverture:86:/images/couverture/team-028.webp"></div>
+<div class="snb-couv-photo"><img src="/images/couverture/paris-54.webp" alt="Shootnbox Paris" width="900" height="1200" loading="lazy" decoding="async" data-gds-img="couverture:87:/images/couverture/paris-54.webp"></div>
+<div class="snb-couv-photo"><img src="/images/couverture/paris-55.webp" alt="Shootnbox Paris" width="1200" height="900" loading="lazy" decoding="async" data-gds-img="couverture:88:/images/couverture/paris-55.webp"></div>
+<div class="snb-couv-photo"><img src="/images/couverture/team-128.webp" alt="Équipe Shootnbox" width="1200" height="800" loading="lazy" decoding="async" data-gds-img="couverture:89:/images/couverture/team-128.webp"></div>
+</div>
+</div>
+<div class="snb-couv-right">
+<div class="snb-couv-info">
+<div class="snb-couv-info-top">
+<div class="snb-couv-info-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><defs><linearGradient id="cIco1" x1="4" y1="2" x2="20" y2="22"><stop offset="0%" stop-color="#fff"></stop><stop offset="100%" stop-color="#ffd6e8"></stop></linearGradient></defs><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" fill="url(#cIco1)" stroke="#fff" stroke-width="0.5"></path><circle cx="12" cy="10" r="3.5" fill="#E51981"></circle><circle cx="12" cy="10" r="1.5" fill="#fff"></circle></svg></div>
+<div>
+<h3 data-gds-edit="couverture:2:h3" data-gds-section="couverture" data-gds-tag="H3">Retrait gratuit à Paris</h3>
+<p>Récupérez votre borne sans frais de transport, rencontrez notre équipe et repartez avec un matériel prêt à l’emploi.</p>
+</div>
+</div>
+<div class="snb-couv-tags">
+<span class="snb-couv-tag">Sans frais de transport</span>
+<span class="snb-couv-tag">Prêt à l’emploi</span>
+<span class="snb-couv-tag">Équipe sur place</span>
+</div>
+<div class="snb-couv-map-embed" style="margin-top: 14px;">
+<iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2624.1!2d2.4484926!3d48.8724423!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47e6712e441122c5%3A0x1279821f9a25615f!2sShootnbox%20-%20Photobooth!5e0!3m2!1sfr!2sfr!4v1710000000000!5m2!1sfr!2sfr" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Shootnbox - Emplacement Google Maps"></iframe>
+</div>
+</div>
+<div class="snb-couv-info">
+<div class="snb-couv-info-top">
+<div class="snb-couv-info-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><defs><linearGradient id="cIco2" x1="1" y1="3" x2="23" y2="21"><stop offset="0%" stop-color="#fff"></stop><stop offset="100%" stop-color="#ffd6e8"></stop></linearGradient></defs><rect x="1" y="3" width="15" height="13" rx="2" fill="url(#cIco2)" stroke="#fff" stroke-width="0.5"></rect><path d="M16 8h4l3 4v4h-7V8z" fill="url(#cIco2)" stroke="#fff" stroke-width="0.5"></path><circle cx="7" cy="18" r="2.5" fill="#E51981" stroke="#fff" stroke-width="1"></circle><circle cx="7" cy="18" r="0.8" fill="#fff"></circle><circle cx="19" cy="18" r="2.5" fill="#E51981" stroke="#fff" stroke-width="1"></circle><circle cx="19" cy="18" r="0.8" fill="#fff"></circle></svg></div>
+<div>
+<h3 data-gds-edit="couverture:3:h3" data-gds-section="couverture" data-gds-tag="H3">Livraison partout en France</h3>
+<p>Que votre événement ait lieu à Lyon, Marseille, Toulouse, Montpellier, Caen ou ailleurs, votre photobooth est expédié en toute sécurité sur le lieu de réception.</p>
+</div>
+</div>
+<div class="snb-couv-tags">
+<span class="snb-couv-tag">Envoi sécurisé</span>
+<span class="snb-couv-tag">Transporteurs partenaires</span>
+<span class="snb-couv-tag">Livraison à temps</span>
+</div>
+</div>
+<div class="snb-couv-highlight">
+<p class="snb-couv-highlight-label" data-gds-edit="couverture:7:p" data-gds-section="couverture" data-gds-tag="P">Livraison nationale</p>
+<h3 data-gds-edit="couverture:4:h3" data-gds-section="couverture" data-gds-tag="H3">Votre borne, au bon endroit et au bon moment</h3>
+<p>Une logistique simple, rassurante et pensée pour votre tranquillité.</p>
+</div>
+</div>
+</div>
+<div class="snb-couv-cta">
+<a href="https://shootnbox.fr/reservation/">Obtenir mon devis partout en France →</a>
+</div>
+</div>
+</div>
+</section>

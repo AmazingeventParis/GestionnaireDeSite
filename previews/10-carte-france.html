@@ -1,0 +1,420 @@
+<style>
+/* === SEPARATEUR === */
+.snb-cf-divider {
+  position: relative;
+  width: 100%;
+  height: 50px;
+  overflow: visible;
+  margin-top: -50px;
+  margin-bottom: 0;
+  z-index: 101;
+}
+.snb-cf-divider svg {
+  position: absolute;
+  bottom: 0; left: 0;
+  width: 100%; height: 100%;
+}
+.snb-cf-sparkle {
+  position: absolute;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  opacity: 0;
+}
+.snb-cf-sparkle1 { background:#E51981; left:15%; top:40%; animation:snbCfSparkle 3s ease-in-out 0s infinite; }
+.snb-cf-sparkle2 { background:#0250FF; left:35%; top:25%; animation:snbCfSparkle 3s ease-in-out 0.5s infinite; width:6px; height:6px; }
+.snb-cf-sparkle3 { background:#FF9800; left:55%; top:50%; animation:snbCfSparkle 3s ease-in-out 1s infinite; width:5px; height:5px; }
+.snb-cf-sparkle4 { background:#E51981; left:72%; top:30%; animation:snbCfSparkle 3s ease-in-out 1.5s infinite; width:7px; height:7px; }
+.snb-cf-sparkle5 { background:#00BCD4; left:88%; top:45%; animation:snbCfSparkle 3s ease-in-out 2s infinite; width:6px; height:6px; }
+@keyframes snbCfSparkle {
+  0%,100% { opacity:0; transform:scale(0) translateY(0); }
+  30% { opacity:0.8; transform:scale(1.2) translateY(-10px); }
+  60% { opacity:0.4; transform:scale(0.8) translateY(-20px); }
+}
+/* === LAYOUT === */
+.snb-cf-outer {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: #FFF8EE;
+  z-index: 102;
+}
+.snb-cf-wrap {
+  position: relative;
+  padding: 40px 30px;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+.snb-cf-bg {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.snb-cf-blob { position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.07; }
+.snb-cf-blob1 { width:600px; height:600px; background:radial-gradient(circle,#FF9800 0%,transparent 70%); top:-20%; right:5%; animation:snbCfBlob1 20s ease-in-out infinite; }
+.snb-cf-blob2 { width:500px; height:500px; background:radial-gradient(circle,#00BCD4 0%,transparent 70%); bottom:-10%; left:5%; animation:snbCfBlob2 25s ease-in-out infinite; }
+.snb-cf-blob3 { width:400px; height:400px; background:radial-gradient(circle,#4CAF50 0%,transparent 70%); top:40%; left:35%; animation:snbCfBlob3 18s ease-in-out infinite; }
+.snb-cf-wave { position:absolute; width:200%; height:200px; opacity:0.06; left:-50%; }
+.snb-cf-wave1 { bottom:10%; background:linear-gradient(90deg,transparent 0%,#FF7043 20%,#FFAB91 40%,transparent 60%,#FF7043 80%,transparent 100%); border-radius:40%; animation:snbCfWave1 12s ease-in-out infinite; }
+.snb-cf-wave2 { top:15%; height:150px; background:linear-gradient(90deg,transparent 0%,#26C6DA 25%,#80DEEA 50%,transparent 75%); border-radius:45%; animation:snbCfWave2 16s ease-in-out infinite; }
+.snb-cf-wave3 { top:55%; height:180px; background:linear-gradient(90deg,transparent 0%,#FFC107 30%,#FFD54F 60%,transparent 100%); border-radius:42%; animation:snbCfWave3 22s ease-in-out infinite; }
+.snb-cf-dot { position:absolute; border-radius:50%; opacity:0.15; }
+.snb-cf-dot1 { background:#FF9800; width:6px; height:6px; top:20%; left:10%; animation:snbCfDot1 15s ease-in-out infinite; }
+.snb-cf-dot2 { background:#00BCD4; width:8px; height:8px; top:70%; left:80%; animation:snbCfDot2 18s ease-in-out infinite; }
+.snb-cf-dot3 { background:#4CAF50; width:5px; height:5px; top:50%; left:50%; animation:snbCfDot3 20s ease-in-out infinite; }
+.snb-cf-dot4 { background:#FFC107; width:7px; height:7px; top:30%; left:70%; animation:snbCfDot4 14s ease-in-out infinite; }
+.snb-cf-dot5 { background:#26C6DA; width:6px; height:6px; top:80%; left:25%; animation:snbCfDot1 17s ease-in-out infinite; }
+.snb-cf-dot6 { background:#FF7043; width:4px; height:4px; top:10%; left:60%; animation:snbCfDot3 13s ease-in-out infinite; }
+@keyframes snbCfBlob1 { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(-60px,40px) scale(1.1)} 66%{transform:translate(30px,-30px) scale(0.9)} }
+@keyframes snbCfBlob2 { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(50px,-40px) scale(1.15)} 66%{transform:translate(-40px,20px) scale(0.95)} }
+@keyframes snbCfBlob3 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-70px,50px) scale(1.2)} }
+@keyframes snbCfWave1 { 0%,100%{transform:translateX(0) rotate(-2deg)} 50%{transform:translateX(15%) rotate(2deg)} }
+@keyframes snbCfWave2 { 0%,100%{transform:translateX(0) rotate(3deg)} 50%{transform:translateX(-20%) rotate(-3deg)} }
+@keyframes snbCfWave3 { 0%,100%{transform:translateX(0) rotate(-1deg)} 50%{transform:translateX(10%) rotate(4deg)} }
+@keyframes snbCfDot1 { 0%,100%{transform:translate(0,0);opacity:.15} 25%{transform:translate(30px,-40px);opacity:.25} 50%{transform:translate(-20px,-60px);opacity:.1} 75%{transform:translate(40px,-20px);opacity:.2} }
+@keyframes snbCfDot2 { 0%,100%{transform:translate(0,0);opacity:.15} 50%{transform:translate(-50px,30px);opacity:.25} }
+@keyframes snbCfDot3 { 0%,100%{transform:translate(0,0);opacity:.1} 33%{transform:translate(40px,30px);opacity:.2} 66%{transform:translate(-30px,-40px);opacity:.15} }
+@keyframes snbCfDot4 { 0%,100%{transform:translate(0,0);opacity:.15} 50%{transform:translate(-40px,-50px);opacity:.25} }
+/* === SECTION LAYOUT === */
+.snb-cf-layout {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  gap: 40px;
+  position: relative;
+  z-index: 1;
+}
+.snb-cf-map {
+  flex: 0 0 40%;
+  min-width: 0;
+  transform: scale(1);
+  transform-origin: center center;
+}
+.snb-cf-card {
+  flex: 1 1 60%;
+  max-width: 680px;
+  background: #fff;
+  border-radius: 24px;
+  padding: 34px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
+  border: 1px solid rgba(229,25,129,0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.snb-cf-container { position: relative; width: 100%; }
+.snb-cf-img { width: 100%; height: auto; display: block; }
+/* === PINS === */
+.snb-cf-pin {
+  position: absolute;
+  width: 26px; height: 34px;
+  transform: translate(-50%, -100%);
+  cursor: pointer;
+  opacity: 0;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+  z-index: 10;
+}
+.snb-cf-pin svg { width: 100%; height: 100%; }
+@keyframes snbCfDrop {
+  0% { opacity:0; transform:translate(-50%,-100%) translateY(-80px) scale(0.3); }
+  50% { opacity:1; transform:translate(-50%,-100%) translateY(8px) scale(1.1); }
+  70% { transform:translate(-50%,-100%) translateY(-4px) scale(0.95); }
+  85% { transform:translate(-50%,-100%) translateY(2px) scale(1.02); }
+  100% { opacity:1; transform:translate(-50%,-100%) translateY(0) scale(1); }
+}
+@keyframes snbCfSwing {
+  0%,100% { transform:translate(-50%,-100%) rotate(0deg); }
+  25% { transform:translate(-50%,-100%) rotate(8deg); }
+  75% { transform:translate(-50%,-100%) rotate(-8deg); }
+}
+.snb-cf-pin.snb-cf-anim { animation: snbCfDrop 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+.snb-cf-pin.snb-cf-swing { transform-origin:50% 100%; animation: snbCfSwing 2s ease-in-out infinite; }
+.snb-cf-pin:hover {
+  z-index: 20;
+  filter: drop-shadow(0 4px 15px rgba(229,25,129,0.6)) !important;
+  transform: translate(-50%,-100%) scale(1.2) !important;
+  animation: none !important;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+.snb-cf-label {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  color: #323338;
+  font-size: 8.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+  text-shadow: 1px 1px 2px rgba(255,255,255,0.9), -1px -1px 2px rgba(255,255,255,0.9), 0 0 4px rgba(255,255,255,1);
+  font-family: "Raleway", sans-serif;
+  letter-spacing: 0.3px;
+}
+/* === CARD TITLE === */
+.snb-cf-title {
+  font-size: clamp(22px, 2.5vw, 32px);
+  font-weight: 900;
+  line-height: 1.25;
+  font-family: "Raleway", sans-serif;
+  text-align: center;
+  background: linear-gradient(120deg, #E51981, #ff6ab0, #FF7A00, #0250FF, #0891B2, #7828C8, #E51981);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: snbCfGrad 4s ease-in-out infinite;
+}
+@keyframes snbCfGrad {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+/* === MOSAIC PHOTOS === */
+.snb-cf-photos { width: 100%; }
+.snb-cf-photos-wrap { position: relative; }
+.snb-cf-mosaic {
+  position: relative;
+  margin-bottom: 4px;
+  border-radius: 16px 16px 0 0;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  grid-template-rows: 160px 140px;
+  gap: 4px;
+}
+.snb-cf-mosaic-cell {
+  overflow: hidden;
+  position: relative;
+  background-size: cover;
+}
+.snb-cf-mosaic-cell:first-child { grid-row: 1 / 3; border-radius: 12px 0 0 12px; }
+.snb-cf-mosaic-cell:nth-child(2) { border-radius: 0 12px 0 0; }
+.snb-cf-mosaic-cell:nth-child(3) { border-radius: 0 0 12px 0; }
+.snb-cf-mosaic-bottom {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  border-radius: 0 0 16px 16px;
+  overflow: hidden;
+}
+.snb-cf-mosaic-bottom .snb-cf-mosaic-cell { height: 160px; border-radius: 0; }
+.snb-cf-mosaic-bottom .snb-cf-mosaic-cell:first-child { border-radius: 0 0 0 12px; }
+.snb-cf-mosaic-bottom .snb-cf-mosaic-cell:last-child { border-radius: 0 0 12px 0; }
+.snb-cf-badge {
+  position: absolute;
+  bottom: 10px; left: 10px;
+  background: rgba(255,255,255,0.95);
+  color: #323338;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  letter-spacing: 0.3px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  z-index: 2;
+  font-family: "Raleway", sans-serif;
+}
+.snb-cf-badge-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #E51981;
+  animation: snbCfPulse 1.5s ease-in-out infinite;
+}
+@keyframes snbCfPulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.4);opacity:0.6} }
+/* === INFO CARDS === */
+.snb-cf-infos {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.snb-cf-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #FFF8EE;
+  border-radius: 14px;
+  border-left: 3px solid #E51981;
+}
+.snb-cf-info-icon {
+  width: 36px; height: 36px; min-width: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #E51981, #ff6eb4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+.snb-cf-info-icon svg { width: 17px; height: 17px; fill: #fff; }
+.snb-cf-info-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #323338;
+  margin-bottom: 4px;
+  line-height: 1.3;
+  font-family: "Raleway", sans-serif;
+}
+.snb-cf-info-text {
+  font-size: 13px;
+  color: #6b6b6b;
+  line-height: 1.5;
+  font-weight: 500;
+  font-family: "Raleway", sans-serif;
+  margin: 0;
+}
+/* === CTA === */
+.snb-cf-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 28px;
+  background: linear-gradient(135deg, #E51981, #ff3fac);
+  color: #fff !important;
+  text-decoration: none !important;
+  font-weight: 700;
+  font-size: 15px;
+  border-radius: 50px;
+  box-shadow: 0 4px 20px rgba(229,25,129,0.35);
+  transition: all 0.3s ease;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  justify-content: center;
+  font-family: "Raleway", sans-serif;
+}
+.snb-cf-btn::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+  transition: left 0.5s ease;
+}
+.snb-cf-btn:hover::before { left: 100%; }
+.snb-cf-btn:hover, .snb-cf-btn:visited, .snb-cf-btn:active {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(229,25,129,0.45);
+  color: #fff !important;
+  text-decoration: none !important;
+}
+/* === RESPONSIVE === */
+@media (max-width: 768px) {
+  .snb-cf-layout { flex-direction: column; gap: 24px; }
+  .snb-cf-card { flex: none; width: 100%; padding: 24px 20px; order: -1; }
+  .snb-cf-btn { padding: 12px 20px; font-size: 13px; width: auto; margin: 0 auto; display: flex; }
+  .snb-cf-map { flex: none; width: 100%; transform: none; }
+  .snb-cf-pin { width: 18px; height: 24px; }
+  .snb-cf-label { font-size: 7px; }
+  .snb-cf-mosaic { grid-template-rows: 110px 80px; }
+  .snb-cf-mosaic-bottom .snb-cf-mosaic-cell { height: 100px; }
+}
+</style>
+<div class="snb-cf-divider">
+<svg viewBox="0 0 1440 120" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M0,120 C240,40 480,100 720,60 C960,20 1200,80 1440,50 L1440,120 L0,120 Z" fill="#E51981" opacity="0.15"></path>
+<path d="M0,120 C180,70 420,110 660,75 C900,40 1140,95 1440,65 L1440,120 L0,120 Z" fill="#0250FF" opacity="0.12"></path>
+<path d="M0,120 C300,90 540,50 780,85 C1020,120 1260,70 1440,90 L1440,120 L0,120 Z" fill="#E51981" opacity="0.18"></path>
+<line x1="10%" y1="95" x2="90%" y2="95" stroke="#E51981" stroke-width="2" opacity="0.3" stroke-dasharray="8,12"></line>
+<circle cx="50%" cy="95" r="5" fill="#E51981" opacity="0.5"></circle>
+<circle cx="48%" cy="95" r="3" fill="#0250FF" opacity="0.4"></circle>
+<circle cx="52%" cy="95" r="3" fill="#0250FF" opacity="0.4"></circle>
+</svg>
+<div class="snb-cf-sparkle snb-cf-sparkle1"></div>
+<div class="snb-cf-sparkle snb-cf-sparkle2"></div>
+<div class="snb-cf-sparkle snb-cf-sparkle3"></div>
+<div class="snb-cf-sparkle snb-cf-sparkle4"></div>
+<div class="snb-cf-sparkle snb-cf-sparkle5"></div>
+</div>
+<div class="snb-cf-outer">
+<div class="snb-cf-bg">
+<div class="snb-cf-blob snb-cf-blob1"></div>
+<div class="snb-cf-blob snb-cf-blob2"></div>
+<div class="snb-cf-blob snb-cf-blob3"></div>
+<div class="snb-cf-wave snb-cf-wave1"></div>
+<div class="snb-cf-wave snb-cf-wave2"></div>
+<div class="snb-cf-wave snb-cf-wave3"></div>
+<div class="snb-cf-dot snb-cf-dot1"></div>
+<div class="snb-cf-dot snb-cf-dot2"></div>
+<div class="snb-cf-dot snb-cf-dot3"></div>
+<div class="snb-cf-dot snb-cf-dot4"></div>
+<div class="snb-cf-dot snb-cf-dot5"></div>
+<div class="snb-cf-dot snb-cf-dot6"></div>
+</div>
+<div class="snb-cf-wrap">
+<div class="snb-cf-layout">
+<div class="snb-cf-map">
+<div class="snb-cf-container" id="snbCfContainer">
+<img loading="lazy" src="/images/carte-france.webp" alt="Carte de France Shootnbox" class="snb-cf-img" width="1145" height="1200" decoding="async" data-gds-img="carte-france:115:/images/carte-france.webp">
+<div class="snb-cf-pin" style="left:54%;top:11%" data-delay="0"><span class="snb-cf-label">Lille</span><svg viewBox="0 0 24 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0z" fill="#E51981"></path><circle cx="12" cy="11" r="5" fill="white"></circle></svg></div>
+<div class="snb-cf-pin" style="left:50%;top:27%" data-delay="1"><span class="snb-cf-label">Paris</span><svg viewBox="0 0 24 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0z" fill="#E51981"></path><circle cx="12" cy="11" r="5" fill="white"></circle></svg></div>
+<div class="snb-cf-pin" style="left:58%;top:24%" data-delay="2"><span class="snb-cf-label">Reims</span><svg viewBox="0 0 24 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0z" fill="#E51981"></path><circle cx="12" cy="11" r="5" fill="white"></circle></svg></div>
+<div class="snb-cf-pin" style="left:90%;top:29%" data-delay="3"><span class="snb-cf-label">Strasbourg</span><svg viewBox="0 0 24 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0z" fill="#E51981"></path><circle cx="12" cy="11" r="5" fill="white"></circle></svg></div>
+<div class="snb-cf-pin" style="left:28%;top:34%" data-delay="4"><span class="snb-cf-label">Rennes</span><svg viewBox="0 0 24 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0z" fill="#E51981"></path><circle cx="12" cy="11" r="5" fill="white"></circle></svg></div>
+<div class="snb-cf-pin" style="left:28%;top:42%" data-delay="5"><span class="snb-cf-label">Nantes</span><svg viewBox="0 0 24 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0z" fill="#E51981"></path><circle cx="12" cy="11" r="5" fill="white"></circle></svg></div>
+<div class="snb-cf-pin" style="left:72%;top:54%" data-delay="6"><span class="snb-cf-label">Lyon</span><svg viewBox="0 0 24 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0z" fill="#E51981"></path><circle cx="12" cy="11" r="5" fill="white"></circle></svg></div>
+<div class="snb-cf-pin" style="left:34%;top:66%" data-delay="7"><span class="snb-cf-label">Bordeaux</span><svg viewBox="0 0 24 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0z" fill="#E51981"></path><circle cx="12" cy="11" r="5" fill="white"></circle></svg></div>
+<div class="snb-cf-pin" style="left:45%;top:79%" data-delay="8"><span class="snb-cf-label">Toulouse</span><svg viewBox="0 0 24 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0z" fill="#E51981"></path><circle cx="12" cy="11" r="5" fill="white"></circle></svg></div>
+<div class="snb-cf-pin" style="left:66%;top:79%" data-delay="9"><span class="snb-cf-label">Montpellier</span><svg viewBox="0 0 24 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0z" fill="#E51981"></path><circle cx="12" cy="11" r="5" fill="white"></circle></svg></div>
+<div class="snb-cf-pin" style="left:81%;top:84%" data-delay="10"><span class="snb-cf-label">Marseille</span><svg viewBox="0 0 24 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0z" fill="#E51981"></path><circle cx="12" cy="11" r="5" fill="white"></circle></svg></div>
+<div class="snb-cf-pin" style="left:91%;top:75%" data-delay="11"><span class="snb-cf-label">Nice</span><svg viewBox="0 0 24 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0z" fill="#E51981"></path><circle cx="12" cy="11" r="5" fill="white"></circle></svg></div>
+<div class="snb-cf-pin" style="left:41%;top:40%" data-delay="12"><span class="snb-cf-label">Tours</span><svg viewBox="0 0 24 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0z" fill="#E51981"></path><circle cx="12" cy="11" r="5" fill="white"></circle></svg></div>
+<div class="snb-cf-pin" style="left:54%;top:55%" data-delay="13"><span class="snb-cf-label">Clermont-Ferrand</span><svg viewBox="0 0 24 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0z" fill="#E51981"></path><circle cx="12" cy="11" r="5" fill="white"></circle></svg></div>
+<div class="snb-cf-pin" style="left:66%;top:37%" data-delay="14"><span class="snb-cf-label">Dijon</span><svg viewBox="0 0 24 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0z" fill="#E51981"></path><circle cx="12" cy="11" r="5" fill="white"></circle></svg></div>
+<div class="snb-cf-pin" style="left:29%;top:51%" data-delay="15"><span class="snb-cf-label">La Rochelle</span><svg viewBox="0 0 24 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0z" fill="#E51981"></path><circle cx="12" cy="11" r="5" fill="white"></circle></svg></div>
+<div class="snb-cf-pin" style="left:77%;top:59%" data-delay="16"><span class="snb-cf-label">Grenoble</span><svg viewBox="0 0 24 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0z" fill="#E51981"></path><circle cx="12" cy="11" r="5" fill="white"></circle></svg></div>
+<div class="snb-cf-pin" style="left:25%;top:80%" data-delay="17"><span class="snb-cf-label">Bayonne</span><svg viewBox="0 0 24 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0z" fill="#E51981"></path><circle cx="12" cy="11" r="5" fill="white"></circle></svg></div>
+<div class="snb-cf-pin" style="left:35%;top:24%" data-delay="18"><span class="snb-cf-label">Caen</span><svg viewBox="0 0 24 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0z" fill="#E51981"></path><circle cx="12" cy="11" r="5" fill="white"></circle></svg></div>
+<div class="snb-cf-pin" style="left:59%;top:90%" data-delay="19"><span class="snb-cf-label">Perpignan</span><svg viewBox="0 0 24 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0z" fill="#E51981"></path><circle cx="12" cy="11" r="5" fill="white"></circle></svg></div>
+<div class="snb-cf-pin" style="left:7%;top:30%" data-delay="20"><span class="snb-cf-label">Brest</span><svg viewBox="0 0 24 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0z" fill="#E51981"></path><circle cx="12" cy="11" r="5" fill="white"></circle></svg></div>
+</div>
+</div>
+<div class="snb-cf-card">
+<h2 class="snb-cf-title" data-gds-edit="carte-france:0:h2" data-gds-section="carte-france" data-gds-tag="H2">
+Votre borne photo livrée en 48h partout en France 🔔
+</h2>
+<div class="snb-cf-photos">
+<div class="snb-cf-photos-wrap">
+<div class="snb-cf-mosaic">
+<div class="snb-cf-mosaic-cell" style="background:url(/images/agence/paris-54.webp) center 45%/cover no-repeat" data-gds-bg="carte-france:0:/images/agence/paris-54.webp"></div>
+<div class="snb-cf-mosaic-cell" style="background:url(/images/agence/paris-51.webp) center 69%/cover no-repeat" data-gds-bg="carte-france:1:/images/agence/paris-51.webp"></div>
+<div class="snb-cf-mosaic-cell" style="background:url(/images/agence/paris-55.webp) center 50%/cover no-repeat" data-gds-bg="carte-france:2:/images/agence/paris-55.webp"></div>
+</div>
+<div class="snb-cf-mosaic-bottom">
+<div class="snb-cf-mosaic-cell" style="background:url(/images/agence/paris-52.webp) center 35%/cover no-repeat" data-gds-bg="carte-france:3:/images/agence/paris-52.webp"></div>
+<div class="snb-cf-mosaic-cell" style="background:url(/images/agence/paris-53.webp) center 42%/cover no-repeat" data-gds-bg="carte-france:4:/images/agence/paris-53.webp"></div>
+</div>
+<div class="snb-cf-badge"><span class="snb-cf-badge-dot"></span> Notre agence Paris</div>
+</div>
+</div>
+<div class="snb-cf-infos">
+<div class="snb-cf-info">
+<div class="snb-cf-info-icon"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"></path></svg></div>
+<div>
+<div class="snb-cf-info-title" data-gds-edit="carte-france:1:div" data-gds-section="carte-france" data-gds-tag="DIV">Retrait gratuit dans notre agence de Paris.</div>
+<p class="snb-cf-info-text" data-gds-edit="carte-france:3:p" data-gds-section="carte-france" data-gds-tag="P">Venez nous rencontrer ! Récupérez votre matériel à Paris et profitez d'une démonstration gratuite</p>
+</div>
+</div>
+<div class="snb-cf-info">
+<div class="snb-cf-info-icon"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"></path></svg></div>
+<div>
+<div class="snb-cf-info-title" data-gds-edit="carte-france:2:div" data-gds-section="carte-france" data-gds-tag="DIV">Livraison par colis partout en France sous 48h</div>
+<p class="snb-cf-info-text" data-gds-edit="carte-france:4:p" data-gds-section="carte-france" data-gds-tag="P">Livraison sécurisée 48h avant votre événement. Un service premium au prix d'une livraison classique</p>
+</div>
+</div>
+</div>
+<div>
+<a href="/reservation/" class="snb-cf-btn">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+Vérifier la dispo dans ma ville
+</a>
+</div>
+</div>
+</div>
+</div>
+</div>

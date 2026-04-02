@@ -1,0 +1,50 @@
+services:
+  gestionnaire-de-site:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - NODE_ENV=production
+      - PORT=3000
+    volumes:
+      - gds-uploads:/app/uploads_tmp
+      - gds-backups:/app/backups
+      - gds-previews:/app/previews
+      - gds-site-images:/app/public/site-images
+      - gds-blocks:/app/blocks
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.middlewares.gzip.compress=true"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.routers.http-0-usnz6o4qp48maw8q0lny22nl.entryPoints=http"
+      - "traefik.http.routers.http-0-usnz6o4qp48maw8q0lny22nl.middlewares=redirect-to-https"
+      - "traefik.http.routers.http-0-usnz6o4qp48maw8q0lny22nl.rule=Host(`sites.swipego.app`) && PathPrefix(`/`)"
+      - "traefik.http.routers.http-0-usnz6o4qp48maw8q0lny22nl.service=http-0-usnz6o4qp48maw8q0lny22nl"
+      - "traefik.http.routers.https-0-usnz6o4qp48maw8q0lny22nl.entryPoints=https"
+      - "traefik.http.routers.https-0-usnz6o4qp48maw8q0lny22nl.middlewares=gzip"
+      - "traefik.http.routers.https-0-usnz6o4qp48maw8q0lny22nl.rule=Host(`sites.swipego.app`) && PathPrefix(`/`)"
+      - "traefik.http.routers.https-0-usnz6o4qp48maw8q0lny22nl.service=https-0-usnz6o4qp48maw8q0lny22nl"
+      - "traefik.http.routers.https-0-usnz6o4qp48maw8q0lny22nl.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.https-0-usnz6o4qp48maw8q0lny22nl.tls=true"
+      - "traefik.http.services.http-0-usnz6o4qp48maw8q0lny22nl.loadbalancer.server.port=3000"
+      - "traefik.http.services.https-0-usnz6o4qp48maw8q0lny22nl.loadbalancer.server.port=3000"
+    networks:
+      - coolify
+
+volumes:
+  gds-uploads:
+  gds-backups:
+  gds-previews:
+  gds-site-images:
+  gds-blocks:
+
+networks:
+  coolify:
+    external: true
