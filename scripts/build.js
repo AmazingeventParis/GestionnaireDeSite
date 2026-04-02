@@ -928,7 +928,8 @@ ul { list-style: none; padding: 0; margin: 0; }
   --cta-section-padding: ${siteConfig.sections?.cta?.padding?.mobile || '40px 16px'};
   --cta-section-title-size: ${siteConfig.sections?.cta?.titleSize?.mobile || '26px'};
 } }
-.lph-bg-overlay{position:absolute!important;top:0!important;left:0!important;width:100%!important;height:100%!important;background:linear-gradient(to right,rgba(14,10,26,.92) 0%,rgba(14,10,26,.78) 25%,rgba(14,10,26,.45) 50%,rgba(14,10,26,.12) 70%,transparent 85%)!important;pointer-events:none}
+.lph-bg-overlay,.lp-hero-bg-overlay,.lp-bg-overlay{display:block!important;position:absolute!important;top:0!important;left:0!important;width:100%!important;height:100%!important;background:linear-gradient(to right,rgba(14,10,26,.92) 0%,rgba(14,10,26,.78) 25%,rgba(14,10,26,.45) 50%,rgba(14,10,26,.12) 70%,transparent 85%)!important;pointer-events:none}
+.gds-section-wrapper .snb-header{position:static!important;top:auto!important;left:auto!important;width:auto!important;z-index:auto!important;background:transparent!important;padding:0!important}
 </style>
 ${buildJsonLdTags(page)}
 </head>

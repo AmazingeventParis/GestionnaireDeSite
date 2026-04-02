@@ -2542,12 +2542,24 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
     h1, h2, h3, h4, h5, h6 { font-family: var(--font-headings); }
     .container { max-width: var(--max-width); margin: 0 auto; padding: 0 20px; }
     /* Hero gradient global — dark left-to-right on all pages */
-    .lph-bg-overlay {
+    .lph-bg-overlay,
+    .lp-hero-bg-overlay,
+    .lp-bg-overlay {
+      display: block !important;
       position: absolute !important;
       top: 0 !important; left: 0 !important;
       width: 100% !important; height: 100% !important;
       background: linear-gradient(to right, rgba(14,10,26,0.92) 0%, rgba(14,10,26,0.78) 25%, rgba(14,10,26,0.45) 50%, rgba(14,10,26,0.12) 70%, transparent 85%) !important;
       pointer-events: none;
+    }
+    /* Neutralise .snb-header inside sections (conflict with fixed site header) */
+    .gds-section-wrapper .snb-header {
+      position: static !important;
+      top: auto !important; left: auto !important;
+      width: auto !important;
+      z-index: auto !important;
+      background: transparent !important;
+      padding: 0 !important;
     }
   </style>
   <link rel="stylesheet" href="/css/styles-${slug === 'home' ? 'home' : slug}.css">
