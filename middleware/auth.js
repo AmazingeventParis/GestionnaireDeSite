@@ -4,8 +4,16 @@ const supabase = require('../lib/supabase');
 /**
  * Verify JWT and attach user to request
  * Checks Authorization header first, then access_token cookie
+ * Also accepts static GDS_API_SECRET via X-Api-Key header (machine-to-machine, no expiration)
  */
 async function verifyToken(req, res, next) {
+  // Static API key check (machine-to-machine, no expiration)
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey && process.env.GDS_API_SECRET && apiKey === process.env.GDS_API_SECRET) {
+    req.user = { id: 'api', email: 'api@gds', role: 'admin', username: 'api' };
+    return next();
+  }
+
   let token = null;
 
   // Check Authorization header
