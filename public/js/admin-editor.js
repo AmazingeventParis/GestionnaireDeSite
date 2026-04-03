@@ -750,6 +750,17 @@
     const placeholders = allPlaceholders.filter(el => {
       if (seen.has(el)) return false;
       seen.add(el);
+      // Skip img placeholders that already have a src set (already filled by user)
+      if (el.tagName === 'IMG' && el.getAttribute('src')) return false;
+      // Skip decorative placeholder divs/spans — check ancestor containers up to 3 levels.
+      // e.g. div.snb-gal-placeholder and its children (.snb-gal-placeholder-icon, -label, -bg)
+      // are visual empty states; the real placeholder is img[data-gds-placeholder] in the parent container.
+      if (el.tagName !== 'IMG') {
+        let p = el.parentElement;
+        for (let d = 0; d < 3 && p; d++, p = p.parentElement) {
+          if (p.querySelector('img[data-gds-placeholder]')) return false;
+        }
+      }
       // Skip elements that already have a real image inside
       if (el.querySelector('img, video')) return false;
       // Skip admin UI elements
@@ -764,20 +775,30 @@
       let target = ph;
       if (ph.tagName === 'IMG') {
         const wrapper = document.createElement('div');
-        wrapper.style.position = 'relative';
-        wrapper.style.display = 'inline-block';
-        wrapper.style.width = ph.style.width || '100%';
-        wrapper.style.height = ph.style.height || 'auto';
-        wrapper.style.aspectRatio = ph.style.aspectRatio || '';
-        wrapper.style.cursor = 'pointer';
-        // Copy grid/layout relevant attributes
-        if (ph.className) wrapper.className = ph.className.split(' ').filter(c => !c.includes('cell-img')).join(' ') + ' gds-ph-img-wrap';
+        wrapper.className = 'gds-ph-img-wrap';
+        // Preserve absolute positioning — CSS may use img[data-gds-placeholder] for layout (e.g. position:absolute;inset:0)
+        const computedPos = window.getComputedStyle(ph).position;
+        const isAbsolute = computedPos === 'absolute' || computedPos === 'fixed';
+        if (isAbsolute) {
+          wrapper.style.position = computedPos;
+          wrapper.style.inset = '0';
+          wrapper.style.zIndex = window.getComputedStyle(ph).zIndex || '';
+        } else {
+          wrapper.style.position = 'relative';
+          wrapper.style.display = 'inline-block';
+          wrapper.style.width = ph.style.width || '100%';
+          wrapper.style.height = ph.style.height || 'auto';
+          wrapper.style.aspectRatio = ph.style.aspectRatio || '';
+          wrapper.style.cursor = 'pointer';
+          // Copy grid/layout relevant classes only for non-absolute imgs
+          if (ph.className) wrapper.className = ph.className.split(' ').filter(c => !c.includes('cell-img')).join(' ') + ' gds-ph-img-wrap';
+          // Reset img to fill wrapper
+          ph.style.width = '100%';
+          ph.style.height = '100%';
+          ph.style.display = 'block';
+        }
         ph.parentNode.insertBefore(wrapper, ph);
         wrapper.appendChild(ph);
-        // Reset img to fill wrapper
-        ph.style.width = '100%';
-        ph.style.height = '100%';
-        ph.style.display = 'block';
         target = wrapper;
       }
 
@@ -1155,24 +1176,21 @@
         // Replace placeholder with image/video
         const isVideo = imgSrc.match(/\.(mp4|webm|mov)(\?|$)/i) || (selectedFile && selectedFile.type.startsWith('video/'));
 
+        // Capture saveWrapper BEFORE any replaceWith (which detaches the element from DOM)
+        const saveWrapper = placeholderEl.closest('.gds-section-wrapper')
+          || placeholderEl.parentElement?.closest('.gds-section-wrapper');
+
         // If the placeholder IS an <img>, just set its src directly
         if (placeholderEl.tagName === 'IMG' && !isVideo) {
           placeholderEl.src = imgSrc;
-          placeholderEl.removeAttribute('data-gds-placeholder');
-          placeholderEl.style.border = 'none';
-          placeholderEl.style.borderRadius = '';
-          placeholderEl.style.background = '';
-          // Remove the wrapper overlay if it exists
+          // Keep data-gds-placeholder — the section CSS may use img[data-gds-placeholder] for positioning (absolute/inset:0).
+          // The filter in initPlaceholderImages will skip this img on next load since src is now set.
+          // Remove the overlay visually so user sees the image
           const phWrapper = placeholderEl.closest('.gds-ph-img-wrap');
           if (phWrapper) {
             const phOverlay = phWrapper.querySelector('.gds-ph-overlay');
             if (phOverlay) phOverlay.remove();
           }
-          // Find section context for data-gds-img
-          const wrapper = placeholderEl.closest('.gds-section-wrapper');
-          const sectionFile = wrapper ? wrapper.getAttribute('data-gds-file') || 'custom' : 'custom';
-          const sectionName = sectionFile.replace(/^\d+-/, '').replace('.html', '');
-          placeholderEl.setAttribute('data-gds-img', `${sectionName}:0:${imgSrc}`);
         } else {
           // Original logic for div placeholders or video replacement
           const parent = placeholderEl.parentElement;
@@ -1203,19 +1221,25 @@
         }
 
         // Save the section file with the new content (cleaned of admin UI)
-        const saveWrapper = (placeholderEl.closest || placeholderEl.parentElement?.closest)
-          ? (placeholderEl.closest('.gds-section-wrapper') || placeholderEl.parentElement?.closest('.gds-section-wrapper'))
-          : null;
-        if (saveWrapper) {
-          const file = saveWrapper.getAttribute('data-gds-file');
-          if (file) {
-            const sectionHtml = cleanSectionHtml(saveWrapper);
-            await Auth.apiFetch('/api/pages/' + currentSlug + '/section/' + encodeURIComponent(file), {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ content: sectionHtml })
-            });
-          }
+        if (!saveWrapper) {
+          console.error('[GDS] Placeholder save: saveWrapper introuvable pour', placeholderEl);
+          throw new Error('Section introuvable dans le DOM');
+        }
+        const file = saveWrapper.getAttribute('data-gds-file');
+        if (!file) {
+          console.error('[GDS] Placeholder save: data-gds-file manquant sur', saveWrapper);
+          throw new Error('Attribut data-gds-file manquant');
+        }
+        const sectionHtml = cleanSectionHtml(saveWrapper);
+        console.log('[GDS] Saving placeholder image in section', file, '— HTML length:', sectionHtml.length);
+        const saveRes = await Auth.apiFetch('/api/pages/' + currentSlug + '/section/' + encodeURIComponent(file), {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: sectionHtml })
+        });
+        if (!saveRes.ok) {
+          const errData = await saveRes.json().catch(() => ({}));
+          throw new Error(errData.error || 'Erreur sauvegarde HTTP ' + saveRes.status);
         }
 
         close();
