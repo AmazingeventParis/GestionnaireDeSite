@@ -2476,7 +2476,7 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
         if (css.trim()) sectionStyles += css + '\n';
         return '';
       });
-      bodyContent += footerHtml + '\n';
+      bodyContent += `<div style="content-visibility:auto;contain-intrinsic-size:auto 400px;">${footerHtml}</div>\n`;
     }
 
     // ── Post-processing optimisations ──
@@ -2494,6 +2494,13 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
     //    Les variables Shootnbox (--rose, --bleu, etc.) sont maintenant dans le :root global
     //    → supprime les blocs :root dupliqués pour réduire le temps de parsing CSS
     sectionStyles = sectionStyles.replace(/:root\s*\{[^{}]*\}/g, '');
+
+    // C. Minification CSS — réduit ~130KB → ~80KB (économise ~200ms parse sous throttle 4x)
+    sectionStyles = sectionStyles
+      .replace(/\/\*[\s\S]*?\*\//g, '')   // supprime les commentaires CSS
+      .replace(/[ \t]+/g, ' ')             // collapse whitespace horizontal
+      .replace(/\n\s*\n/g, '\n')           // supprime les lignes vides
+      .trim();
 
     // ── Performance hints ──
     // 1. LCP hero image preload — priorité : classe lp-hero-bg, sinon fetchpriority="high" + loading="eager"
