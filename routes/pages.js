@@ -2496,12 +2496,16 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
     sectionStyles = sectionStyles.replace(/:root\s*\{[^{}]*\}/g, '');
 
     // ── Performance hints ──
-    // 1. LCP hero image preload: find first img with lp-hero-bg class or fetchpriority="high"
+    // 1. LCP hero image preload — priorité : classe lp-hero-bg, sinon fetchpriority="high" + loading="eager"
+    //    (le logo a fetchpriority="high" mais pas loading="eager", l'image hero a les deux)
     let lcpImageUrl = '';
-    const lcpImgMatch = bodyContent.match(
-      /<img[^>]+class="[^"]*lp-hero-bg[^"]*"[^>]*src="([^"]+)"|<img[^>]+src="([^"]+)"[^>]+class="[^"]*lp-hero-bg[^"]*"|<img[^>]+fetchpriority="high"[^>]+src="([^"]+)"|<img[^>]+src="([^"]+)"[^>]+fetchpriority="high"/i
-    );
-    if (lcpImgMatch) lcpImageUrl = lcpImgMatch[1] || lcpImgMatch[2] || lcpImgMatch[3] || lcpImgMatch[4];
+    const lcpImgMatch =
+      // Priorité 1 : img avec classe lp-hero-bg (hero bg classique)
+      bodyContent.match(/<img[^>]+class="[^"]*lp-hero-bg[^"]*"[^>]*src="([^"]+)"|<img[^>]+src="([^"]+)"[^>]+class="[^"]*lp-hero-bg[^"]*"/i) ||
+      // Priorité 2 : img avec fetchpriority="high" ET loading="eager" (distingue du logo)
+      bodyContent.match(/<img[^>]+fetchpriority="high"[^>]+loading="eager"[^>]*src="([^"]+)"|<img[^>]+src="([^"]+)"[^>]+fetchpriority="high"[^>]+loading="eager"/i) ||
+      bodyContent.match(/<img[^>]+loading="eager"[^>]+fetchpriority="high"[^>]*src="([^"]+)"|<img[^>]+src="([^"]+)"[^>]+loading="eager"[^>]+fetchpriority="high"/i);
+    if (lcpImgMatch) lcpImageUrl = lcpImgMatch[1] || lcpImgMatch[2];
 
     // 2. Preconnect: detect external image domains
     const externalDomains = new Set();
