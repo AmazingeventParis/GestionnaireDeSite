@@ -100,12 +100,17 @@
 }
 
 @media (max-width: 768px) {
-  .snb-page-bg .bg-glow { filter: blur(80px); }
+  .snb-page-bg .bg-glow { filter: blur(40px); }
   .snb-page-bg .bg-g1, .snb-page-bg .bg-g2, .snb-page-bg .bg-g3,
   .snb-page-bg .bg-g4, .snb-page-bg .bg-g5, .snb-page-bg .bg-g6 {
-    width: 300px !important; height: 300px !important;
+    width: 220px !important; height: 220px !important;
   }
   .snb-page-bg .bg-picto { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .snb-page-bg .bg-glow,
+  .snb-page-bg .bg-picto { animation: none; }
 }
 </style>
 <div class="snb-page-bg" aria-hidden="true">

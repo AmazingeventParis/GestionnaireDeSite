@@ -2080,23 +2080,31 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
     // Assemble the page: shared header + page sections + shared footer
     const sections = scanSections(previewDir);
     let bodyContent = '';
+    let sectionScripts = '';
+    let sectionStyles = ''; // All section CSS consolidated into one <style> in <head>
 
-    // Inject shared header
+    // Inject shared header — extract its <style> to consolidated head CSS
     const sharedHeaderPath = path.join(SHARED_DIR, 'header.html');
     if (fs.existsSync(sharedHeaderPath)) {
-      bodyContent += fs.readFileSync(sharedHeaderPath, 'utf-8') + '\n';
+      let headerHtml = fs.readFileSync(sharedHeaderPath, 'utf-8');
+      headerHtml = headerHtml.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, (match, css) => {
+        if (css.trim()) sectionStyles += css + '\n';
+        return '';
+      });
+      bodyContent += headerHtml + '\n';
     }
     bodyContent += '<main class="snb-page-content">\n';
 
-    // Inject blog CSS globally (not scoped) for blog pages
+    // Inject blog CSS globally (not scoped) for blog pages — goes to head via sectionStyles
     if (slug.startsWith('blog-')) {
       const blogCssPath = path.join(__dirname, '..', 'public', 'css', 'blog-styles.css');
       if (fs.existsSync(blogCssPath)) {
-        bodyContent += `<style>${fs.readFileSync(blogCssPath, 'utf-8')}</style>\n`;
+        sectionStyles += fs.readFileSync(blogCssPath, 'utf-8') + '\n';
       }
     }
 
     // Inject shared page background (halos, glows, transitions) if enabled
+    // Deferred via script to avoid blocking LCP render
     if (config.sections?.background?.enabled !== false) {
       const bgPath = path.join(SHARED_DIR, 'page-background.html');
       if (fs.existsSync(bgPath)) {
@@ -2114,7 +2122,13 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
         if (config.sections?.background?.pictos === false) {
           bgHtml = bgHtml.replace(/<svg class="bg-picto[\s\S]*?<\/svg>/g, '');
         }
-        bodyContent += bgHtml + '\n';
+        // Extract CSS from background and put in sectionStyles (consolidated in head)
+        bgHtml = bgHtml.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, (match, css) => {
+          if (css.trim()) sectionStyles += css + '\n';
+          return '';
+        });
+        // Defer background DOM injection until after LCP (next paint frame)
+        bodyContent += `<script>requestAnimationFrame(function(){var d=document.createElement('div');d.innerHTML=${JSON.stringify(bgHtml.trim())};document.body.prepend(d.firstElementChild);});</script>\n`;
       }
     }
 
@@ -2126,11 +2140,11 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
     }
 
     // Page-specific sections (skip any header/footer files that might remain)
-    let sectionScripts = '';
-    let sectionStyles = '';
+    let sectionIdx = 0; // Track section order for content-visibility optimization
     for (const section of sections) {
       const nameLower = section.file.toLowerCase();
       if (nameLower.includes('header') || nameLower.includes('footer')) continue;
+      sectionIdx++;
       let content = fs.readFileSync(path.join(previewDir, section.file), 'utf-8');
 
       // Check if this is a standalone section (has <body> tag)
@@ -2249,18 +2263,26 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
         allCSS += `\n@media(max-width:850px){#${scopeId} .snb-article-layout{grid-template-columns:1fr!important;gap:0!important;}#${scopeId} .snb-sidebar{position:static!important;display:none!important;}}`;
 
         const sectionSpacing = spacingData[section.file] ? `margin-top:${spacingData[section.file]}px;` : '';
-        bodyContent += `<div class="gds-section-wrapper" id="${scopeId}" data-gds-file="${section.file}" style="${wrapperStyle}${sectionSpacing}">\n`;
-        if (allCSS.trim()) bodyContent += `<style>${allCSS}</style>\n`;
+        // content-visibility:auto on sections >= 3 (below the fold) — skips layout/paint for off-screen
+        const cvStyle = sectionIdx >= 3 ? 'content-visibility:auto;contain-intrinsic-size:auto 500px;' : '';
+        bodyContent += `<div class="gds-section-wrapper" id="${scopeId}" data-gds-file="${section.file}" style="${wrapperStyle}${sectionSpacing}${cvStyle}">\n`;
+        // Collect CSS in head instead of per-section <style> blocks (reduces style recalculations)
+        if (allCSS.trim()) sectionStyles += allCSS + '\n';
         bodyContent += `${content}\n</div>\n`;
       } else {
-        // Fragment HTML: keep <style> inline as-is, just extract scripts
+        // Fragment HTML: extract scripts AND styles → consolidate in head
         content = content.replace(/<script[^>]*>([\s\S]*?)<\/script>/gi, (match, js) => {
           if (js.trim()) sectionScripts += `<script>${js}</script>\n`;
           return '';
         });
+        content = content.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, (match, css) => {
+          if (css.trim()) sectionStyles += css + '\n';
+          return '';
+        });
 
         const fragSpacing = spacingData[section.file] ? `margin-top:${spacingData[section.file]}px;` : '';
-        bodyContent += `<div class="gds-section-wrapper" data-gds-file="${section.file}" style="position:relative;${fragSpacing}">\n${content}\n</div>\n`;
+        const cvStyleFrag = sectionIdx >= 3 ? 'content-visibility:auto;contain-intrinsic-size:auto 500px;' : '';
+        bodyContent += `<div class="gds-section-wrapper" data-gds-file="${section.file}" style="position:relative;${fragSpacing}${cvStyleFrag}">\n${content}\n</div>\n`;
       }
     }
 
@@ -2446,11 +2468,58 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
       }
     }
 
-    // Inject shared footer
+    // Inject shared footer — extract its <style> to consolidated head CSS
     const sharedFooterPath = path.join(SHARED_DIR, 'footer.html');
     if (fs.existsSync(sharedFooterPath)) {
-      bodyContent += fs.readFileSync(sharedFooterPath, 'utf-8') + '\n';
+      let footerHtml = fs.readFileSync(sharedFooterPath, 'utf-8');
+      footerHtml = footerHtml.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, (match, css) => {
+        if (css.trim()) sectionStyles += css + '\n';
+        return '';
+      });
+      bodyContent += footerHtml + '\n';
     }
+
+    // ── Post-processing optimisations ──
+
+    // A. Auto-lazy : ajouter loading="lazy" sur toutes les images sans attribut loading
+    //    sauf LCP (fetchpriority="high") et images déjà marquées eager
+    //    → libère toute la bande passante pour l'image LCP (impact +4-5s sous throttling Lighthouse)
+    bodyContent = bodyContent.replace(/<img(\s[^>]*?)?\s*\/?>/gi, (match, attrs = '') => {
+      if (/\bloading\s*=/i.test(attrs)) return match;
+      if (/\bfetchpriority\s*=\s*["']high["']/i.test(attrs)) return match;
+      return `<img${attrs} loading="lazy">`;
+    });
+
+    // B. Déduplication :root{} dans sectionStyles
+    //    Les variables Shootnbox (--rose, --bleu, etc.) sont maintenant dans le :root global
+    //    → supprime les blocs :root dupliqués pour réduire le temps de parsing CSS
+    sectionStyles = sectionStyles.replace(/:root\s*\{[^{}]*\}/g, '');
+
+    // ── Performance hints ──
+    // 1. LCP hero image preload: find first img with lp-hero-bg class or fetchpriority="high"
+    let lcpImageUrl = '';
+    const lcpImgMatch = bodyContent.match(
+      /<img[^>]+class="[^"]*lp-hero-bg[^"]*"[^>]*src="([^"]+)"|<img[^>]+src="([^"]+)"[^>]+class="[^"]*lp-hero-bg[^"]*"|<img[^>]+fetchpriority="high"[^>]+src="([^"]+)"|<img[^>]+src="([^"]+)"[^>]+fetchpriority="high"/i
+    );
+    if (lcpImgMatch) lcpImageUrl = lcpImgMatch[1] || lcpImgMatch[2] || lcpImgMatch[3] || lcpImgMatch[4];
+
+    // 2. Preconnect: detect external image domains
+    const externalDomains = new Set();
+    const extImgRe = /src="(https?:\/\/([^/"]+)[^"]*\.(jpg|jpeg|png|webp|avif|gif|svg))"/gi;
+    let extM;
+    while ((extM = extImgRe.exec(bodyContent)) !== null) {
+      externalDomains.add(`https://${extM[2]}`);
+    }
+    const preconnectLinks = Array.from(externalDomains)
+      .map(d => `  <link rel="preconnect" href="${d}" crossorigin>`)
+      .join('\n');
+
+    // 3. CSS file check — only link if file exists (prevents MIME error on unpublished pages)
+    const cssSlug = slug === 'home' ? 'home' : slug;
+    const cssFilePath = path.join(__dirname, '..', 'public', 'css', `styles-${cssSlug}.css`);
+    const cssLink = fs.existsSync(cssFilePath)
+      ? `<link rel="stylesheet" href="/css/styles-${cssSlug}.css">`
+      : '';
 
     // Read SEO data
     let seo = { title: config.identity?.name || 'Preview', description: '' };
@@ -2473,11 +2542,13 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${seo.title || config.identity?.name || 'Preview'}</title>
   <meta name="description" content="${seo.description || ''}">
+  <link rel="preload" as="font" href="/fonts/raleway-latin.woff2" type="font/woff2" crossorigin>
+  <link rel="preload" as="font" href="/fonts/raleway-900i-latin.woff2" type="font/woff2" crossorigin>
   <style>
     @font-face{font-family:'Raleway';font-style:normal;font-weight:400 900;font-display:swap;src:url(/fonts/raleway-latin-ext.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
-    @font-face{font-family:'Raleway';font-style:normal;font-weight:400 900;font-display:swap;src:url(/fonts/raleway-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+    @font-face{font-family:'Raleway';font-style:normal;font-weight:400 900;font-display:optional;src:url(/fonts/raleway-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
     @font-face{font-family:'Raleway';font-style:italic;font-weight:900;font-display:swap;src:url(/fonts/raleway-900i-latin-ext.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
-    @font-face{font-family:'Raleway';font-style:italic;font-weight:900;font-display:swap;src:url(/fonts/raleway-900i-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+    @font-face{font-family:'Raleway';font-style:italic;font-weight:900;font-display:optional;src:url(/fonts/raleway-900i-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
     *,*::before,*::after{box-sizing:border-box}
     body{margin:0;padding:0;font-family:"Raleway",sans-serif;color:#333;line-height:1.6;background:${config.colors?.bgAlt || '#f8eaff'};overflow-x:clip;-webkit-font-smoothing:antialiased}
     .snb-page-wrapper{overflow-x:clip}
@@ -2513,6 +2584,15 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
       --cta-section-padding: ${config.sections?.cta?.padding?.desktop || '60px 24px'};
       --cta-section-title-size: ${config.sections?.cta?.titleSize?.desktop || '40px'};
       --cta-section-max-width: ${config.sections?.cta?.maxWidth || '860px'};
+      /* Alias Shootnbox — variables utilisées dans les sections, définies ici une seule fois */
+      --rose: ${config.colors?.primary || '#E51981'};
+      --rose-light: #ff6eb4; --rose-medium: #ff3fac; --rose-dark: #c41470;
+      --bleu: ${config.colors?.secondary || '#0250FF'}; --bleu-light: #4d8aff;
+      --violet: ${config.colors?.tertiary || '#7828C8'}; --violet-light: #a855f7; --violet-soft: #c084fc;
+      --orange: ${config.colors?.accent1 || '#FF7A00'}; --orange-light: #ff9a3c;
+      --vert: ${config.colors?.accent2 || '#16A34A'}; --vert-light: #4ade80;
+      --text-dark: #323338; --text-muted: #999; --text-secondary: #666;
+      --transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     }
     @media (max-width:1024px) {
       :root {
@@ -2562,7 +2642,10 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
       padding: 0 !important;
     }
   </style>
-  <link rel="stylesheet" href="/css/styles-${slug === 'home' ? 'home' : slug}.css">
+${sectionStyles ? `<style>${sectionStyles}</style>` : ''}
+${preconnectLinks}
+${lcpImageUrl ? `  <link rel="preload" as="image" href="${lcpImageUrl}" fetchpriority="high">` : ''}
+${cssLink}
   ${config.scripts?.headCustom || ''}
 </head>
 <body>
