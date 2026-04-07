@@ -1,7 +1,7 @@
 # Guide Lighthouse Performance — GestionnaireDeSite
 
 > Référence complète issue du travail d'optimisation du 07/04/2026.
-> Score initial : 57 → 76 → 89 → en cours
+> Score initial : 57 → 76 → 89 → **93 Perf / 100 A11y / 100 BP**
 > Page auditée : `https://sites.swipego.app/api/pages/vegas/preview`
 
 ## Historique des scores
@@ -11,7 +11,7 @@
 | 07/04/2026 — départ | 57 | — | — | — | avant optimisations |
 | 07/04/2026 — round 1 | 76 | — | — | — | CSS consolidé + lazy + font-display + content-visibility + preload |
 | 07/04/2026 — round 2 | 89 | 91 | 100 | 83 | minification CSS + footer content-visibility |
-| 07/04/2026 — round 3 | en cours | en cours | — | — | latin-ext optional + text-muted #666 + touch targets 24px |
+| 07/04/2026 — round 3 | **93** | **100** | **100** | 83 | latin-ext optional + text-muted #666 + touch targets 24px + hero WebP srcset |
 
 ---
 
