@@ -319,13 +319,47 @@ bodyContent += `<div style="content-visibility:auto;contain-intrinsic-size:auto 
 
 ---
 
-### 16. Image hero WebP responsive — Impact : LCP estimé -1s (TODO)
+### 16. Image hero WebP responsive — Impact : LCP -1s estimé (FAIT)
 
-**Problème identifié :** `vegas-3-1.jpg` servi depuis `shootnbox.fr` en JPG 240KB, affiché en 412×535px mobile mais téléchargé en 1054×1368px. Gaspillage de 176KB. Sous throttle 1.6Mbps → ~0.9s perdus sur le LCP.
+**Problème :** `vegas-3-1.jpg` servi depuis `shootnbox.fr` en JPG 240KB. Affiché 412×535px mobile mais téléchargé 1054×1368px → 176KB gaspillés. Sous throttle 1.6Mbps → ~0.9s perdus sur le LCP.
 
-**Solution :** Uploader l'image via `POST /api/media/upload` (conversion WebP auto ~50KB), mettre à jour le `src` dans la section vegas via `PUT /api/pages/vegas/section/{file}`.
+**Fix en 3 étapes :**
 
-**Statut : en attente** — nécessite credentials admin GestionnaireDeSite.
+1. Uploader via `POST /api/media/upload` (champ `images`, conversion WebP auto) :
+```bash
+TOKEN=$(curl -s -X POST "https://sites.swipego.app/api/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@swipego.app","password":"..."}' | node -e "...")
+
+curl.exe -X POST "https://sites.swipego.app/api/media/upload" \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "images=@C:\\chemin\\image.jpg;type=image/jpeg"
+# → Retourne les URLs WebP + variantes 480w/768w
+```
+
+2. Fetch + patch + PUT la section en Node.js (pattern fiable sur Windows) :
+```javascript
+const section = await request('GET', '/api/pages/vegas/section/10-section.html');
+const updated = section.content.replace(/<img[^>]+class="lp-hero-bg"[^>]*>/i, newImgTag);
+await request('PUT', '/api/pages/vegas/section/10-section.html', { content: updated });
+```
+
+3. Balise img avec srcset responsive :
+```html
+<img class="lp-hero-bg"
+  src="/site-images/vegas-hero-xxx.webp"
+  srcset="/site-images/vegas-hero-xxx-480w.webp 480w,
+          /site-images/vegas-hero-xxx-768w.webp 768w,
+          /site-images/vegas-hero-xxx.webp 1200w"
+  sizes="(max-width: 480px) 480px, (max-width: 768px) 768px, 1200px"
+  loading="eager" fetchpriority="high" width="1200" height="900" decoding="async">
+```
+
+**Résultat :** 240KB JPG → 40KB WebP @480w (mobile Lighthouse). Économie : ~200KB → ~1s LCP sous throttle.
+
+**⚠️ Piège : champ multer** — L'API media attend `images` (plural) comme nom de champ, PAS `file` ni `image`. Voir `routes/media.js` ligne 227 : `upload.array('images', 10)`.
+
+**⚠️ Piège : curl Windows** — `curl` (WSL-style) ne peut pas lire `/c/Temp/...` sur Windows. Utiliser `curl.exe` avec un chemin Windows (`C:\\Temp\\...`). Pour les scripts complexes, préférer Node.js + module `https` natif.
 
 ---
 
