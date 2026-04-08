@@ -100,6 +100,7 @@ try { app.use('/api/deploy', require('./routes/deploy')); } catch {}
 try { app.use('/api/redirections', require('./routes/redirections')); } catch {}
 try { app.use('/api/schedule', require('./routes/schedule')); } catch {}
 try { app.use('/api/users', require('./routes/users')); } catch {}
+try { app.use('/api/reviews', require('./routes/reviews')); } catch {}
 
 // ===== STATIC FILES =====
 // No cache on admin JS/CSS (they change frequently during development)
