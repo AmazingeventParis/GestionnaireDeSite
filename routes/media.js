@@ -268,22 +268,25 @@ router.post('/upload', verifyToken, requireRole('admin', 'editor'), uploadLimite
           fs.unlinkSync(file.path);
         } else {
           // Images: resize + convert to WebP
+          // Detect animated GIFs to preserve animation (animated WebP)
+          const isGif = file.mimetype === 'image/gif' || file.originalname.toLowerCase().endsWith('.gif');
           const webpName = baseName + '-' + Date.now() + '.webp';
           const outputPath = path.join(targetDir, webpName);
 
-          let pipeline = sharp(file.path);
+          let pipeline = sharp(file.path, isGif ? { animated: true } : {});
 
-          if (resizeWidth) {
+          if (resizeWidth && !isGif) {
+            // Don't resize animated GIFs to avoid frame corruption
             pipeline = pipeline.resize(resizeWidth, null, { withoutEnlargement: true });
           }
 
-          await pipeline.webp({ quality }).toFile(outputPath);
+          await pipeline.webp({ quality, loop: 0 }).toFile(outputPath);
 
-          const metadata = await sharp(outputPath).metadata();
+          const metadata = await sharp(outputPath, { animated: isGif }).metadata();
           const stat = fs.statSync(outputPath);
 
-          // Generate responsive variants (480w, 768w, 1280w)
-          const variants = await generateResponsiveVariants(outputPath, targetDir, path.basename(webpName, '.webp'));
+          // Generate responsive variants (480w, 768w, 1280w) — skip for animated GIFs
+          const variants = isGif ? [] : await generateResponsiveVariants(outputPath, targetDir, path.basename(webpName, '.webp'));
 
           uploaded.push({
             name: webpName,
