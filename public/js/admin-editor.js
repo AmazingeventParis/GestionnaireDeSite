@@ -686,10 +686,14 @@
           if (isNewVideo && !isCurrentVideo) {
             // Replace <img> with <video>
             const vid = document.createElement('video');
-            vid.src = newSrc;
-            vid.autoplay = true; vid.loop = true; vid.muted = true; vid.playsInline = true;
+            vid.setAttribute('src', newSrc);
+            // Use setAttribute for boolean attrs so innerHTML serializes them correctly
+            vid.setAttribute('autoplay', '');
+            vid.setAttribute('loop', '');
+            vid.setAttribute('muted', '');
             vid.setAttribute('playsinline', '');
-            vid.style.cssText = el.style.cssText || 'width:100%;height:100%;object-fit:cover;display:block;';
+            // Always use cover styles — never inherit placeholder img constraints
+            vid.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
             if (el.getAttribute('data-gds-img')) vid.setAttribute('data-gds-img', el.getAttribute('data-gds-img'));
             el.replaceWith(vid);
           } else if (!isNewVideo && isCurrentVideo) {
