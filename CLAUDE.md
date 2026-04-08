@@ -1,5 +1,15 @@
 # Gestionnaire de Site — Shootnbox
 
+## Google Business Profile API — Réponse automatique aux avis
+
+- **Demande d'accès GBP API envoyée le 07/04/2026** (délai réponse : 2-5 jours ouvrés)
+- **Project ID** : `362425146347`
+- **OAuth credentials** configurés dans `.env` : `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN`
+- **APIs activées** : My Business Account Management API, My Business Business Information API
+- **Scope** : `https://www.googleapis.com/auth/business.manage`
+- **Scripts prêts** : `scripts/google-oauth-setup.js`, `scripts/google-business-ids.js`
+- **À faire dès approbation** : lancer `node scripts/google-business-ids.js` pour récupérer `GOOGLE_ACCOUNT_NAME` et `GOOGLE_LOCATION_NAME`, puis construire `routes/reviews.js` + table Supabase + UI admin
+
 ## Architecture
 
 - **Framework** : Node.js + Express
@@ -308,3 +318,58 @@ var(--max-width)          /* 1300px */
 - **Save ne persistait pas** : index global vs index par tag → fix avec cheerio match par index global
 - **Toolbar BIUS dans le HTML sauve** : regex ne matchait pas la barre complete → fix avec remove/reappend DOM
 - **Boutons section invisibles** : position absolute dans wrapper avec overflow:hidden → fix avec labels permanents en haut de section
+- **Elementor widget hors wrapper** : widget HTML custom fermait le widget-wrap avec trop de </div> → widgets devenaient flex siblings → fix global `flex-direction:column!important` sur `.elementor-top-column`
+- **Grid colonne expansee** : `min-width:auto` sur item grid → fix `min-width:0` sur `.snb-article-body-col`
+- **snb-header fixe dans sections** : `.snb-header` dans une section herite `position:fixed` du vrai header → fix override `.gds-section-wrapper .snb-header { position:static!important }`
+- **Hero gradient non applique (vegas)** : `lp-hero-bg-overlay` etait `display:none` + classe differente de `lph-bg-overlay` → fix global ciblant les 3 variantes avec `display:block!important`
+
+## Pages villes — Classement par departement (172 villes, avril 2026)
+
+Toutes en statut `draft`. Objectif : creer des images hero par departement plutot que par ville.
+
+### Priorite images (4 images = 73% des pages)
+
+| Dept | Image a creer | Nb villes |
+|------|--------------|-----------|
+| **92** Hauts-de-Seine | banlieue ouest Paris | 29 |
+| **93** Seine-Saint-Denis | banlieue nord/est Paris | 32 |
+| **94** Val-de-Marne | banlieue sud/est Paris | 33 |
+| **33** Gironde | Bordeaux + agglo | 32 |
+| **95** Val-d'Oise | banlieue nord Paris | 8 |
+| **78** Yvelines | banlieue ouest Paris | 7 |
+| **77** Seine-et-Marne | est Paris | 6 |
+| **91** Essonne | sud Paris | 5 |
+| Grandes villes | 1 image generique ou par ville | 18 |
+
+### Villes par departement
+
+**92 — Hauts-de-Seine (29)** : antony, bagneux, boulogne, bourg-la-reine, chatenay-malabry, chatillon, chaville, clamart, clichy, colombes, courbevoie, fontenay-aux-roses, garches, gennevilliers, issy-les-moulineaux, la-garenne-colombes, levallois-perret, malakoff, meudon, montrouge, nanterre, neuilly-sur-seine, puteaux, rueil-malmaison, saint-cloud, sceaux, sevres, suresnes, vanves
+
+**93 — Seine-Saint-Denis (32)** : aubervilliers, aulnay-sous-bois, bagnolet, bobigny, bondy, clichy-sous-bois, drancy, epinay-sur-seine, gagny, la-courneuve, le-blanc-mesnil, le-pre-saint-gervais, les-lilas, les-pavillons-sous-bois, livry-gargan, montfermeil, montreuil, neuilly-plaisance, neuilly-sur-marne, noisy-le-grand, noisy-le-sec, pantin, pierrefitte-sur-seine, romainville, rosny-sous-bois, saint-denis, saint-ouen, sevran, stains, tremblay-en-france, villemomble, villepinte
+
+**94 — Val-de-Marne (33)** : alfortville, arcueil, bonneuil-sur-marne, bry-sur-marne, cachan, champigny-sur-marne, charenton-le-pont, chennevieres-sur-marne, chevilly-larue, choisy-le-roi, creteil, fontenay-sous-bois, fresnes, gentilly, ivry-sur-seine, joinville-le-pont, kremlin-bicetre, l-hay-les-roses, le-perreux-sur-marne, le-plessis-robinson, le-plessis-trevise, maison-alfort, nogent-sur-marne, orly, rungis, saint-mande, saint-maur-des-fosses, sucy-en-brie, thiais, villejuif, villiers-sur-marne, vincennes, vitry-sur-seine
+
+**33 — Gironde (32)** : andernos-les-bains, arcachon, audenge, begles, biganos, blanquefort, bordeaux, bruges, cenon, cestas, eysines, floirac, gradignan, gujan-mestras, la-teste-de-buch, lacanau, le-bouscat, le-haillan, le-taillan-medoc, le-teich, lege-cap-ferret, leognan, libourne, lormont, merignac, mios, parempuyre, pessac, saint-loubes, saint-medard-en-jalles, talence, villenave-d-ornon
+
+**95 — Val-d'Oise (8)** : argenteuil, bezons, cergy, deuil-la-barre, garges-les-gonesse, gonesse, herblay, sarcelles
+
+**78 — Yvelines (7)** : mantes-la-jolie, montigny-le-bretonneux, plaisir, poissy, saint-germain-en-laye, sartrouville, versailles
+
+**77 — Seine-et-Marne (6)** : champs-sur-marne, chelles, meaux, melun, pontault-combault, torcy
+
+**91 — Essonne (5)** : athis-mons, corbeil-essonne, evry, massy, palaiseau
+
+**Grandes villes isolees** : aix-en-provence + marseille (13), caen (14), nice (06), nimes (30), toulouse (31), montpellier (34), rennes (35), angers (49), reims (51), lille (59), clermont-ferrand (63), strasbourg (67), lyon (69), rouen (76), dijon (21), tours (37), nantes (44)
+
+### Progression
+- [x] Image 94 Val-de-Marne → `/site-images/valdemarne94-1775202601224.webp`
+- [x] Image 93 Seine-Saint-Denis → `/site-images/seinesaintdenis93-1775202599298.webp`
+- [x] Image 33 Gironde → `/site-images/gironde33-1775202595710.webp`
+- [x] Image 92 Hauts-de-Seine → `/site-images/hautsdeseine92-1775202597298.webp`
+- [ ] Image 95 Val-d'Oise
+- [ ] Image 78 Yvelines
+- [ ] Image 77 Seine-et-Marne
+- [ ] Image 91 Essonne
+- [ ] Image grandes villes
+- [ ] Publication des 172 pages villes
+

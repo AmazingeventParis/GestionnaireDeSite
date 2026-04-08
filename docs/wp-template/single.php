@@ -18,11 +18,15 @@ function snb_category_info($post_id) {
     }
     $cat = $categories[0];
     $slug = $cat->slug;
+    // Catégorie WP par défaut "Non classé" → afficher "Blog"
+    if ($slug === 'uncategorized' || $slug === 'non-classe' || $slug === 'non-classifie') {
+        return ['label' => 'Blog', 'class' => 'cat-conseils', 'emoji' => '&#x1F4DD;', 'link' => home_url('/blog/')];
+    }
     $map = [
-        'mariage'      => ['class' => 'cat-mariage',      'emoji' => '💍'],
-        'entreprise'   => ['class' => 'cat-entreprise',   'emoji' => '🏢'],
-        'anniversaire' => ['class' => 'cat-anniversaire', 'emoji' => '🎂'],
-        'conseils'     => ['class' => 'cat-conseils',     'emoji' => '💡'],
+        'mariage'      => ['class' => 'cat-mariage',      'emoji' => '&#x1F48D;'],
+        'entreprise'   => ['class' => 'cat-entreprise',   'emoji' => '&#x1F3E2;'],
+        'anniversaire' => ['class' => 'cat-anniversaire', 'emoji' => '&#x1F382;'],
+        'conseils'     => ['class' => 'cat-conseils',     'emoji' => '&#x1F4A1;'],
     ];
     // Cherche une correspondance partielle dans le slug
     $matched = null;
@@ -32,7 +36,7 @@ function snb_category_info($post_id) {
             break;
         }
     }
-    if (!$matched) $matched = ['class' => 'cat-conseils', 'emoji' => '📝'];
+    if (!$matched) $matched = ['class' => 'cat-conseils', 'emoji' => '&#x1F4DD;'];
     return [
         'label' => $cat->name,
         'class' => $matched['class'],
@@ -59,8 +63,11 @@ function snb_author_info($post) {
     $login = get_the_author_meta('user_login', $post->post_author);
     $name  = get_the_author_meta('display_name', $post->post_author);
     $map = [
-        'mathilde' => ['name' => 'Mathilde Séhault', 'initials' => 'M', 'role' => 'Experte événementiel & animation de soirée'],
-        'elise'    => ['name' => 'Élise Durant',      'initials' => 'É', 'role' => 'Spécialiste photobooth & expérience client'],
+        'mathilde'  => ['name' => 'Mathilde Séhault',  'initials' => 'M', 'role' => 'Experte événementiel & animation de soirée'],
+        'elise'     => ['name' => 'Élise Durant',       'initials' => 'É', 'role' => 'Spécialiste photobooth & expérience client'],
+        'francois'  => ['name' => 'François Le Bail',   'initials' => 'F', 'role' => 'Expert photobooth & expérience événementielle'],
+        'francoise' => ['name' => 'Françoise Le Bail',  'initials' => 'F', 'role' => 'Expert photobooth & expérience événementielle'],
+        'admin'     => ['name' => 'Équipe Shootnbox',   'initials' => 'S', 'role' => 'L\'équipe Shootnbox'],
     ];
     foreach ($map as $key => $info) {
         if (strpos(strtolower($login), $key) !== false || strpos(strtolower($name), $key) !== false) {
@@ -202,8 +209,8 @@ $tw_share  = 'https://twitter.com/intent/tweet?url=' . urlencode($current_url) .
 
       <!-- CTA footer article -->
       <div class="snb-cta-footer">
-        <div class="snb-cta-footer-badge">📸 Shootnbox</div>
-        <h3>Prêt à <span>immortaliser votre événement</span> ?</h3>
+        <div class="snb-cta-footer-badge">&#x1F4F8; Shootnbox</div>
+        <p class="snb-cta-footer-title">Prêt à <span>immortaliser votre événement</span> ?</p>
         <p>Obtenez un devis personnalisé en 2 minutes.</p>
         <a href="<?php echo home_url('/reservation/'); ?>" class="snb-cta-footer-btn">
           Estimer mon tarif
@@ -211,6 +218,31 @@ $tw_share  = 'https://twitter.com/intent/tweet?url=' . urlencode($current_url) .
         </a>
       </div>
     </article>
+
+    <!-- ── BIO AUTEUR ── -->
+    <?php
+    $author_bio = get_the_author_meta('description', $post->post_author);
+    if (!$author_bio) {
+        $author_bio = esc_html($author['name']) . ' fait partie de l\'équipe Shootnbox, passionnée par l\'événementiel et la photographie. Elle partage son expertise pour vous aider à créer des souvenirs inoubliables lors de vos événements.';
+    }
+    ?>
+    <div class="snb-author-bio">
+      <div class="snb-author-bio-avatar"><?php echo esc_html($author['initials']); ?></div>
+      <div class="snb-author-bio-content">
+        <span class="snb-author-bio-label">À propos de l'auteur·e</span>
+        <strong class="snb-author-bio-name"><?php echo esc_html($author['name']); ?></strong>
+        <span class="snb-author-bio-role"><?php echo esc_html($author['role']); ?></span>
+        <p class="snb-author-bio-text"><?php echo esc_html($author_bio); ?></p>
+      </div>
+    </div>
+
+    <!-- ── COMMENTAIRES ── -->
+    <?php if (comments_open() || get_comments_number()) : ?>
+    <div class="snb-comments-wrap">
+      <?php comments_template(); ?>
+    </div>
+    <?php endif; ?>
+
   </div>
 
   <!-- Sidebar sticky -->
@@ -257,39 +289,6 @@ $tw_share  = 'https://twitter.com/intent/tweet?url=' . urlencode($current_url) .
   </aside>
 </div>
 
-<!-- ── ARTICLES LIÉS (grille bas de page) ── -->
-<?php if (!empty($related)) : ?>
-  <section class="snb-related-section">
-    <div class="snb-related-header">
-      <h2>Ces articles pourraient vous <span>intéresser</span></h2>
-    </div>
-    <div class="snb-related-grid">
-      <?php foreach ($related as $rel) :
-        $rel_cat   = snb_category_info($rel->ID);
-        $rel_thumb = get_the_post_thumbnail_url($rel->ID, 'large');
-        $rel_date  = snb_date_fr(get_the_date('Y-m-d', $rel->ID));
-        $rel_auth  = get_the_author_meta('display_name', $rel->post_author);
-      ?>
-        <a href="<?php echo esc_url(get_permalink($rel->ID)); ?>" class="snb-related-card">
-          <div class="snb-related-card-img">
-            <?php if ($rel_thumb) : ?>
-              <img src="<?php echo esc_url($rel_thumb); ?>" alt="<?php echo esc_attr($rel->post_title); ?>" loading="lazy">
-            <?php endif; ?>
-          </div>
-          <div class="snb-related-card-body">
-            <div class="snb-related-card-cat"><?php echo $rel_cat['emoji']; ?> <?php echo esc_html($rel_cat['label']); ?></div>
-            <div class="snb-related-card-title"><?php echo esc_html($rel->post_title); ?></div>
-            <div class="snb-related-card-meta">
-              <span><?php echo esc_html($rel_auth); ?></span>
-              &middot;
-              <span><?php echo esc_html($rel_date); ?></span>
-            </div>
-          </div>
-        </a>
-      <?php endforeach; ?>
-    </div>
-  </section>
-<?php endif; ?>
 
 <?php endwhile; ?>
 

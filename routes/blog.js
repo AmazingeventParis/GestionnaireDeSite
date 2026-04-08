@@ -205,7 +205,7 @@ function generateArticleFiles(article, index) {
 
   // ── File 3: 20-blog-body.html — article body content (user adds blocs after this) ──
   const bodyFile = bodyHTML
-    ? `<article class="snb-article-body">\n${bodyHTML}\n\n<div class="snb-sep"></div>\n<div class="snb-tags">${tagsHTML}</div>\n\n<div class="snb-cta-footer">\n  <div class="snb-cta-footer-badge">&#x1F4F8; Shootnbox</div>\n  <h3>Pr&ecirc;t &agrave; <span>immortaliser votre &eacute;v&eacute;nement</span> ?</h3>\n  <p>Obtenez un devis personnalis&eacute; en 2 minutes.</p>\n  <a href="https://shootnbox.fr/reservation/" class="snb-cta-footer-btn">Estimer mon tarif <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>\n</div>\n</article>`
+    ? `<article class="snb-article-body">\n${bodyHTML}\n\n<div class="snb-sep"></div>\n<div class="snb-tags">${tagsHTML}</div>\n\n<div class="snb-cta-footer">\n  <div class="snb-cta-footer-badge">📸 Shootnbox</div>\n  <p class="snb-cta-footer-title">Prêt à <span>immortaliser votre événement</span> ?</p>\n  <p>Obtenez un devis personnalisé en 2 minutes.</p>\n  <a href="https://shootnbox.fr/reservation/" class="snb-cta-footer-btn">Estimer mon tarif <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>\n</div>\n</article>`
     : `<article class="snb-article-body">\n  <p class="snb-article-intro">Redigez votre introduction ici...</p>\n</article>`;
 
   // ── File 4: 90-blog-related.html — related articles grid ──

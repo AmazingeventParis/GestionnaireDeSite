@@ -47,7 +47,7 @@
 .snb-hero-img-wrap{position:relative;z-index:1;width:100%;aspect-ratio:16/6;border-radius:20px;overflow:hidden;margin-bottom:48px;box-shadow:0 20px 60px -15px rgba(0,0,0,.15)}
 .snb-hero-img-wrap img{width:100%;height:100%;object-fit:cover;object-position:center;display:block}
 .snb-hero-img-caption{position:absolute;bottom:14px;right:16px;font-size:10px;font-weight:600;color:rgba(255,255,255,.55);pointer-events:none}
-.snb-article-layout{max-width:1300px;margin:0 auto;padding:0 24px 80px;display:grid;grid-template-columns:1fr 280px;gap:48px;align-items:start}
+.snb-article-layout{max-width:1128px;margin:0 auto;padding:0 24px 80px;display:grid;grid-template-columns:1fr 280px;gap:48px;align-items:start}
 .snb-article-body{min-width:0}
 .snb-article-intro{font-size:18px;font-weight:500;line-height:1.7;color:var(--text);margin-bottom:40px;padding-left:18px;border-left:3px solid var(--rose)}
 .snb-article-intro strong{color:var(--rose);font-weight:700}
@@ -175,3 +175,85 @@
 @media(max-width:1100px){.snb-article-layout{grid-template-columns:1fr 240px;gap:36px}.snb-article-title{font-size:40px}}
 @media(max-width:850px){.snb-article-layout{grid-template-columns:1fr;gap:0}.snb-sidebar{position:static;display:none}.snb-article-title{font-size:32px}.snb-hero-img-wrap{aspect-ratio:16/9;border-radius:14px}.snb-article-body h2{font-size:26px}.snb-article-body h3{font-size:19px}.snb-article-intro{font-size:16px}.snb-cta-card{flex-direction:column;text-align:center;gap:14px}.snb-cta-card-img{width:60px;margin:0 auto}.snb-related-grid{grid-template-columns:1fr}.snb-cta-footer{padding:28px 20px}.snb-cta-footer h3{font-size:26px}.snb-table-wrap{overflow-x:auto}}
 @media(max-width:480px){.snb-article-hero{padding:0 16px}.snb-article-layout{padding:0 16px 60px}.snb-article-title{font-size:26px}.snb-article-body h2{font-size:22px}.snb-breadcrumb{padding:12px 16px 0}.snb-related-section{padding:0 16px 60px}}
+/* ── WordPress overrides — thème skole-child ────────────────────────────── */
+/* Sidebar sticky : neutralise overflow:hidden des conteneurs WP parent */
+body.single-post .site-content,body.single-post .content-area,body.single-post #content,body.single-post #primary,body.single-post main,body.single-post .entry-content,body.single-post article.post{overflow:visible!important}
+body.single-post{overflow-x:clip}
+/* Assure la sidebar sticky quoi qu'il arrive */
+.snb-sidebar{position:sticky!important;top:100px!important;align-self:start!important;overflow:visible!important}
+/* ── Breadcrumb — neutralise les liens Elementor Kit (font-size:32px) ──── */
+.snb-breadcrumb a{font-size:13px!important;color:#888!important;font-weight:500!important;font-family:'Raleway',sans-serif!important;text-decoration:none!important}
+.snb-breadcrumb a:hover{color:var(--rose)!important}
+.snb-breadcrumb .current{font-size:13px!important;color:#555!important;font-weight:600!important}
+.snb-breadcrumb svg{width:12px!important;height:12px!important}
+/* ── Liens dans l'article — reset thème Skole ──────────────────────────── */
+/* Neutralise les font-size héritées du thème — uniquement le corps, pas la sidebar */
+.snb-article-body a{font-family:'Raleway',sans-serif!important;font-size:inherit!important;line-height:inherit!important}
+/* TOC : conserve explicitement sa taille malgré les héritages */
+.snb-toc ul li a{font-size:13px!important;line-height:1.4!important}
+.snb-toc ul li.h3-item a{font-size:12px!important}
+/* Liens dans listes */
+.snb-article-body li a,.snb-article-body dt a,.snb-article-body dd a{color:var(--rose)!important;font-weight:600!important;text-decoration:none!important;border-bottom:1px solid rgba(229,25,129,.3)!important}
+.snb-article-body li a:hover{border-color:var(--rose)!important}
+/* Liens dans titres — conserve la couleur du titre */
+.snb-article-body h2 a,.snb-article-body h3 a,.snb-article-body h4 a{color:inherit!important;text-decoration:none!important;font-size:inherit!important;border-bottom:none!important}
+/* ── CTA footer title (p.snb-cta-footer-title) ──────────────────────────── */
+.snb-cta-footer h3,.snb-cta-footer .snb-cta-footer-title{font-size:32px!important;font-weight:900!important;font-style:italic!important;color:#f0f0f5!important;line-height:1.15!important;margin-bottom:12px!important;position:relative;z-index:1}
+.snb-cta-footer h3 span,.snb-cta-footer .snb-cta-footer-title span{background:linear-gradient(135deg,var(--rose),var(--rose-light));-webkit-background-clip:text!important;-webkit-text-fill-color:transparent!important;background-clip:text!important}
+/* ── Boutons CTA — résistance aux styles du thème Skole ─────────────────── */
+a.snb-cta-footer-btn{font-family:'Raleway',sans-serif!important;font-size:15px!important;font-weight:700!important;color:#fff!important;text-decoration:none!important;border-bottom:none!important;line-height:1.2!important;display:inline-flex!important}
+a.snb-cta-card-btn{font-family:'Raleway',sans-serif!important;font-size:13px!important;font-weight:700!important;color:#fff!important;text-decoration:none!important;border-bottom:none!important;display:inline-flex!important}
+a.sc-btn{font-family:'Raleway',sans-serif!important;font-size:13px!important;font-weight:700!important;color:#fff!important;text-decoration:none!important;border-bottom:none!important;display:block!important}
+/* ── Cartes "À lire aussi" seocontent (rewrappées par snb-toc.js) ────────── */
+/* Neutralise le font-size:32px d'Elementor Kit sur le lien carte */
+.snb-article-body a[style*="border-radius:12px"]{font-size:inherit!important;color:inherit!important;text-decoration:none!important;border-bottom:none!important;display:block!important}
+.snb-article-body a[style*="border-radius:12px"]:hover{text-decoration:none!important;border-bottom:none!important}
+/* ── FAQ seocontent (.mhd-faq-*) — neutralise héritages Elementor ─────────── */
+/* summary n'est pas un <a> mais Skole peut lui appliquer des styles généraux */
+.snb-article-body .mhd-faq-item summary{font-size:1.1rem!important;color:#0f172a!important;font-family:inherit!important}
+.snb-article-body .mhd-faq-content{font-size:1rem!important;color:#475569!important}
+.snb-article-body .mhd-faq-content p{font-size:1rem!important;color:#475569!important}
+/* ── Callouts seocontent (.expert-callout, divs inline-styled) ──────────── */
+.snb-article-body .expert-callout p{font-size:0.95rem!important;line-height:1.6!important}
+/* ── Fix Elementor layout dans la colonne article ────────────────────────── */
+/* Empêche la colonne contenu d'élargir le grid au-delà de sa part */
+.snb-article-body-col{min-width:0}
+/* Force l'empilement vertical des widgets Elementor (cas de widget-wrap fermé prématurément) */
+.snb-article-body .elementor-top-column{flex-direction:column!important;align-items:stretch!important}
+.snb-article-body .elementor-top-column>.elementor-widget{width:100%!important;max-width:100%!important}
+.snb-article-body .elementor-widget-wrap{flex-direction:column!important}
+/* Sections Elementor contraintes à la largeur de la colonne */
+.snb-article-body .elementor-section{max-width:100%!important}
+/* ── Bio auteur ──────────────────────────────────────────────────────────── */
+.snb-author-bio{display:flex;gap:20px;align-items:flex-start;background:linear-gradient(135deg,#fdf6ff,#fff5fc);border:1.5px solid rgba(229,25,129,.12);border-radius:20px;padding:28px 24px;margin-top:48px}
+.snb-author-bio-avatar{width:64px;height:64px;flex-shrink:0;border-radius:50%;background:linear-gradient(135deg,var(--rose),var(--rose-mid));display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;color:#fff;box-shadow:0 6px 20px rgba(229,25,129,.28)}
+.snb-author-bio-content{flex:1;min-width:0}
+.snb-author-bio-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:2px;color:var(--rose);display:block;margin-bottom:4px}
+.snb-author-bio-name{font-size:16px;font-weight:800;color:var(--text);display:block;margin-bottom:2px}
+.snb-author-bio-role{font-size:12px;color:var(--text-light);font-weight:500;display:block;margin-bottom:10px}
+.snb-author-bio-text{font-size:14px!important;color:var(--text-muted)!important;line-height:1.65!important;margin:0!important}
+/* ── Section commentaires ────────────────────────────────────────────────── */
+.snb-comments-wrap{margin-top:48px;padding-top:40px;border-top:2px solid rgba(229,25,129,.1)}
+.snb-comments-wrap .comments-title,.snb-comments-wrap #reply-title{font-size:22px!important;font-weight:800!important;color:var(--text)!important;margin-bottom:24px!important;font-family:'Raleway',sans-serif!important;font-style:normal!important}
+.snb-comments-wrap .comment-list{list-style:none!important;padding:0!important;margin:0 0 36px!important}
+.snb-comments-wrap .comment{padding:20px 0;border-bottom:1px solid rgba(0,0,0,.07);list-style:none}
+.snb-comments-wrap .comment-author{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.snb-comments-wrap .comment-author .avatar{border-radius:50%;width:36px;height:36px;flex-shrink:0}
+.snb-comments-wrap .comment-author b,.snb-comments-wrap .comment-author .fn{font-size:14px!important;font-weight:700!important;color:var(--text)!important}
+.snb-comments-wrap .comment-metadata,.snb-comments-wrap .comment-meta{font-size:11px!important;color:var(--text-light)!important;margin-bottom:8px}
+.snb-comments-wrap .comment-metadata a,.snb-comments-wrap .comment-meta a{font-size:11px!important;color:var(--text-light)!important}
+.snb-comments-wrap .comment-content p{font-size:15px!important;color:var(--text-muted)!important;line-height:1.65!important;margin:0!important}
+.snb-comments-wrap #respond{background:linear-gradient(135deg,#fdf6ff,#fff5fc);border:1.5px solid rgba(229,25,129,.12);border-radius:16px;padding:28px 24px;margin-top:12px}
+.snb-comments-wrap .comment-form p{margin-bottom:14px}
+.snb-comments-wrap .comment-form label{font-size:12px!important;font-weight:700!important;color:var(--text-muted)!important;display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;font-family:'Raleway',sans-serif!important}
+.snb-comments-wrap .comment-form input[type="text"],
+.snb-comments-wrap .comment-form input[type="email"],
+.snb-comments-wrap .comment-form input[type="url"],
+.snb-comments-wrap .comment-form textarea{width:100%!important;padding:12px 14px!important;border:1.5px solid rgba(0,0,0,.1)!important;border-radius:10px!important;font-size:15px!important;font-family:'Raleway',sans-serif!important;color:var(--text)!important;background:#fff!important;outline:none;box-sizing:border-box;transition:border-color .25s}
+.snb-comments-wrap .comment-form input:focus,
+.snb-comments-wrap .comment-form textarea:focus{border-color:var(--rose)!important;box-shadow:0 0 0 3px rgba(229,25,129,.08)!important}
+.snb-comments-wrap .comment-form textarea{min-height:130px;resize:vertical}
+.snb-comments-wrap .comment-form .form-submit{margin:0}
+.snb-comments-wrap #submit{padding:13px 36px!important;background:linear-gradient(135deg,var(--rose),var(--rose-mid))!important;color:#fff!important;border:none!important;border-radius:50px!important;font-size:14px!important;font-weight:700!important;font-family:'Raleway',sans-serif!important;cursor:pointer;box-shadow:0 6px 20px rgba(229,25,129,.3)!important;transition:all .3s!important}
+.snb-comments-wrap #submit:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(229,25,129,.45)!important}
+@media(max-width:600px){.snb-author-bio{flex-direction:column;align-items:center;text-align:center}.snb-author-bio-label{text-align:left}.snb-comments-wrap #respond{padding:20px 16px}}
