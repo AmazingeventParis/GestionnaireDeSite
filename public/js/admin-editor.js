@@ -675,6 +675,10 @@
         console.log('[GDS] Upload result:', result);
 
         const newSrc = result.newSrc + '?v=' + Date.now();
+        // Capture section wrapper BEFORE any el.replaceWith() removes el from DOM
+        const sectionWrapper = el.closest('.gds-section-wrapper');
+        const sectionFileForSave = sectionWrapper ? sectionWrapper.getAttribute('data-gds-file') : null;
+
         if (isImg) {
           const isNewVideo = newSrc.match(/\.(mp4|webm|mov)/i);
           const isCurrentVideo = el.tagName.toLowerCase() === 'video';
@@ -714,7 +718,29 @@
         }
         imageChanges++;
         updateChangesCount();
-        showToast('Media mis a jour !', 'success');
+
+        // Auto-save the section immediately — imageChanges are NOT persisted by saveOnly()
+        if (sectionWrapper && sectionFileForSave) {
+          try {
+            const sectionContent = cleanSectionHtml(sectionWrapper);
+            const saveRes = await Auth.apiFetch(
+              '/api/pages/' + currentSlug + '/section/' + encodeURIComponent(sectionFileForSave),
+              { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: sectionContent }) }
+            );
+            if (saveRes.ok) {
+              imageChanges = Math.max(0, imageChanges - 1);
+              updateChangesCount();
+              showToast('Media enregistré !', 'success');
+            } else {
+              showToast('Media mis à jour (sauvegarde manuelle requise)', 'warning');
+            }
+          } catch (saveErr) {
+            console.error('[GDS] Auto-save after upload failed:', saveErr.message);
+            showToast('Media mis à jour (sauvegarde manuelle requise)', 'warning');
+          }
+        } else {
+          showToast('Media mis à jour !', 'success');
+        }
       } catch (err) {
         showToast('Erreur: ' + err.message, 'error');
       }
