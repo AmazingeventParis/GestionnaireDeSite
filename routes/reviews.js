@@ -4,12 +4,19 @@
  *
  * Variables .env requises :
  *   GOOGLE_MAPS_API_KEY  — clé API Google Maps Platform (Places API activée)
- *   GOOGLE_PLACE_IDS     — IDs séparés par virgule : ChIJ...,ChIJ...
+ *   GOOGLE_PLACE_IDS     — IDs séparés par virgule. Formats acceptés :
+ *                            ChIJ...         → Place ID standard
+ *                            cid:1234567890  → CID décimal (fallback avant d'avoir le ChIJ)
+ *                          Exemple mixte : ChIJxSIRRC5x5kcRX2Elmh-CeRI,cid:4995458683613515245
  *                          (ou GOOGLE_PLACE_ID pour un seul)
  *
  * Trouver un Place ID :
- *   https://developers.google.com/maps/documentation/places/web-service/place-id
- *   Ou : https://maps.google.com → recherche → dans l'URL après "place/"
+ *   node scripts/find-place-ids.js  (une fois GOOGLE_MAPS_API_KEY configuré)
+ *   Ou : https://developers.google.com/maps/documentation/places/web-service/place-id
+ *
+ * CIDs connus Shootnbox (pré-découverts) :
+ *   Paris    cid:5180952864860742341
+ *   Bordeaux cid:4995458683613515245
  */
 
 const express = require('express');
@@ -82,16 +89,29 @@ router.get('/', async (req, res) => {
           rating: r.rating || 5,
           text: r.text || '',
           time: r.relative_time_description || '',
+          timestamp: r.time || 0,   // Unix timestamp pour tri chronologique
           locationName: place.name || ''
         });
       }
     }
 
-    // Garder les meilleurs avis (≥4 étoiles), trier par note desc
-    const reviews = allReviews
-      .filter(r => r.rating >= 4 && r.text.length > 20)
-      .sort((a, b) => b.rating - a.rating)
-      .slice(0, 8);
+    // Sélection qualitative :
+    //   - 5★ : commentaire ≥ 60 caractères (vrai retour d'expérience)
+    //   - 4★ : commentaire ≥ 120 caractères, max 2 retenus
+    // Tri final : les plus récents en premier
+    const fiveStars = allReviews
+      .filter(r => r.rating === 5 && r.text.trim().length >= 60)
+      .sort((a, b) => b.timestamp - a.timestamp);
+
+    const fourStars = allReviews
+      .filter(r => r.rating === 4 && r.text.trim().length >= 120)
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 2);
+
+    const reviews = [...fiveStars, ...fourStars]
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 20)
+      .map(({ timestamp, ...r }) => r);   // ne pas exposer le timestamp brut
 
     const globalRating = totalCount > 0
       ? Math.round((weightedSum / totalCount) * 10) / 10

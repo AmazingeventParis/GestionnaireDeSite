@@ -1,0 +1,335 @@
+<style>
+/* ═══════════════════════════════════════════
+   BLOC AVIS GOOGLE — Bandeau défilant dark
+   ═══════════════════════════════════════════ */
+.snb-mq {
+  background: #0d0515;
+  padding: 64px 0;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Halos décoratifs */
+.snb-mq::before,
+.snb-mq::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+}
+.snb-mq::before {
+  width: 400px; height: 400px;
+  background: rgba(229,25,129,0.12);
+  top: -100px; left: -80px;
+}
+.snb-mq::after {
+  width: 350px; height: 350px;
+  background: rgba(120,40,200,0.10);
+  bottom: -80px; right: -60px;
+}
+
+/* Header */
+.snb-mq__header {
+  text-align: center;
+  margin-bottom: 40px;
+  position: relative;
+  z-index: 1;
+  padding: 0 24px;
+}
+.snb-mq__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #E51981;
+  background: rgba(229,25,129,0.1);
+  border: 1px solid rgba(229,25,129,0.25);
+  border-radius: 50px;
+  padding: 5px 14px;
+  margin-bottom: 16px;
+}
+.snb-mq__tag svg { width: 14px; height: 14px; fill: #E51981; }
+
+.snb-mq__title {
+  font-size: 36px;
+  font-weight: 900;
+  font-style: italic;
+  color: #fff;
+  margin: 0 0 16px;
+  line-height: 1.1;
+}
+.snb-mq__title em { color: #E51981; font-style: italic; }
+
+.snb-mq__score {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(229,25,129,0.2);
+  border-radius: 50px;
+  padding: 8px 20px;
+}
+.snb-mq__score-num {
+  font-size: 24px;
+  font-weight: 900;
+  color: #fff;
+  line-height: 1;
+}
+.snb-mq__score-stars { display: flex; gap: 2px; }
+.snb-mq__score-stars svg { width: 16px; height: 16px; }
+.snb-mq__score-count {
+  font-size: 13px;
+  color: rgba(255,255,255,0.5);
+  white-space: nowrap;
+}
+
+/* Fade sur les bords */
+.snb-mq__fade-left,
+.snb-mq__fade-right {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 120px;
+  z-index: 2;
+  pointer-events: none;
+}
+.snb-mq__fade-left {
+  left: 0;
+  background: linear-gradient(to right, #0d0515 0%, transparent 100%);
+}
+.snb-mq__fade-right {
+  right: 0;
+  background: linear-gradient(to left, #0d0515 0%, transparent 100%);
+}
+
+/* Piste défilante */
+.snb-mq__track {
+  position: relative;
+  overflow: hidden;
+}
+.snb-mq__inner {
+  display: flex;
+  gap: 16px;
+  width: max-content;
+  animation: snb-marquee 50s linear infinite;
+}
+.snb-mq__inner:hover { animation-play-state: paused; }
+
+@keyframes snb-marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* Card */
+.snb-mq-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 20px 22px;
+  width: 300px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: border-color 0.3s, background 0.3s;
+  cursor: default;
+}
+.snb-mq-card:hover {
+  border-color: rgba(229,25,129,0.3);
+  background: rgba(229,25,129,0.05);
+}
+
+.snb-mq-card__top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.snb-mq-card__avatar {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.snb-mq-card__avatar img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+.snb-mq-card__meta { flex: 1; min-width: 0; }
+.snb-mq-card__author {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.snb-mq-card__time {
+  font-size: 11px;
+  color: rgba(255,255,255,0.35);
+}
+.snb-mq-card__stars { display: flex; gap: 1px; }
+.snb-mq-card__stars svg { width: 13px; height: 13px; }
+
+.snb-mq-card__text {
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(255,255,255,0.65);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* CTA bas */
+.snb-mq__cta {
+  text-align: center;
+  margin-top: 36px;
+  position: relative;
+  z-index: 1;
+}
+.snb-mq__cta a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 28px;
+  border-radius: 50px;
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.7);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  text-decoration: none;
+  transition: all 0.3s;
+}
+.snb-mq__cta a:hover {
+  color: #fff;
+  border-color: rgba(229,25,129,0.4);
+  background: rgba(229,25,129,0.08);
+}
+.snb-mq__cta a svg { width: 15px; height: 15px; opacity: 0.7; }
+
+/* Loading / erreur */
+.snb-mq__loading {
+  text-align: center;
+  padding: 40px;
+  color: rgba(255,255,255,0.3);
+  font-size: 14px;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .snb-mq { padding: 48px 0; }
+  .snb-mq__title { font-size: 26px; }
+  .snb-mq-card { width: 260px; }
+  .snb-mq__fade-left, .snb-mq__fade-right { width: 60px; }
+}
+</style>
+
+<section class="snb-mq">
+
+  <div class="snb-mq__header">
+    <div class="snb-mq__tag">
+      <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      Avis clients
+    </div>
+    <h2 class="snb-mq__title">Ce que disent nos <em>clients</em></h2>
+    <div class="snb-mq__score" id="snb-mq-score" style="display:none">
+      <span class="snb-mq__score-num" id="snb-mq-rating">—</span>
+      <div class="snb-mq__score-stars" id="snb-mq-stars"></div>
+      <span class="snb-mq__score-count" id="snb-mq-count"></span>
+    </div>
+  </div>
+
+  <div class="snb-mq__track">
+    <div class="snb-mq__fade-left"></div>
+    <div class="snb-mq__fade-right"></div>
+    <div class="snb-mq__inner" id="snb-mq-inner">
+      <div class="snb-mq__loading">Chargement des avis…</div>
+    </div>
+  </div>
+
+  <div class="snb-mq__cta">
+    <a href="#" id="snb-mq-link" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.35 11.1H12.18V13.83H18.69C18.36 17.64 15.19 19.27 12.19 19.27C8.36 19.27 5 16.25 5 12C5 7.9 8.2 4.73 12.2 4.73C15.29 4.73 17.1 6.7 17.1 6.7L19 4.72C19 4.72 16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12C2.03 17.05 6.16 22 12.25 22C17.6 22 21.5 18.33 21.5 12.91C21.5 11.76 21.35 11.1 21.35 11.1Z"/></svg>
+      Voir tous les avis sur Google
+    </a>
+  </div>
+
+</section>
+
+<script>
+(function() {
+  function starsSVG(n, filledColor) {
+    var fc = filledColor || '#F59E0B';
+    return Array.from({length: 5}, function(_, i) {
+      return '<svg viewBox="0 0 24 24" fill="' + (i < n ? fc : 'rgba(255,255,255,0.15)') + '">' +
+        '<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>' +
+        '</svg>';
+    }).join('');
+  }
+
+  function gradientColor(name) {
+    var colors = ['#E51981,#7828C8','#0250FF,#7828C8','#FF7A00,#E51981','#16A34A,#0250FF','#7828C8,#E51981'];
+    return colors[(name || '').charCodeAt(0) % colors.length];
+  }
+
+  function cardHTML(r) {
+    return '<div class="snb-mq-card">' +
+      '<div class="snb-mq-card__top">' +
+        '<div class="snb-mq-card__avatar" style="background:linear-gradient(135deg,' + gradientColor(r.author) + ')">' +
+          (r.avatar ? '<img src="' + r.avatar + '" alt="' + r.author + '" loading="lazy">' : (r.author || '?').charAt(0).toUpperCase()) +
+        '</div>' +
+        '<div class="snb-mq-card__meta">' +
+          '<div class="snb-mq-card__author">' + r.author + '</div>' +
+          '<div class="snb-mq-card__time">' + r.time + '</div>' +
+        '</div>' +
+        '<div class="snb-mq-card__stars">' + starsSVG(r.rating) + '</div>' +
+      '</div>' +
+      '<p class="snb-mq-card__text">' + r.text.replace(/</g, '&lt;') + '</p>' +
+    '</div>';
+  }
+
+  fetch('/api/reviews')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.error) throw new Error(data.error);
+
+      // Score
+      document.getElementById('snb-mq-rating').textContent = data.rating.toFixed(1).replace('.', ',');
+      document.getElementById('snb-mq-stars').innerHTML = starsSVG(Math.round(data.rating), '#F59E0B');
+      document.getElementById('snb-mq-count').textContent = data.totalRatings.toLocaleString('fr-FR') + ' avis';
+      document.getElementById('snb-mq-score').style.display = 'inline-flex';
+
+      if (data.googleUrl) document.getElementById('snb-mq-link').href = data.googleUrl;
+
+      var reviews = data.reviews || [];
+      if (!reviews.length) {
+        document.getElementById('snb-mq-inner').innerHTML = '<div class="snb-mq__loading">Aucun avis disponible.</div>';
+        return;
+      }
+
+      // Dupliquer les cards pour une boucle parfaitement seamless
+      var cards = reviews.map(cardHTML).join('');
+      document.getElementById('snb-mq-inner').innerHTML = cards + cards;
+
+      // Ajuster la durée selon le nombre de cards (≈ 6s par card)
+      var duration = reviews.length * 6;
+      document.getElementById('snb-mq-inner').style.animationDuration = duration + 's';
+    })
+    .catch(function(err) {
+      document.getElementById('snb-mq-inner').innerHTML = '<div class="snb-mq__loading">Avis indisponibles.</div>';
+      console.warn('[snb-mq]', err.message);
+    });
+})();
+</script>
