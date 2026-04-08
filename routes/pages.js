@@ -2427,12 +2427,9 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
           }
         }
 
-        // Blog layout CSS — desktop + mobile
-        bodyContent = bodyContent.replace('</main>',
-          `<style>
-.snb-article-layout .snb-sidebar{position:sticky;top:100px;align-self:start;display:flex;flex-direction:column;gap:24px;grid-column:2;grid-row:1/-1;}
-@media(max-width:850px){.snb-article-layout{grid-template-columns:1fr!important;gap:0!important;}.snb-article-layout .snb-sidebar{display:none!important;position:static!important;}}
-</style>\n</main>`);
+        // Blog layout CSS — desktop + mobile (injected into <head> via sectionStyles accumulator)
+        sectionStyles += `.snb-article-layout .snb-sidebar{position:sticky;top:100px;align-self:start;display:flex;flex-direction:column;gap:24px;grid-column:2;grid-row:1/-1;}
+@media(max-width:850px){.snb-article-layout{grid-template-columns:1fr!important;gap:0!important;}.snb-article-layout .snb-sidebar{display:none!important;position:static!important;}}\n`;
       } catch (e) {
         console.error('[Pages] Blog sidebar injection error:', e.message);
       }
