@@ -1,7 +1,8 @@
 const router = require('express').Router();
 const fs = require('fs');
 const path = require('path');
-const { verifyToken, requireRole } = require('../middleware/auth');
+const { verifyToken } = require('../middleware/auth');
+const { requireRole } = require('../middleware/rbac');
 
 const SHARED_DIR = path.join(__dirname, '..', 'previews', '_shared');
 
