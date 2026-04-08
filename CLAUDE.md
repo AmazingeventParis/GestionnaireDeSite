@@ -1,5 +1,17 @@
 # Gestionnaire de Site — Shootnbox
 
+## Google Places API — Bloc avis dynamique (FAIT — 08/04/2026)
+
+- **Place IDs configurés** dans `.env` :
+  - Paris : `ChIJxSIRRC5x5kcRX2Elmh-CeRI` (Montreuil)
+  - Bordeaux : `ChIJ7Y3spjRvU0UR8IC-gF3tZJE` (Bègles)
+- **Résultat** : 4.8★, 1361 avis totaux, 5 avis retenus après filtre qualité
+- **Filtre** : 5★ ≥ 60 chars, 4★ ≥ 120 chars (max 2), triés par date
+- **Bloc créé** : `previews/_shared/block-reviews-marquee.html` (dark marquee défilant)
+- **Route** : `routes/reviews.js` — GET /api/reviews, cache 24h
+- **Remplacement** : Ancien bloc `snb-avis` remplacé sur toutes les pages locales et villes (via API)
+- **Script de découverte** : `scripts/find-place-ids.js`
+
 ## Google Business Profile API — Réponse automatique aux avis
 
 - **Demande d'accès GBP API envoyée le 07/04/2026** (délai réponse : 2-5 jours ouvrés)
@@ -8,7 +20,23 @@
 - **APIs activées** : My Business Account Management API, My Business Business Information API
 - **Scope** : `https://www.googleapis.com/auth/business.manage`
 - **Scripts prêts** : `scripts/google-oauth-setup.js`, `scripts/google-business-ids.js`
-- **À faire dès approbation** : lancer `node scripts/google-business-ids.js` pour récupérer `GOOGLE_ACCOUNT_NAME` et `GOOGLE_LOCATION_NAME`, puis construire `routes/reviews.js` + table Supabase + UI admin
+- **À faire dès approbation** : lancer `node scripts/google-business-ids.js` pour récupérer `GOOGLE_ACCOUNT_NAME` et `GOOGLE_LOCATION_NAME`, puis construire table Supabase + UI admin réponses
+
+## Header — Menus déroulants (FAIT — 08/04/2026)
+
+- **Fichier** : `previews/_shared/header.html`
+- **Onglet Location** : converti en dropdown avec 5 items :
+  - 📸 Location Photobooth → `/location-photobooth/`
+  - 🏭 Location Photobooth Entreprises → `/location-photobooth-entreprises/`
+  - 💍 Location Photobooth Mariage → `/location-photobooth-mariage/`
+  - 🎂 Location Photobooth Anniversaire → `/location-photobooth-anniversaire/`
+  - 🧱 Location Photocall → `/location-photocall/`
+- **Onglet Nos bornes** : 3 nouvelles bornes ajoutées (emojis placeholder, photos à venir) :
+  - 🎥 AirCam 360 © → `/borne-aircam-360/`
+  - 👗 Fashion Box → `/location-fashion-box/`
+  - 🎤 Karaoké → `/location-karaoke/`
+- **Mobile** : sous-menus Location + 3 nouvelles bornes ajoutés
+- **À faire** : remplacer les emojis placeholders par les vraies photos des bornes
 
 ## Architecture
 
