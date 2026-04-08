@@ -736,6 +736,16 @@
             sectionContent = sectionContent.replace(/<video\b([^>]*)>/g, (m, attrs) =>
               /\bmuted\b/.test(attrs) ? m : `<video${attrs} muted>`
             );
+            // 4. Safety guard — abort if serialized content looks suspiciously small
+            // (could indicate cleanSectionHtml removed too much)
+            const rawSize = sectionWrapper.innerHTML.length;
+            const cleanSize = sectionContent.length;
+            console.log('[GDS] Auto-save sizes: raw=' + rawSize + ' clean=' + cleanSize);
+            if (cleanSize < 100 || cleanSize < rawSize * 0.2) {
+              console.error('[GDS] Auto-save aborted — content too small after cleaning (raw=' + rawSize + ' clean=' + cleanSize + ')');
+              showToast('Media mis à jour (sauvegarde manuelle requise)', 'warning');
+              return;
+            }
             const saveRes = await Auth.apiFetch(
               '/api/pages/' + currentSlug + '/section/' + encodeURIComponent(sectionFileForSave),
               { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: sectionContent }) }
