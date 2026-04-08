@@ -122,6 +122,7 @@ $related   = snb_related_articles($post_id);
 
 $hero_url  = get_the_post_thumbnail_url($post_id, 'full');
 $hero_alt  = get_the_post_thumbnail_caption($post_id) ?: get_the_title();
+$avatar_url = get_avatar_url($post->post_author, ['size' => 80, 'default' => '404']);
 
 $current_url = (is_ssl() ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
 $fb_share  = 'https://www.facebook.com/sharer/sharer.php?u=' . urlencode($current_url);
@@ -129,37 +130,27 @@ $tw_share  = 'https://twitter.com/intent/tweet?url=' . urlencode($current_url) .
 
 ?>
 
-<!-- ── BREADCRUMB ── -->
-<nav class="snb-breadcrumb" aria-label="Fil d'Ariane">
-  <a href="<?php echo home_url('/'); ?>">Accueil</a>
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-  <a href="<?php echo home_url('/blog/'); ?>">Blog</a>
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-  <a href="<?php echo esc_url($cat_info['link']); ?>"><?php echo esc_html($cat_info['label']); ?></a>
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-  <span class="current"><?php the_title(); ?></span>
-</nav>
-
 <!-- ── HERO ── -->
 <header class="snb-article-hero">
-  <div class="snb-article-meta-top">
-    <span class="snb-cat-badge <?php echo esc_attr($cat_info['class']); ?>">
-      <?php echo $cat_info['emoji']; ?> <?php echo esc_html($cat_info['label']); ?>
-    </span>
-    <span class="snb-article-date"><?php echo esc_html($date_fr); ?></span>
-    <span class="snb-article-read-time">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-      <?php echo $read_time; ?> min de lecture
-    </span>
-  </div>
 
   <h1 class="snb-article-title"><?php the_title(); ?></h1>
 
   <div class="snb-author-row">
-    <div class="snb-author-avatar"><?php echo esc_html($author['initials']); ?></div>
+    <div class="snb-author-avatar">
+      <img src="<?php echo esc_url($avatar_url); ?>"
+           alt="<?php echo esc_attr($author['name']); ?>"
+           onerror="this.parentElement.innerHTML='<?php echo esc_js($author['initials']); ?>'">
+    </div>
     <div class="snb-author-info">
       <span class="snb-author-name"><?php echo esc_html($author['name']); ?></span>
       <span class="snb-author-role"><?php echo esc_html($author['role']); ?></span>
+    </div>
+    <div class="snb-author-meta-inline">
+      <span class="snb-article-date"><?php echo esc_html($date_fr); ?></span>
+      <span class="snb-article-read-time">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        <?php echo $read_time; ?> min
+      </span>
     </div>
     <div class="snb-author-sep"></div>
     <div class="snb-share-mini">
@@ -227,7 +218,11 @@ $tw_share  = 'https://twitter.com/intent/tweet?url=' . urlencode($current_url) .
     }
     ?>
     <div class="snb-author-bio">
-      <div class="snb-author-bio-avatar"><?php echo esc_html($author['initials']); ?></div>
+      <div class="snb-author-bio-avatar">
+        <img src="<?php echo esc_url($avatar_url); ?>"
+             alt="<?php echo esc_attr($author['name']); ?>"
+             onerror="this.parentElement.innerHTML='<?php echo esc_js($author['initials']); ?>'">
+      </div>
       <div class="snb-author-bio-content">
         <span class="snb-author-bio-label">À propos de l'auteur·e</span>
         <strong class="snb-author-bio-name"><?php echo esc_html($author['name']); ?></strong>
