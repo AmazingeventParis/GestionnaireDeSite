@@ -698,6 +698,15 @@
             el.replaceWith(img);
           } else {
             el.src = newSrc;
+            // Ensure animated/portrait content fills the placeholder container
+            // (boomerangs, GIFs have different aspect ratios from landscape placeholders)
+            if (el.tagName === 'IMG') {
+              const cs = window.getComputedStyle(el);
+              if (cs.objectFit !== 'cover') el.style.objectFit = 'cover';
+              if (!el.style.width)  el.style.width  = '100%';
+              if (!el.style.height) el.style.height = '100%';
+              el.style.display = 'block';
+            }
           }
         } else {
           const currentStyle = el.getAttribute('style') || '';
