@@ -1567,6 +1567,17 @@ router.put('/:slug/section/:file', verifyToken, requireRole('admin', 'editor'), 
     content = content.replace(/\s*tabindex="0"/g, '');
     content = content.replace(/\s*contenteditable="[^"]*"/g, '');
 
+    // Préserver les <style> du fichier existant si le contenu entrant ne les contient pas.
+    // Cause : le preview extrait les <style> vers le <head> → l'éditeur ne les voit pas
+    // → quand il sauvegarde, il envoie le HTML sans les styles → le CSS disparaît.
+    const existingContent = fs.readFileSync(filePath, 'utf-8');
+    const existingStyles = [...existingContent.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)]
+      .map(m => m[0]).join('\n');
+    const incomingHasStyles = /<style[^>]*>/i.test(content);
+    if (existingStyles && !incomingHasStyles) {
+      content = existingStyles + '\n' + content;
+    }
+
     fs.writeFileSync(filePath, content, 'utf-8');
 
     await logAudit({
