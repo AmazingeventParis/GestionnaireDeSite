@@ -259,6 +259,66 @@
 .card-vegas .snb-mega-card-cta { color: #0250FF; background: rgba(2,80,255,0.08); }
 .card-miroir .snb-mega-card-cta { color: #7828C8; background: rgba(120,40,200,0.08); }
 .card-spinner .snb-mega-card-cta { color: #FF7A00; background: rgba(255,122,0,0.08); }
+.card-aircam .snb-mega-card-cta { color: #16A34A; background: rgba(22,163,74,0.08); }
+.card-fashion .snb-mega-card-cta { color: #E51981; background: rgba(229,25,129,0.08); }
+.card-karaoke .snb-mega-card-cta { color: #7828C8; background: rgba(120,40,200,0.08); }
+
+/* Hover couleurs nouvelles bornes */
+.snb-mega-card.card-aircam:hover { background: rgba(22,163,74,0.05); }
+.snb-mega-card.card-fashion:hover { background: rgba(229,25,129,0.05); }
+.snb-mega-card.card-karaoke:hover { background: rgba(120,40,200,0.05); }
+
+/* Placeholder image pour bornes sans photo */
+.snb-mega-card-img-placeholder {
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
+/* ========== DROPDOWN LOCATION ========== */
+.snb-mega--location {
+  width: 290px;
+}
+
+.snb-location-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 10px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: #323338;
+  font-size: 13.5px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.snb-location-item:hover {
+  background: rgba(229,25,129,0.06);
+  color: #E51981;
+  padding-left: 14px;
+}
+
+.snb-location-item .snb-loc-emoji {
+  font-size: 18px;
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8f0ff;
+  border-radius: 8px;
+}
+
+.snb-location-item:hover .snb-loc-emoji {
+  background: rgba(229,25,129,0.1);
+}
 
 .snb-mega-card-cta svg { width: 14px; height: 14px; }
 
@@ -471,7 +531,36 @@
 <img src="/images/logo/shootnbox-logo-new-1.webp" alt="Shootnbox" width="330" height="175" fetchpriority="high" decoding="async">
 </a>
 <nav class="snb-nav">
-<a href="/location-photobooth/" class="snb-nav-link">Location</a>
+<div class="snb-dropdown">
+<a href="/location-photobooth/" class="snb-nav-link snb-dropdown-trigger">
+Location
+<svg class="snb-chevron" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
+</a>
+<div class="snb-mega snb-mega--location">
+<div class="snb-mega-grid">
+<a href="/location-photobooth/" class="snb-location-item">
+<span class="snb-loc-emoji">📸</span>
+Location Photobooth
+</a>
+<a href="/location-photobooth-entreprises/" class="snb-location-item">
+<span class="snb-loc-emoji">🏭</span>
+Location Photobooth Entreprises
+</a>
+<a href="/location-photobooth-mariage/" class="snb-location-item">
+<span class="snb-loc-emoji">💍</span>
+Location Photobooth Mariage
+</a>
+<a href="/location-photobooth-anniversaire/" class="snb-location-item">
+<span class="snb-loc-emoji">🎂</span>
+Location Photobooth Anniversaire
+</a>
+<a href="/location-photocall/" class="snb-location-item">
+<span class="snb-loc-emoji">🧱</span>
+Location Photocall
+</a>
+</div>
+</div>
+</div>
 <div class="snb-dropdown">
 <a href="/nos-bornes/" class="snb-nav-link snb-dropdown-trigger">
 Nos bornes
@@ -519,6 +608,30 @@ Nos bornes
 </div>
 <div class="snb-mega-card-cta" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></div>
 </a>
+<a href="/borne-aircam-360/" class="snb-mega-card card-aircam">
+<div class="snb-mega-card-img-placeholder" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">🎥</div>
+<div class="snb-mega-card-body">
+<div class="snb-mega-card-name">AirCam 360 ©</div>
+<div class="snb-mega-card-desc">La caméra 360 suspendue</div>
+</div>
+<div class="snb-mega-card-cta" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></div>
+</a>
+<a href="/location-fashion-box/" class="snb-mega-card card-fashion">
+<div class="snb-mega-card-img-placeholder" style="background:linear-gradient(135deg,#fce4ec,#f8bbd0)">👗</div>
+<div class="snb-mega-card-body">
+<div class="snb-mega-card-name">Fashion Box</div>
+<div class="snb-mega-card-desc">Le photobooth mode & style</div>
+</div>
+<div class="snb-mega-card-cta" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></div>
+</a>
+<a href="/location-karaoke/" class="snb-mega-card card-karaoke">
+<div class="snb-mega-card-img-placeholder" style="background:linear-gradient(135deg,#ede9fe,#ddd6fe)">🎤</div>
+<div class="snb-mega-card-body">
+<div class="snb-mega-card-name">Karaoké</div>
+<div class="snb-mega-card-desc">La scène karaoké interactive</div>
+</div>
+<div class="snb-mega-card-cta" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></div>
+</a>
 </div>
 <a href="/nos-bornes/" class="snb-mega-footer">Voir toutes les bornes</a>
 </div>
@@ -551,12 +664,22 @@ Obtenir un devis
 </div>
 <div class="snb-mobile-menu" id="snbMobileMenu">
 <a href="/location-photobooth/">Location</a>
+<div class="snb-mobile-sub">
+<a href="/location-photobooth/">📸 Location Photobooth</a>
+<a href="/location-photobooth-entreprises/">🏭 Entreprises</a>
+<a href="/location-photobooth-mariage/">💍 Mariage</a>
+<a href="/location-photobooth-anniversaire/">🎂 Anniversaire</a>
+<a href="/location-photocall/">🧱 Photocall</a>
+</div>
 <a href="/nos-bornes/">Nos bornes</a>
 <div class="snb-mobile-sub">
 <a href="/borne-photo-ring/">Borne Ring</a>
 <a href="/borne-photo-vegas/">Borne Vegas</a>
 <a href="/borne-photo-miroir/">Borne Miroir</a>
 <a href="/borne-photo-spinner/">Spinner 360°</a>
+<a href="/borne-aircam-360/">AirCam 360 ©</a>
+<a href="/location-fashion-box/">Fashion Box</a>
+<a href="/location-karaoke/">Karaoké</a>
 </div>
 <a href="/reservation/">Reservation</a>
 <a href="/contact/">Contact</a>
