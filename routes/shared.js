@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const fs = require('fs');
 const path = require('path');
+const { verifyToken, requireRole } = require('../middleware/auth');
 
 const SHARED_DIR = path.join(__dirname, '..', 'previews', '_shared');
 
@@ -60,6 +61,32 @@ img{max-width:100%;height:auto}
   res.set('Cache-Control', 'public, max-age=300');
   res.set('Access-Control-Allow-Origin', '*');
   res.send(css);
+});
+
+/**
+ * PUT /header — Update shared header HTML (admin only)
+ */
+router.put('/header', verifyToken, requireRole('admin'), (req, res) => {
+  const { html } = req.body;
+  if (!html || typeof html !== 'string') {
+    return res.status(400).json({ error: 'html field required' });
+  }
+  const headerPath = path.join(SHARED_DIR, 'header.html');
+  fs.writeFileSync(headerPath, html, 'utf-8');
+  res.json({ success: true, size: html.length });
+});
+
+/**
+ * PUT /footer — Update shared footer HTML (admin only)
+ */
+router.put('/footer', verifyToken, requireRole('admin'), (req, res) => {
+  const { html } = req.body;
+  if (!html || typeof html !== 'string') {
+    return res.status(400).json({ error: 'html field required' });
+  }
+  const footerPath = path.join(SHARED_DIR, 'footer.html');
+  fs.writeFileSync(footerPath, html, 'utf-8');
+  res.json({ success: true, size: html.length });
 });
 
 module.exports = router;

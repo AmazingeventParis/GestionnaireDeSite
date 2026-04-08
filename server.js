@@ -135,6 +135,58 @@ app.get('/location-photobooth/:city/', (req, res) => {
   res.redirect('/api/pages/' + city + '/preview');
 });
 
+// ===== DYNAMIC PAGE ROUTING — serve any page by slug or urlPath =====
+// Builds a slug→urlPath map from previews/ directories and seo.json files.
+// This allows /ring/, /mariage/, /location-photobooth/ etc. to serve their preview.
+(function setupPageRoutes() {
+  const fs = require('fs');
+  const previewsDir = path.join(__dirname, 'previews');
+
+  // urlPath → slug map (built once at startup, refreshed on cache miss)
+  let urlPathMap = null;
+
+  function buildUrlPathMap() {
+    const map = new Map();
+    if (!fs.existsSync(previewsDir)) return map;
+    const dirs = fs.readdirSync(previewsDir).filter(d => {
+      if (d.startsWith('_')) return false;
+      return fs.statSync(path.join(previewsDir, d)).isDirectory();
+    });
+    for (const slug of dirs) {
+      // By default, urlPath = slug
+      map.set('/' + slug, slug);
+      // Override with seo.json urlPath if present
+      const seoPath = path.join(previewsDir, slug, 'seo.json');
+      if (fs.existsSync(seoPath)) {
+        try {
+          const seo = JSON.parse(fs.readFileSync(seoPath, 'utf-8'));
+          if (seo.urlPath) {
+            const p = '/' + seo.urlPath.replace(/^\//, '').replace(/\/$/, '');
+            map.set(p, slug);
+          }
+        } catch {}
+      }
+    }
+    return map;
+  }
+
+  app.get('/:path(*)', (req, res, next) => {
+    // Only handle clean URL paths (no dots = not a file request)
+    if (req.path.includes('.')) return next();
+    // Skip admin and API paths
+    if (req.path.startsWith('/api/') || req.path.startsWith('/site/')) return next();
+
+    if (!urlPathMap) urlPathMap = buildUrlPathMap();
+
+    // Normalize: strip trailing slash, keep leading slash
+    const normalized = req.path.replace(/\/+$/, '') || '/';
+    const slug = urlPathMap.get(normalized);
+    if (!slug) return next();
+
+    res.redirect('/api/pages/' + slug + '/preview');
+  });
+})();
+
 // ===== API 404 =====
 app.all('/api/*', (req, res) => {
   res.status(404).json({ error: 'Route API non trouvee' });

@@ -2701,7 +2701,8 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
     .lph-bg-overlay,
     .lp-hero-bg-overlay,
     .lp-bg-overlay,
-    .lp-miroir-hero-bg-overlay {
+    .lp-miroir-hero-bg-overlay,
+    .lp-karaoke-hero-bg-overlay {
       display: block !important;
       position: absolute !important;
       top: 0 !important; left: 0 !important;
