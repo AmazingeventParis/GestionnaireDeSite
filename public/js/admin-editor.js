@@ -726,7 +726,16 @@
         // Auto-save the section immediately — imageChanges are NOT persisted by saveOnly()
         if (sectionWrapper && sectionFileForSave) {
           try {
-            const sectionContent = cleanSectionHtml(sectionWrapper);
+            // 1. Clean placeholder styles from video elements before serialization
+            sectionWrapper.querySelectorAll('video').forEach(v => {
+              v.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+            });
+            // 2. Serialize section HTML
+            let sectionContent = cleanSectionHtml(sectionWrapper);
+            // 3. Patch muted attribute via regex (Chrome innerHTML bug: muted not serialized)
+            sectionContent = sectionContent.replace(/<video\b([^>]*)>/g, (m, attrs) =>
+              /\bmuted\b/.test(attrs) ? m : `<video${attrs} muted>`
+            );
             const saveRes = await Auth.apiFetch(
               '/api/pages/' + currentSlug + '/section/' + encodeURIComponent(sectionFileForSave),
               { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: sectionContent }) }
