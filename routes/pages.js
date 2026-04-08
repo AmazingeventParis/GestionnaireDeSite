@@ -6,6 +6,20 @@ const { verifyToken, optionalAuth } = require('../middleware/auth');
 const { requireRole } = require('../middleware/rbac');
 const { logAudit } = require('../utils/audit');
 const { getClientIp } = require('../middleware/threatDetector');
+const multer = require('multer');
+const sharp = require('sharp');
+
+// Multer for placeholder image uploads (editor)
+const _uploadTmp = path.join(__dirname, '..', 'uploads_tmp');
+if (!fs.existsSync(_uploadTmp)) fs.mkdirSync(_uploadTmp, { recursive: true });
+const _phUpload = multer({
+  storage: multer.diskStorage({ destination: _uploadTmp, filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname.replace(/[^a-z0-9._-]/gi, '-')) }),
+  fileFilter: (req, file, cb) => {
+    const ok = file.mimetype.startsWith('image/') || ['video/mp4','video/webm','video/quicktime'].includes(file.mimetype);
+    cb(ok ? null : new Error('Format non accepte'), ok);
+  },
+  limits: { fileSize: 50 * 1024 * 1024 }
+});
 
 const PREVIEWS_DIR = path.join(__dirname, '..', 'previews');
 const SHARED_DIR = path.join(PREVIEWS_DIR, '_shared');
@@ -1513,6 +1527,46 @@ router.post('/:slug/spacing', verifyToken, requireRole('admin', 'editor'), async
  * Body: { content: "<style>...</style><section>...</section>" }
  * RBAC: admin + editor
  */
+/**
+ * POST /:slug/upload-image — Upload image/gif/video from editor placeholder
+ * Returns { newSrc } pointing to the saved file in /site-images/
+ */
+router.post('/:slug/upload-image', verifyToken, requireRole('admin', 'editor'), _phUpload.single('image'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Aucun fichier recu' });
+  try {
+    const IMAGES_DIR = path.join(__dirname, '..', 'public', 'site-images');
+    if (!fs.existsSync(IMAGES_DIR)) fs.mkdirSync(IMAGES_DIR, { recursive: true });
+
+    const isVideo = req.file.mimetype.startsWith('video/');
+    const isGif   = req.file.mimetype === 'image/gif' || req.file.originalname.toLowerCase().endsWith('.gif');
+    const baseName = path.basename(req.file.originalname, path.extname(req.file.originalname))
+      .replace(/[^a-z0-9_-]/gi, '-').toLowerCase();
+
+    let savedName, savedPath;
+
+    if (isVideo) {
+      const ext = path.extname(req.file.originalname).toLowerCase() || '.mp4';
+      savedName = baseName + '-' + Date.now() + ext;
+      savedPath = path.join(IMAGES_DIR, savedName);
+      fs.copyFileSync(req.file.path, savedPath);
+    } else {
+      savedName = baseName + '-' + Date.now() + '.webp';
+      savedPath = path.join(IMAGES_DIR, savedName);
+      const maxWidth = parseInt(req.body.maxWidth) || 1200;
+      let pipeline = sharp(req.file.path, isGif ? { animated: true } : {});
+      if (!isGif) pipeline = pipeline.resize(maxWidth, null, { withoutEnlargement: true });
+      await pipeline.webp({ quality: 80, loop: 0 }).toFile(savedPath);
+    }
+
+    fs.unlinkSync(req.file.path);
+    res.json({ success: true, newSrc: '/site-images/' + savedName });
+  } catch (err) {
+    console.error('[Pages] upload-image error:', err.message);
+    if (req.file?.path && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.put('/:slug/section/:file', verifyToken, requireRole('admin', 'editor'), async (req, res) => {
   try {
     const slug = req.params.slug.replace(/[^a-z0-9-]/gi, '');
