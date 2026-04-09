@@ -2615,6 +2615,8 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${seo.title || config.identity?.name || 'Preview'}</title>
   <meta name="description" content="${seo.description || ''}">
+${seo.canonical ? `  <link rel="canonical" href="${seo.canonical}">` : ''}
+${seo.noindex ? `  <meta name="robots" content="noindex,nofollow">` : ''}
   <link rel="preload" as="font" href="/fonts/raleway-latin.woff2" type="font/woff2" crossorigin>
   <link rel="preload" as="font" href="/fonts/raleway-900i-latin.woff2" type="font/woff2" crossorigin>
   <style>

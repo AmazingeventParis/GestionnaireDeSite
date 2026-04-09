@@ -76,7 +76,8 @@ app.use('/api/monitors', require('./routes/monitors'));
 app.use('/api/stats', require('./routes/stats'));
 
 // Phase 2 routes (pages, settings) — mounted when files exist
-try { app.use('/api/pages', require('./routes/pages')); } catch {}
+let pagesRouter;
+try { pagesRouter = require('./routes/pages'); app.use('/api/pages', pagesRouter); } catch {}
 try { app.use('/api/settings', require('./routes/settings')); } catch {}
 
 // Phase 3 routes (media, navigation, seo, blocks, blog, shared)
@@ -125,14 +126,18 @@ app.use('/site-images', express.static(path.join(__dirname, 'public', 'site-imag
   maxAge: process.env.NODE_ENV === 'production' ? '365d' : 0, etag: true
 }));
 
-// ===== URL PATH ROUTING — redirect /location-photobooth-xxx/ to page preview =====
-app.get('/location-photobooth-:city/', (req, res) => {
-  const city = req.params.city.replace(/[^a-z0-9-]/gi, '');
-  res.redirect('/api/pages/' + city + '/preview');
+// ===== URL PATH ROUTING — serve /location-photobooth-xxx/ directly (no redirect) =====
+function servePageBySlug(slug, req, res, next) {
+  if (!pagesRouter) return next();
+  req.url = '/' + slug + '/preview';
+  req.params = {};
+  pagesRouter(req, res, next);
+}
+app.get('/location-photobooth-:city/', (req, res, next) => {
+  servePageBySlug(req.params.city.replace(/[^a-z0-9-]/gi, ''), req, res, next);
 });
-app.get('/location-photobooth/:city/', (req, res) => {
-  const city = req.params.city.replace(/[^a-z0-9-]/gi, '');
-  res.redirect('/api/pages/' + city + '/preview');
+app.get('/location-photobooth/:city/', (req, res, next) => {
+  servePageBySlug(req.params.city.replace(/[^a-z0-9-]/gi, ''), req, res, next);
 });
 
 // ===== DYNAMIC PAGE ROUTING — serve any page by slug or urlPath =====
@@ -183,7 +188,7 @@ app.get('/location-photobooth/:city/', (req, res) => {
     const slug = urlPathMap.get(normalized);
     if (!slug) return next();
 
-    res.redirect('/api/pages/' + slug + '/preview');
+    servePageBySlug(slug, req, res, next);
   });
 })();
 
