@@ -834,16 +834,22 @@
       if (ph.tagName === 'IMG') {
         const wrapper = document.createElement('div');
         wrapper.className = 'gds-ph-img-wrap';
-        // Preserve absolute positioning — CSS may use img[data-gds-placeholder] for layout (e.g. position:absolute;inset:0)
         const computedPos = window.getComputedStyle(ph).position;
         const isAbsolute = computedPos === 'absolute' || computedPos === 'fixed';
-        if (isAbsolute) {
-          wrapper.style.position = computedPos;
+        // Also treat as absolute when parent is positioned and img uses height:100%
+        // (e.g. hero-bg: position:absolute;inset:0 > img[width:100%;height:100%])
+        // Using inline-block + height:100% in that context creates a circular size reference → 1440×810px
+        const parentPos = window.getComputedStyle(ph.parentNode).position;
+        const parentIsAbsolute = parentPos === 'absolute' || parentPos === 'fixed';
+        const fillsParentByHeight = ph.style.height === '100%';
+        if (isAbsolute || (parentIsAbsolute && fillsParentByHeight)) {
+          wrapper.style.position = isAbsolute ? computedPos : 'absolute';
           wrapper.style.inset = '0';
-          wrapper.style.zIndex = window.getComputedStyle(ph).zIndex || '';
+          const z = window.getComputedStyle(ph).zIndex;
+          if (z && z !== 'auto') wrapper.style.zIndex = z;
         } else {
           wrapper.style.position = 'relative';
-          wrapper.style.display = 'inline-block';
+          wrapper.style.display = 'block';
           wrapper.style.width = ph.style.width || '100%';
           wrapper.style.height = ph.style.height || 'auto';
           wrapper.style.aspectRatio = ph.style.aspectRatio || '';
