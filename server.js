@@ -104,6 +104,10 @@ try { app.use('/api/users', require('./routes/users')); } catch {}
 try { app.use('/api/reviews', require('./routes/reviews')); } catch {}
 
 // ===== STATIC FILES =====
+// Fonts and public images: CORS open (needed when pages are served from shootnbox.fr)
+app.use('/fonts', (req, res, next) => { res.setHeader('Access-Control-Allow-Origin', '*'); next(); });
+app.use('/images', (req, res, next) => { res.setHeader('Access-Control-Allow-Origin', '*'); next(); });
+app.use('/site-images', (req, res, next) => { res.setHeader('Access-Control-Allow-Origin', '*'); next(); });
 // No cache on admin JS/CSS (they change frequently during development)
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: 0,

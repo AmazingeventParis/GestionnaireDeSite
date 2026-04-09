@@ -53,6 +53,7 @@ async function fetchPlace(placeId, apiKey) {
  * Réponse : { rating, totalRatings, reviews[], googleUrl }
  */
 router.get('/', async (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
   // Cache frais
   if (_cache && Date.now() - _cacheAt < CACHE_TTL) {
     return res.json(_cache);
