@@ -1241,13 +1241,16 @@
         // If the placeholder IS an <img>, just set its src directly
         if (placeholderEl.tagName === 'IMG' && !isVideo) {
           placeholderEl.src = imgSrc;
-          // Keep data-gds-placeholder — the section CSS may use img[data-gds-placeholder] for positioning (absolute/inset:0).
-          // The filter in initPlaceholderImages will skip this img on next load since src is now set.
-          // Remove the overlay visually so user sees the image
+          // Remove dashed placeholder border so the image renders clean
+          placeholderEl.style.border = 'none';
+          // Unwrap from gds-ph-img-wrap in live DOM:
+          // - Restores CSS grid/flex layout (img back as direct child)
+          // - Removes wrapper's click listener (no accidental re-opening)
+          // - Removes overlay too (it's a child of the wrapper)
           const phWrapper = placeholderEl.closest('.gds-ph-img-wrap');
           if (phWrapper) {
-            const phOverlay = phWrapper.querySelector('.gds-ph-overlay');
-            if (phOverlay) phOverlay.remove();
+            phWrapper.parentNode.insertBefore(placeholderEl, phWrapper);
+            phWrapper.remove();
           }
         } else {
           // Original logic for div placeholders or video replacement
