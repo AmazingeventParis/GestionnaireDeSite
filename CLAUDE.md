@@ -38,6 +38,169 @@
 - **Mobile** : sous-menus Location + 3 nouvelles bornes ajoutés
 - **À faire** : remplacer les emojis placeholders par les vraies photos des bornes
 
+## Déploiement pages GDS → shootnbox.fr (production) — 09/04/2026
+
+### Stratégie retenue : déploiement statique sur serveur 79 (shootnbox.fr)
+
+Les pages créées dans GDS (sites.swipego.app) sont exportées en HTML statique et déposées sur le serveur Apache/WordPress shootnbox.fr via un script Python. Les assets (images, fonts, CSS) restent servis par GDS (sites.swipego.app), les URLs sont absolutisées au moment de l'export.
+
+**Pourquoi pas héberger directement sur server 217 ?**  
+Le domaine shootnbox.fr pointe encore vers server 79. Rediriger le DNS vers 217 = migrer tout le site. On déploie d'abord page par page en statique sur 79, puis on bascule le DNS quand toutes les pages seront prêtes.
+
+### Script de déploiement Python (à rejouer pour chaque nouvelle page)
+
+```python
+import re, requests, tempfile, os
+
+BASE_GDS = 'https://sites.swipego.app'
+SLUG = 'athis-mons'
+DEST_DIR = f'/location-photobooth-{SLUG}'   # répertoire sur shootnbox.fr
+
+# 1. Fetch HTML depuis GDS
+html = requests.get(f'{BASE_GDS}/api/pages/{SLUG}/preview').text
+
+# 2. Absolutiser toutes les URLs relatives d'assets
+def absolutize(m):
+    attr, url = m.group(1), m.group(2)
+    if url.startswith('http') or url.startswith('//'):
+        return m.group(0)
+    if url.startswith(('/fonts/', '/images/', '/site-images/', '/css/', '/js/')):
+        return f'{attr}="{BASE_GDS}{url}"'
+    return m.group(0)
+
+html = re.sub(r'(href|src)="([^"]*)"', absolutize, html)
+
+# Absolutiser les CSS url() (fonts dans @font-face)
+html = re.sub(r"url\('(/(?:fonts|images|site-images)/[^']+)'\)",
+              lambda m: f"url('{BASE_GDS}{m.group(1)}')", html)
+html = re.sub(r'url\("(/(?:fonts|images|site-images)/[^"]+)"\)',
+              lambda m: f'url("{BASE_GDS}{m.group(1)}")', html)
+
+# Absolutiser fetch() API (ex: avis Google)
+html = html.replace("fetch('/api/", f"fetch('{BASE_GDS}/api/")
+
+# 3. Déposer via m.php sur shootnbox.fr (voir section déploiement m.php)
+```
+
+### Absolutisation — règles complètes
+
+| Pattern | Traitement |
+|---------|------------|
+| `href="/css/..."`, `src="/images/..."`, `src="/site-images/..."`, `src="/fonts/..."`, `href="/js/..."` | → absolute `https://sites.swipego.app/...` |
+| `fetch('/api/...')` | → `fetch('https://sites.swipego.app/api/...')` |
+| `url('/fonts/...')` dans CSS inline | → absolute (pattern séparé) |
+| Liens internes entre pages (`href="/mentions-legales/"` etc.) | **laisser relatifs** |
+
+### Modifications techniques réalisées dans GDS
+
+#### 1. `server.js` — Routage interne sans redirection HTTP
+
+**Problème** : Le router `/location-photobooth-:city/` faisait un `res.redirect()` vers `/api/pages/:slug/preview`, changeant l'URL dans le navigateur (mauvais SEO + canonical incorrect).
+
+**Fix** : Forward interne — mutation de `req.url` + appel direct du router pages.
+
+```javascript
+let pagesRouter;
+try { pagesRouter = require('./routes/pages'); app.use('/api/pages', pagesRouter); } catch {}
+
+function servePageBySlug(slug, req, res, next) {
+  if (!pagesRouter) return next();
+  req.url = '/' + slug + '/preview';
+  req.params = {};
+  pagesRouter(req, res, next);
+}
+
+app.get('/location-photobooth-:city/', (req, res, next) => {
+  servePageBySlug(req.params.city.replace(/[^a-z0-9-]/gi, ''), req, res, next);
+});
+app.get('/location-photobooth/:city/', (req, res, next) => {
+  servePageBySlug(req.params.city.replace(/[^a-z0-9-]/gi, ''), req, res, next);
+});
+```
+
+Le routage dynamique général (toutes pages par slug/urlPath) utilise aussi `servePageBySlug()`.
+
+#### 2. `server.js` — CORS + CORP sur les assets publics
+
+**Problème 1** : Fonts `@font-face` bloquées cross-origin (fetch nécessite CORS).  
+**Problème 2** : Helmet applique `Cross-Origin-Resource-Policy: same-origin` par défaut → **toutes les images bloquées** depuis shootnbox.fr avec `net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin`.
+
+**Diagnostic** : Chrome DevTools MCP → `list_network_requests` filtré `image` → erreur CORP sur toutes les images GDS sauf l'image hero (URL externe toploc.com).
+
+**Fix** : Surcharger les deux headers sur les routes d'assets après Helmet dans le pipeline :
+
+```javascript
+app.use('/fonts',      (req, res, next) => { res.setHeader('Access-Control-Allow-Origin', '*'); res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin'); next(); });
+app.use('/images',     (req, res, next) => { res.setHeader('Access-Control-Allow-Origin', '*'); res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin'); next(); });
+app.use('/site-images',(req, res, next) => { res.setHeader('Access-Control-Allow-Origin', '*'); res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin'); next(); });
+```
+
+Ces middlewares sont déclarés **après** `app.use(securityHeaders)`. Express évalue dans l'ordre de déclaration, donc `res.setHeader()` ici écrase la valeur Helmet pour ces routes.
+
+**Piège** : Le premier deploy avait bien inclus le fix mais le commit n'avait pas été pushé → Coolify déployait l'ancien code. Toujours vérifier `git push` avant de déclencher un deploy Coolify.
+
+#### 3. `routes/reviews.js` — CORS sur l'API avis
+
+```javascript
+router.get('/', async (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+```
+
+Nécessaire pour que `fetch('https://sites.swipego.app/api/reviews')` fonctionne depuis shootnbox.fr.
+
+#### 4. `routes/pages.js` — Injection canonical + robots dans le `<head>`
+
+```javascript
+${seo.canonical ? `  <link rel="canonical" href="${seo.canonical}">` : ''}
+${seo.noindex  ? `  <meta name="robots" content="noindex,nofollow">` : ''}
+```
+
+Canonical défini dans `previews/athis-mons/seo.json` :
+```json
+{ "canonical": "https://shootnbox.fr/location-photobooth-athis-mons/" }
+```
+
+#### 5. `previews/_shared/header.html` — Liens pages non encore migrées
+
+| Lien | Avant | Après |
+|------|-------|-------|
+| Location Photocall (dropdown) | `/location-photocall/` | `https://shootnbox.fr/location-photocall/` |
+| Contact | `/contact/` | `https://shootnbox.fr/contacts/` |
+| Blog | `/blog/` | `https://shootnbox.fr/blog/` |
+| (mobile : même 3 liens) | idem | idem |
+
+#### 6. `previews/_shared/footer.html` — Liens corrigés
+
+| Lien | Avant | Après |
+|------|-------|-------|
+| Blog | `/blog/` | `https://shootnbox.fr/blog/` |
+| Contact | `/contact/` | `https://shootnbox.fr/contacts/` |
+| CGV | `/conditions-generales-de-ventes/` (inexistant) | `/conditions-generales-de-location/` |
+| Libellé CGV | `CGV` | `Conditions generales de Location` |
+
+### Pages légales créées dans GDS (09/04/2026)
+
+| Page | Slug | URL |
+|------|------|-----|
+| Politique de confidentialité | `politique-de-confidentialite` | `/politique-de-confidentialite/` |
+| Mentions légales | `mentions-legales` | `/mentions-legales/` |
+| Conditions générales de Location | `conditions-generales-de-location` | `/conditions-generales-de-location/` |
+
+### Résultat final — page athis-mons
+
+- URL prod : `https://shootnbox.fr/location-photobooth-athis-mons/`
+- HTML statique déployé sur server 79 via m.php (172 968 bytes)
+- Assets servis depuis `https://sites.swipego.app` (CORS + CORP configurés)
+- Toutes images 200 OK (vérifié Chrome DevTools MCP)
+- Canonical : `https://shootnbox.fr/location-photobooth-athis-mons/`
+
+### Checklist pour déployer une nouvelle page ville
+
+1. Finaliser la page dans GDS
+2. Définir `canonical` dans son `seo.json` : `https://shootnbox.fr/location-photobooth-{ville}/`
+3. Lancer le script Python (absolutiser + upload via m.php)
+4. Vérifier : images, fonts, avis, liens header/footer
+
 ## Architecture
 
 - **Framework** : Node.js + Express
