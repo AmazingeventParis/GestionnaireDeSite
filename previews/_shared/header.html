@@ -687,3 +687,33 @@ Obtenir un devis
 <a href="https://shootnbox.fr/reservation/" class="snb-mobile-cta">Obtenir un devis</a>
 </div>
 </header>
+<script>
+(function() {
+  var burger = document.getElementById('snbBurger');
+  var menu = document.getElementById('snbMobileMenu');
+  if (!burger || !menu) return;
+
+  burger.addEventListener('click', function() {
+    var isOpen = menu.classList.toggle('open');
+    burger.classList.toggle('active', isOpen);
+    document.body.style.overflow = isOpen ? 'hidden' : '';
+  });
+
+  // Close menu when a link is clicked
+  menu.querySelectorAll('a').forEach(function(link) {
+    link.addEventListener('click', function() {
+      menu.classList.remove('open');
+      burger.classList.remove('active');
+      document.body.style.overflow = '';
+    });
+  });
+
+  // Scroll effect on header
+  var header = document.getElementById('snbHeader');
+  if (header) {
+    window.addEventListener('scroll', function() {
+      header.classList.toggle('scrolled', window.scrollY > 30);
+    }, { passive: true });
+  }
+})();
+</script>
