@@ -6,9 +6,182 @@ const { logAudit } = require('../utils/audit');
 const { getClientIp } = require('../middleware/threatDetector');
 const fs = require('fs');
 const path = require('path');
+const https = require('https');
+const querystring = require('querystring');
 
 const CONFIG_PATH = path.join(__dirname, '..', 'site-config.json');
 const COOLIFY_HOST = 'http://217.182.89.133:8000';
+const BASE_GDS = 'https://sites.swipego.app';
+const MANAGER_MPH = 'https://shootnbox.fr/manager/m.php';
+
+// ── Shootnbox deploy helpers ──────────────────────────────────────────────────
+
+function absolutizeHtml(html) {
+  // href/src attributes pointing to local GDS assets
+  html = html.replace(/(href|src)="([^"]*)"/g, (match, attr, url) => {
+    if (url.startsWith('http') || url.startsWith('//') || url.startsWith('data:') || url.startsWith('#')) return match;
+    if (/^\/(fonts|images|site-images|css|js)\//.test(url)) return `${attr}="${BASE_GDS}${url}"`;
+    return match;
+  });
+  // CSS url() — single quotes
+  html = html.replace(/url\('(\/(?:fonts|images|site-images)\/[^']+)'\)/g, (_, p) => `url('${BASE_GDS}${p}')`);
+  // CSS url() — double quotes
+  html = html.replace(/url\("(\/(?:fonts|images|site-images)\/[^"]+)"\)/g, (_, p) => `url("${BASE_GDS}${p}")`);
+  // CSS url() — no quotes
+  html = html.replace(/url\((\/(?:fonts|images|site-images)\/[^)'"]+)\)/g, (_, p) => `url(${BASE_GDS}${p})`);
+  // fetch('/api/...')
+  html = html.replace(/fetch\('\/api\//g, `fetch('${BASE_GDS}/api/`);
+  return html;
+}
+
+function httpsPost(url, postData) {
+  return new Promise((resolve, reject) => {
+    const body = querystring.stringify(postData);
+    const u = new URL(url);
+    const options = {
+      hostname: u.hostname,
+      path: u.pathname + u.search,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Length': Buffer.byteLength(body)
+      }
+    };
+    const req = https.request(options, res => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => resolve(data));
+    });
+    req.on('error', reject);
+    req.setTimeout(60000, () => { req.destroy(); reject(new Error('timeout')); });
+    req.write(body);
+    req.end();
+  });
+}
+
+function httpsGet(url) {
+  return new Promise((resolve, reject) => {
+    const u = new URL(url);
+    const options = { hostname: u.hostname, path: u.pathname + u.search, method: 'GET' };
+    const req = https.request(options, res => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => resolve(data));
+    });
+    req.on('error', reject);
+    req.setTimeout(15000, () => { req.destroy(); reject(new Error('timeout')); });
+    req.end();
+  });
+}
+
+async function mWrite(url, filename, content) {
+  return httpsPost(url, { action: 'write', file: filename, content });
+}
+
+async function mGet(url) {
+  return httpsGet(url);
+}
+
+async function installMphp(destPath) {
+  const helperName = 'helper_gds_deploy.php';
+  const mphpCode = '<?php header("Content-Type:text/plain;charset=utf-8");$a=isset($_POST["action"])?$_POST["action"]:"";$dir=__DIR__."/";if($a==="write"&&isset($_POST["file"])&&isset($_POST["content"])){file_put_contents($dir.basename($_POST["file"]),$_POST["content"]);echo "OK:".strlen($_POST["content"]);}else{echo "ACTIVE";}';
+  const helperPhp = `<?php\n$target = dirname(__DIR__) . '${destPath}';\nif (!is_dir($target)) mkdir($target, 0755, true);\n$mphp = '${mphpCode}';\nfile_put_contents($target . '/m.php', $mphp);\necho "OK";\n?>`;
+
+  await mWrite(MANAGER_MPH, helperName, helperPhp);
+  const result = await mGet(`https://shootnbox.fr/manager/${helperName}`);
+  // Cleanup helper
+  await mWrite(MANAGER_MPH, helperName, '<?php http_response_code(404); ?>');
+  return result.includes('OK');
+}
+
+async function deployPageToShootnbox(slug) {
+  const PORT = process.env.PORT || 3000;
+  const LOCAL = `http://localhost:${PORT}`;
+  const apiKey = process.env.GDS_API_SECRET || '';
+
+  // 1. Get page SEO + urlPath (via local server, no auth needed with api key)
+  const pageResp = await fetch(`${LOCAL}/api/pages/${encodeURIComponent(slug)}`, {
+    headers: { 'x-api-key': apiKey }
+  });
+  if (!pageResp.ok) throw new Error(`Page not found: ${slug}`);
+  const pageData = await pageResp.json();
+  const seo = pageData.seo || {};
+
+  // Determine dest path: prefer canonical, fallback to urlPath or slug
+  let destPath;
+  if (seo.canonical) {
+    try {
+      const u = new URL(seo.canonical);
+      destPath = u.pathname.replace(/\/$/, '') || `/${slug}`;
+    } catch { destPath = `/${slug}`; }
+  } else if (seo.urlPath) {
+    destPath = '/' + seo.urlPath.replace(/^\//, '').replace(/\/$/, '');
+  } else {
+    destPath = `/${slug}`;
+  }
+
+  // 2. Fetch preview HTML (from local server)
+  const htmlResp = await fetch(`${LOCAL}/api/pages/${encodeURIComponent(slug)}/preview`, {
+    headers: { 'x-api-key': apiKey }
+  });
+  if (!htmlResp.ok) throw new Error(`Preview fetch failed: ${htmlResp.status}`);
+  let html = await htmlResp.text();
+
+  // 3. Absolutize assets
+  html = absolutizeHtml(html);
+
+  // 4. Install m.php + upload
+  const ok = await installMphp(destPath);
+  if (!ok) throw new Error('m.php install failed');
+
+  const targetMph = `https://shootnbox.fr${destPath}/m.php`;
+  const check = await mGet(targetMph);
+  if (!check.includes('ACTIVE')) throw new Error(`m.php not active: ${check.substring(0, 50)}`);
+
+  const uploadResult = await mWrite(targetMph, 'index.html', html);
+  if (!uploadResult.includes('OK:')) throw new Error(`Upload failed: ${uploadResult}`);
+
+  // Disable m.php
+  await mWrite(targetMph, 'm.php', '<?php http_response_code(404); ?>');
+
+  return { destPath, bytes: html.length, uploadResult };
+}
+
+// ── POST /shootnbox/:slug — deploy a GDS page to shootnbox.fr ────────────────
+router.post('/shootnbox/:slug', verifyToken, requireRole('admin'), async (req, res) => {
+  const { slug } = req.params;
+  const ip = getClientIp(req);
+  const userAgent = req.headers['user-agent'] || '';
+
+  if (!slug || !/^[a-z0-9-]+$/.test(slug)) {
+    return res.status(400).json({ error: 'Slug invalide' });
+  }
+
+  try {
+    const result = await deployPageToShootnbox(slug);
+
+    await logAudit({
+      userId: req.user.id,
+      action: 'deploy_shootnbox',
+      entityType: 'page',
+      entityId: slug,
+      details: { destPath: result.destPath, bytes: result.bytes },
+      ip,
+      userAgent
+    });
+
+    res.json({
+      success: true,
+      slug,
+      destPath: result.destPath,
+      url: `https://shootnbox.fr${result.destPath}/`,
+      bytes: result.bytes
+    });
+  } catch (err) {
+    console.error(`[Deploy Shootnbox] ${slug}:`, err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 function readConfig() {
   if (!fs.existsSync(CONFIG_PATH)) return {};
