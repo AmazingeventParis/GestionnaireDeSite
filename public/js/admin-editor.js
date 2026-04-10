@@ -1277,18 +1277,48 @@
           const isYtWidget = scriptEl && scriptEl.textContent.includes('ID_VIDEO_YOUTUBE');
 
           if (isYtWidget) {
-            // Set thumbnail to YouTube's auto-generated maxres thumbnail
+            // For click-to-play widgets: patch the section FILE directly via API.
+            // The <script> with snbYtLoad/stemoinLoad is extracted OUT of the section DOM
+            // by the preview renderer (moved to end of <body>), so cleanSectionHtml would
+            // lose it. Instead: GET file → patch text → PUT file.
+            const file = saveWrapper ? saveWrapper.getAttribute('data-gds-file') : null;
+            if (!file) throw new Error('Attribut data-gds-file manquant');
+
+            const getRes = await Auth.apiFetch('/api/pages/' + currentSlug + '/section/' + encodeURIComponent(file));
+            if (!getRes.ok) throw new Error('Erreur lecture section');
+            let fileContent = (await getRes.json()).content;
+
+            // Patch thumbnail src — handle src before or after data-gds-placeholder
+            fileContent = fileContent
+              .replace(/(src=")[^"]*("[^>]*data-gds-placeholder)/g,
+                `$1https://img.youtube.com/vi/${ytId}/maxresdefault.jpg$2`)
+              .replace(/(data-gds-placeholder[^>]*src=")[^"]*(")/g,
+                `$1https://img.youtube.com/vi/${ytId}/maxresdefault.jpg$2`);
+            // Fix opacity dimming
+            fileContent = fileContent.replace(/opacity:0\.25;/g, 'opacity:1;').replace(/opacity: 0\.25;/g, 'opacity: 1;');
+            // Patch video ID in script
+            fileContent = fileContent.replace(/(['"])ID_VIDEO_YOUTUBE\1/g, `'${ytId}'`);
+
+            const saveRes = await Auth.apiFetch('/api/pages/' + currentSlug + '/section/' + encodeURIComponent(file), {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ content: fileContent })
+            });
+            if (!saveRes.ok) {
+              const errData = await saveRes.json().catch(() => ({}));
+              throw new Error(errData.error || 'Erreur sauvegarde HTTP ' + saveRes.status);
+            }
+
+            // Update DOM for immediate visual feedback
             placeholderEl.src = `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg`;
-            placeholderEl.removeAttribute('data-gds-placeholder');
             placeholderEl.style.opacity = '1';
-            // Patch the video ID in the inline script
-            scriptEl.textContent = scriptEl.textContent.replace(/(['"])ID_VIDEO_YOUTUBE\1/g, `'${ytId}'`);
-            // Unwrap ph-img-wrap so the img is restored as direct child
+            placeholderEl.removeAttribute('data-gds-placeholder');
             const phWrapper = placeholderEl.closest('.gds-ph-img-wrap');
             if (phWrapper) {
               phWrapper.parentNode.insertBefore(placeholderEl, phWrapper);
               phWrapper.remove();
             }
+
           } else {
             // Generic case: replace placeholder with a raw YouTube iframe
             const iframe = document.createElement('iframe');
@@ -1310,25 +1340,25 @@
             } else {
               placeholderEl.replaceWith(iframe);
             }
+
+            // Save section via DOM (scripts are preserved server-side if unchanged)
+            if (saveWrapper) {
+              const file = saveWrapper.getAttribute('data-gds-file');
+              if (!file) throw new Error('Attribut data-gds-file manquant');
+              const sectionHtml = cleanSectionHtml(saveWrapper);
+              const saveRes = await Auth.apiFetch('/api/pages/' + currentSlug + '/section/' + encodeURIComponent(file), {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: sectionHtml })
+              });
+              if (!saveRes.ok) {
+                const errData = await saveRes.json().catch(() => ({}));
+                throw new Error(errData.error || 'Erreur sauvegarde HTTP ' + saveRes.status);
+              }
+            }
           }
 
           close();
-
-          // Save section — same logic as regular image save
-          if (saveWrapper) {
-            const file = saveWrapper.getAttribute('data-gds-file');
-            if (!file) throw new Error('Attribut data-gds-file manquant');
-            const sectionHtml = cleanSectionHtml(saveWrapper);
-            const saveRes = await Auth.apiFetch('/api/pages/' + currentSlug + '/section/' + encodeURIComponent(file), {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ content: sectionHtml })
-            });
-            if (!saveRes.ok) {
-              const errData = await saveRes.json().catch(() => ({}));
-              throw new Error(errData.error || 'Erreur sauvegarde HTTP ' + saveRes.status);
-            }
-          }
           showToast('Vidéo enregistrée !', 'success');
           imageChanges++;
           updateChangesCount();
