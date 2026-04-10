@@ -854,6 +854,9 @@
           wrapper.style.height = ph.style.height || 'auto';
           wrapper.style.aspectRatio = ph.style.aspectRatio || '';
           wrapper.style.cursor = 'pointer';
+          // Prevent CSS transforms from img's class (e.g. scale on hover) from applying to wrapper
+          // — this would break click hit-testing when nested inside overflow:hidden parents
+          wrapper.style.transform = 'none';
           // Copy grid/layout relevant classes only for non-absolute imgs
           if (ph.className) wrapper.className = ph.className.split(' ').filter(c => !c.includes('cell-img')).join(' ') + ' gds-ph-img-wrap';
           // Reset img to fill wrapper
