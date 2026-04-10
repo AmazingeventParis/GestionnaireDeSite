@@ -1081,8 +1081,8 @@
             </div>
           </div>
           <div id="gds-ph-url-area" class="gds-ph-area" style="display:none;">
-            <input type="url" id="gds-ph-url-input" placeholder="https://example.com/image.jpg" style="width:100%;padding:10px 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:14px;">
-            <div style="margin-top:8px;font-size:12px;color:#8b949e;">URL directe vers une image ou video (JPG, PNG, WebP, GIF, MP4)</div>
+            <input type="url" id="gds-ph-url-input" placeholder="https://youtube.com/watch?v=... ou image.jpg" style="width:100%;padding:10px 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:14px;">
+            <div style="margin-top:8px;font-size:12px;color:#8b949e;">URL YouTube, ou image/video directe (JPG, PNG, WebP, GIF, MP4)</div>
             <div id="gds-ph-url-preview" style="display:none;margin-top:12px;text-align:center;">
               <img id="gds-ph-url-preview-img" style="max-width:100%;max-height:200px;border-radius:8px;border:1px solid #30363d;">
             </div>
@@ -1156,6 +1156,12 @@
       }
     });
 
+    // YouTube URL parser
+    function parseYouTubeId(url) {
+      const m = url.match(/(?:youtube\.com\/(?:watch\?.*v=|shorts\/|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+      return m ? m[1] : null;
+    }
+
     // URL input
     const urlInput = document.getElementById('gds-ph-url-input');
     let urlDebounce;
@@ -1163,19 +1169,37 @@
       clearTimeout(urlDebounce);
       urlDebounce = setTimeout(() => {
         const url = urlInput.value.trim();
-        if (url && (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('/'))) {
-          selectedUrl = url;
-          selectedFile = null;
-          // Try to show preview
-          const preview = document.getElementById('gds-ph-url-preview');
+        if (!url || (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('/'))) {
+          document.getElementById('gds-ph-submit').disabled = true;
+          document.getElementById('gds-ph-url-preview').style.display = 'none';
+          return;
+        }
+
+        selectedUrl = url;
+        selectedFile = null;
+        document.getElementById('gds-ph-submit').disabled = false;
+
+        const preview = document.getElementById('gds-ph-url-preview');
+        const ytId = parseYouTubeId(url);
+        if (ytId) {
+          // Show YouTube thumbnail + hint
+          preview.innerHTML = `
+            <div style="position:relative;padding-bottom:56.25%;height:0;border-radius:8px;overflow:hidden;border:1px solid #30363d;">
+              <img src="https://img.youtube.com/vi/${ytId}/hqdefault.jpg"
+                style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;">
+              <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="rgba(255,0,0,0.85)"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg>
+              </div>
+            </div>
+            <div style="margin-top:6px;font-size:12px;color:#3fb950;">✓ Vidéo YouTube détectée — sera intégrée comme player</div>`;
+          preview.style.display = 'block';
+        } else {
+          // Regular image/video preview
+          preview.innerHTML = '<img id="gds-ph-url-preview-img" style="max-width:100%;max-height:200px;border-radius:8px;border:1px solid #30363d;">';
           const previewImg = document.getElementById('gds-ph-url-preview-img');
           previewImg.src = url;
           previewImg.onload = () => { preview.style.display = 'block'; };
           previewImg.onerror = () => { preview.style.display = 'none'; };
-          document.getElementById('gds-ph-submit').disabled = false;
-        } else {
-          document.getElementById('gds-ph-submit').disabled = true;
-          document.getElementById('gds-ph-url-preview').style.display = 'none';
         }
       }, 500);
     });
@@ -1236,6 +1260,42 @@
         }
 
         if (!imgSrc) throw new Error('Aucune image');
+
+        // Detect YouTube embed
+        const ytId = parseYouTubeId(imgSrc);
+        if (ytId) {
+          const embedUrl = `https://www.youtube.com/embed/${ytId}?autoplay=0&rel=0`;
+          const saveWrapper = placeholderEl.closest('.gds-section-wrapper')
+            || placeholderEl.parentElement?.closest('.gds-section-wrapper');
+
+          // Build iframe to replace the placeholder
+          const iframe = document.createElement('iframe');
+          iframe.src = embedUrl;
+          iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+          iframe.allowFullscreen = true;
+          iframe.frameBorder = '0';
+          // Copy inline dimensions from the placeholder if any
+          if (placeholderEl.style.width)  iframe.style.width  = placeholderEl.style.width;
+          if (placeholderEl.style.height) iframe.style.height = placeholderEl.style.height;
+          if (!iframe.style.width)  iframe.style.width  = '100%';
+          if (!iframe.style.height) iframe.style.height = '100%';
+          iframe.style.border = 'none';
+          iframe.style.borderRadius = placeholderEl.style.borderRadius || '';
+          iframe.style.display = 'block';
+
+          // Unwrap wrapper if needed, then replace
+          const phWrapper = placeholderEl.closest('.gds-ph-img-wrap');
+          if (phWrapper) {
+            phWrapper.parentNode.insertBefore(iframe, phWrapper);
+            phWrapper.remove();
+          } else {
+            placeholderEl.replaceWith(iframe);
+          }
+
+          close();
+          if (saveWrapper) await saveSection(saveWrapper);
+          return;
+        }
 
         // Replace placeholder with image/video
         const isVideo = imgSrc.match(/\.(mp4|webm|mov)(\?|$)/i) || (selectedFile && selectedFile.type.startsWith('video/'));
