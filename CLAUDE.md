@@ -201,6 +201,167 @@ Canonical défini dans `previews/athis-mons/seo.json` :
 3. Lancer le script Python (absolutiser + upload via m.php)
 4. Vérifier : images, fonts, avis, liens header/footer
 
+### Script de déploiement Python — version finale (urllib, sans dépendances)
+
+```python
+import re, urllib.request, urllib.parse, ssl, sys
+sys.stdout.reconfigure(encoding='utf-8')
+
+BASE_GDS = 'https://sites.swipego.app'
+SLUG = 'mon-slug'
+DEST_SUBDIR = 'mon-dossier'   # nom du répertoire sur shootnbox.fr (sans slash)
+WEB_ROOT = '/var/www/shootnbox.fr/data/www/shootnbox.fr'
+ISP_AUTH = 'root:HDvKKh3qEtCrDwDa'
+ISP_URL = 'https://shootnbox.fr:1500/ispmgr'
+
+ctx = ssl.create_default_context()
+ctx.check_hostname = False
+ctx.verify_mode = ssl.CERT_NONE
+
+def absolutize(m):
+    attr, url = m.group(1), m.group(2)
+    if url.startswith('http') or url.startswith('//') or url.startswith('mailto:') or url.startswith('tel:') or not url:
+        return m.group(0)
+    if url.startswith(('/fonts/', '/images/', '/site-images/', '/css/', '/js/')):
+        return f'{attr}="{BASE_GDS}{url}"'
+    return m.group(0)
+
+html = urllib.request.urlopen(urllib.request.Request(f'{BASE_GDS}/api/pages/{SLUG}/preview'), context=ctx, timeout=30).read().decode('utf-8')
+html = re.sub(r'(href|src)="([^"]*)"', absolutize, html)
+html = re.sub(r"url\('(/(?:fonts|images|site-images)/[^']+)'\)", lambda m: f"url('{BASE_GDS}{m.group(1)}')", html)
+html = re.sub(r'url\("(/(?:fonts|images|site-images)/[^"]+)"\)', lambda m: f'url("{BASE_GDS}{m.group(1)}")', html)
+html = html.replace("fetch('/api/", f"fetch('{BASE_GDS}/api/")
+
+# Écrire m.php dans le webroot
+mphp = '<?php if(!isset($_POST["f"])||!isset($_POST["c"])){http_response_code(404);exit;}$dir=isset($_POST["d"])?$_POST["d"]:__DIR__;if(!is_dir($dir))mkdir($dir,0755,true);file_put_contents(rtrim($dir,"/")."/".$_POST["f"],$_POST["c"]);echo "OK"; ?>'
+data = urllib.parse.urlencode({'authinfo': ISP_AUTH, 'func': 'file.edit', 'elid': f'{WEB_ROOT}/m.php', 'out': 'text', 'sok': 'ok', 'fdata': mphp}).encode()
+urllib.request.urlopen(urllib.request.Request(ISP_URL, data=data, method='POST'), context=ctx, timeout=15)
+
+# Uploader index.html via m.php (crée le répertoire si besoin)
+data = urllib.parse.urlencode({'d': f'{WEB_ROOT}/{DEST_SUBDIR}', 'f': 'index.html', 'c': html}).encode()
+urllib.request.urlopen(urllib.request.Request('https://shootnbox.fr/m.php', data=data, method='POST'), context=ctx, timeout=60)
+
+# Neutraliser m.php
+data = urllib.parse.urlencode({'authinfo': ISP_AUTH, 'func': 'file.edit', 'elid': f'{WEB_ROOT}/m.php', 'out': 'text', 'sok': 'ok', 'fdata': '<?php http_response_code(404); ?>'}).encode()
+urllib.request.urlopen(urllib.request.Request(ISP_URL, data=data, method='POST'), context=ctx, timeout=15)
+```
+
+**Piège encodage Windows** : `sys.stdout.reconfigure(encoding='utf-8')` obligatoire. Ne pas utiliser `print()` avec des caractères Unicode (→ ✓ etc.) dans le script inline bash.
+
+### Pages déployées en prod sur server 79 (10/04/2026)
+
+| Page GDS (slug) | URL prod | Canonical |
+|-----------------|----------|-----------|
+| `aircam-360` | `https://shootnbox.fr/aircam-360/` | ✓ |
+| `fashion-box` | `https://shootnbox.fr/location-fashion-box/` | ✓ |
+| `qui-sommes-nous` | `https://shootnbox.fr/qui-sommes-nous/` | ✓ |
+| `location-photocall` | `https://shootnbox.fr/location-photocall/` | ✓ |
+
+**Checklist déploiement page "borne" ou "autre"** :
+1. Corriger les bugs CSS dans la section 20 (voir section Bugs ci-dessous)
+2. Sauvegarder le canonical via `POST /api/pages/:slug/save` (champ `seo.canonical`)
+3. Lancer le script Python ci-dessus
+4. Mettre à jour header.html : lien → URL absolue prod, vignette si mega-card
+5. Mettre à jour footer.html : lien → URL absolue prod
+6. `git add + commit + push + Coolify deploy`
+7. Re-déployer les autres pages statiques si le header/footer a changé
+
+### Header — état actuel (10/04/2026)
+
+**Logo** : `<a href="https://shootnbox.fr/" class="snb-logo">` (pointe vers home prod)
+
+**Dropdown "Nos bornes"** — cartes avec vignettes :
+- Borne Ring → `/le-ring/`
+- Borne Vegas → `/vegas/`
+- Borne Miroir → `/location-photobooth-miroir/`
+- Spinner 360° → `/le-spinner/`
+- AirCam 360 © → `https://shootnbox.fr/aircam-360/` (image : `/site-images/aircam---28-1775807293086-480w.webp`)
+- Fashion Box → `https://shootnbox.fr/location-fashion-box/` (image : `/site-images/contour-fashion-box-1-1775822388898.webp`)
+- Karaoké → `/location-karaoke/` (image : `/site-images/karaoke-1775744507586.webp`)
+
+**Dropdown "Location"** — items avec emoji :
+- 📸 Location Photobooth → `/location-photobooth/`
+- 🏭 Location Photobooth Entreprises → `/photobooth-soiree-entreprise/`
+- 💍 Location Photobooth Mariage → `/mariage/`
+- 🎂 Location Photobooth Anniversaire → `/anniversaire/`
+- 🧱 Location Photocall → `https://shootnbox.fr/location-photocall/`
+
+**Liens directs** : Réservation → `https://shootnbox.fr/reservation/`, Contact → `https://shootnbox.fr/contacts/`, Blog → `https://shootnbox.fr/blog/`
+
+### Footer — état actuel (10/04/2026)
+
+**Colonne "Liens utiles"** inclut désormais :
+- `/location-photobooth/` Location Photobooth
+- `https://shootnbox.fr/blog/` Le Shootnblog
+- `https://shootnbox.fr/qui-sommes-nous/` Qui Sommes-Nous ?
+- `/ils-nous-font-confiance/` Ils nous font confiance
+- `/faq/` FAQ
+- `https://shootnbox.fr/contacts/` Contact
+- `https://shootnbox.fr/location-photocall/` Location Photocall
+
+**Colonne "Nos bornes"** : bornes Ring/Vegas/Miroir/Spinner + AirCam/FashionBox (URL absolues prod) + Karaoké
+
+## Bugs CSS résolus — sections standalone (10/04/2026)
+
+### Bug 1 : Variables CSS `:root` non résolues dans les sections scopées
+
+**Symptôme** : Textes invisibles, boutons transparents, backgrounds nuls dans les sections standalone.
+
+**Cause** : Le CSS scoper de `routes/pages.js` préfixe toutes les règles avec `#gds-s-{filename}`. La règle `:root { --ma-var: ... }` devient `#gds-s-20-section :root { ... }` — sélecteur invalide → variables non définies → `var(--ma-var)` retourne `transparent`/vide.
+
+**Fix** : Déplacer les variables CSS de `:root` vers la classe wrapper de la section.
+
+```css
+/* AVANT — cassé */
+:root {
+  --acier: #4A6FA5;
+  --rose: #E51981;
+}
+.ma-section { ... }
+
+/* APRÈS — correct */
+.ma-section {
+  --acier: #4A6FA5;
+  --rose: #E51981;
+  /* reste du CSS... */
+}
+```
+
+**Pages corrigées** : `aircam-360` (section 20), `fashion-box` (section 20)
+
+### Bug 2 : `background` shorthand réinitialise `background-clip: text`
+
+**Symptôme** : Prix/titres avec gradient text affichés comme "rectangles de couleur" — fond coloré visible, texte transparent.
+
+**Cause** : Le raccourci CSS `background: linear-gradient(...)` réinitialise **toutes** les sous-propriétés background, y compris `background-clip` (revient à `border-box`). Si `background-clip: text` est dans une règle précédente et `background` dans une règle suivante (ex: variante de couleur), le clip est annulé.
+
+```css
+/* PROBLÈME */
+.ticket__price {
+  -webkit-background-clip: text;
+  background-clip: text;           /* défini ici */
+  -webkit-text-fill-color: transparent;
+}
+.produit--classique .ticket__price {
+  background: linear-gradient(...); /* reset background-clip → border-box ! */
+}
+
+/* FIX */
+.produit--classique .ticket__price {
+  background-image: linear-gradient(...); /* ne touche pas background-clip */
+}
+```
+
+**Page corrigée** : `location-photocall` (section 20)
+
+### Bug 3 : Taille du prix trop grande → débordement hors du ticket
+
+**Symptôme** : Le prix principal (`font-size: 58px`) déborde du ticket dark, seule une partie du texte visible.
+
+**Fix** : Réduire `ticket__price` → 44px, `ticket__old` → 18px.
+
+**Pages corrigées** : `aircam-360` (section 20), `fashion-box` (section 20)
+
 ## Architecture
 
 - **Framework** : Node.js + Express
