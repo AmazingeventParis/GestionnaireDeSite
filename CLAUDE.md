@@ -1,5 +1,53 @@
 # Gestionnaire de Site — Shootnbox
 
+## Multi-site GDS (FAIT — 10/04/2026)
+
+### Architecture
+- **Registre** : `gds-managed-sites.json` (à la racine du projet)
+- **Middleware** : `middleware/activeSite.js`
+  - Lit le cookie `gds_active_site` → cherche le site dans le registre
+  - Résout les chemins absolus : `previewsDir`, `configPath`, `blocksDir`
+  - Propage via **AsyncLocalStorage** → tous les helpers de routes y accèdent sans passer `req`
+  - Export : `siteStorage` (AsyncLocalStorage), fonctions CRUD du registre
+- **Route** : `routes/gds-sites.js` — montée sur `/api/gds-sites`
+  - `GET /` — liste tous les sites GDS
+  - `GET /active` — site actif courant
+  - `POST /` — créer un site (génère les dossiers + config + header/footer vides)
+  - `PUT /:id` — modifier metadata
+  - `DELETE /:id` — supprimer (optionnel : `deleteFiles: true` dans body)
+  - `POST /:id/activate` — set cookie `gds_active_site`, durée 1 an
+- **Page admin** : `public/gds-sites.html` — liste + switcher + création modale
+- **Navbar** : badge coloré du site actif dans la barre de navigation (via `components.js`)
+
+### Routes mises à jour (chemins dynamiques)
+| Route | Mécanisme |
+|-------|-----------|
+| `routes/pages.js` | `getPD()` / `getSD()` via siteStorage (AsyncLocalStorage) |
+| `routes/settings.js` | `req.activeSite.configPath` passé à `readConfig()`/`writeConfig()` |
+| `routes/blocks.js` | `getBD(req)` → `req.activeSite.blocksDir` |
+
+### Shootnbox dans le registre
+```json
+{
+  "id": "shootnbox",
+  "previewsDir": "previews",
+  "configFile": "site-config.json",
+  "blocksDir": "blocks"
+}
+```
+Shootnbox utilise les chemins existants → zéro migration nécessaire.
+
+### Nouveau site créé via UI
+- `previewsDir`: `previews-{id}/`
+- `configFile`: `site-config-{id}.json` (copie template minimaliste)
+- `blocksDir`: `blocks-{id}/`
+- `_shared/header.html` + `_shared/footer.html` créés vides
+
+### Cookie
+`gds_active_site` = ID du site actif, httpOnly, sameSite=lax, 1 an. Défaut = "shootnbox".
+
+---
+
 ## Google Places API — Bloc avis dynamique (FAIT — 08/04/2026)
 
 - **Place IDs configurés** dans `.env` :

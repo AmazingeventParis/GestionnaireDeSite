@@ -6,11 +6,17 @@ const { requireRole } = require('../middleware/rbac');
 const { logAudit } = require('../utils/audit');
 const { getClientIp } = require('../middleware/threatDetector');
 
-const BLOCKS_DIR = path.join(__dirname, '..', 'blocks');
+const _DEFAULT_BLOCKS_DIR = path.join(__dirname, '..', 'blocks');
 
-// Ensure blocks directory exists
-if (!fs.existsSync(BLOCKS_DIR)) {
-  fs.mkdirSync(BLOCKS_DIR, { recursive: true });
+// Ensure default blocks directory exists
+if (!fs.existsSync(_DEFAULT_BLOCKS_DIR)) {
+  fs.mkdirSync(_DEFAULT_BLOCKS_DIR, { recursive: true });
+}
+
+function getBD(req) {
+  const bd = req && req.activeSite && req.activeSite.blocksDir;
+  if (bd && !fs.existsSync(bd)) fs.mkdirSync(bd, { recursive: true });
+  return bd || _DEFAULT_BLOCKS_DIR;
 }
 
 /**
@@ -18,6 +24,7 @@ if (!fs.existsSync(BLOCKS_DIR)) {
  */
 router.get('/', verifyToken, async (req, res) => {
   try {
+    const BLOCKS_DIR = getBD(req);
     const files = fs.readdirSync(BLOCKS_DIR).filter(f => f.endsWith('.json'));
     const blocks = files.map(f => {
       const data = JSON.parse(fs.readFileSync(path.join(BLOCKS_DIR, f), 'utf-8'));
@@ -44,6 +51,7 @@ router.get('/', verifyToken, async (req, res) => {
  */
 router.get('/:id', verifyToken, async (req, res) => {
   try {
+    const BLOCKS_DIR = getBD(req);
     const id = req.params.id.replace(/[^a-z0-9_-]/gi, '');
     const filePath = path.join(BLOCKS_DIR, id + '.json');
     if (!fs.existsSync(filePath)) {
@@ -63,6 +71,7 @@ router.get('/:id', verifyToken, async (req, res) => {
  */
 router.post('/', verifyToken, requireRole('admin', 'editor'), async (req, res) => {
   try {
+    const BLOCKS_DIR = getBD(req);
     const { name, description, category, html } = req.body;
     if (!name || !html) {
       return res.status(400).json({ error: 'Les champs "name" et "html" sont requis' });
@@ -114,13 +123,14 @@ router.post('/', verifyToken, requireRole('admin', 'editor'), async (req, res) =
  */
 router.post('/from-section', verifyToken, requireRole('admin'), async (req, res) => {
   try {
+    const BLOCKS_DIR = getBD(req);
     const { slug, file, name, description, category } = req.body;
     if (!slug || !file || !name) {
       return res.status(400).json({ error: 'Les champs "slug", "file" et "name" sont requis' });
     }
 
-    const PREVIEWS_DIR = path.join(__dirname, '..', 'previews');
-    const previewDir = slug === 'home' ? PREVIEWS_DIR : path.join(PREVIEWS_DIR, slug);
+    const basePD = (req.activeSite && req.activeSite.previewsDir) || path.join(__dirname, '..', 'previews');
+    const previewDir = slug === 'home' ? basePD : path.join(basePD, slug);
     const sectionPath = path.join(previewDir, path.basename(file));
 
     if (!fs.existsSync(sectionPath)) {
@@ -171,6 +181,7 @@ router.post('/from-section', verifyToken, requireRole('admin'), async (req, res)
  */
 router.delete('/:id', verifyToken, requireRole('admin'), async (req, res) => {
   try {
+    const BLOCKS_DIR = getBD(req);
     const id = req.params.id.replace(/[^a-z0-9_-]/gi, '');
     const filePath = path.join(BLOCKS_DIR, id + '.json');
     if (!fs.existsSync(filePath)) {

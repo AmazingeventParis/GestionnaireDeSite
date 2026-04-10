@@ -21,10 +21,16 @@ const _phUpload = multer({
   limits: { fileSize: 50 * 1024 * 1024 }
 });
 
-const PREVIEWS_DIR = path.join(__dirname, '..', 'previews');
-const SHARED_DIR = path.join(PREVIEWS_DIR, '_shared');
+// Multi-site: dynamic paths resolved from AsyncLocalStorage context
+const { siteStorage } = require('../middleware/activeSite');
+const _DEFAULT_PD = path.join(__dirname, '..', 'previews');
 const PUBLIC_DIR = path.join(__dirname, '..', 'public', 'site');
 const BUILD_SCRIPT = path.join(__dirname, '..', 'scripts', 'build.js');
+
+/** Get the current request's previews directory (falls back to Shootnbox default). */
+function getPD() { const s = siteStorage.getStore(); return (s && s.previewsDir) || _DEFAULT_PD; }
+/** Get the current request's shared components directory. */
+function getSD() { return path.join(getPD(), '_shared'); }
 
 /**
  * Scope CSS selectors by prefixing with #scopeId.
@@ -161,8 +167,8 @@ function getPageStatus(previewDir, publicDir) {
  * 'home' maps to previews/ root, others map to previews/<slug>/
  */
 function getPreviewDir(slug) {
-  if (slug === 'home') return PREVIEWS_DIR;
-  return path.join(PREVIEWS_DIR, slug);
+  if (slug === 'home') return getPD();
+  return path.join(getPD(), slug);
 }
 
 function getPublicDir(slug) {
@@ -176,15 +182,14 @@ function getPublicDir(slug) {
  * GET / — List all pages
  */
 // ===== Folder management (page categorization) =====
-const FOLDERS_PATH = path.join(PREVIEWS_DIR, '_folders.json');
-
 function readFolders() {
-  if (!fs.existsSync(FOLDERS_PATH)) return {};
-  try { return JSON.parse(fs.readFileSync(FOLDERS_PATH, 'utf-8')); } catch(e) { return {}; }
+  const fp = path.join(getPD(), '_folders.json');
+  if (!fs.existsSync(fp)) return {};
+  try { return JSON.parse(fs.readFileSync(fp, 'utf-8')); } catch(e) { return {}; }
 }
 
 function writeFolders(folders) {
-  fs.writeFileSync(FOLDERS_PATH, JSON.stringify(folders, null, 2), 'utf-8');
+  fs.writeFileSync(path.join(getPD(), '_folders.json'), JSON.stringify(folders, null, 2), 'utf-8');
 }
 
 router.get('/folders', verifyToken, (req, res) => {
@@ -211,7 +216,7 @@ router.post('/fix-villes-urls', verifyToken, requireRole('admin'), async (req, r
 
     for (const [slug, folder] of Object.entries(folders)) {
       if (folder !== 'Villes') continue;
-      const previewDir = path.join(PREVIEWS_DIR, slug);
+      const previewDir = path.join(getPD(), slug);
       if (!fs.existsSync(previewDir)) continue;
 
       const seoPath = path.join(previewDir, 'seo.json');
@@ -284,16 +289,16 @@ router.post('/fix-villes-urls', verifyToken, requireRole('admin'), async (req, r
 
 router.get('/', verifyToken, async (req, res) => {
   try {
-    if (!fs.existsSync(PREVIEWS_DIR)) {
-      fs.mkdirSync(PREVIEWS_DIR, { recursive: true });
+    if (!fs.existsSync(getPD())) {
+      fs.mkdirSync(getPD(), { recursive: true });
     }
 
     const pages = [];
 
     // Scan root (home page)
-    const homeFiles = fs.readdirSync(PREVIEWS_DIR).filter(f => f.endsWith('.html'));
+    const homeFiles = fs.readdirSync(getPD()).filter(f => f.endsWith('.html'));
     if (homeFiles.length > 0) {
-      const sections = scanSections(PREVIEWS_DIR);
+      const sections = scanSections(getPD());
       const latestModified = sections.reduce((max, s) =>
         new Date(s.lastModified) > new Date(max) ? s.lastModified : max,
         sections[0]?.lastModified || new Date().toISOString()
@@ -304,18 +309,18 @@ router.get('/', verifyToken, async (req, res) => {
         urlPath: '/',
         sections: sections.map(s => s.name),
         lastModified: latestModified,
-        status: getPageStatus(PREVIEWS_DIR, PUBLIC_DIR)
+        status: getPageStatus(getPD(), PUBLIC_DIR)
       });
     }
 
     // Scan subdirectories
-    const entries = fs.readdirSync(PREVIEWS_DIR, { withFileTypes: true });
+    const entries = fs.readdirSync(getPD(), { withFileTypes: true });
     for (const entry of entries) {
       if (!entry.isDirectory()) continue;
       if (entry.name.startsWith('_')) continue; // Skip _shared and other internal dirs
       if (entry.name.startsWith('.')) continue; // Skip .history and other hidden dirs
       const slug = entry.name;
-      const previewDir = path.join(PREVIEWS_DIR, slug);
+      const previewDir = path.join(getPD(), slug);
       const sections = scanSections(previewDir);
 
       if (sections.length === 0) continue;
@@ -361,7 +366,7 @@ router.post('/create', verifyToken, requireRole('admin'), async (req, res) => {
       return res.status(400).json({ error: 'Slug invalide (lettres minuscules, chiffres et tirets uniquement)' });
     }
 
-    const pageDir = path.join(PREVIEWS_DIR, slug);
+    const pageDir = path.join(getPD(), slug);
     if (fs.existsSync(pageDir)) {
       return res.status(409).json({ error: 'Cette page existe deja' });
     }
@@ -480,12 +485,12 @@ router.post('/:slug/duplicate', verifyToken, requireRole('admin'), async (req, r
       return res.status(400).json({ error: 'Slug invalide (lettres minuscules, chiffres et tirets uniquement)' });
     }
 
-    const sourceDir = path.join(PREVIEWS_DIR, sourceSlug);
+    const sourceDir = path.join(getPD(), sourceSlug);
     if (!fs.existsSync(sourceDir)) {
       return res.status(404).json({ error: 'Page source introuvable' });
     }
 
-    const destDir = path.join(PREVIEWS_DIR, newSlug);
+    const destDir = path.join(getPD(), newSlug);
     if (fs.existsSync(destDir)) {
       return res.status(409).json({ error: 'Une page avec ce slug existe deja' });
     }
@@ -544,7 +549,7 @@ router.delete('/:slug', verifyToken, requireRole('admin'), async (req, res) => {
       return res.status(400).json({ error: 'Impossible de supprimer la page d\'accueil' });
     }
 
-    const previewDir = path.join(PREVIEWS_DIR, slug);
+    const previewDir = path.join(getPD(), slug);
     const publicDir = path.join(PUBLIC_DIR, slug);
 
     if (!fs.existsSync(previewDir)) {
@@ -596,7 +601,7 @@ router.post('/:slug/rename', verifyToken, requireRole('admin'), async (req, res)
 
     // No-op check removed — always allow rename even if only name changes
 
-    const oldPreviewDir = path.join(PREVIEWS_DIR, oldSlug);
+    const oldPreviewDir = path.join(getPD(), oldSlug);
     if (!fs.existsSync(oldPreviewDir)) {
       return res.status(404).json({ error: 'Page non trouvee' });
     }
@@ -604,7 +609,7 @@ router.post('/:slug/rename', verifyToken, requireRole('admin'), async (req, res)
     const slugChanged = oldSlug !== newSlug;
 
     if (slugChanged) {
-      const newPreviewDir = path.join(PREVIEWS_DIR, newSlug);
+      const newPreviewDir = path.join(getPD(), newSlug);
       if (fs.existsSync(newPreviewDir)) {
         return res.status(409).json({ error: 'Une page avec ce slug existe deja' });
       }
@@ -728,7 +733,7 @@ router.post('/:slug/rename', verifyToken, requireRole('admin'), async (req, res)
     }
 
     // 7. Update SEO title/name in seo.json (create if missing)
-    const targetDir = path.join(PREVIEWS_DIR, slugChanged ? newSlug : oldSlug);
+    const targetDir = path.join(getPD(), slugChanged ? newSlug : oldSlug);
     if (newName) {
       const seoPath = path.join(targetDir, 'seo.json');
       let seo = {};
@@ -793,14 +798,14 @@ router.post('/:slug/url', verifyToken, requireRole('admin'), async (req, res) =>
       return res.status(400).json({ error: 'URL invalide (lettres minuscules, chiffres, tirets et slashes)' });
     }
 
-    const previewDir = slug === 'home' ? PREVIEWS_DIR : path.join(PREVIEWS_DIR, slug);
+    const previewDir = slug === 'home' ? getPD() : path.join(getPD(), slug);
     if (!fs.existsSync(previewDir)) {
       return res.status(404).json({ error: 'Page non trouvee' });
     }
 
     // Read current seo.json
     const seoPath = slug === 'home'
-      ? path.join(PREVIEWS_DIR, 'seo-home.json')
+      ? path.join(getPD(), 'seo-home.json')
       : path.join(previewDir, 'seo.json');
 
     let seo = {};
@@ -904,8 +909,8 @@ router.post('/:slug/import-content', verifyToken, requireRole('admin'), async (r
       return res.status(400).json({ error: 'sourceSlug requis' });
     }
 
-    const sourceDir = path.join(PREVIEWS_DIR, sourceSlug.replace(/[^a-z0-9-]/gi, ''));
-    const targetDir = path.join(PREVIEWS_DIR, targetSlug);
+    const sourceDir = path.join(getPD(), sourceSlug.replace(/[^a-z0-9-]/gi, ''));
+    const targetDir = path.join(getPD(), targetSlug);
 
     if (!fs.existsSync(sourceDir)) {
       return res.status(404).json({ error: 'Page source introuvable' });
@@ -1068,7 +1073,7 @@ router.get('/:slug', verifyToken, async (req, res) => {
       performance: { preloadImages: [], preconnect: [] }
     };
     const seoPath = slug === 'home'
-      ? path.join(PREVIEWS_DIR, 'seo-home.json')
+      ? path.join(getPD(), 'seo-home.json')
       : path.join(previewDir, 'seo.json');
     if (fs.existsSync(seoPath)) {
       try {
@@ -1129,7 +1134,7 @@ router.post('/:slug/save', verifyToken, requireRole('admin', 'editor'), async (r
         snapshot.sections[f] = fs.readFileSync(path.join(previewDir, f), 'utf-8');
       }
       // Capture current SEO
-      const currentSeoPath = slug === 'home' ? path.join(PREVIEWS_DIR, 'seo-home.json') : path.join(previewDir, 'seo.json');
+      const currentSeoPath = slug === 'home' ? path.join(getPD(), 'seo-home.json') : path.join(previewDir, 'seo.json');
       if (fs.existsSync(currentSeoPath)) {
         try { snapshot.seo = JSON.parse(fs.readFileSync(currentSeoPath, 'utf-8')); } catch(e) {}
       }
@@ -1229,7 +1234,7 @@ router.post('/:slug/save', verifyToken, requireRole('admin', 'editor'), async (r
         return res.status(400).json({ error: 'Donnees SEO invalides', details: seoErrors });
       }
       const seoPath = slug === 'home'
-        ? path.join(PREVIEWS_DIR, 'seo-home.json')
+        ? path.join(getPD(), 'seo-home.json')
         : path.join(previewDir, 'seo.json');
       let existing = {};
       if (fs.existsSync(seoPath)) {
@@ -1733,7 +1738,7 @@ router.post('/:slug/history/:id/restore', verifyToken, requireRole('admin'), asy
 
     // Restore SEO
     if (snapshot.seo) {
-      const seoPath = slug === 'home' ? path.join(PREVIEWS_DIR, 'seo-home.json') : path.join(previewDir, 'seo.json');
+      const seoPath = slug === 'home' ? path.join(getPD(), 'seo-home.json') : path.join(previewDir, 'seo.json');
       fs.writeFileSync(seoPath, JSON.stringify(snapshot.seo, null, 2), 'utf-8');
     }
 
@@ -1895,7 +1900,7 @@ router.get('/:slug/seo-audit', verifyToken, async (req, res) => {
 
     // ── Internal link suggestions (Point 7) ──
     const suggestions = [];
-    const foldersPath = path.join(PREVIEWS_DIR, '_folders.json');
+    const foldersPath = path.join(getPD(), '_folders.json');
     let folders = {};
     try { folders = JSON.parse(fs.readFileSync(foldersPath, 'utf-8')); } catch {}
     const myFolder = folders[slug];
@@ -1909,7 +1914,7 @@ router.get('/:slug/seo-audit', verifyToken, async (req, res) => {
     // Suggest by slug prefix
     const prefix = slug.split('-').slice(0, 2).join('-');
     if (prefix.length > 3) {
-      const similarPages = fs.readdirSync(PREVIEWS_DIR)
+      const similarPages = fs.readdirSync(getPD())
         .filter(d => d.startsWith(prefix) && d !== slug && d !== '_shared' && !d.startsWith('_'))
         .slice(0, 5);
       if (similarPages.length) suggestions.push({ type: 'similar_slug', pages: similarPages, reason: `Prefix commun "${prefix}"` });
@@ -2030,7 +2035,7 @@ router.post('/:slug/publish', verifyToken, requireRole('admin'), async (req, res
     }
 
     // ── Guardian 2: Pre-publish SEO audit ──
-    const seoPath = slug === 'home' ? path.join(PREVIEWS_DIR, 'seo-home.json') : path.join(previewDir, 'seo.json');
+    const seoPath = slug === 'home' ? path.join(getPD(), 'seo-home.json') : path.join(previewDir, 'seo.json');
     let seoData = {};
     if (fs.existsSync(seoPath)) {
       try { seoData = JSON.parse(fs.readFileSync(seoPath, 'utf-8')); } catch {}
@@ -2156,7 +2161,7 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
     let sectionStyles = ''; // All section CSS consolidated into one <style> in <head>
 
     // Inject shared header — extract its <style> to consolidated head CSS
-    const sharedHeaderPath = path.join(SHARED_DIR, 'header.html');
+    const sharedHeaderPath = path.join(getSD(), 'header.html');
     if (fs.existsSync(sharedHeaderPath)) {
       let headerHtml = fs.readFileSync(sharedHeaderPath, 'utf-8');
       headerHtml = headerHtml.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, (match, css) => {
@@ -2178,7 +2183,7 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
     // Inject shared page background (halos, glows, transitions) if enabled
     // Deferred via script to avoid blocking LCP render
     if (config.sections?.background?.enabled !== false) {
-      const bgPath = path.join(SHARED_DIR, 'page-background.html');
+      const bgPath = path.join(getSD(), 'page-background.html');
       if (fs.existsSync(bgPath)) {
         let bgHtml = fs.readFileSync(bgPath, 'utf-8');
         // Apply custom gradient from config if defined
@@ -2392,7 +2397,7 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
 
         // Build sidebar related articles from blog index
         let sidebarRelated = '';
-        const blogIndexPath = path.join(PREVIEWS_DIR, '_blog-index.json');
+        const blogIndexPath = path.join(getPD(), '_blog-index.json');
         if (fs.existsSync(blogIndexPath)) {
           try {
             const blogIdx = JSON.parse(fs.readFileSync(blogIndexPath, 'utf-8'));
@@ -2538,7 +2543,7 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
     }
 
     // Inject shared footer — extract its <style> to consolidated head CSS
-    const sharedFooterPath = path.join(SHARED_DIR, 'footer.html');
+    const sharedFooterPath = path.join(getSD(), 'footer.html');
     if (fs.existsSync(sharedFooterPath)) {
       let footerHtml = fs.readFileSync(sharedFooterPath, 'utf-8');
       footerHtml = footerHtml.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, (match, css) => {
@@ -2604,7 +2609,7 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
     // Read SEO data
     let seo = { title: config.identity?.name || 'Preview', description: '' };
     const seoPath = slug === 'home'
-      ? path.join(PREVIEWS_DIR, 'seo-home.json')
+      ? path.join(getPD(), 'seo-home.json')
       : path.join(previewDir, 'seo.json');
     if (fs.existsSync(seoPath)) {
       try {
@@ -2766,11 +2771,11 @@ router.get('/shared/:component', verifyToken, async (req, res) => {
       return res.status(400).json({ error: 'Composant invalide. Utiliser "header" ou "footer".' });
     }
 
-    if (!fs.existsSync(SHARED_DIR)) {
-      fs.mkdirSync(SHARED_DIR, { recursive: true });
+    if (!fs.existsSync(getSD())) {
+      fs.mkdirSync(getSD(), { recursive: true });
     }
 
-    const filePath = path.join(SHARED_DIR, component + '.html');
+    const filePath = path.join(getSD(), component + '.html');
     const content = fs.existsSync(filePath)
       ? fs.readFileSync(filePath, 'utf-8')
       : '';
@@ -2792,7 +2797,7 @@ router.get('/shared/:component/preview', verifyToken, async (req, res) => {
       return res.status(400).json({ error: 'Composant invalide' });
     }
 
-    const filePath = path.join(SHARED_DIR, component + '.html');
+    const filePath = path.join(getSD(), component + '.html');
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({ error: 'Composant non trouve' });
     }
@@ -2858,11 +2863,11 @@ router.put('/shared/:component', verifyToken, requireRole('admin'), async (req, 
       return res.status(400).json({ error: 'Le champ "content" est requis (string).' });
     }
 
-    if (!fs.existsSync(SHARED_DIR)) {
-      fs.mkdirSync(SHARED_DIR, { recursive: true });
+    if (!fs.existsSync(getSD())) {
+      fs.mkdirSync(getSD(), { recursive: true });
     }
 
-    const filePath = path.join(SHARED_DIR, component + '.html');
+    const filePath = path.join(getSD(), component + '.html');
     fs.writeFileSync(filePath, content, 'utf-8');
 
     await logAudit({

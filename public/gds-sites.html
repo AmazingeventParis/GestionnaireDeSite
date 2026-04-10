@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sites GDS — Gestionnaire de Site</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .sites-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+        .site-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 20px;
+            position: relative;
+            transition: border-color 0.2s;
+        }
+        .site-card.active {
+            border-width: 2px;
+        }
+        .site-card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .site-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .site-card-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #e6edf3;
+            flex: 1;
+        }
+        .site-card-domain {
+            font-size: 13px;
+            color: #8b949e;
+            margin-bottom: 6px;
+        }
+        .site-card-desc {
+            font-size: 13px;
+            color: #8b949e;
+            margin-bottom: 16px;
+            min-height: 18px;
+        }
+        .site-card-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .site-card-actions .btn {
+            flex: 1;
+            min-width: 80px;
+            text-align: center;
+        }
+        .active-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .create-card {
+            background: #0d1117;
+            border: 2px dashed #30363d;
+            border-radius: 8px;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+            text-decoration: none;
+        }
+        .create-card:hover {
+            border-color: #58a6ff;
+            background: #161b22;
+        }
+        .create-card-icon {
+            font-size: 32px;
+            opacity: 0.6;
+        }
+        .create-card-label {
+            font-size: 15px;
+            color: #8b949e;
+            font-weight: 500;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 9000;
+        }
+        .modal-overlay.hidden { display: none; }
+        .modal-box {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 28px;
+            width: 100%;
+            max-width: 480px;
+        }
+        .modal-title { font-size: 18px; font-weight: 600; color: #e6edf3; margin-bottom: 20px; }
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-size: 13px; color: #8b949e; margin-bottom: 6px; font-weight: 500; }
+        .form-input {
+            width: 100%; padding: 8px 12px;
+            background: #0d1117; border: 1px solid #30363d; border-radius: 6px;
+            color: #e6edf3; font-size: 14px;
+            box-sizing: border-box;
+        }
+        .form-input:focus { outline: none; border-color: #58a6ff; }
+        .form-hint { font-size: 12px; color: #6e7681; margin-top: 4px; }
+        .color-row { display: flex; align-items: center; gap: 10px; }
+        .color-preview { width: 36px; height: 36px; border-radius: 6px; border: 1px solid #30363d; flex-shrink: 0; cursor: pointer; }
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+    </style>
+</head>
+<body>
+    <div id="navbar"></div>
+
+    <div class="container">
+        <h1 class="page-title">Sites GDS</h1>
+        <p class="page-subtitle">Gerez vos sites et choisissez le site actif</p>
+
+        <div id="sites-grid" class="sites-grid">
+            <p class="text-muted">Chargement...</p>
+        </div>
+    </div>
+
+    <!-- Create site modal -->
+    <div id="create-modal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <div class="modal-title">Nouveau site</div>
+            <div class="form-group">
+                <label class="form-label">Identifiant unique (ID)*</label>
+                <input type="text" id="new-site-id" class="form-input" placeholder="mon-site" autocomplete="off">
+                <div class="form-hint">Lettres minuscules, chiffres et tirets. Ex: mon-site, boutique-2024</div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Nom du site*</label>
+                <input type="text" id="new-site-name" class="form-input" placeholder="Mon Site">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Domaine</label>
+                <input type="text" id="new-site-domain" class="form-input" placeholder="monsite.fr">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Description</label>
+                <input type="text" id="new-site-desc" class="form-input" placeholder="Courte description du site">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Couleur principale</label>
+                <div class="color-row">
+                    <input type="color" id="new-site-color" value="#6366f1" class="form-input" style="padding:2px;width:60px;height:36px;cursor:pointer;">
+                    <input type="text" id="new-site-color-text" class="form-input" value="#6366f1" placeholder="#6366f1" style="flex:1;">
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="create-cancel-btn">Annuler</button>
+                <button class="btn btn-primary" id="create-confirm-btn">Creer le site</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/components.js"></script>
+    <script>
+    async function loadSites() {
+        await Components.initPage();
+
+        try {
+            var res = await Auth.apiFetch('/api/gds-sites');
+            var data = await res.json();
+            renderSites(data.sites || []);
+        } catch(e) {
+            document.getElementById('sites-grid').innerHTML = '<p class="text-muted">Erreur de chargement.</p>';
+        }
+    }
+
+    function renderSites(sites) {
+        var grid = document.getElementById('sites-grid');
+        var html = sites.map(function(site) {
+            var activeBorderStyle = site.isActive
+                ? 'border-color:' + Components.escapeHtml(site.color) + ';box-shadow:0 0 0 1px ' + Components.escapeHtml(site.color) + '66;'
+                : '';
+            var activeClass = site.isActive ? ' active' : '';
+            var activeBadge = site.isActive
+                ? '<span class="active-badge" style="background:' + Components.escapeHtml(site.color) + '22;color:' + Components.escapeHtml(site.color) + ';border:1px solid ' + Components.escapeHtml(site.color) + '44;">● Actif</span>'
+                : '';
+            var activateBtn = site.isActive
+                ? '<span class="btn btn-sm" style="flex:1;text-align:center;opacity:0.4;cursor:default;pointer-events:none;">Site actif</span>'
+                : '<button class="btn btn-sm btn-primary activate-btn" data-id="' + Components.escapeHtml(site.id) + '" style="flex:1;">Activer</button>';
+            return '<div class="site-card' + activeClass + '" style="' + activeBorderStyle + '">' +
+                '<div class="site-card-header">' +
+                    '<span class="site-dot" style="background:' + Components.escapeHtml(site.color) + ';box-shadow:0 0 0 3px ' + Components.escapeHtml(site.color) + '33;"></span>' +
+                    '<span class="site-card-name">' + Components.escapeHtml(site.name) + '</span>' +
+                    activeBadge +
+                '</div>' +
+                '<div class="site-card-domain">' + (site.domain ? Components.escapeHtml(site.domain) : '<em>Aucun domaine</em>') + '</div>' +
+                '<div class="site-card-desc">' + Components.escapeHtml(site.description || '') + '</div>' +
+                '<div class="site-card-actions">' +
+                    '<a href="/pages.html" class="btn btn-sm btn-secondary" style="flex:1;text-align:center;" title="Pages du site">Pages</a>' +
+                    '<a href="/settings.html" class="btn btn-sm btn-secondary" style="flex:1;text-align:center;" title="Parametres">Params</a>' +
+                    activateBtn +
+                '</div>' +
+            '</div>';
+        }).join('');
+
+        // Add create card
+        html += '<div class="create-card" id="open-create-modal">' +
+            '<div class="create-card-icon">+</div>' +
+            '<div class="create-card-label">Nouveau site</div>' +
+        '</div>';
+
+        grid.innerHTML = html;
+
+        // Bind activate buttons
+        grid.querySelectorAll('.activate-btn').forEach(function(btn) {
+            btn.addEventListener('click', async function() {
+                var id = this.dataset.id;
+                try {
+                    btn.disabled = true;
+                    btn.textContent = '...';
+                    await Auth.apiFetch('/api/gds-sites/' + id + '/activate', { method: 'POST' });
+                    Components.showToast('Site "' + id + '" active !', 'success');
+                    await loadSites();
+                } catch(e) {
+                    Components.showToast('Erreur activation', 'error');
+                    btn.disabled = false;
+                    btn.textContent = 'Activer';
+                }
+            });
+        });
+
+        // Create card
+        document.getElementById('open-create-modal').addEventListener('click', function() {
+            document.getElementById('create-modal').classList.remove('hidden');
+            document.getElementById('new-site-id').focus();
+        });
+    }
+
+    // === Create modal ===
+    function setupModal() {
+        // Color sync
+        document.getElementById('new-site-color').addEventListener('input', function() {
+            document.getElementById('new-site-color-text').value = this.value;
+        });
+        document.getElementById('new-site-color-text').addEventListener('input', function() {
+            if (/^#[0-9a-f]{6}$/i.test(this.value)) {
+                document.getElementById('new-site-color').value = this.value;
+            }
+        });
+
+        // Auto-generate ID from name
+        document.getElementById('new-site-name').addEventListener('input', function() {
+            var idField = document.getElementById('new-site-id');
+            if (!idField._touched) {
+                idField.value = this.value.toLowerCase()
+                    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                    .replace(/[^a-z0-9]+/g, '-')
+                    .replace(/^-|-$/g, '')
+                    .slice(0, 50);
+            }
+        });
+        document.getElementById('new-site-id').addEventListener('input', function() {
+            this._touched = true;
+        });
+
+        document.getElementById('create-cancel-btn').addEventListener('click', function() {
+            document.getElementById('create-modal').classList.add('hidden');
+        });
+
+        document.getElementById('create-confirm-btn').addEventListener('click', async function() {
+            var id = document.getElementById('new-site-id').value.trim();
+            var name = document.getElementById('new-site-name').value.trim();
+            var domain = document.getElementById('new-site-domain').value.trim();
+            var desc = document.getElementById('new-site-desc').value.trim();
+            var color = document.getElementById('new-site-color').value;
+
+            if (!id || !name) {
+                Components.showToast('ID et Nom sont requis', 'error');
+                return;
+            }
+
+            this.disabled = true;
+            this.textContent = 'Creation...';
+            try {
+                var res = await Auth.apiFetch('/api/gds-sites', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id, name, domain, description: desc, color })
+                });
+                var data = await res.json();
+                if (!res.ok) {
+                    Components.showToast(data.error || 'Erreur creation', 'error');
+                    return;
+                }
+                Components.showToast('Site "' + name + '" cree !', 'success');
+                document.getElementById('create-modal').classList.add('hidden');
+                // Reset form
+                ['new-site-id','new-site-name','new-site-domain','new-site-desc'].forEach(function(id) {
+                    document.getElementById(id).value = '';
+                    document.getElementById(id)._touched = false;
+                });
+                document.getElementById('new-site-color').value = '#6366f1';
+                document.getElementById('new-site-color-text').value = '#6366f1';
+                await loadSites();
+            } catch(e) {
+                Components.showToast('Erreur reseau', 'error');
+            } finally {
+                this.disabled = false;
+                this.textContent = 'Creer le site';
+            }
+        });
+
+        // Close on overlay click
+        document.getElementById('create-modal').addEventListener('click', function(e) {
+            if (e.target === this) this.classList.add('hidden');
+        });
+    }
+
+    setupModal();
+    loadSites();
+    </script>
+</body>
+</html>
