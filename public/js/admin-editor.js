@@ -1267,36 +1267,71 @@
         // Detect YouTube embed
         const ytId = parseYouTubeId(imgSrc);
         if (ytId) {
-          const embedUrl = `https://www.youtube.com/embed/${ytId}?autoplay=0&rel=0`;
           const saveWrapper = placeholderEl.closest('.gds-section-wrapper')
             || placeholderEl.parentElement?.closest('.gds-section-wrapper');
 
-          // Build iframe to replace the placeholder
-          const iframe = document.createElement('iframe');
-          iframe.src = embedUrl;
-          iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
-          iframe.allowFullscreen = true;
-          iframe.frameBorder = '0';
-          // Copy inline dimensions from the placeholder if any
-          if (placeholderEl.style.width)  iframe.style.width  = placeholderEl.style.width;
-          if (placeholderEl.style.height) iframe.style.height = placeholderEl.style.height;
-          if (!iframe.style.width)  iframe.style.width  = '100%';
-          if (!iframe.style.height) iframe.style.height = '100%';
-          iframe.style.border = 'none';
-          iframe.style.borderRadius = placeholderEl.style.borderRadius || '';
-          iframe.style.display = 'block';
+          // Check if this placeholder is inside a custom click-to-play widget
+          // (snb-yt__player, stemoinPlayer, etc.) — identified by a <script>
+          // containing the 'ID_VIDEO_YOUTUBE' token
+          const scriptEl = saveWrapper && saveWrapper.querySelector('script');
+          const isYtWidget = scriptEl && scriptEl.textContent.includes('ID_VIDEO_YOUTUBE');
 
-          // Unwrap wrapper if needed, then replace
-          const phWrapper = placeholderEl.closest('.gds-ph-img-wrap');
-          if (phWrapper) {
-            phWrapper.parentNode.insertBefore(iframe, phWrapper);
-            phWrapper.remove();
+          if (isYtWidget) {
+            // Set thumbnail to YouTube's auto-generated maxres thumbnail
+            placeholderEl.src = `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg`;
+            placeholderEl.removeAttribute('data-gds-placeholder');
+            placeholderEl.style.opacity = '1';
+            // Patch the video ID in the inline script
+            scriptEl.textContent = scriptEl.textContent.replace(/(['"])ID_VIDEO_YOUTUBE\1/g, `'${ytId}'`);
+            // Unwrap ph-img-wrap so the img is restored as direct child
+            const phWrapper = placeholderEl.closest('.gds-ph-img-wrap');
+            if (phWrapper) {
+              phWrapper.parentNode.insertBefore(placeholderEl, phWrapper);
+              phWrapper.remove();
+            }
           } else {
-            placeholderEl.replaceWith(iframe);
+            // Generic case: replace placeholder with a raw YouTube iframe
+            const iframe = document.createElement('iframe');
+            iframe.src = `https://www.youtube.com/embed/${ytId}?autoplay=0&rel=0`;
+            iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+            iframe.allowFullscreen = true;
+            iframe.frameBorder = '0';
+            if (placeholderEl.style.width)  iframe.style.width  = placeholderEl.style.width;
+            if (placeholderEl.style.height) iframe.style.height = placeholderEl.style.height;
+            if (!iframe.style.width)  iframe.style.width  = '100%';
+            if (!iframe.style.height) iframe.style.height = '100%';
+            iframe.style.border = 'none';
+            iframe.style.borderRadius = placeholderEl.style.borderRadius || '';
+            iframe.style.display = 'block';
+            const phWrapper = placeholderEl.closest('.gds-ph-img-wrap');
+            if (phWrapper) {
+              phWrapper.parentNode.insertBefore(iframe, phWrapper);
+              phWrapper.remove();
+            } else {
+              placeholderEl.replaceWith(iframe);
+            }
           }
 
           close();
-          if (saveWrapper) await saveSection(saveWrapper);
+
+          // Save section — same logic as regular image save
+          if (saveWrapper) {
+            const file = saveWrapper.getAttribute('data-gds-file');
+            if (!file) throw new Error('Attribut data-gds-file manquant');
+            const sectionHtml = cleanSectionHtml(saveWrapper);
+            const saveRes = await Auth.apiFetch('/api/pages/' + currentSlug + '/section/' + encodeURIComponent(file), {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ content: sectionHtml })
+            });
+            if (!saveRes.ok) {
+              const errData = await saveRes.json().catch(() => ({}));
+              throw new Error(errData.error || 'Erreur sauvegarde HTTP ' + saveRes.status);
+            }
+          }
+          showToast('Vidéo enregistrée !', 'success');
+          imageChanges++;
+          updateChangesCount();
           return;
         }
 
