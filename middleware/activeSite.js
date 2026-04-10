@@ -11,24 +11,45 @@ const fs = require('fs');
 const path = require('path');
 const { AsyncLocalStorage } = require('async_hooks');
 
-const REGISTRY_PATH = path.join(__dirname, '..', 'gds-managed-sites.json');
+// Registry lives in the previews/ volume so it persists across Docker deploys.
+// Fallback: root gds-managed-sites.json (for local dev / first boot).
+const REGISTRY_PATH = path.join(__dirname, '..', 'previews', '_sites-registry.json');
+const REGISTRY_FALLBACK = path.join(__dirname, '..', 'gds-managed-sites.json');
 const DEFAULT_SITE_ID = 'shootnbox';
 
 // Exported AsyncLocalStorage instance — used by routes to get active site paths
 const siteStorage = new AsyncLocalStorage();
 
 /**
- * Read the GDS sites registry from disk (no caching — file is small and changes rarely).
+ * Read the GDS sites registry from disk.
+ * Tries the volume path first, falls back to the root fallback file.
+ * If neither exists, auto-creates with Shootnbox defaults.
  */
 function readRegistry() {
-  try {
-    if (fs.existsSync(REGISTRY_PATH)) {
-      return JSON.parse(fs.readFileSync(REGISTRY_PATH, 'utf-8'));
+  for (const p of [REGISTRY_PATH, REGISTRY_FALLBACK]) {
+    try {
+      if (fs.existsSync(p)) {
+        return JSON.parse(fs.readFileSync(p, 'utf-8'));
+      }
+    } catch (e) {
+      console.warn('[activeSite] Registry read error at', p, ':', e.message);
     }
-  } catch (e) {
-    console.warn('[activeSite] Registry read error:', e.message);
   }
-  return { sites: [] };
+  // Auto-create default registry (first boot on empty volume)
+  const defaultRegistry = {
+    sites: [{
+      id: 'shootnbox', name: 'Shootnbox', domain: 'shootnbox.fr',
+      description: 'Location photobooth Paris & Bordeaux',
+      previewsDir: 'previews', configFile: 'site-config.json', blocksDir: 'blocks',
+      logo: '/images/logo/shootnbox-logo-new-1.webp', color: '#E51981',
+      status: 'active', createdAt: new Date().toISOString()
+    }]
+  };
+  try {
+    fs.mkdirSync(path.dirname(REGISTRY_PATH), { recursive: true });
+    fs.writeFileSync(REGISTRY_PATH, JSON.stringify(defaultRegistry, null, 2), 'utf-8');
+  } catch (e) {}
+  return defaultRegistry;
 }
 
 /**
@@ -66,6 +87,7 @@ function activeSiteMiddleware(req, res, next) {
 
 /**
  * Read the registry, write a site entry (add or replace by id), save.
+ * Always writes to the volume path (REGISTRY_PATH).
  */
 function writeSiteToRegistry(siteData) {
   const registry = readRegistry();
@@ -75,6 +97,7 @@ function writeSiteToRegistry(siteData) {
   } else {
     registry.sites.push(siteData);
   }
+  fs.mkdirSync(path.dirname(REGISTRY_PATH), { recursive: true });
   fs.writeFileSync(REGISTRY_PATH, JSON.stringify(registry, null, 2), 'utf-8');
 }
 
@@ -84,6 +107,7 @@ function writeSiteToRegistry(siteData) {
 function removeSiteFromRegistry(id) {
   const registry = readRegistry();
   registry.sites = registry.sites.filter(s => s.id !== id);
+  fs.mkdirSync(path.dirname(REGISTRY_PATH), { recursive: true });
   fs.writeFileSync(REGISTRY_PATH, JSON.stringify(registry, null, 2), 'utf-8');
 }
 
