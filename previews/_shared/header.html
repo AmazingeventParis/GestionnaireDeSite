@@ -719,7 +719,8 @@ Obtenir un devis
   function initHeader() {
     var burger = document.getElementById('snbBurger');
     var menu = document.getElementById('snbMobileMenu');
-    if (!burger || !menu) return;
+    if (!burger || !menu || burger._snbInit) return;
+    burger._snbInit = true;
 
     burger.addEventListener('click', function() {
       var isOpen = menu.classList.toggle('open');
@@ -745,10 +746,9 @@ Obtenir un devis
     }
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initHeader);
-  } else {
-    initHeader();
-  }
+  // Le burger est déjà dans le DOM (il est avant ce script) — init immédiate
+  initHeader();
+  // Fallback au cas où (page en cache ou readyState déjà avancé)
+  document.addEventListener('DOMContentLoaded', initHeader);
 })();
 </script>
