@@ -781,6 +781,7 @@ body.gds-admin-mode .gds-page-content {
 /* ===== BLOCK INSERTER ===== */
 .gds-block-inserter {
   position: relative;
+  z-index: 200;
   height: 40px;
   display: flex;
   align-items: center;
@@ -835,7 +836,7 @@ body.gds-admin-mode .gds-page-content {
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.4);
   position: relative;
-  z-index: 51;
+  z-index: 9999;
 }
 .gds-spacing-slider {
   width: 100px;
