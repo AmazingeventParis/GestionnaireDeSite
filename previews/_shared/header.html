@@ -423,6 +423,24 @@
 .snb-header-cta:hover svg { transform: translateX(3px); }
 
 /* ========== BURGER MOBILE ========== */
+.snb-mobile-reserver {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #E51981, #c41470);
+  color: #fff !important;
+  text-decoration: none !important;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 14px;
+  border-radius: 20px;
+  letter-spacing: 0.2px;
+  box-shadow: 0 3px 10px rgba(229,25,129,0.3);
+  transition: all 0.25s ease;
+  font-family: 'Raleway', sans-serif;
+}
+.snb-mobile-reserver:hover { transform: translateY(-1px); box-shadow: 0 5px 16px rgba(229,25,129,0.45); }
+
 .snb-burger {
   display: none;
   flex-direction: column;
@@ -462,6 +480,7 @@
   opacity: 0;
   pointer-events: none;
   transition: all 0.3s ease;
+  z-index: 9998;
 }
 
 .snb-mobile-menu.open { transform: translateY(0); opacity: 1; pointer-events: auto; }
@@ -516,6 +535,7 @@
   .snb-header-cta,
   .snb-header-cta:link,
   .snb-header-cta:visited { display: none !important; }
+  .snb-mobile-reserver { display: inline-flex !important; }
   .snb-burger { display: flex !important; }
   .snb-mobile-menu { display: block !important; }
   .snb-mega, .snb-mega-overlay { display: none !important; }
@@ -657,6 +677,7 @@ Nos bornes
 Obtenir un devis
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
 </a>
+<a href="https://shootnbox.fr/reservation/" class="snb-mobile-reserver" aria-label="Réserver">Réserver</a>
 <button class="snb-burger" id="snbBurger" aria-label="Menu">
 <span></span>
 <span></span>
@@ -695,31 +716,39 @@ Obtenir un devis
 </header>
 <script>
 (function() {
-  var burger = document.getElementById('snbBurger');
-  var menu = document.getElementById('snbMobileMenu');
-  if (!burger || !menu) return;
+  function initHeader() {
+    var burger = document.getElementById('snbBurger');
+    var menu = document.getElementById('snbMobileMenu');
+    if (!burger || !menu) return;
 
-  burger.addEventListener('click', function() {
-    var isOpen = menu.classList.toggle('open');
-    burger.classList.toggle('active', isOpen);
-    document.body.style.overflow = isOpen ? 'hidden' : '';
-  });
-
-  // Close menu when a link is clicked
-  menu.querySelectorAll('a').forEach(function(link) {
-    link.addEventListener('click', function() {
-      menu.classList.remove('open');
-      burger.classList.remove('active');
-      document.body.style.overflow = '';
+    burger.addEventListener('click', function() {
+      var isOpen = menu.classList.toggle('open');
+      burger.classList.toggle('active', isOpen);
+      document.body.style.overflow = isOpen ? 'hidden' : '';
     });
-  });
 
-  // Scroll effect on header
-  var header = document.getElementById('snbHeader');
-  if (header) {
-    window.addEventListener('scroll', function() {
-      header.classList.toggle('scrolled', window.scrollY > 30);
-    }, { passive: true });
+    // Close menu when a link is clicked
+    menu.querySelectorAll('a').forEach(function(link) {
+      link.addEventListener('click', function() {
+        menu.classList.remove('open');
+        burger.classList.remove('active');
+        document.body.style.overflow = '';
+      });
+    });
+
+    // Scroll effect on header
+    var header = document.getElementById('snbHeader');
+    if (header) {
+      window.addEventListener('scroll', function() {
+        header.classList.toggle('scrolled', window.scrollY > 30);
+      }, { passive: true });
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initHeader);
+  } else {
+    initHeader();
   }
 })();
 </script>
