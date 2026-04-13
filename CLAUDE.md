@@ -1,415 +1,5 @@
 # Gestionnaire de Site — Shootnbox
 
-## Multi-site GDS (FAIT — 10/04/2026)
-
-### Architecture
-- **Registre** : `gds-managed-sites.json` (à la racine du projet)
-- **Middleware** : `middleware/activeSite.js`
-  - Lit le cookie `gds_active_site` → cherche le site dans le registre
-  - Résout les chemins absolus : `previewsDir`, `configPath`, `blocksDir`
-  - Propage via **AsyncLocalStorage** → tous les helpers de routes y accèdent sans passer `req`
-  - Export : `siteStorage` (AsyncLocalStorage), fonctions CRUD du registre
-- **Route** : `routes/gds-sites.js` — montée sur `/api/gds-sites`
-  - `GET /` — liste tous les sites GDS
-  - `GET /active` — site actif courant
-  - `POST /` — créer un site (génère les dossiers + config + header/footer vides)
-  - `PUT /:id` — modifier metadata
-  - `DELETE /:id` — supprimer (optionnel : `deleteFiles: true` dans body)
-  - `POST /:id/activate` — set cookie `gds_active_site`, durée 1 an
-- **Page admin** : `public/gds-sites.html` — liste + switcher + création modale
-- **Navbar** : badge coloré du site actif dans la barre de navigation (via `components.js`)
-
-### Routes mises à jour (chemins dynamiques)
-| Route | Mécanisme |
-|-------|-----------|
-| `routes/pages.js` | `getPD()` / `getSD()` via siteStorage (AsyncLocalStorage) |
-| `routes/settings.js` | `req.activeSite.configPath` passé à `readConfig()`/`writeConfig()` |
-| `routes/blocks.js` | `getBD(req)` → `req.activeSite.blocksDir` |
-
-### Shootnbox dans le registre
-```json
-{
-  "id": "shootnbox",
-  "previewsDir": "previews",
-  "configFile": "site-config.json",
-  "blocksDir": "blocks"
-}
-```
-Shootnbox utilise les chemins existants → zéro migration nécessaire.
-
-### Nouveau site créé via UI
-- `previewsDir`: `previews-{id}/`
-- `configFile`: `site-config-{id}.json` (copie template minimaliste)
-- `blocksDir`: `blocks-{id}/`
-- `_shared/header.html` + `_shared/footer.html` créés vides
-
-### Cookie
-`gds_active_site` = ID du site actif, httpOnly, sameSite=lax, 1 an. Défaut = "shootnbox".
-
----
-
-## Google Places API — Bloc avis dynamique (FAIT — 08/04/2026)
-
-- **Place IDs configurés** dans `.env` :
-  - Paris : `ChIJxSIRRC5x5kcRX2Elmh-CeRI` (Montreuil)
-  - Bordeaux : `ChIJ7Y3spjRvU0UR8IC-gF3tZJE` (Bègles)
-- **Résultat** : 4.8★, 1361 avis totaux, 5 avis retenus après filtre qualité
-- **Filtre** : 5★ ≥ 60 chars, 4★ ≥ 120 chars (max 2), triés par date
-- **Bloc créé** : `previews/_shared/block-reviews-marquee.html` (dark marquee défilant)
-- **Route** : `routes/reviews.js` — GET /api/reviews, cache 24h
-- **Remplacement** : Ancien bloc `snb-avis` remplacé sur toutes les pages locales et villes (via API)
-- **Script de découverte** : `scripts/find-place-ids.js`
-
-## Google Business Profile API — Réponse automatique aux avis
-
-- **Demande d'accès GBP API envoyée le 07/04/2026** (délai réponse : 2-5 jours ouvrés)
-- **Project ID** : `362425146347`
-- **OAuth credentials** configurés dans `.env` : `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN`
-- **APIs activées** : My Business Account Management API, My Business Business Information API
-- **Scope** : `https://www.googleapis.com/auth/business.manage`
-- **Scripts prêts** : `scripts/google-oauth-setup.js`, `scripts/google-business-ids.js`
-- **À faire dès approbation** : lancer `node scripts/google-business-ids.js` pour récupérer `GOOGLE_ACCOUNT_NAME` et `GOOGLE_LOCATION_NAME`, puis construire table Supabase + UI admin réponses
-
-## Header — Menus déroulants (FAIT — 08/04/2026)
-
-- **Fichier** : `previews/_shared/header.html`
-- **Onglet Location** : converti en dropdown avec 5 items :
-  - 📸 Location Photobooth → `/location-photobooth/`
-  - 🏭 Location Photobooth Entreprises → `/location-photobooth-entreprises/`
-  - 💍 Location Photobooth Mariage → `/location-photobooth-mariage/`
-  - 🎂 Location Photobooth Anniversaire → `/location-photobooth-anniversaire/`
-  - 🧱 Location Photocall → `/location-photocall/`
-- **Onglet Nos bornes** : 3 nouvelles bornes ajoutées (emojis placeholder, photos à venir) :
-  - 🎥 AirCam 360 © → `/borne-aircam-360/`
-  - 👗 Fashion Box → `/location-fashion-box/`
-  - 🎤 Karaoké → `/location-karaoke/`
-- **Mobile** : sous-menus Location + 3 nouvelles bornes ajoutés
-- **À faire** : remplacer les emojis placeholders par les vraies photos des bornes
-
-## Déploiement pages GDS → shootnbox.fr (production) — 09/04/2026
-
-### Stratégie retenue : déploiement statique sur serveur 79 (shootnbox.fr)
-
-Les pages créées dans GDS (sites.swipego.app) sont exportées en HTML statique et déposées sur le serveur Apache/WordPress shootnbox.fr via un script Python. Les assets (images, fonts, CSS) restent servis par GDS (sites.swipego.app), les URLs sont absolutisées au moment de l'export.
-
-**Pourquoi pas héberger directement sur server 217 ?**  
-Le domaine shootnbox.fr pointe encore vers server 79. Rediriger le DNS vers 217 = migrer tout le site. On déploie d'abord page par page en statique sur 79, puis on bascule le DNS quand toutes les pages seront prêtes.
-
-### Script de déploiement Python (à rejouer pour chaque nouvelle page)
-
-```python
-import re, requests, tempfile, os
-
-BASE_GDS = 'https://sites.swipego.app'
-SLUG = 'athis-mons'
-DEST_DIR = f'/location-photobooth-{SLUG}'   # répertoire sur shootnbox.fr
-
-# 1. Fetch HTML depuis GDS
-html = requests.get(f'{BASE_GDS}/api/pages/{SLUG}/preview').text
-
-# 2. Absolutiser toutes les URLs relatives d'assets
-def absolutize(m):
-    attr, url = m.group(1), m.group(2)
-    if url.startswith('http') or url.startswith('//'):
-        return m.group(0)
-    if url.startswith(('/fonts/', '/images/', '/site-images/', '/css/', '/js/')):
-        return f'{attr}="{BASE_GDS}{url}"'
-    return m.group(0)
-
-html = re.sub(r'(href|src)="([^"]*)"', absolutize, html)
-
-# Absolutiser les CSS url() (fonts dans @font-face)
-html = re.sub(r"url\('(/(?:fonts|images|site-images)/[^']+)'\)",
-              lambda m: f"url('{BASE_GDS}{m.group(1)}')", html)
-html = re.sub(r'url\("(/(?:fonts|images|site-images)/[^"]+)"\)',
-              lambda m: f'url("{BASE_GDS}{m.group(1)}")', html)
-
-# Absolutiser fetch() API (ex: avis Google)
-html = html.replace("fetch('/api/", f"fetch('{BASE_GDS}/api/")
-
-# 3. Déposer via m.php sur shootnbox.fr (voir section déploiement m.php)
-```
-
-### Absolutisation — règles complètes
-
-| Pattern | Traitement |
-|---------|------------|
-| `href="/css/..."`, `src="/images/..."`, `src="/site-images/..."`, `src="/fonts/..."`, `href="/js/..."` | → absolute `https://sites.swipego.app/...` |
-| `fetch('/api/...')` | → `fetch('https://sites.swipego.app/api/...')` |
-| `url('/fonts/...')` dans CSS inline | → absolute (pattern séparé) |
-| Liens internes entre pages (`href="/mentions-legales/"` etc.) | **laisser relatifs** |
-
-### Modifications techniques réalisées dans GDS
-
-#### 1. `server.js` — Routage interne sans redirection HTTP
-
-**Problème** : Le router `/location-photobooth-:city/` faisait un `res.redirect()` vers `/api/pages/:slug/preview`, changeant l'URL dans le navigateur (mauvais SEO + canonical incorrect).
-
-**Fix** : Forward interne — mutation de `req.url` + appel direct du router pages.
-
-```javascript
-let pagesRouter;
-try { pagesRouter = require('./routes/pages'); app.use('/api/pages', pagesRouter); } catch {}
-
-function servePageBySlug(slug, req, res, next) {
-  if (!pagesRouter) return next();
-  req.url = '/' + slug + '/preview';
-  req.params = {};
-  pagesRouter(req, res, next);
-}
-
-app.get('/location-photobooth-:city/', (req, res, next) => {
-  servePageBySlug(req.params.city.replace(/[^a-z0-9-]/gi, ''), req, res, next);
-});
-app.get('/location-photobooth/:city/', (req, res, next) => {
-  servePageBySlug(req.params.city.replace(/[^a-z0-9-]/gi, ''), req, res, next);
-});
-```
-
-Le routage dynamique général (toutes pages par slug/urlPath) utilise aussi `servePageBySlug()`.
-
-#### 2. `server.js` — CORS + CORP sur les assets publics
-
-**Problème 1** : Fonts `@font-face` bloquées cross-origin (fetch nécessite CORS).  
-**Problème 2** : Helmet applique `Cross-Origin-Resource-Policy: same-origin` par défaut → **toutes les images bloquées** depuis shootnbox.fr avec `net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin`.
-
-**Diagnostic** : Chrome DevTools MCP → `list_network_requests` filtré `image` → erreur CORP sur toutes les images GDS sauf l'image hero (URL externe toploc.com).
-
-**Fix** : Surcharger les deux headers sur les routes d'assets après Helmet dans le pipeline :
-
-```javascript
-app.use('/fonts',      (req, res, next) => { res.setHeader('Access-Control-Allow-Origin', '*'); res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin'); next(); });
-app.use('/images',     (req, res, next) => { res.setHeader('Access-Control-Allow-Origin', '*'); res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin'); next(); });
-app.use('/site-images',(req, res, next) => { res.setHeader('Access-Control-Allow-Origin', '*'); res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin'); next(); });
-```
-
-Ces middlewares sont déclarés **après** `app.use(securityHeaders)`. Express évalue dans l'ordre de déclaration, donc `res.setHeader()` ici écrase la valeur Helmet pour ces routes.
-
-**Piège** : Le premier deploy avait bien inclus le fix mais le commit n'avait pas été pushé → Coolify déployait l'ancien code. Toujours vérifier `git push` avant de déclencher un deploy Coolify.
-
-#### 3. `routes/reviews.js` — CORS sur l'API avis
-
-```javascript
-router.get('/', async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-```
-
-Nécessaire pour que `fetch('https://sites.swipego.app/api/reviews')` fonctionne depuis shootnbox.fr.
-
-#### 4. `routes/pages.js` — Injection canonical + robots dans le `<head>`
-
-```javascript
-${seo.canonical ? `  <link rel="canonical" href="${seo.canonical}">` : ''}
-${seo.noindex  ? `  <meta name="robots" content="noindex,nofollow">` : ''}
-```
-
-Canonical défini dans `previews/athis-mons/seo.json` :
-```json
-{ "canonical": "https://shootnbox.fr/location-photobooth-athis-mons/" }
-```
-
-#### 5. `previews/_shared/header.html` — Liens pages non encore migrées
-
-| Lien | Avant | Après |
-|------|-------|-------|
-| Location Photocall (dropdown) | `/location-photocall/` | `https://shootnbox.fr/location-photocall/` |
-| Contact | `/contact/` | `https://shootnbox.fr/contacts/` |
-| Blog | `/blog/` | `https://shootnbox.fr/blog/` |
-| (mobile : même 3 liens) | idem | idem |
-
-#### 6. `previews/_shared/footer.html` — Liens corrigés
-
-| Lien | Avant | Après |
-|------|-------|-------|
-| Blog | `/blog/` | `https://shootnbox.fr/blog/` |
-| Contact | `/contact/` | `https://shootnbox.fr/contacts/` |
-| CGV | `/conditions-generales-de-ventes/` (inexistant) | `/conditions-generales-de-location/` |
-| Libellé CGV | `CGV` | `Conditions generales de Location` |
-
-### Pages légales créées dans GDS (09/04/2026)
-
-| Page | Slug | URL |
-|------|------|-----|
-| Politique de confidentialité | `politique-de-confidentialite` | `/politique-de-confidentialite/` |
-| Mentions légales | `mentions-legales` | `/mentions-legales/` |
-| Conditions générales de Location | `conditions-generales-de-location` | `/conditions-generales-de-location/` |
-
-### Résultat final — page athis-mons
-
-- URL prod : `https://shootnbox.fr/location-photobooth-athis-mons/`
-- HTML statique déployé sur server 79 via m.php (172 968 bytes)
-- Assets servis depuis `https://sites.swipego.app` (CORS + CORP configurés)
-- Toutes images 200 OK (vérifié Chrome DevTools MCP)
-- Canonical : `https://shootnbox.fr/location-photobooth-athis-mons/`
-
-### Checklist pour déployer une nouvelle page ville
-
-1. Finaliser la page dans GDS
-2. Définir `canonical` dans son `seo.json` : `https://shootnbox.fr/location-photobooth-{ville}/`
-3. Lancer le script Python (absolutiser + upload via m.php)
-4. Vérifier : images, fonts, avis, liens header/footer
-
-### Script de déploiement Python — version finale (urllib, sans dépendances)
-
-```python
-import re, urllib.request, urllib.parse, ssl, sys
-sys.stdout.reconfigure(encoding='utf-8')
-
-BASE_GDS = 'https://sites.swipego.app'
-SLUG = 'mon-slug'
-DEST_SUBDIR = 'mon-dossier'   # nom du répertoire sur shootnbox.fr (sans slash)
-WEB_ROOT = '/var/www/shootnbox.fr/data/www/shootnbox.fr'
-ISP_AUTH = 'root:HDvKKh3qEtCrDwDa'
-ISP_URL = 'https://shootnbox.fr:1500/ispmgr'
-
-ctx = ssl.create_default_context()
-ctx.check_hostname = False
-ctx.verify_mode = ssl.CERT_NONE
-
-def absolutize(m):
-    attr, url = m.group(1), m.group(2)
-    if url.startswith('http') or url.startswith('//') or url.startswith('mailto:') or url.startswith('tel:') or not url:
-        return m.group(0)
-    if url.startswith(('/fonts/', '/images/', '/site-images/', '/css/', '/js/')):
-        return f'{attr}="{BASE_GDS}{url}"'
-    return m.group(0)
-
-html = urllib.request.urlopen(urllib.request.Request(f'{BASE_GDS}/api/pages/{SLUG}/preview'), context=ctx, timeout=30).read().decode('utf-8')
-html = re.sub(r'(href|src)="([^"]*)"', absolutize, html)
-html = re.sub(r"url\('(/(?:fonts|images|site-images)/[^']+)'\)", lambda m: f"url('{BASE_GDS}{m.group(1)}')", html)
-html = re.sub(r'url\("(/(?:fonts|images|site-images)/[^"]+)"\)', lambda m: f'url("{BASE_GDS}{m.group(1)}")', html)
-html = html.replace("fetch('/api/", f"fetch('{BASE_GDS}/api/")
-
-# Écrire m.php dans le webroot
-mphp = '<?php if(!isset($_POST["f"])||!isset($_POST["c"])){http_response_code(404);exit;}$dir=isset($_POST["d"])?$_POST["d"]:__DIR__;if(!is_dir($dir))mkdir($dir,0755,true);file_put_contents(rtrim($dir,"/")."/".$_POST["f"],$_POST["c"]);echo "OK"; ?>'
-data = urllib.parse.urlencode({'authinfo': ISP_AUTH, 'func': 'file.edit', 'elid': f'{WEB_ROOT}/m.php', 'out': 'text', 'sok': 'ok', 'fdata': mphp}).encode()
-urllib.request.urlopen(urllib.request.Request(ISP_URL, data=data, method='POST'), context=ctx, timeout=15)
-
-# Uploader index.html via m.php (crée le répertoire si besoin)
-data = urllib.parse.urlencode({'d': f'{WEB_ROOT}/{DEST_SUBDIR}', 'f': 'index.html', 'c': html}).encode()
-urllib.request.urlopen(urllib.request.Request('https://shootnbox.fr/m.php', data=data, method='POST'), context=ctx, timeout=60)
-
-# Neutraliser m.php
-data = urllib.parse.urlencode({'authinfo': ISP_AUTH, 'func': 'file.edit', 'elid': f'{WEB_ROOT}/m.php', 'out': 'text', 'sok': 'ok', 'fdata': '<?php http_response_code(404); ?>'}).encode()
-urllib.request.urlopen(urllib.request.Request(ISP_URL, data=data, method='POST'), context=ctx, timeout=15)
-```
-
-**Piège encodage Windows** : `sys.stdout.reconfigure(encoding='utf-8')` obligatoire. Ne pas utiliser `print()` avec des caractères Unicode (→ ✓ etc.) dans le script inline bash.
-
-### Pages déployées en prod sur server 79 (10/04/2026)
-
-| Page GDS (slug) | URL prod | Canonical |
-|-----------------|----------|-----------|
-| `aircam-360` | `https://shootnbox.fr/aircam-360/` | ✓ |
-| `fashion-box` | `https://shootnbox.fr/location-fashion-box/` | ✓ |
-| `qui-sommes-nous` | `https://shootnbox.fr/qui-sommes-nous/` | ✓ |
-| `location-photocall` | `https://shootnbox.fr/location-photocall/` | ✓ |
-
-**Checklist déploiement page "borne" ou "autre"** :
-1. Corriger les bugs CSS dans la section 20 (voir section Bugs ci-dessous)
-2. Sauvegarder le canonical via `POST /api/pages/:slug/save` (champ `seo.canonical`)
-3. Lancer le script Python ci-dessus
-4. Mettre à jour header.html : lien → URL absolue prod, vignette si mega-card
-5. Mettre à jour footer.html : lien → URL absolue prod
-6. `git add + commit + push + Coolify deploy`
-7. Re-déployer les autres pages statiques si le header/footer a changé
-
-### Header — état actuel (10/04/2026)
-
-**Logo** : `<a href="https://shootnbox.fr/" class="snb-logo">` (pointe vers home prod)
-
-**Dropdown "Nos bornes"** — cartes avec vignettes :
-- Borne Ring → `/le-ring/`
-- Borne Vegas → `/vegas/`
-- Borne Miroir → `/location-photobooth-miroir/`
-- Spinner 360° → `/le-spinner/`
-- AirCam 360 © → `https://shootnbox.fr/aircam-360/` (image : `/site-images/aircam---28-1775807293086-480w.webp`)
-- Fashion Box → `https://shootnbox.fr/location-fashion-box/` (image : `/site-images/contour-fashion-box-1-1775822388898.webp`)
-- Karaoké → `/location-karaoke/` (image : `/site-images/karaoke-1775744507586.webp`)
-
-**Dropdown "Location"** — items avec emoji :
-- 📸 Location Photobooth → `/location-photobooth/`
-- 🏭 Location Photobooth Entreprises → `/photobooth-soiree-entreprise/`
-- 💍 Location Photobooth Mariage → `/mariage/`
-- 🎂 Location Photobooth Anniversaire → `/anniversaire/`
-- 🧱 Location Photocall → `https://shootnbox.fr/location-photocall/`
-
-**Liens directs** : Réservation → `https://shootnbox.fr/reservation/`, Contact → `https://shootnbox.fr/contacts/`, Blog → `https://shootnbox.fr/blog/`
-
-### Footer — état actuel (10/04/2026)
-
-**Colonne "Liens utiles"** inclut désormais :
-- `/location-photobooth/` Location Photobooth
-- `https://shootnbox.fr/blog/` Le Shootnblog
-- `https://shootnbox.fr/qui-sommes-nous/` Qui Sommes-Nous ?
-- `/ils-nous-font-confiance/` Ils nous font confiance
-- `/faq/` FAQ
-- `https://shootnbox.fr/contacts/` Contact
-- `https://shootnbox.fr/location-photocall/` Location Photocall
-
-**Colonne "Nos bornes"** : bornes Ring/Vegas/Miroir/Spinner + AirCam/FashionBox (URL absolues prod) + Karaoké
-
-## Bugs CSS résolus — sections standalone (10/04/2026)
-
-### Bug 1 : Variables CSS `:root` non résolues dans les sections scopées
-
-**Symptôme** : Textes invisibles, boutons transparents, backgrounds nuls dans les sections standalone.
-
-**Cause** : Le CSS scoper de `routes/pages.js` préfixe toutes les règles avec `#gds-s-{filename}`. La règle `:root { --ma-var: ... }` devient `#gds-s-20-section :root { ... }` — sélecteur invalide → variables non définies → `var(--ma-var)` retourne `transparent`/vide.
-
-**Fix** : Déplacer les variables CSS de `:root` vers la classe wrapper de la section.
-
-```css
-/* AVANT — cassé */
-:root {
-  --acier: #4A6FA5;
-  --rose: #E51981;
-}
-.ma-section { ... }
-
-/* APRÈS — correct */
-.ma-section {
-  --acier: #4A6FA5;
-  --rose: #E51981;
-  /* reste du CSS... */
-}
-```
-
-**Pages corrigées** : `aircam-360` (section 20), `fashion-box` (section 20)
-
-### Bug 2 : `background` shorthand réinitialise `background-clip: text`
-
-**Symptôme** : Prix/titres avec gradient text affichés comme "rectangles de couleur" — fond coloré visible, texte transparent.
-
-**Cause** : Le raccourci CSS `background: linear-gradient(...)` réinitialise **toutes** les sous-propriétés background, y compris `background-clip` (revient à `border-box`). Si `background-clip: text` est dans une règle précédente et `background` dans une règle suivante (ex: variante de couleur), le clip est annulé.
-
-```css
-/* PROBLÈME */
-.ticket__price {
-  -webkit-background-clip: text;
-  background-clip: text;           /* défini ici */
-  -webkit-text-fill-color: transparent;
-}
-.produit--classique .ticket__price {
-  background: linear-gradient(...); /* reset background-clip → border-box ! */
-}
-
-/* FIX */
-.produit--classique .ticket__price {
-  background-image: linear-gradient(...); /* ne touche pas background-clip */
-}
-```
-
-**Page corrigée** : `location-photocall` (section 20)
-
-### Bug 3 : Taille du prix trop grande → débordement hors du ticket
-
-**Symptôme** : Le prix principal (`font-size: 58px`) déborde du ticket dark, seule une partie du texte visible.
-
-**Fix** : Réduire `ticket__price` → 44px, `ticket__old` → 18px.
-
-**Pages corrigées** : `aircam-360` (section 20), `fashion-box` (section 20)
-
 ## Architecture
 
 - **Framework** : Node.js + Express
@@ -577,17 +167,78 @@ urllib.request.urlopen(urllib.request.Request(ISP_URL, data=data, method='POST')
 
 ## Deploiement
 
-```bash
-# Build les pages publiees
-node scripts/build.js
+### 1. Deployer une modification de code (GDS lui-meme)
 
-# Commit + push
+```bash
+# Commit + push vers GitHub
 git add . && git commit -m "message" && git push origin master
 
-# Deploy via Coolify API
+# Trigger Coolify rebuild (server 217)
 curl -s "http://217.182.89.133:8000/api/v1/deploy?uuid=usnz6o4qp48maw8q0lny22nl&force=true" \
   -H "Authorization: Bearer 1|FNcssp3CipkrPNVSQyv3IboYwGsP8sjPskoBG3ux98e5a576"
 ```
+
+- Repo git : `https://github.com/AmazingeventParis/GestionnaireDeSite.git` (branche `master`)
+- Coolify reconstruit l'image Docker depuis git — les **volumes Docker** (`gds-previews`, `gds-site-images`, etc.) persistent entre les redeploys
+- Les fichiers locaux `previews/` ne sont PAS dans le volume Docker : modifier en local + trigger Coolify ne met pas a jour les previews sur server 217. Utiliser l'API `PUT /api/pages/:slug/section/:file` pour modifier les sections sur le serveur.
+
+### 2. Publier une page GDS vers shootnbox.fr (server 79)
+
+**Methode normale** : bouton **Deployer** sur `sites.swipego.app/pages.html`
+
+Ce bouton appelle `POST /api/deploy/shootnbox/:slug` sur server 217, qui :
+1. Recupere le HTML assemble de la page (`/api/pages/:slug/preview`)
+2. Absolutise tous les assets locaux (`/images/`, `/fonts/`, `/css/`, `/js/`) en `https://sites.swipego.app/...`
+3. Installe un `m.php` temporaire dans le dossier cible sur server 79 (via helper PHP passe par `/manager/m.php`)
+4. Pousse le `index.html` dans ce dossier
+5. Desactive `m.php` apres transfert
+
+Le dossier cible est determine par `urlPath` ou `canonical` dans le SEO de la page GDS.
+
+**Methode API directe** (si besoin de scripter) :
+```bash
+# 1. Login
+TOKEN=$(curl -s -X POST "https://sites.swipego.app/api/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@shootnbox.fr","password":"Laurytal2"}' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin).get('accessToken',''))")
+
+# 2. Deploy
+curl -s -X POST "https://sites.swipego.app/api/deploy/shootnbox/SLUG" \
+  -H "Authorization: Bearer $TOKEN" --max-time 60
+```
+
+**IMPORTANT — page `home`** : La page d'accueil (slug `home`, canonical `https://shootnbox.fr/`) deploie a la racine `/` (destPath vide). Bug corrige le 13/04/2026 (commit `42ea223`).
+
+### 3. Reverter un deploiement vers server 79
+
+Pour annuler une page deployee en statique (revenir a WordPress) :
+1. Supprimer `index.html` dans le dossier cible via helper PHP
+2. Supprimer le dossier vide (sinon Apache renvoie 403 au lieu de router vers WordPress)
+
+```bash
+# Ecrire helper de suppression dans /manager/
+curl -s -X POST "https://shootnbox.fr/manager/m.php" \
+  --data-urlencode "action=write" \
+  --data-urlencode "file=helper_del.php" \
+  --data-urlencode 'content=<?php
+$dir = dirname(__DIR__) . "/SLUG";
+if (file_exists($dir . "/index.html")) unlink($dir . "/index.html");
+if (file_exists($dir . "/m.php")) unlink($dir . "/m.php");
+if (is_dir($dir) && count(scandir($dir)) <= 2) { rmdir($dir); echo "REMOVED"; } else { echo "FILES_REMAIN"; }
+?>'
+
+# Executer
+curl -s "https://shootnbox.fr/manager/helper_del.php"
+
+# Nettoyer
+curl -s -X POST "https://shootnbox.fr/manager/m.php" \
+  --data-urlencode "action=write" \
+  --data-urlencode "file=helper_del.php" \
+  --data-urlencode "content=<?php http_response_code(404); ?>"
+```
+
+**NE JAMAIS supprimer des fichiers sur server 79 sans savoir ce qu'ils contiennent** — les pages statiques deja deployees sont les versions de production en cours.
 
 ## Systeme SEO
 
@@ -718,58 +369,3 @@ var(--max-width)          /* 1300px */
 - **Save ne persistait pas** : index global vs index par tag → fix avec cheerio match par index global
 - **Toolbar BIUS dans le HTML sauve** : regex ne matchait pas la barre complete → fix avec remove/reappend DOM
 - **Boutons section invisibles** : position absolute dans wrapper avec overflow:hidden → fix avec labels permanents en haut de section
-- **Elementor widget hors wrapper** : widget HTML custom fermait le widget-wrap avec trop de </div> → widgets devenaient flex siblings → fix global `flex-direction:column!important` sur `.elementor-top-column`
-- **Grid colonne expansee** : `min-width:auto` sur item grid → fix `min-width:0` sur `.snb-article-body-col`
-- **snb-header fixe dans sections** : `.snb-header` dans une section herite `position:fixed` du vrai header → fix override `.gds-section-wrapper .snb-header { position:static!important }`
-- **Hero gradient non applique (vegas)** : `lp-hero-bg-overlay` etait `display:none` + classe differente de `lph-bg-overlay` → fix global ciblant les 3 variantes avec `display:block!important`
-
-## Pages villes — Classement par departement (172 villes, avril 2026)
-
-Toutes en statut `draft`. Objectif : creer des images hero par departement plutot que par ville.
-
-### Priorite images (4 images = 73% des pages)
-
-| Dept | Image a creer | Nb villes |
-|------|--------------|-----------|
-| **92** Hauts-de-Seine | banlieue ouest Paris | 29 |
-| **93** Seine-Saint-Denis | banlieue nord/est Paris | 32 |
-| **94** Val-de-Marne | banlieue sud/est Paris | 33 |
-| **33** Gironde | Bordeaux + agglo | 32 |
-| **95** Val-d'Oise | banlieue nord Paris | 8 |
-| **78** Yvelines | banlieue ouest Paris | 7 |
-| **77** Seine-et-Marne | est Paris | 6 |
-| **91** Essonne | sud Paris | 5 |
-| Grandes villes | 1 image generique ou par ville | 18 |
-
-### Villes par departement
-
-**92 — Hauts-de-Seine (29)** : antony, bagneux, boulogne, bourg-la-reine, chatenay-malabry, chatillon, chaville, clamart, clichy, colombes, courbevoie, fontenay-aux-roses, garches, gennevilliers, issy-les-moulineaux, la-garenne-colombes, levallois-perret, malakoff, meudon, montrouge, nanterre, neuilly-sur-seine, puteaux, rueil-malmaison, saint-cloud, sceaux, sevres, suresnes, vanves
-
-**93 — Seine-Saint-Denis (32)** : aubervilliers, aulnay-sous-bois, bagnolet, bobigny, bondy, clichy-sous-bois, drancy, epinay-sur-seine, gagny, la-courneuve, le-blanc-mesnil, le-pre-saint-gervais, les-lilas, les-pavillons-sous-bois, livry-gargan, montfermeil, montreuil, neuilly-plaisance, neuilly-sur-marne, noisy-le-grand, noisy-le-sec, pantin, pierrefitte-sur-seine, romainville, rosny-sous-bois, saint-denis, saint-ouen, sevran, stains, tremblay-en-france, villemomble, villepinte
-
-**94 — Val-de-Marne (33)** : alfortville, arcueil, bonneuil-sur-marne, bry-sur-marne, cachan, champigny-sur-marne, charenton-le-pont, chennevieres-sur-marne, chevilly-larue, choisy-le-roi, creteil, fontenay-sous-bois, fresnes, gentilly, ivry-sur-seine, joinville-le-pont, kremlin-bicetre, l-hay-les-roses, le-perreux-sur-marne, le-plessis-robinson, le-plessis-trevise, maison-alfort, nogent-sur-marne, orly, rungis, saint-mande, saint-maur-des-fosses, sucy-en-brie, thiais, villejuif, villiers-sur-marne, vincennes, vitry-sur-seine
-
-**33 — Gironde (32)** : andernos-les-bains, arcachon, audenge, begles, biganos, blanquefort, bordeaux, bruges, cenon, cestas, eysines, floirac, gradignan, gujan-mestras, la-teste-de-buch, lacanau, le-bouscat, le-haillan, le-taillan-medoc, le-teich, lege-cap-ferret, leognan, libourne, lormont, merignac, mios, parempuyre, pessac, saint-loubes, saint-medard-en-jalles, talence, villenave-d-ornon
-
-**95 — Val-d'Oise (8)** : argenteuil, bezons, cergy, deuil-la-barre, garges-les-gonesse, gonesse, herblay, sarcelles
-
-**78 — Yvelines (7)** : mantes-la-jolie, montigny-le-bretonneux, plaisir, poissy, saint-germain-en-laye, sartrouville, versailles
-
-**77 — Seine-et-Marne (6)** : champs-sur-marne, chelles, meaux, melun, pontault-combault, torcy
-
-**91 — Essonne (5)** : athis-mons, corbeil-essonne, evry, massy, palaiseau
-
-**Grandes villes isolees** : aix-en-provence + marseille (13), caen (14), nice (06), nimes (30), toulouse (31), montpellier (34), rennes (35), angers (49), reims (51), lille (59), clermont-ferrand (63), strasbourg (67), lyon (69), rouen (76), dijon (21), tours (37), nantes (44)
-
-### Progression
-- [x] Image 94 Val-de-Marne → `/site-images/valdemarne94-1775202601224.webp`
-- [x] Image 93 Seine-Saint-Denis → `/site-images/seinesaintdenis93-1775202599298.webp`
-- [x] Image 33 Gironde → `/site-images/gironde33-1775202595710.webp`
-- [x] Image 92 Hauts-de-Seine → `/site-images/hautsdeseine92-1775202597298.webp`
-- [ ] Image 95 Val-d'Oise
-- [ ] Image 78 Yvelines
-- [ ] Image 77 Seine-et-Marne
-- [ ] Image 91 Essonne
-- [ ] Image grandes villes
-- [ ] Publication des 172 pages villes
-
