@@ -259,8 +259,9 @@ ${telephone && telephone !== '—' ? `<td align="center" width="50%" style="padd
     if (isAjax) {
       res.json({ ok: true });
     } else {
-      const referer = req.headers.referer || '/';
-      res.redirect(referer + (referer.includes('?') ? '&' : '?') + 'sent=1');
+      const returnUrl = req.body._returnUrl || req.headers.referer || 'https://shootnbox.fr/contacts/';
+      const sep = returnUrl.includes('?') ? '&' : '?';
+      res.redirect(returnUrl + sep + 'sent=1');
     }
 
   } catch (err) {
