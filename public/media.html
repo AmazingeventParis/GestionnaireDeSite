@@ -449,6 +449,14 @@
             </div>
             <img class="detail-preview" id="detail-preview" src="" alt="">
             <div class="detail-info-grid" id="detail-info"></div>
+            <div class="detail-alt-group" id="detail-rename-group" style="display:none">
+                <label for="detail-rename">Nom du fichier</label>
+                <div style="display:flex;gap:8px;align-items:center">
+                    <input type="text" class="detail-alt-input" id="detail-rename" placeholder="Nouveau nom">
+                    <span id="detail-rename-ext" style="color:#8b949e;font-size:13px;white-space:nowrap"></span>
+                    <button class="btn btn-primary" id="btn-rename" style="white-space:nowrap">Renommer</button>
+                </div>
+            </div>
             <div class="detail-alt-group">
                 <label for="detail-alt">Texte alternatif (alt)</label>
                 <input type="text" class="detail-alt-input" id="detail-alt" placeholder="Description de l'image pour l'accessibilite">
@@ -724,6 +732,7 @@
             document.getElementById('btn-save-alt').addEventListener('click', saveAlt);
             document.getElementById('btn-copy-path').addEventListener('click', copyPath);
             document.getElementById('btn-delete-image').addEventListener('click', deleteImage);
+            document.getElementById('btn-rename').addEventListener('click', renameImage);
         }
 
         function openDetail(img) {
@@ -743,6 +752,16 @@
 
             // Show delete button for admins only
             document.getElementById('btn-delete-image').style.display = (userRole === 'admin') ? '' : 'none';
+
+            // Show rename for admin/editor
+            var canEdit = (userRole === 'admin' || userRole === 'editor');
+            document.getElementById('detail-rename-group').style.display = canEdit ? '' : 'none';
+            if (canEdit) {
+                var ext = img.name.lastIndexOf('.') >= 0 ? img.name.substring(img.name.lastIndexOf('.')) : '';
+                var baseName = img.name.lastIndexOf('.') >= 0 ? img.name.substring(0, img.name.lastIndexOf('.')) : img.name;
+                document.getElementById('detail-rename').value = baseName;
+                document.getElementById('detail-rename-ext').textContent = ext;
+            }
 
             document.getElementById('detail-overlay').classList.add('open');
         }
@@ -802,6 +821,31 @@
                     throw new Error(err.error || 'Erreur');
                 }
                 Components.showToast('Image supprimee', 'success');
+                closeDetail();
+                loadImages();
+            } catch (err) {
+                Components.showToast(err.message || 'Erreur', 'error');
+            }
+        }
+
+        async function renameImage() {
+            if (!selectedImage) return;
+            var newName = document.getElementById('detail-rename').value.trim();
+            if (!newName) {
+                Components.showToast('Veuillez entrer un nom', 'error');
+                return;
+            }
+
+            try {
+                var res = await Auth.apiFetch('/api/media/' + encodeURIComponent(selectedImage.name) + '/rename', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ newName: newName })
+                });
+                var data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Erreur');
+
+                Components.showToast('Fichier renomme : ' + data.newFilename, 'success');
                 closeDetail();
                 loadImages();
             } catch (err) {

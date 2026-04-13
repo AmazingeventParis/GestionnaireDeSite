@@ -376,6 +376,91 @@ router.put('/:filename/alt', verifyToken, requireRole('admin', 'editor'), async 
 });
 
 /**
+ * PUT /:filename/rename — Rename an image (admin/editor)
+ */
+router.put('/:filename/rename', verifyToken, requireRole('admin', 'editor'), async (req, res) => {
+  try {
+    const { filename } = req.params;
+    const { newName } = req.body;
+
+    if (!newName || !newName.trim()) {
+      return res.status(400).json({ error: 'Nouveau nom requis' });
+    }
+
+    // Sanitize new name (keep only safe chars, no extension — we preserve original ext)
+    const sanitized = newName.trim().replace(/[^a-z0-9_-]/gi, '-').toLowerCase();
+    if (!sanitized) {
+      return res.status(400).json({ error: 'Nom invalide apres nettoyage' });
+    }
+
+    // Find file in images dir
+    const results = [];
+    scanImages(IMAGES_DIR, IMAGES_DIR, results);
+    const img = results.find(i => i.name === filename);
+
+    if (!img) {
+      return res.status(404).json({ error: 'Image non trouvee' });
+    }
+
+    const ext = path.extname(filename);
+    const oldBase = path.basename(filename, ext);
+    const newFilename = sanitized + ext;
+
+    // Check no collision
+    if (newFilename === filename) {
+      return res.json({ success: true, filename, newFilename: filename });
+    }
+
+    const folderDir = img.folder ? path.join(IMAGES_DIR, img.folder) : IMAGES_DIR;
+    const newPath = path.join(folderDir, newFilename);
+
+    if (fs.existsSync(newPath)) {
+      return res.status(409).json({ error: 'Un fichier avec ce nom existe deja' });
+    }
+
+    // Rename main file
+    const oldPath = path.join(folderDir, filename);
+    fs.renameSync(oldPath, newPath);
+
+    // Rename responsive variants (-480w, -768w, -1280w)
+    const renamedVariants = [];
+    for (const w of RESPONSIVE_WIDTHS) {
+      const oldVariant = `${oldBase}-${w}w${ext}`;
+      const newVariant = `${sanitized}-${w}w${ext}`;
+      const oldVarPath = path.join(folderDir, oldVariant);
+      const newVarPath = path.join(folderDir, newVariant);
+      if (fs.existsSync(oldVarPath)) {
+        fs.renameSync(oldVarPath, newVarPath);
+        renamedVariants.push({ from: oldVariant, to: newVariant });
+      }
+    }
+
+    // Update metadata
+    const meta = loadMeta();
+    if (meta[filename] !== undefined) {
+      meta[newFilename] = meta[filename];
+      delete meta[filename];
+      saveMeta(meta);
+    }
+
+    await logAudit({
+      userId: req.user.id,
+      action: 'media_rename',
+      entityType: 'media',
+      entityId: filename,
+      details: { oldName: filename, newName: newFilename, variants: renamedVariants.length },
+      ip: getClientIp(req),
+      userAgent: req.headers['user-agent']
+    });
+
+    res.json({ success: true, oldName: filename, newFilename, variants: renamedVariants });
+  } catch (err) {
+    console.error('[Media] Rename error:', err.message);
+    res.status(500).json({ error: 'Erreur lors du renommage' });
+  }
+});
+
+/**
  * DELETE /:filename — Delete an image (admin only)
  */
 router.delete('/:filename', verifyToken, requireRole('admin'), async (req, res) => {
