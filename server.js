@@ -48,7 +48,7 @@ app.use(cookieParser());
 // 7. CORS
 app.use(cors({
   origin: process.env.NODE_ENV === 'production'
-    ? ['https://admin.swipego.app', 'https://gestionnaire.swipego.app']
+    ? ['https://admin.swipego.app', 'https://gestionnaire.swipego.app', 'https://shootnbox.fr', 'https://www.shootnbox.fr']
     : true,
   credentials: true
 }));
@@ -81,6 +81,9 @@ app.use('/api/contacts', require('./routes/contacts'));
 app.use('/api/credentials', require('./routes/credentials'));
 app.use('/api/monitors', require('./routes/monitors'));
 app.use('/api/stats', require('./routes/stats'));
+
+// Public routes (no auth)
+app.use('/api/contact-form', require('./routes/contact-form'));
 
 // Phase 2 routes (pages, settings) — mounted when files exist
 let pagesRouter;
