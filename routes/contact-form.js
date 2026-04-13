@@ -56,10 +56,15 @@ router.post('/', contactLimiter, async (req, res) => {
     const typeLabel = typeLabels[type_evenement] || safe(type_evenement);
     const dest = process.env.CONTACT_EMAIL || 'contact@shootnbox.fr';
 
-    // Format date
+    // Format date (long for body, short JJ/MM/AAAA for subject)
     let dateStr = '—';
+    let dateShort = '';
     if (date_evenement) {
-      try { dateStr = new Date(date_evenement).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }); } catch { dateStr = safe(date_evenement); }
+      try {
+        const d = new Date(date_evenement);
+        dateStr = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+        dateShort = d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      } catch { dateStr = safe(date_evenement); }
     }
 
     // Build email HTML — exact copy of send-mail.php admin devis notification layout
@@ -71,7 +76,7 @@ router.post('/', contactLimiter, async (req, res) => {
 
     const html = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <style type="text/css">
 @media only screen and (max-width:600px){.es-wrapper{width:100%!important;}.col-3{display:block!important;width:100%!important;}}
 </style></head>
@@ -242,7 +247,8 @@ ${telephone && telephone !== '—' ? `<td align="center" width="50%" style="padd
       from: `"Shootnbox Contact" <${process.env.SMTP_USER}>`,
       replyTo: email,
       to: dest,
-      subject: `Contact Shootnbox — ${safe(nom)} — ${typeLabel}`,
+      subject: `Demande de contact - ${nom.trim()} - ${typeLabel}${dateShort ? ' - ' + dateShort : ''}`,
+      encoding: 'utf-8',
       html
     });
 
