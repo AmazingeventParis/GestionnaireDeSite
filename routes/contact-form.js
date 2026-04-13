@@ -62,12 +62,8 @@ router.post('/', contactLimiter, async (req, res) => {
       try { dateStr = new Date(date_evenement).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }); } catch { dateStr = safe(date_evenement); }
     }
 
-    // Build email HTML — matches admin devis notification template from send-mail.php
+    // Build email HTML — exact copy of send-mail.php admin devis notification layout
     const pink = '#e4177f';
-    const dark = '#4A1A6B';
-    const grey = '#3E3E3E';
-    const bgBody = '#eaeaea';
-    const bgCard = '#f8f4f0';
     const logoFooter = 'https://shootnbox.fr/manager/mail/logo_footer_2x.png';
 
     // Initials for avatar
@@ -75,116 +71,170 @@ router.post('/', contactLimiter, async (req, res) => {
 
     const html = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="x-apple-disable-message-reformatting"><meta name="format-detection" content="telephone=no,address=no,email=no,date=no,url=no">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <style type="text/css">
-a[x-apple-data-detectors]{color:inherit!important;text-decoration:none!important;}
-html,body{margin:0 auto!important;padding:0!important;}
-table,td{mso-table-lspace:0pt!important;mso-table-rspace:0pt!important;}
-table{border-spacing:0;border-collapse:collapse;}
-a{text-decoration:none;}
-.wrapper{width:100%;table-layout:fixed;background-color:${bgBody};padding-bottom:60px;}
-.main{width:100%;max-width:600px;background-color:#ffffff;margin:0 auto;border-spacing:0;font-family:Arial,sans-serif;}
-@media screen and (max-width:480px){.column{display:block!important;width:100%!important;}}
+@media only screen and (max-width:600px){.es-wrapper{width:100%!important;}.col-3{display:block!important;width:100%!important;}}
 </style></head>
-<body style="margin:0;padding:0;background:${bgBody};font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;">
-<div style="display:none;max-height:0;overflow:hidden;">Nouvelle demande de contact &mdash; ${safe(nom)}${societe && societe !== '—' ? ' (' + safe(societe) + ')' : ''} &mdash; ${typeLabel}</div>
-<table class="wrapper" border="0" cellpadding="0" cellspacing="0" style="width:100%;table-layout:fixed;background-color:${bgBody};">
-<tr><td align="center" style="padding:20px 0 60px;">
-<table class="main" border="0" cellpadding="0" cellspacing="0" width="100%" style="width:100%;max-width:600px;background-color:#ffffff;margin:0 auto;border-spacing:0;font-family:Arial,sans-serif;border-radius:8px;overflow:hidden;">
+<body style="margin:0;padding:0;background:#f0f0f5;font-family:Arial,Helvetica,sans-serif;">
+<div style="background:#f0f0f5;padding:20px 0 40px;">
+<table class="es-wrapper" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+<tr><td align="center">
+<table width="580" cellspacing="0" cellpadding="0" style="border-collapse:collapse;max-width:580px;width:100%;">
 
-<!-- HEADER: dark gradient -->
-<tr><td align="center" style="background:linear-gradient(135deg,${dark} 0%,#2d1045 100%);padding:30px 20px 24px;">
-<p style="font-family:Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.4);margin:0 0 8px;">Notification interne</p>
-<p style="font-family:Arial,sans-serif;font-size:22px;font-weight:900;color:#ffffff;margin:0 0 6px;">Nouvelle demande</p>
-<p style="font-family:Arial,sans-serif;font-size:15px;font-weight:400;color:rgba(255,255,255,0.7);margin:0;">Demande de contact</p>
-</td></tr>
-
-<!-- PROSPECT CARD -->
-<tr><td style="padding:24px 25px 0;">
-<table width="100%" border="0" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #f0edf5;border-radius:14px;overflow:hidden;">
-<tr><td style="padding:20px;">
-<table width="100%" border="0" cellpadding="0" cellspacing="0">
+<!-- TOP ALERT BAR (orange) -->
+<tr><td style="padding:0 0 16px;">
+<table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;background:#FF7A00;border-radius:14px;">
 <tr>
-<!-- Avatar initials -->
-<td width="52" valign="top" style="padding-right:14px;">
-<div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,${pink},#ff6eb4);text-align:center;line-height:48px;font-family:Arial,sans-serif;font-size:18px;font-weight:900;color:#ffffff;">${initials}</div>
-</td>
-<td valign="top">
-<p style="font-family:Arial,sans-serif;font-size:17px;font-weight:900;color:#1a1a2e;margin:0 0 2px;">${safe(nom)}</p>
-${societe && societe !== '—' ? `<p style="font-family:Arial,sans-serif;font-size:13px;color:#888;margin:0 0 2px;">&#127970; ${safe(societe)}</p>` : ''}
-<p style="font-family:Arial,sans-serif;font-size:12px;color:${pink};font-weight:700;margin:0;">${typeLabel}</p>
+<td style="padding:18px 24px;">
+<p style="margin:0;font-size:11px;font-weight:800;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:2px;font-family:Arial,sans-serif;">Nouvelle demande</p>
+<p style="margin:6px 0 0;font-size:22px;font-weight:900;color:#fff;font-family:Arial,sans-serif;">Demande de contact</p>
 </td>
 </tr>
 </table>
 </td></tr>
-<!-- Separator -->
-<tr><td style="padding:0 20px;"><div style="height:1px;background:#f0edf5;"></div></td></tr>
-<!-- Contact details -->
-<tr><td style="padding:14px 20px;">
-<table width="100%" border="0" cellpadding="0" cellspacing="0" style="font-family:Arial,sans-serif;">
+
+<!-- MAIN CARD -->
+<tr><td>
+<table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;background:#ffffff;border-radius:16px;overflow:hidden;">
+
+<!-- CLIENT SECTION -->
+<tr><td style="padding:28px 28px 0;">
+<table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
 <tr>
-<td style="padding:6px 0;font-size:13px;color:#888;width:90px;vertical-align:top;">Email</td>
-<td style="padding:6px 0;font-size:14px;font-weight:700;"><a href="mailto:${safe(email)}" style="color:${pink};text-decoration:none;">${safe(email)}</a></td>
+<td>
+<table cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+<tr>
+<td style="width:48px;height:48px;background:${pink};border-radius:50%;text-align:center;vertical-align:middle;">
+<span style="font-size:20px;color:#fff;font-weight:900;font-family:Arial,sans-serif;line-height:48px;">${initials}</span>
+</td>
+<td style="padding-left:14px;">
+<p style="margin:0;font-size:18px;font-weight:800;color:#1a1a2e;font-family:Arial,sans-serif;">${safe(nom)}</p>
+${societe && societe !== '—' ? `<p style="margin:2px 0 0;font-size:14px;font-weight:700;color:#E51981;font-family:Arial,sans-serif;">&#127970; ${safe(societe)}</p>` : ''}
+<p style="margin:3px 0 0;font-size:13px;color:#999;font-family:Arial,sans-serif;">${typeLabel}</p>
+</td>
 </tr>
-${telephone && telephone !== '—' ? `<tr>
-<td style="padding:6px 0;font-size:13px;color:#888;vertical-align:top;">T&eacute;l&eacute;phone</td>
-<td style="padding:6px 0;font-size:14px;font-weight:700;color:#1a1a2e;"><a href="tel:${safe(telephone).replace(/\s/g,'')}" style="color:#1a1a2e;text-decoration:none;">${safe(telephone)}</a></td>
-</tr>` : ''}
+</table>
+</td>
+</tr>
 </table>
 </td></tr>
+
+<!-- Contact pills -->
+<tr><td style="padding:14px 28px 0;">
+<table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+<tr>
+<td style="width:50%;padding-right:6px;">
+<table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;background:#f8f6ff;border-radius:10px;">
+<tr><td style="padding:10px 14px;">
+<p style="margin:0;font-size:10px;color:#999;text-transform:uppercase;letter-spacing:1px;font-family:Arial,sans-serif;">Email</p>
+<p style="margin:3px 0 0;font-size:13px;font-family:Arial,sans-serif;"><a href="mailto:${safe(email)}" style="color:${pink};text-decoration:none;font-weight:600;">${safe(email)}</a></p>
+</td></tr>
+</table>
+</td>
+${telephone && telephone !== '—' ? `<td style="width:50%;padding-left:6px;">
+<table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;background:#f8f6ff;border-radius:10px;">
+<tr><td style="padding:10px 14px;">
+<p style="margin:0;font-size:10px;color:#999;text-transform:uppercase;letter-spacing:1px;font-family:Arial,sans-serif;">Telephone</p>
+<p style="margin:3px 0 0;font-size:13px;font-weight:700;color:#1a1a2e;font-family:Arial,sans-serif;"><a href="tel:${safe(telephone).replace(/\s/g,'')}" style="color:#1a1a2e;text-decoration:none;">${safe(telephone)}</a></p>
+</td></tr>
+</table>
+</td>` : ''}
+</tr>
 </table>
 </td></tr>
+
+<!-- DIVIDER -->
+<tr><td style="padding:20px 28px 0;"><div style="height:1px;background:#e0e0e0;"></div></td></tr>
 
 <!-- RESERVATION DETAILS -->
-<tr><td style="padding:16px 25px 0;">
-<table width="100%" border="0" cellpadding="0" cellspacing="0" style="background:${bgCard};border-radius:12px;overflow:hidden;">
+<tr><td style="padding:20px 28px 0;">
+<p style="margin:0 0 14px;font-size:11px;font-weight:800;color:${pink};text-transform:uppercase;letter-spacing:2px;font-family:Arial,sans-serif;">&#128197; Evenement</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
 <tr>
-<td style="padding:16px;text-align:center;${dateStr !== '—' ? 'border-right:1px solid #e8e0d8;' : ''}width:33%;">
-<span style="font-family:Arial,sans-serif;font-size:10px;color:#999;text-transform:uppercase;letter-spacing:1px;">&#128197; Type</span><br/>
-<strong style="font-family:Arial,sans-serif;font-size:14px;color:#1a1a2e;">${typeLabel}</strong>
+<td class="col-3" style="width:33%;padding-right:6px;">
+<table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;background:#fef7f0;border-radius:10px;border:1px solid #fce8d5;">
+<tr><td style="padding:14px;text-align:center;">
+<p style="margin:0;font-size:22px;">&#128100;</p>
+<p style="margin:4px 0 0;font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;font-family:Arial,sans-serif;">Type</p>
+<p style="margin:4px 0 0;font-size:15px;font-weight:800;color:#1a1a2e;font-family:Arial,sans-serif;">${typeLabel}</p>
+</td></tr>
+</table>
 </td>
-${dateStr !== '—' ? `<td style="padding:16px;text-align:center;${ville && ville !== '—' ? 'border-right:1px solid #e8e0d8;' : ''}width:33%;">
-<span style="font-family:Arial,sans-serif;font-size:10px;color:#999;text-transform:uppercase;letter-spacing:1px;">&#128197; Date</span><br/>
-<strong style="font-family:Arial,sans-serif;font-size:14px;color:#1a1a2e;">${dateStr}</strong>
+${dateStr !== '—' ? `<td class="col-3" style="width:33%;padding:0 3px;">
+<table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;background:#f0f4ff;border-radius:10px;border:1px solid #d5e0fc;">
+<tr><td style="padding:14px;text-align:center;">
+<p style="margin:0;font-size:22px;">&#128197;</p>
+<p style="margin:4px 0 0;font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;font-family:Arial,sans-serif;">Date</p>
+<p style="margin:4px 0 0;font-size:15px;font-weight:800;color:#1a1a2e;font-family:Arial,sans-serif;">${dateStr}</p>
+</td></tr>
+</table>
 </td>` : ''}
-${ville && ville !== '—' ? `<td style="padding:16px;text-align:center;width:33%;">
-<span style="font-family:Arial,sans-serif;font-size:10px;color:#999;text-transform:uppercase;letter-spacing:1px;">&#128205; Ville</span><br/>
-<strong style="font-family:Arial,sans-serif;font-size:14px;color:#1a1a2e;">${safe(ville)}</strong>
+${ville && ville !== '—' ? `<td class="col-3" style="width:33%;padding-left:6px;">
+<table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;background:#f5f0ff;border-radius:10px;border:1px solid #e0d5fc;">
+<tr><td style="padding:14px;text-align:center;">
+<p style="margin:0;font-size:22px;">&#128205;</p>
+<p style="margin:4px 0 0;font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;font-family:Arial,sans-serif;">Ville</p>
+<p style="margin:4px 0 0;font-size:15px;font-weight:800;color:#1a1a2e;font-family:Arial,sans-serif;">${safe(ville)}</p>
+</td></tr>
+</table>
 </td>` : ''}
 </tr>
 </table>
 </td></tr>
 
-<!-- MESSAGE -->
-${message && message.trim() ? `<tr><td style="padding:16px 25px 0;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#fff8ee;border-radius:8px;border-left:3px solid #FF7A00;">
-<tr><td style="padding:14px 16px;font-family:Arial,sans-serif;">
-<p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#FF7A00;margin:0 0 8px;">&#128172; Message du client</p>
-<p style="font-size:14px;color:#555;line-height:1.6;margin:0;">&laquo; ${safe(message).replace(/\n/g, '<br>')} &raquo;</p>
-</td></tr></table>
+${message && message.trim() ? `
+<!-- MESSAGE CLIENT -->
+<tr><td style="padding:18px 28px 0;">
+<p style="margin:0 0 10px;font-size:11px;font-weight:800;color:#FF7A00;text-transform:uppercase;letter-spacing:2px;font-family:Arial,sans-serif;">&#128172; Message du client</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;background:#fff8ee;border-radius:12px;border-left:4px solid #FF7A00;">
+<tr><td style="padding:16px 18px;font-size:14px;font-family:Arial,sans-serif;color:#555;line-height:1.6;font-style:italic;">
+&laquo; ${safe(message).replace(/\n/g, '<br>')} &raquo;
+</td></tr>
+</table>
 </td></tr>` : ''}
 
-<!-- ACTION BUTTONS -->
-<tr><td align="center" style="padding:24px 25px 8px;">
-<table border="0" cellspacing="0" cellpadding="0" align="center"><tr>
-<td align="center" bgcolor="${pink}" style="border-radius:20px;padding:14px 32px;">
-<a href="mailto:${safe(email)}" style="color:#ffffff;text-decoration:none;font-family:Arial,sans-serif;font-size:14px;font-weight:bold;">&#9993; R&eacute;pondre</a>
+<!-- CTA BUTTONS -->
+<tr><td style="padding:24px 28px 28px;">
+<table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+<tr>
+<td align="center" width="50%" style="padding:0 6px 0 0;">
+<table cellspacing="0" cellpadding="0" style="border-collapse:collapse;width:100%;">
+<tr>
+<td align="center" bgcolor="#1a1a2e" style="background:#1a1a2e;border-radius:14px;">
+<a href="mailto:${safe(email)}" style="display:inline-block;width:100%;background:#1a1a2e;color:#ffffff;text-align:center;padding:18px 10px;text-decoration:none;font-size:15px;font-weight:700;font-family:Arial,sans-serif;border-radius:14px;box-sizing:border-box;">&#9993; R&eacute;pondre</a>
 </td>
-<td width="12"></td>
-${telephone && telephone !== '—' ? `<td align="center" bgcolor="#1a1a2e" style="border-radius:20px;padding:14px 32px;">
-<a href="tel:${safe(telephone).replace(/\s/g,'')}" style="color:#ffffff;text-decoration:none;font-family:Arial,sans-serif;font-size:14px;font-weight:bold;">&#128222; Appeler</a>
+</tr>
+</table>
+</td>
+${telephone && telephone !== '—' ? `<td align="center" width="50%" style="padding:0 0 0 6px;">
+<table cellspacing="0" cellpadding="0" style="border-collapse:collapse;width:100%;">
+<tr>
+<td align="center" bgcolor="${pink}" style="background:${pink};border-radius:14px;">
+<a href="tel:${safe(telephone).replace(/\s/g,'')}" style="display:inline-block;width:100%;background:${pink};color:#ffffff;text-align:center;padding:18px 10px;text-decoration:none;font-size:15px;font-weight:700;font-family:Arial,sans-serif;border-radius:14px;box-sizing:border-box;">&#128222; Appeler</a>
+</td>
+</tr>
+</table>
 </td>` : ''}
-</tr></table>
+</tr>
+</table>
+</td></tr>
+
+</table>
 </td></tr>
 
 <!-- FOOTER -->
-<tr><td align="center" style="padding:24px 20px;background-color:${dark};">
-<img src="${logoFooter}" alt="Shootnbox" width="100" style="display:block;border:0;margin:0 auto 10px;"/>
-<p style="font-family:Arial,sans-serif;font-size:12px;color:rgba(255,255,255,0.5);margin:0;">Notification interne &mdash; Formulaire de contact shootnbox.fr</p>
+<tr><td style="padding:20px 0 0;">
+<table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+<tr><td align="center" style="padding:16px;">
+<img src="${logoFooter}" alt="Shootnbox" width="90" style="display:block;border:0;margin:0 auto 8px;opacity:0.4;" />
+<p style="font-family:Arial,sans-serif;font-size:11px;color:#999;margin:0;">Notification interne</p>
+</td></tr>
+</table>
 </td></tr>
 
 </table>
 </td></tr></table>
+</div>
 </body></html>`;
 
     // Send email
