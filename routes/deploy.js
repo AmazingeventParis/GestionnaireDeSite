@@ -112,7 +112,7 @@ async function deployPageToShootnbox(slug) {
   if (seo.canonical) {
     try {
       const u = new URL(seo.canonical);
-      destPath = u.pathname.replace(/\/$/, '') || `/${slug}`;
+      destPath = u.pathname === '/' ? '' : (u.pathname.replace(/\/$/, '') || `/${slug}`);
     } catch { destPath = `/${slug}`; }
   } else if (seo.urlPath) {
     destPath = '/' + seo.urlPath.replace(/^\//, '').replace(/\/$/, '');
