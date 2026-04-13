@@ -253,7 +253,15 @@ ${telephone && telephone !== '—' ? `<td align="center" width="50%" style="padd
     });
 
     console.log(`[ContactForm] Email sent: ${nom} <${email}> — ${typeLabel}`);
-    res.json({ ok: true });
+
+    // If native form POST (not AJAX), redirect back with success flag
+    const isAjax = req.headers['content-type']?.includes('application/json') || req.xhr;
+    if (isAjax) {
+      res.json({ ok: true });
+    } else {
+      const referer = req.headers.referer || '/';
+      res.redirect(referer + (referer.includes('?') ? '&' : '?') + 'sent=1');
+    }
 
   } catch (err) {
     console.error('[ContactForm] Error:', err.message);
