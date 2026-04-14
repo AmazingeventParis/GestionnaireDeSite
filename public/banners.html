@@ -113,7 +113,6 @@
           html += '<div class="bn-card">'
             + '<div class="bn-card-head"><span class="bn-card-name">' + esc(b.name) + '</span>' + statusBadge(b.status) + '</div>'
             + '<div class="bn-card-dates">Du ' + fmtDate(b.startDate) + ' au ' + fmtDate(b.endDate) + '</div>'
-            + (b.bgColor ? '<div style="height:6px;border-radius:3px;background:' + esc(b.bgColor) + ';margin:8px 0;"></div>' : '')
             + '<div class="bn-card-actions">'
             + '<label class="bn-toggle-switch" title="' + (b.enabled ? 'Activee' : 'Desactivee') + '"><input type="checkbox" class="bn-toggle-cb" data-id="' + esc(b.id) + '" ' + (b.enabled ? 'checked' : '') + '><span class="bn-toggle-slider"></span></label>'
             + '<button class="bn-btn bn-btn-edit" data-id="' + esc(b.id) + '">Modifier</button>'
@@ -172,10 +171,7 @@
         + '<div class="bn-field"><label>Nom</label><input type="text" id="bnName" value="' + esc(banner ? banner.name : '') + '" placeholder="Ex: Promo Noel 2026"></div>'
         + '<div class="bn-field"><label>Contenu HTML</label><textarea id="bnHtml" placeholder="<span>-20% sur toutes les bornes !</span> <a href=&quot;/reservation/&quot;>En profiter</a>">' + esc(banner ? banner.html : '') + '</textarea></div>'
         + '<div class="bn-field"><label>CSS personnalise (optionnel)</label><textarea id="bnCss" style="min-height:60px;" placeholder=".snb-promo-banner { ... }">' + esc(banner ? banner.css || '' : '') + '</textarea></div>'
-        + '<div class="bn-row">'
-        + '<div class="bn-field"><label>Couleur de fond</label><input type="color" id="bnBg" value="' + (banner ? banner.bgColor || '#E51981' : '#E51981') + '" style="height:42px;padding:4px;"></div>'
-        + '<div class="bn-field"><label>Couleur du texte</label><input type="color" id="bnText" value="' + (banner ? banner.textColor || '#ffffff' : '#ffffff') + '" style="height:42px;padding:4px;"></div>'
-        + '</div>'
+        + '<div class="bn-field"><label>Couleur du texte</label><input type="color" id="bnText" value="' + (banner ? banner.textColor || '#333333' : '#333333') + '" style="height:42px;padding:4px;"></div>'
         + '<div class="bn-field"><label>Lien CTA (optionnel)</label><input type="url" id="bnLink" value="' + esc(banner ? banner.linkUrl || '' : '') + '" placeholder="https://shootnbox.fr/reservation/"></div>'
         + '<div class="bn-row">'
         + '<div class="bn-field"><label>Date de debut</label><input type="date" id="bnStart" value="' + (banner && banner.startDate ? banner.startDate.slice(0,10) : '') + '"></div>'
@@ -203,12 +199,11 @@
 
       // Live preview
       function updatePreview() {
-        var bg = document.getElementById('bnBg').value;
         var color = document.getElementById('bnText').value;
         var html = document.getElementById('bnHtml').value;
-        document.getElementById('bnPreview').innerHTML = '<div style="background:' + bg + ';color:' + color + ';padding:12px 20px;text-align:center;font-family:Raleway,sans-serif;font-size:14px;font-weight:600;">' + html + '</div>';
+        document.getElementById('bnPreview').innerHTML = '<div style="color:' + color + ';padding:12px 20px;text-align:center;font-family:Raleway,sans-serif;font-size:14px;font-weight:600;">' + html + '</div>';
       }
-      ['bnBg', 'bnText', 'bnHtml'].forEach(function(id) {
+      ['bnText', 'bnHtml'].forEach(function(id) {
         document.getElementById(id).addEventListener('input', updatePreview);
       });
       updatePreview();
@@ -222,7 +217,7 @@
           name: document.getElementById('bnName').value.trim(),
           html: document.getElementById('bnHtml').value,
           css: document.getElementById('bnCss').value,
-          bgColor: document.getElementById('bnBg').value,
+          bgColor: 'transparent',
           textColor: document.getElementById('bnText').value,
           linkUrl: document.getElementById('bnLink').value.trim(),
           startDate: document.getElementById('bnStart').value ? new Date(document.getElementById('bnStart').value + 'T00:00:00').toISOString() : null,
