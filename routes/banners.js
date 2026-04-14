@@ -44,32 +44,44 @@ function getActiveBanner() {
  */
 function buildBannerHtml(banner) {
   if (!banner) return '';
-  const bg = banner.bgColor || '#E51981';
-  const color = banner.textColor || '#ffffff';
   const id = banner.id || 'banner';
   const closable = banner.closable !== false;
+  const html = banner.html || '';
 
-  const css = `
-.snb-promo-banner{width:100%;z-index:998;position:relative;color:${color};font-family:'Raleway',Arial,sans-serif;}
-.snb-promo-banner__inner{width:100%;display:flex;align-items:center;justify-content:center;padding:12px 20px;gap:12px;font-size:14px;font-weight:600;text-align:center;box-sizing:border-box;}
-.snb-promo-banner__inner a{color:inherit;text-decoration:underline;}
-.snb-promo-banner__close{background:none;border:none;color:inherit;font-size:22px;cursor:pointer;opacity:0.7;padding:0 4px;line-height:1;flex-shrink:0;}
-.snb-promo-banner__close:hover{opacity:1;}
-@media(max-width:850px){.snb-promo-banner{position:fixed;bottom:0;left:0;right:0;z-index:9998;box-shadow:0 -4px 20px rgba(0,0,0,0.15);}body{padding-bottom:52px;}}
-${banner.css || ''}`;
+  // Check if banner HTML is a complete block (contains <style> or <div class=)
+  const isFullBlock = html.includes('<style>') || html.includes('<div class=');
 
-  const closeScript = closable
-    ? `onclick="this.closest('.snb-promo-banner').remove();try{sessionStorage.setItem('snb-banner-closed-${id}','1')}catch(e){};var s=document.querySelector('body');if(s)s.style.paddingBottom='0';"`
-    : 'style="display:none"';
+  const closeBtn = closable
+    ? `<button style="position:absolute;top:8px;right:12px;background:none;border:none;color:rgba(255,255,255,0.6);font-size:22px;cursor:pointer;z-index:10;line-height:1;" aria-label="Fermer" onclick="this.closest('.snb-promo-banner').remove();try{sessionStorage.setItem('snb-banner-closed-${id}','1')}catch(e){};var s=document.querySelector('body');if(s)s.style.paddingBottom='0';">&times;</button>`
+    : '';
 
   const checkClosed = `<script>(function(){try{if(sessionStorage.getItem('snb-banner-closed-${id}')){var b=document.querySelector('.snb-promo-banner[data-banner-id="${id}"]');if(b)b.remove()}}catch(e){}})()</script>`;
 
-  return `<style>${css}</style>
-<div class="snb-promo-banner" data-banner-id="${id}" role="complementary" aria-label="Promotion">
-<div class="snb-promo-banner__inner">
-${banner.html || ''}
-<button class="snb-promo-banner__close" aria-label="Fermer" ${closeScript}>&times;</button>
+  const mobileCss = `@media(max-width:850px){.snb-promo-banner{position:fixed;bottom:0;left:0;right:0;z-index:9998;box-shadow:0 -4px 20px rgba(0,0,0,0.15);}body{padding-bottom:90px;}}`;
+
+  if (isFullBlock) {
+    // Full HTML block — inject as-is, wrapped only in the banner container
+    return `<style>.snb-promo-banner{width:100%;z-index:998;position:relative;}${mobileCss}</style>
+<div class="snb-promo-banner" data-banner-id="${id}" role="complementary" aria-label="Promotion" style="position:relative;">
+${html}
+${closeBtn}
 </div>
+${checkClosed}`;
+  }
+
+  // Simple text banner — use the default wrapper
+  const color = banner.textColor || '#333333';
+  return `<style>
+.snb-promo-banner{width:100%;z-index:998;position:relative;color:${color};font-family:'Raleway',Arial,sans-serif;}
+.snb-promo-banner__inner{width:100%;display:flex;align-items:center;justify-content:center;padding:12px 20px;gap:12px;font-size:14px;font-weight:600;text-align:center;box-sizing:border-box;}
+.snb-promo-banner__inner a{color:inherit;text-decoration:underline;}
+${mobileCss}
+${banner.css || ''}</style>
+<div class="snb-promo-banner" data-banner-id="${id}" role="complementary" aria-label="Promotion" style="position:relative;">
+<div class="snb-promo-banner__inner">
+${html}
+</div>
+${closeBtn}
 </div>
 ${checkClosed}`;
 }
