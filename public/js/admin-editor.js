@@ -12,6 +12,44 @@
   let imageChanges = 0;
   let siteName = 'Site';
 
+  // ===== UNDO STACK =====
+  const undoStack = []; // [{id, html, tag}]
+  const UNDO_MAX = 50;
+
+  function undoPush(el) {
+    const id = el.getAttribute('data-gds-edit');
+    if (!id) return;
+    const tagBar = el.querySelector('.gds-tag-select');
+    if (tagBar) tagBar.remove();
+    const html = el.innerHTML.trim();
+    if (tagBar) el.appendChild(tagBar);
+    undoStack.push({ id, html, tag: el.tagName.toLowerCase() });
+    if (undoStack.length > UNDO_MAX) undoStack.shift();
+  }
+
+  function undoPop() {
+    if (!undoStack.length) return;
+    const snap = undoStack.pop();
+    const el = document.querySelector('[data-gds-edit="' + snap.id + '"]');
+    if (!el) return;
+    // Save current state for redo possibility (not implemented, just for safety)
+    const tagBar = el.querySelector('.gds-tag-select');
+    if (tagBar) tagBar.remove();
+    el.innerHTML = snap.html;
+    if (tagBar) el.appendChild(tagBar);
+    // Restore tag if changed
+    if (el.tagName.toLowerCase() !== snap.tag) {
+      const newEl = document.createElement(snap.tag);
+      for (let i = 0; i < el.attributes.length; i++) {
+        newEl.setAttribute(el.attributes[i].name, el.attributes[i].value);
+      }
+      newEl.innerHTML = el.innerHTML;
+      el.parentNode.replaceChild(newEl, el);
+      initSingleEditable(newEl);
+    }
+    trackChange(el.tagName ? el : document.querySelector('[data-gds-edit="' + snap.id + '"]'), snap.id);
+  }
+
   // ===== BUILD ADMIN BAR =====
   function buildAdminBar() {
     document.body.classList.add('gds-admin-mode');
@@ -321,6 +359,24 @@
       });
       tagBar.appendChild(htmlBtn);
 
+      // Separator
+      const sep5 = document.createElement('div');
+      sep5.className = 'gds-toolbar-sep';
+      tagBar.appendChild(sep5);
+
+      // Undo button
+      const undoBtn = document.createElement('button');
+      undoBtn.className = 'gds-tag-btn';
+      undoBtn.innerHTML = '&#8630;';
+      undoBtn.title = 'Annuler (Ctrl+Z)';
+      undoBtn.type = 'button';
+      undoBtn.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        undoPop();
+      });
+      tagBar.appendChild(undoBtn);
+
       el.style.position = 'relative';
       el.appendChild(tagBar);
 
@@ -334,8 +390,9 @@
         el.focus();
       });
 
-      // On focus: show toolbar + enable editing
+      // On focus: snapshot for undo, show toolbar + enable editing
       el.addEventListener('focus', () => {
+        undoPush(el);
         el.setAttribute('contenteditable', 'true');
         tagBar.style.display = 'flex';
       });
@@ -370,6 +427,16 @@
           }
         });
       });
+    });
+
+    // Global Ctrl+Z: undo when not actively editing a contenteditable
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        const active = document.activeElement;
+        if (active && active.getAttribute('contenteditable') === 'true') return; // let browser handle it
+        e.preventDefault();
+        undoPop();
+      }
     });
   }
 
@@ -675,10 +742,6 @@
         console.log('[GDS] Upload result:', result);
 
         const newSrc = result.newSrc + '?v=' + Date.now();
-        // Capture section wrapper BEFORE any el.replaceWith() removes el from DOM
-        const sectionWrapper = el.closest('.gds-section-wrapper');
-        const sectionFileForSave = sectionWrapper ? sectionWrapper.getAttribute('data-gds-file') : null;
-
         if (isImg) {
           const isNewVideo = newSrc.match(/\.(mp4|webm|mov)/i);
           const isCurrentVideo = el.tagName.toLowerCase() === 'video';
@@ -686,14 +749,10 @@
           if (isNewVideo && !isCurrentVideo) {
             // Replace <img> with <video>
             const vid = document.createElement('video');
-            vid.setAttribute('src', newSrc);
-            // Use setAttribute for boolean attrs so innerHTML serializes them correctly
-            vid.setAttribute('autoplay', '');
-            vid.setAttribute('loop', '');
-            vid.setAttribute('muted', '');
+            vid.src = newSrc;
+            vid.autoplay = true; vid.loop = true; vid.muted = true; vid.playsInline = true;
             vid.setAttribute('playsinline', '');
-            // Always use cover styles — never inherit placeholder img constraints
-            vid.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+            vid.style.cssText = el.style.cssText || 'width:100%;height:100%;object-fit:cover;display:block;';
             if (el.getAttribute('data-gds-img')) vid.setAttribute('data-gds-img', el.getAttribute('data-gds-img'));
             el.replaceWith(vid);
           } else if (!isNewVideo && isCurrentVideo) {
@@ -706,15 +765,6 @@
             el.replaceWith(img);
           } else {
             el.src = newSrc;
-            // Ensure animated/portrait content fills the placeholder container
-            // (boomerangs, GIFs have different aspect ratios from landscape placeholders)
-            if (el.tagName === 'IMG') {
-              const cs = window.getComputedStyle(el);
-              if (cs.objectFit !== 'cover') el.style.objectFit = 'cover';
-              if (!el.style.width)  el.style.width  = '100%';
-              if (!el.style.height) el.style.height = '100%';
-              el.style.display = 'block';
-            }
           }
         } else {
           const currentStyle = el.getAttribute('style') || '';
@@ -722,48 +772,7 @@
         }
         imageChanges++;
         updateChangesCount();
-
-        // Auto-save the section immediately — imageChanges are NOT persisted by saveOnly()
-        if (sectionWrapper && sectionFileForSave) {
-          try {
-            // 1. Clean placeholder styles from video elements before serialization
-            sectionWrapper.querySelectorAll('video').forEach(v => {
-              v.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
-            });
-            // 2. Serialize section HTML
-            let sectionContent = cleanSectionHtml(sectionWrapper);
-            // 3. Patch muted attribute via regex (Chrome innerHTML bug: muted not serialized)
-            sectionContent = sectionContent.replace(/<video\b([^>]*)>/g, (m, attrs) =>
-              /\bmuted\b/.test(attrs) ? m : `<video${attrs} muted>`
-            );
-            // 4. Safety guard — abort if serialized content looks suspiciously small
-            // (could indicate cleanSectionHtml removed too much)
-            const rawSize = sectionWrapper.innerHTML.length;
-            const cleanSize = sectionContent.length;
-            console.log('[GDS] Auto-save sizes: raw=' + rawSize + ' clean=' + cleanSize);
-            if (cleanSize < 100 || cleanSize < rawSize * 0.2) {
-              console.error('[GDS] Auto-save aborted — content too small after cleaning (raw=' + rawSize + ' clean=' + cleanSize + ')');
-              showToast('Media mis à jour (sauvegarde manuelle requise)', 'warning');
-              return;
-            }
-            const saveRes = await Auth.apiFetch(
-              '/api/pages/' + currentSlug + '/section/' + encodeURIComponent(sectionFileForSave),
-              { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: sectionContent }) }
-            );
-            if (saveRes.ok) {
-              imageChanges = Math.max(0, imageChanges - 1);
-              updateChangesCount();
-              showToast('Media enregistré !', 'success');
-            } else {
-              showToast('Media mis à jour (sauvegarde manuelle requise)', 'warning');
-            }
-          } catch (saveErr) {
-            console.error('[GDS] Auto-save after upload failed:', saveErr.message);
-            showToast('Media mis à jour (sauvegarde manuelle requise)', 'warning');
-          }
-        } else {
-          showToast('Media mis à jour !', 'success');
-        }
+        showToast('Media mis a jour !', 'success');
       } catch (err) {
         showToast('Erreur: ' + err.message, 'error');
       }
@@ -808,17 +817,6 @@
     const placeholders = allPlaceholders.filter(el => {
       if (seen.has(el)) return false;
       seen.add(el);
-      // Skip img placeholders that already have a src set (already filled by user)
-      if (el.tagName === 'IMG' && el.getAttribute('src')) return false;
-      // Skip decorative placeholder divs/spans — check ancestor containers up to 3 levels.
-      // e.g. div.snb-gal-placeholder and its children (.snb-gal-placeholder-icon, -label, -bg)
-      // are visual empty states; the real placeholder is img[data-gds-placeholder] in the parent container.
-      if (el.tagName !== 'IMG') {
-        let p = el.parentElement;
-        for (let d = 0; d < 3 && p; d++, p = p.parentElement) {
-          if (p.querySelector('img[data-gds-placeholder]')) return false;
-        }
-      }
       // Skip elements that already have a real image inside
       if (el.querySelector('img, video')) return false;
       // Skip admin UI elements
@@ -833,39 +831,20 @@
       let target = ph;
       if (ph.tagName === 'IMG') {
         const wrapper = document.createElement('div');
-        wrapper.className = 'gds-ph-img-wrap';
-        const computedPos = window.getComputedStyle(ph).position;
-        const isAbsolute = computedPos === 'absolute' || computedPos === 'fixed';
-        // Also treat as absolute when parent is positioned and img uses height:100%
-        // (e.g. hero-bg: position:absolute;inset:0 > img[width:100%;height:100%])
-        // Using inline-block + height:100% in that context creates a circular size reference → 1440×810px
-        const parentPos = window.getComputedStyle(ph.parentNode).position;
-        const parentIsAbsolute = parentPos === 'absolute' || parentPos === 'fixed';
-        const fillsParentByHeight = ph.style.height === '100%';
-        if (isAbsolute || (parentIsAbsolute && fillsParentByHeight)) {
-          wrapper.style.position = isAbsolute ? computedPos : 'absolute';
-          wrapper.style.inset = '0';
-          const z = window.getComputedStyle(ph).zIndex;
-          if (z && z !== 'auto') wrapper.style.zIndex = z;
-        } else {
-          wrapper.style.position = 'relative';
-          wrapper.style.display = 'block';
-          wrapper.style.width = ph.style.width || '100%';
-          wrapper.style.height = ph.style.height || 'auto';
-          wrapper.style.aspectRatio = ph.style.aspectRatio || '';
-          wrapper.style.cursor = 'pointer';
-          // Prevent CSS transforms from img's class (e.g. scale on hover) from applying to wrapper
-          // — this would break click hit-testing when nested inside overflow:hidden parents
-          wrapper.style.transform = 'none';
-          // Copy grid/layout relevant classes only for non-absolute imgs
-          if (ph.className) wrapper.className = ph.className.split(' ').filter(c => !c.includes('cell-img')).join(' ') + ' gds-ph-img-wrap';
-          // Reset img to fill wrapper
-          ph.style.width = '100%';
-          ph.style.height = '100%';
-          ph.style.display = 'block';
-        }
+        wrapper.style.position = 'relative';
+        wrapper.style.display = 'inline-block';
+        wrapper.style.width = ph.style.width || '100%';
+        wrapper.style.height = ph.style.height || 'auto';
+        wrapper.style.aspectRatio = ph.style.aspectRatio || '';
+        wrapper.style.cursor = 'pointer';
+        // Copy grid/layout relevant attributes
+        if (ph.className) wrapper.className = ph.className.split(' ').filter(c => !c.includes('cell-img')).join(' ') + ' gds-ph-img-wrap';
         ph.parentNode.insertBefore(wrapper, ph);
         wrapper.appendChild(ph);
+        // Reset img to fill wrapper
+        ph.style.width = '100%';
+        ph.style.height = '100%';
+        ph.style.display = 'block';
         target = wrapper;
       }
 
@@ -1084,8 +1063,8 @@
             </div>
           </div>
           <div id="gds-ph-url-area" class="gds-ph-area" style="display:none;">
-            <input type="url" id="gds-ph-url-input" placeholder="https://youtube.com/watch?v=... ou image.jpg" style="width:100%;padding:10px 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:14px;">
-            <div style="margin-top:8px;font-size:12px;color:#8b949e;">URL YouTube, ou image/video directe (JPG, PNG, WebP, GIF, MP4)</div>
+            <input type="url" id="gds-ph-url-input" placeholder="https://example.com/image.jpg" style="width:100%;padding:10px 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:14px;">
+            <div style="margin-top:8px;font-size:12px;color:#8b949e;">URL directe vers une image ou video (JPG, PNG, WebP, GIF, MP4)</div>
             <div id="gds-ph-url-preview" style="display:none;margin-top:12px;text-align:center;">
               <img id="gds-ph-url-preview-img" style="max-width:100%;max-height:200px;border-radius:8px;border:1px solid #30363d;">
             </div>
@@ -1159,12 +1138,6 @@
       }
     });
 
-    // YouTube URL parser
-    function parseYouTubeId(url) {
-      const m = url.match(/(?:youtube\.com\/(?:watch\?.*v=|shorts\/|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-      return m ? m[1] : null;
-    }
-
     // URL input
     const urlInput = document.getElementById('gds-ph-url-input');
     let urlDebounce;
@@ -1172,37 +1145,19 @@
       clearTimeout(urlDebounce);
       urlDebounce = setTimeout(() => {
         const url = urlInput.value.trim();
-        if (!url || (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('/'))) {
-          document.getElementById('gds-ph-submit').disabled = true;
-          document.getElementById('gds-ph-url-preview').style.display = 'none';
-          return;
-        }
-
-        selectedUrl = url;
-        selectedFile = null;
-        document.getElementById('gds-ph-submit').disabled = false;
-
-        const preview = document.getElementById('gds-ph-url-preview');
-        const ytId = parseYouTubeId(url);
-        if (ytId) {
-          // Show YouTube thumbnail + hint
-          preview.innerHTML = `
-            <div style="position:relative;padding-bottom:56.25%;height:0;border-radius:8px;overflow:hidden;border:1px solid #30363d;">
-              <img src="https://img.youtube.com/vi/${ytId}/hqdefault.jpg"
-                style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;">
-              <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="rgba(255,0,0,0.85)"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg>
-              </div>
-            </div>
-            <div style="margin-top:6px;font-size:12px;color:#3fb950;">✓ Vidéo YouTube détectée — sera intégrée comme player</div>`;
-          preview.style.display = 'block';
-        } else {
-          // Regular image/video preview
-          preview.innerHTML = '<img id="gds-ph-url-preview-img" style="max-width:100%;max-height:200px;border-radius:8px;border:1px solid #30363d;">';
+        if (url && (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('/'))) {
+          selectedUrl = url;
+          selectedFile = null;
+          // Try to show preview
+          const preview = document.getElementById('gds-ph-url-preview');
           const previewImg = document.getElementById('gds-ph-url-preview-img');
           previewImg.src = url;
           previewImg.onload = () => { preview.style.display = 'block'; };
           previewImg.onerror = () => { preview.style.display = 'none'; };
+          document.getElementById('gds-ph-submit').disabled = false;
+        } else {
+          document.getElementById('gds-ph-submit').disabled = true;
+          document.getElementById('gds-ph-url-preview').style.display = 'none';
         }
       }, 500);
     });
@@ -1264,128 +1219,27 @@
 
         if (!imgSrc) throw new Error('Aucune image');
 
-        // Detect YouTube embed
-        const ytId = parseYouTubeId(imgSrc);
-        if (ytId) {
-          const saveWrapper = placeholderEl.closest('.gds-section-wrapper')
-            || placeholderEl.parentElement?.closest('.gds-section-wrapper');
-
-          // Check if this placeholder is inside a custom click-to-play widget
-          // (snb-yt__player, stemoinPlayer, etc.) — identified by a <script>
-          // containing the 'ID_VIDEO_YOUTUBE' token
-          const scriptEl = saveWrapper && saveWrapper.querySelector('script');
-          const isYtWidget = scriptEl && scriptEl.textContent.includes('ID_VIDEO_YOUTUBE');
-
-          if (isYtWidget) {
-            // For click-to-play widgets: patch the section FILE directly via API.
-            // The <script> with snbYtLoad/stemoinLoad is extracted OUT of the section DOM
-            // by the preview renderer (moved to end of <body>), so cleanSectionHtml would
-            // lose it. Instead: GET file → patch text → PUT file.
-            const file = saveWrapper ? saveWrapper.getAttribute('data-gds-file') : null;
-            if (!file) throw new Error('Attribut data-gds-file manquant');
-
-            const getRes = await Auth.apiFetch('/api/pages/' + currentSlug + '/section/' + encodeURIComponent(file));
-            if (!getRes.ok) throw new Error('Erreur lecture section');
-            let fileContent = (await getRes.json()).content;
-
-            // Patch thumbnail src — handle src before or after data-gds-placeholder
-            fileContent = fileContent
-              .replace(/(src=")[^"]*("[^>]*data-gds-placeholder)/g,
-                `$1https://img.youtube.com/vi/${ytId}/maxresdefault.jpg$2`)
-              .replace(/(data-gds-placeholder[^>]*src=")[^"]*(")/g,
-                `$1https://img.youtube.com/vi/${ytId}/maxresdefault.jpg$2`);
-            // Fix opacity dimming
-            fileContent = fileContent.replace(/opacity:0\.25;/g, 'opacity:1;').replace(/opacity: 0\.25;/g, 'opacity: 1;');
-            // Patch video ID in script
-            fileContent = fileContent.replace(/(['"])ID_VIDEO_YOUTUBE\1/g, `'${ytId}'`);
-
-            const saveRes = await Auth.apiFetch('/api/pages/' + currentSlug + '/section/' + encodeURIComponent(file), {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ content: fileContent })
-            });
-            if (!saveRes.ok) {
-              const errData = await saveRes.json().catch(() => ({}));
-              throw new Error(errData.error || 'Erreur sauvegarde HTTP ' + saveRes.status);
-            }
-
-            // Update DOM for immediate visual feedback
-            placeholderEl.src = `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg`;
-            placeholderEl.style.opacity = '1';
-            placeholderEl.removeAttribute('data-gds-placeholder');
-            const phWrapper = placeholderEl.closest('.gds-ph-img-wrap');
-            if (phWrapper) {
-              phWrapper.parentNode.insertBefore(placeholderEl, phWrapper);
-              phWrapper.remove();
-            }
-
-          } else {
-            // Generic case: replace placeholder with a raw YouTube iframe
-            const iframe = document.createElement('iframe');
-            iframe.src = `https://www.youtube.com/embed/${ytId}?autoplay=0&rel=0`;
-            iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
-            iframe.allowFullscreen = true;
-            iframe.frameBorder = '0';
-            if (placeholderEl.style.width)  iframe.style.width  = placeholderEl.style.width;
-            if (placeholderEl.style.height) iframe.style.height = placeholderEl.style.height;
-            if (!iframe.style.width)  iframe.style.width  = '100%';
-            if (!iframe.style.height) iframe.style.height = '100%';
-            iframe.style.border = 'none';
-            iframe.style.borderRadius = placeholderEl.style.borderRadius || '';
-            iframe.style.display = 'block';
-            const phWrapper = placeholderEl.closest('.gds-ph-img-wrap');
-            if (phWrapper) {
-              phWrapper.parentNode.insertBefore(iframe, phWrapper);
-              phWrapper.remove();
-            } else {
-              placeholderEl.replaceWith(iframe);
-            }
-
-            // Save section via DOM (scripts are preserved server-side if unchanged)
-            if (saveWrapper) {
-              const file = saveWrapper.getAttribute('data-gds-file');
-              if (!file) throw new Error('Attribut data-gds-file manquant');
-              const sectionHtml = cleanSectionHtml(saveWrapper);
-              const saveRes = await Auth.apiFetch('/api/pages/' + currentSlug + '/section/' + encodeURIComponent(file), {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: sectionHtml })
-              });
-              if (!saveRes.ok) {
-                const errData = await saveRes.json().catch(() => ({}));
-                throw new Error(errData.error || 'Erreur sauvegarde HTTP ' + saveRes.status);
-              }
-            }
-          }
-
-          close();
-          showToast('Vidéo enregistrée !', 'success');
-          imageChanges++;
-          updateChangesCount();
-          return;
-        }
-
         // Replace placeholder with image/video
         const isVideo = imgSrc.match(/\.(mp4|webm|mov)(\?|$)/i) || (selectedFile && selectedFile.type.startsWith('video/'));
-
-        // Capture saveWrapper BEFORE any replaceWith (which detaches the element from DOM)
-        const saveWrapper = placeholderEl.closest('.gds-section-wrapper')
-          || placeholderEl.parentElement?.closest('.gds-section-wrapper');
 
         // If the placeholder IS an <img>, just set its src directly
         if (placeholderEl.tagName === 'IMG' && !isVideo) {
           placeholderEl.src = imgSrc;
-          // Remove dashed placeholder border so the image renders clean
+          placeholderEl.removeAttribute('data-gds-placeholder');
           placeholderEl.style.border = 'none';
-          // Unwrap from gds-ph-img-wrap in live DOM:
-          // - Restores CSS grid/flex layout (img back as direct child)
-          // - Removes wrapper's click listener (no accidental re-opening)
-          // - Removes overlay too (it's a child of the wrapper)
+          placeholderEl.style.borderRadius = '';
+          placeholderEl.style.background = '';
+          // Remove the wrapper overlay if it exists
           const phWrapper = placeholderEl.closest('.gds-ph-img-wrap');
           if (phWrapper) {
-            phWrapper.parentNode.insertBefore(placeholderEl, phWrapper);
-            phWrapper.remove();
+            const phOverlay = phWrapper.querySelector('.gds-ph-overlay');
+            if (phOverlay) phOverlay.remove();
           }
+          // Find section context for data-gds-img
+          const wrapper = placeholderEl.closest('.gds-section-wrapper');
+          const sectionFile = wrapper ? wrapper.getAttribute('data-gds-file') || 'custom' : 'custom';
+          const sectionName = sectionFile.replace(/^\d+-/, '').replace('.html', '');
+          placeholderEl.setAttribute('data-gds-img', `${sectionName}:0:${imgSrc}`);
         } else {
           // Original logic for div placeholders or video replacement
           const parent = placeholderEl.parentElement;
@@ -1416,25 +1270,19 @@
         }
 
         // Save the section file with the new content (cleaned of admin UI)
-        if (!saveWrapper) {
-          console.error('[GDS] Placeholder save: saveWrapper introuvable pour', placeholderEl);
-          throw new Error('Section introuvable dans le DOM');
-        }
-        const file = saveWrapper.getAttribute('data-gds-file');
-        if (!file) {
-          console.error('[GDS] Placeholder save: data-gds-file manquant sur', saveWrapper);
-          throw new Error('Attribut data-gds-file manquant');
-        }
-        const sectionHtml = cleanSectionHtml(saveWrapper);
-        console.log('[GDS] Saving placeholder image in section', file, '— HTML length:', sectionHtml.length);
-        const saveRes = await Auth.apiFetch('/api/pages/' + currentSlug + '/section/' + encodeURIComponent(file), {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content: sectionHtml })
-        });
-        if (!saveRes.ok) {
-          const errData = await saveRes.json().catch(() => ({}));
-          throw new Error(errData.error || 'Erreur sauvegarde HTTP ' + saveRes.status);
+        const saveWrapper = (placeholderEl.closest || placeholderEl.parentElement?.closest)
+          ? (placeholderEl.closest('.gds-section-wrapper') || placeholderEl.parentElement?.closest('.gds-section-wrapper'))
+          : null;
+        if (saveWrapper) {
+          const file = saveWrapper.getAttribute('data-gds-file');
+          if (file) {
+            const sectionHtml = cleanSectionHtml(saveWrapper);
+            await Auth.apiFetch('/api/pages/' + currentSlug + '/section/' + encodeURIComponent(file), {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ content: sectionHtml })
+            });
+          }
         }
 
         close();
@@ -1567,6 +1415,7 @@
     const id = el.getAttribute('data-gds-edit');
     const currentTag = el.tagName.toLowerCase();
     if (currentTag === newTag) return;
+    undoPush(el);
 
     // Create new element with the new tag
     const newEl = document.createElement(newTag);
