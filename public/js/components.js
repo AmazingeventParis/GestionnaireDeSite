@@ -2,9 +2,6 @@
 const Components = (function() {
     'use strict';
 
-    // Active GDS site (loaded async, updated in navbar)
-    var _activeSite = null;
-
     // Navigation items configuration
     var navItems = [
         { label: 'Dashboard',   href: '/',               icon: null, adminOnly: false },
@@ -12,8 +9,8 @@ const Components = (function() {
         { label: 'Medias',      href: '/media.html',     icon: null, adminOnly: false },
         { label: 'Blocs',       href: '/blocks.html',    icon: null, adminOnly: false },
         { label: 'Blog',        href: '/blog.html',      icon: null, adminOnly: false },
+        { label: 'Bannieres',  href: '/banners.html',   icon: null, adminOnly: false },
         { label: 'SEO',         href: '/seo.html',       icon: null, adminOnly: false },
-        { label: 'Sites GDS',   href: '/gds-sites.html', icon: null, adminOnly: true },
         { label: 'Parametres',  href: '/settings.html',  icon: null, adminOnly: true },
         { label: 'Securite',    href: '/security.html',  icon: null, adminOnly: true },
         { label: 'Audit SEO',  href: '/audit.html',      icon: null, adminOnly: true },
@@ -92,17 +89,8 @@ const Components = (function() {
                 escapeHtml(item.label) + '</a>';
         }
 
-        var siteBadge = '';
-        if (_activeSite) {
-            siteBadge = '<a href="/gds-sites.html" style="text-decoration:none;margin-left:8px;">' +
-                '<span style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:12px;font-size:12px;font-weight:600;' +
-                'background:' + escapeHtml(_activeSite.color || '#6366f1') + '22;color:' + escapeHtml(_activeSite.color || '#6366f1') + ';border:1px solid ' + escapeHtml(_activeSite.color || '#6366f1') + '44;">' +
-                '<span style="width:6px;height:6px;border-radius:50%;background:' + escapeHtml(_activeSite.color || '#6366f1') + ';display:inline-block;"></span>' +
-                escapeHtml(_activeSite.name) + '</span></a>';
-        }
-
         var navHtml =
-            '<a href="/" class="navbar-brand">GDS<span>' + siteBadge + '</span></a>' +
+            '<a href="/" class="navbar-brand">Gestionnaire <span>de Site</span></a>' +
             '<div class="navbar-links">' + linksHtml + '</div>' +
             '<div class="navbar-user">' +
                 '<span class="navbar-user-name">' + displayName + roleBadge + '</span>' +
@@ -278,14 +266,6 @@ const Components = (function() {
     async function initPage() {
         var user = await Auth.init();
         if (user) {
-            // Load active site info (for navbar badge), then rebuild navbar
-            try {
-                var siteRes = await Auth.apiFetch('/api/gds-sites/active');
-                if (siteRes.ok) {
-                    var siteData = await siteRes.json();
-                    _activeSite = siteData.site || null;
-                }
-            } catch(e) {}
             buildNavbar(user);
         }
         return user;

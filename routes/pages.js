@@ -2359,6 +2359,25 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
       });
       bodyContent += headerHtml + '\n';
     }
+
+    // Inject active banner (between header and main)
+    try {
+      const { getActiveBanner, buildBannerHtml } = require('./banners');
+      const activeBanner = getActiveBanner();
+      if (activeBanner) {
+        const bannerHtml = buildBannerHtml(activeBanner);
+        // Extract banner CSS to head
+        const bannerCssless = bannerHtml.replace(/<style>([\s\S]*?)<\/style>/gi, (match, css) => {
+          if (css.trim()) sectionStyles += css + '\n';
+          return '';
+        });
+        bodyContent += bannerCssless + '\n';
+      }
+    } catch (e) { /* banners module not loaded yet, skip */ }
+
+    // Dynamic banner loader for deployed pages (scheduling after deploy)
+    bodyContent += `<script>(function(){if(document.querySelector('.snb-promo-banner'))return;fetch('https://sites.swipego.app/api/banners/active').then(function(r){return r.ok?r.text():''}).then(function(h){if(!h)return;var hdr=document.querySelector('.snb-header');if(hdr)hdr.insertAdjacentHTML('afterend',h)}).catch(function(){})})()</script>\n`;
+
     bodyContent += '<main class="snb-page-content">\n';
 
     // Inject blog CSS globally (not scoped) for blog pages — goes to head via sectionStyles

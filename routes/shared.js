@@ -23,6 +23,29 @@ router.get('/header', (req, res) => {
 });
 
 /**
+ * GET /banner — Serve active banner HTML (public, no auth required)
+ * For WordPress integration: same pattern as header/footer
+ */
+router.get('/banner', (req, res) => {
+  try {
+    const { getActiveBanner, buildBannerHtml } = require('./banners');
+    const banner = getActiveBanner();
+    if (!banner) {
+      res.set('Cache-Control', 'public, max-age=300');
+      return res.status(204).send('');
+    }
+    const html = buildBannerHtml(banner);
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    res.set('Cache-Control', 'public, max-age=300');
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.send(html);
+  } catch (err) {
+    res.status(204).send('');
+  }
+});
+
+/**
  * GET /footer — Serve shared footer HTML (public, no auth required)
  */
 router.get('/footer', (req, res) => {

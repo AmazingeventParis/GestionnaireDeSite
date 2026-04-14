@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bannieres - Gestionnaire de Site</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .bn-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .bn-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 16px; }
+    .bn-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; transition: border-color 0.2s; }
+    .bn-card:hover { border-color: #58a6ff; }
+    .bn-card-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+    .bn-card-name { font-size: 16px; font-weight: 700; color: #e6edf3; }
+    .bn-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .bn-badge-active { background: rgba(63,185,80,0.15); color: #3fb950; }
+    .bn-badge-scheduled { background: rgba(210,153,34,0.15); color: #d29922; }
+    .bn-badge-expired { background: rgba(139,148,158,0.15); color: #8b949e; }
+    .bn-badge-disabled { background: rgba(248,81,73,0.15); color: #f85149; }
+    .bn-card-dates { font-size: 13px; color: #8b949e; margin: 8px 0; }
+    .bn-card-preview { background: #0d1117; border-radius: 6px; padding: 8px; margin: 10px 0; overflow: hidden; max-height: 60px; font-size: 13px; color: #c9d1d9; }
+    .bn-card-actions { display: flex; gap: 8px; margin-top: 12px; }
+    .bn-btn { padding: 7px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid #30363d; transition: all 0.15s; }
+    .bn-btn-edit { background: #21262d; color: #e6edf3; }
+    .bn-btn-edit:hover { background: #30363d; }
+    .bn-btn-del { background: transparent; color: #f85149; border-color: rgba(248,81,73,0.3); }
+    .bn-btn-del:hover { background: rgba(248,81,73,0.1); }
+    .bn-btn-create { background: #238636; color: #fff; border-color: #2ea04366; padding: 10px 24px; font-size: 14px; }
+    .bn-btn-create:hover { background: #2ea043; }
+    .bn-empty { text-align: center; padding: 60px 20px; color: #8b949e; }
+
+    /* Modal form */
+    .bn-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+    .bn-modal { background: #161b22; border: 1px solid #30363d; border-radius: 12px; width: 90%; max-width: 700px; max-height: 90vh; overflow-y: auto; box-shadow: 0 16px 48px rgba(0,0,0,0.4); }
+    .bn-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #30363d; }
+    .bn-modal-header h3 { color: #e6edf3; font-size: 18px; font-weight: 700; margin: 0; }
+    .bn-modal-close { background: none; border: none; color: #8b949e; font-size: 24px; cursor: pointer; }
+    .bn-modal-body { padding: 20px; }
+    .bn-field { margin-bottom: 16px; }
+    .bn-field label { display: block; font-size: 13px; font-weight: 700; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+    .bn-field input, .bn-field textarea, .bn-field select { width: 100%; padding: 10px 14px; background: #0d1117; border: 1px solid #30363d; border-radius: 8px; color: #e6edf3; font-size: 14px; box-sizing: border-box; font-family: inherit; }
+    .bn-field textarea { min-height: 120px; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 13px; }
+    .bn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .bn-toggle { display: flex; align-items: center; gap: 10px; }
+    .bn-toggle input[type="checkbox"] { width: 18px; height: 18px; }
+    .bn-modal-footer { padding: 14px 20px; border-top: 1px solid #30363d; display: flex; justify-content: flex-end; gap: 10px; }
+    .bn-modal-footer .bn-btn { padding: 10px 22px; font-size: 14px; }
+
+    /* Preview */
+    .bn-preview-box { margin-top: 12px; border: 1px solid #30363d; border-radius: 8px; overflow: hidden; }
+    .bn-preview-label { font-size: 11px; color: #8b949e; padding: 6px 12px; background: #0d1117; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div id="navbar"></div>
+  <div class="container" style="max-width:1200px;margin:0 auto;padding:24px;">
+    <div class="bn-header">
+      <h1 style="color:#e6edf3;font-size:24px;font-weight:700;margin:0;">Bannieres promotionnelles</h1>
+      <button class="bn-btn bn-btn-create" id="bnCreateBtn">+ Creer une banniere</button>
+    </div>
+    <div id="bnList"></div>
+  </div>
+
+  <script src="/js/auth.js"></script>
+  <script src="/js/components.js"></script>
+  <script>
+  (function() {
+    'use strict';
+
+    var banners = [];
+
+    function statusBadge(status) {
+      var labels = { active: 'Active', scheduled: 'Programmee', expired: 'Expiree', disabled: 'Desactivee' };
+      return '<span class="bn-badge bn-badge-' + status + '">' + (labels[status] || status) + '</span>';
+    }
+
+    function fmtDate(d) {
+      if (!d) return '—';
+      var dt = new Date(d);
+      return dt.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+
+    async function loadBanners() {
+      var list = document.getElementById('bnList');
+      try {
+        var res = await Auth.apiFetch('/api/banners');
+        var data = await res.json();
+        banners = data.banners || [];
+        if (!banners.length) {
+          list.innerHTML = '<div class="bn-empty"><div style="font-size:48px;margin-bottom:12px;">🏷</div><div style="font-size:16px;margin-bottom:8px;">Aucune banniere</div><div>Creez votre premiere banniere promotionnelle</div></div>';
+          return;
+        }
+        var html = '<div class="bn-grid">';
+        banners.forEach(function(b) {
+          html += '<div class="bn-card">'
+            + '<div class="bn-card-head"><span class="bn-card-name">' + esc(b.name) + '</span>' + statusBadge(b.status) + '</div>'
+            + '<div class="bn-card-dates">Du ' + fmtDate(b.startDate) + ' au ' + fmtDate(b.endDate) + '</div>'
+            + (b.bgColor ? '<div style="height:6px;border-radius:3px;background:' + esc(b.bgColor) + ';margin:8px 0;"></div>' : '')
+            + '<div class="bn-card-actions">'
+            + '<button class="bn-btn bn-btn-edit" data-id="' + esc(b.id) + '">Modifier</button>'
+            + '<button class="bn-btn bn-btn-del" data-id="' + esc(b.id) + '">Supprimer</button>'
+            + '</div></div>';
+        });
+        html += '</div>';
+        list.innerHTML = html;
+
+        // Event delegation
+        list.addEventListener('click', function(e) {
+          var editBtn = e.target.closest('.bn-btn-edit');
+          var delBtn = e.target.closest('.bn-btn-del');
+          if (editBtn) openForm(editBtn.dataset.id);
+          if (delBtn) deleteBanner(delBtn.dataset.id);
+        });
+      } catch (err) {
+        list.innerHTML = '<div class="bn-empty" style="color:#f85149;">Erreur: ' + esc(err.message) + '</div>';
+      }
+    }
+
+    async function deleteBanner(id) {
+      if (!confirm('Supprimer cette banniere ?')) return;
+      await Auth.apiFetch('/api/banners/' + id, { method: 'DELETE' });
+      loadBanners();
+    }
+
+    async function openForm(editId) {
+      var existing = document.getElementById('bnModal');
+      if (existing) existing.remove();
+
+      var banner = null;
+      if (editId) {
+        var res = await Auth.apiFetch('/api/banners/' + editId);
+        var data = await res.json();
+        banner = data.banner;
+      }
+
+      var overlay = document.createElement('div');
+      overlay.id = 'bnModal';
+      overlay.className = 'bn-modal-overlay';
+      overlay.innerHTML = '<div class="bn-modal">'
+        + '<div class="bn-modal-header"><h3>' + (banner ? 'Modifier' : 'Creer') + ' une banniere</h3><button class="bn-modal-close" id="bnClose">&times;</button></div>'
+        + '<div class="bn-modal-body">'
+        + '<div class="bn-field"><label>Nom</label><input type="text" id="bnName" value="' + esc(banner ? banner.name : '') + '" placeholder="Ex: Promo Noel 2026"></div>'
+        + '<div class="bn-field"><label>Contenu HTML</label><textarea id="bnHtml" placeholder="<span>-20% sur toutes les bornes !</span> <a href=&quot;/reservation/&quot;>En profiter</a>">' + esc(banner ? banner.html : '') + '</textarea></div>'
+        + '<div class="bn-field"><label>CSS personnalise (optionnel)</label><textarea id="bnCss" style="min-height:60px;" placeholder=".snb-promo-banner { ... }">' + esc(banner ? banner.css || '' : '') + '</textarea></div>'
+        + '<div class="bn-row">'
+        + '<div class="bn-field"><label>Couleur de fond</label><input type="color" id="bnBg" value="' + (banner ? banner.bgColor || '#E51981' : '#E51981') + '" style="height:42px;padding:4px;"></div>'
+        + '<div class="bn-field"><label>Couleur du texte</label><input type="color" id="bnText" value="' + (banner ? banner.textColor || '#ffffff' : '#ffffff') + '" style="height:42px;padding:4px;"></div>'
+        + '</div>'
+        + '<div class="bn-field"><label>Lien CTA (optionnel)</label><input type="url" id="bnLink" value="' + esc(banner ? banner.linkUrl || '' : '') + '" placeholder="https://shootnbox.fr/reservation/"></div>'
+        + '<div class="bn-row">'
+        + '<div class="bn-field"><label>Date de debut</label><input type="datetime-local" id="bnStart" value="' + (banner && banner.startDate ? banner.startDate.slice(0,16) : '') + '"></div>'
+        + '<div class="bn-field"><label>Date de fin</label><input type="datetime-local" id="bnEnd" value="' + (banner && banner.endDate ? banner.endDate.slice(0,16) : '') + '"></div>'
+        + '</div>'
+        + '<div class="bn-row">'
+        + '<div class="bn-field"><label>Priorite</label><input type="number" id="bnPriority" value="' + (banner ? banner.priority || 0 : 0) + '" min="0" max="100"></div>'
+        + '<div class="bn-field" style="display:flex;flex-direction:column;justify-content:flex-end;">'
+        + '<div class="bn-toggle"><input type="checkbox" id="bnClosable" ' + (banner && banner.closable === false ? '' : 'checked') + '><label style="margin:0;text-transform:none;letter-spacing:0;" for="bnClosable">Fermable par le visiteur</label></div>'
+        + '<div class="bn-toggle" style="margin-top:8px;"><input type="checkbox" id="bnEnabled" ' + (banner && banner.enabled ? 'checked' : '') + '><label style="margin:0;text-transform:none;letter-spacing:0;" for="bnEnabled">Activee</label></div>'
+        + '</div>'
+        + '</div>'
+        + '<div class="bn-preview-box"><div class="bn-preview-label">Apercu</div><div id="bnPreview" style="min-height:40px;"></div></div>'
+        + '</div>'
+        + '<div class="bn-modal-footer">'
+        + '<button class="bn-btn bn-btn-edit" id="bnCancel">Annuler</button>'
+        + '<button class="bn-btn bn-btn-create" id="bnSave">' + (banner ? 'Enregistrer' : 'Creer') + '</button>'
+        + '</div></div>';
+      document.body.appendChild(overlay);
+
+      var close = function() { overlay.remove(); };
+      document.getElementById('bnClose').addEventListener('click', close);
+      document.getElementById('bnCancel').addEventListener('click', close);
+      overlay.addEventListener('click', function(e) { if (e.target === overlay) close(); });
+
+      // Live preview
+      function updatePreview() {
+        var bg = document.getElementById('bnBg').value;
+        var color = document.getElementById('bnText').value;
+        var html = document.getElementById('bnHtml').value;
+        document.getElementById('bnPreview').innerHTML = '<div style="background:' + bg + ';color:' + color + ';padding:12px 20px;text-align:center;font-family:Raleway,sans-serif;font-size:14px;font-weight:600;">' + html + '</div>';
+      }
+      ['bnBg', 'bnText', 'bnHtml'].forEach(function(id) {
+        document.getElementById(id).addEventListener('input', updatePreview);
+      });
+      updatePreview();
+
+      // Save
+      document.getElementById('bnSave').addEventListener('click', async function() {
+        var btn = document.getElementById('bnSave');
+        btn.disabled = true;
+        btn.textContent = 'Enregistrement...';
+        var body = {
+          name: document.getElementById('bnName').value.trim(),
+          html: document.getElementById('bnHtml').value,
+          css: document.getElementById('bnCss').value,
+          bgColor: document.getElementById('bnBg').value,
+          textColor: document.getElementById('bnText').value,
+          linkUrl: document.getElementById('bnLink').value.trim(),
+          startDate: document.getElementById('bnStart').value ? new Date(document.getElementById('bnStart').value).toISOString() : null,
+          endDate: document.getElementById('bnEnd').value ? new Date(document.getElementById('bnEnd').value).toISOString() : null,
+          priority: parseInt(document.getElementById('bnPriority').value) || 0,
+          closable: document.getElementById('bnClosable').checked,
+          enabled: document.getElementById('bnEnabled').checked
+        };
+        try {
+          var url = banner ? '/api/banners/' + editId : '/api/banners';
+          var method = banner ? 'PUT' : 'POST';
+          var res = await Auth.apiFetch(url, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+          if (!res.ok) { var err = await res.json(); throw new Error(err.error || 'Erreur'); }
+          close();
+          loadBanners();
+        } catch (err) {
+          alert('Erreur: ' + err.message);
+          btn.disabled = false;
+          btn.textContent = banner ? 'Enregistrer' : 'Creer';
+        }
+      });
+    }
+
+    function esc(s) { return s ? String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') : ''; }
+
+    // Init
+    document.getElementById('bnCreateBtn').addEventListener('click', function() { openForm(null); });
+    Auth.init().then(function(user) {
+      if (!user) { window.location.href = '/login.html'; return; }
+      Components.buildNavbar('banners');
+      loadBanners();
+    });
+  })();
+  </script>
+</body>
+</html>

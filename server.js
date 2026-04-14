@@ -96,6 +96,7 @@ try { app.use('/api/media', require('./routes/media')); } catch {}
 try { app.use('/api/blocks', require('./routes/blocks')); } catch {}
 try { app.use('/api/blog', require('./routes/blog')); } catch {}
 try { app.use('/api/shared', require('./routes/shared')); } catch {}
+try { app.use('/api/banners', require('./routes/banners')); } catch {}
 try { app.use('/api/navigation', require('./routes/navigation')); } catch {}
 try { app.use('/api/seo', require('./routes/seo')); } catch {}
 try { app.use('/api/audit', require('./routes/audit')); } catch {}
