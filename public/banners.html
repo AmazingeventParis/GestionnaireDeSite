@@ -157,9 +157,18 @@
 
       var banner = null;
       if (editId) {
-        var res = await Auth.apiFetch('/api/banners/' + editId);
-        var data = await res.json();
-        banner = data.banner;
+        try {
+          var res = await Auth.apiFetch('/api/banners/' + editId);
+          if (res.ok) {
+            var data = await res.json();
+            banner = data.banner;
+          } else {
+            // Banner not found (deleted or lost) — open as new creation
+            editId = null;
+          }
+        } catch (e) {
+          editId = null;
+        }
       }
 
       var overlay = document.createElement('div');
@@ -227,10 +236,14 @@
           enabled: document.getElementById('bnEnabled').checked
         };
         try {
-          var url = banner ? '/api/banners/' + editId : '/api/banners';
-          var method = banner ? 'PUT' : 'POST';
+          var url = editId ? '/api/banners/' + editId : '/api/banners';
+          var method = editId ? 'PUT' : 'POST';
           var res = await Auth.apiFetch(url, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-          if (!res.ok) { var err = await res.json(); throw new Error(err.error || 'Erreur'); }
+          if (!res.ok) {
+            var errData = {};
+            try { errData = await res.json(); } catch(e) {}
+            throw new Error(errData.error || 'Erreur ' + res.status);
+          }
           close();
           loadBanners();
         } catch (err) {
