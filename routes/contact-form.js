@@ -29,14 +29,55 @@ function getTransporter() {
   return transporter;
 }
 
+// Spam detection helpers
+const CYRILLIC_RE = /[\u0400-\u04FF]/;
+const CJK_RE = /[\u3000-\u9FFF\uAC00-\uD7AF]/;
+const SPAM_WORDS = /\b(casino|viagra|crypto|bitcoin|lottery|prize|winner|click here|buy now|free money|make money)\b/i;
+
+function isSpam(fields) {
+  const all = Object.values(fields).filter(Boolean).join(' ');
+  // Cyrillic or CJK characters
+  if (CYRILLIC_RE.test(all) || CJK_RE.test(all)) return 'contenu non latin detecte';
+  // Spam keywords
+  if (SPAM_WORDS.test(all)) return 'contenu suspect detecte';
+  // Too many URLs in message
+  const urlCount = (all.match(/https?:\/\//g) || []).length;
+  if (urlCount >= 3) return 'trop de liens dans le message';
+  return false;
+}
+
 // POST / - public contact form submission (no auth required)
 router.post('/', contactLimiter, async (req, res) => {
   try {
-    const { nom, societe, email, telephone, type_evenement, date_evenement, ville, message, _honey } = req.body;
+    const { nom, societe, email, telephone, type_evenement, date_evenement, ville, message, _honey, _returnUrl, _t } = req.body;
 
-    // Honeypot anti-spam
+    // --- ANTI-SPAM LAYER 1: Honeypot ---
     if (_honey) {
       return res.json({ ok: true });
+    }
+
+    // --- ANTI-SPAM LAYER 2: JS proof (_returnUrl required) ---
+    // This field is injected by JS on page load — bots POSTing directly won't have it
+    if (!_returnUrl) {
+      console.log('[ContactForm] SPAM blocked: missing _returnUrl (no JS proof)');
+      return res.json({ ok: true }); // silent reject
+    }
+
+    // --- ANTI-SPAM LAYER 3: Time trap ---
+    // _t = timestamp set by JS on page load. Reject if submitted < 3s after load
+    if (_t) {
+      const elapsed = Date.now() - parseInt(_t, 10);
+      if (elapsed < 3000) {
+        console.log(`[ContactForm] SPAM blocked: submitted in ${elapsed}ms (time trap)`);
+        return res.json({ ok: true }); // silent reject
+      }
+    }
+
+    // --- ANTI-SPAM LAYER 4: Content filter ---
+    const spamReason = isSpam({ nom, societe, email, telephone, ville, message });
+    if (spamReason) {
+      console.log(`[ContactForm] SPAM blocked: ${spamReason} — ${email}`);
+      return res.json({ ok: true }); // silent reject
     }
 
     // Validation
