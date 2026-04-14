@@ -1411,6 +1411,81 @@ router.post('/:slug/add-section', verifyToken, requireRole('admin'), async (req,
 });
 
 /**
+ * POST /:slug/reorder-sections — Reorder sections by renumbering files
+ * Body: { order: ["30-section.html", "10-section.html", "20-section.html"] }
+ * RBAC: admin only
+ */
+router.post('/:slug/reorder-sections', verifyToken, requireRole('admin'), async (req, res) => {
+  try {
+    const slug = req.params.slug.replace(/[^a-z0-9-]/gi, '');
+    const previewDir = getPreviewDir(slug);
+    const { order } = req.body;
+
+    if (!fs.existsSync(previewDir)) {
+      return res.status(404).json({ error: 'Page non trouvee' });
+    }
+    if (!Array.isArray(order) || order.length === 0) {
+      return res.status(400).json({ error: 'order[] requis' });
+    }
+
+    // Verify all files exist
+    for (const file of order) {
+      if (!fs.existsSync(path.join(previewDir, file))) {
+        return res.status(400).json({ error: `Section non trouvee: ${file}` });
+      }
+    }
+
+    // Step 1: rename all to temp names
+    const tempSuffix = '.__gds_reorder__';
+    const plan = order.map((file, i) => {
+      const num = String((i + 1) * 10).padStart(2, '0');
+      const baseName = file.replace(/^\d+-/, '');
+      return { oldFile: file, newFile: num + '-' + baseName };
+    });
+
+    for (const item of plan) {
+      fs.renameSync(path.join(previewDir, item.oldFile), path.join(previewDir, item.oldFile + tempSuffix));
+    }
+
+    // Step 2: rename temp to final names
+    for (const item of plan) {
+      fs.renameSync(path.join(previewDir, item.oldFile + tempSuffix), path.join(previewDir, item.newFile));
+    }
+
+    // Also update .spacing.json to match new filenames
+    const spacingPath = path.join(previewDir, '.spacing.json');
+    if (fs.existsSync(spacingPath)) {
+      try {
+        const spacing = JSON.parse(fs.readFileSync(spacingPath, 'utf-8'));
+        const newSpacing = {};
+        for (const item of plan) {
+          if (spacing[item.oldFile] !== undefined) {
+            newSpacing[item.newFile] = spacing[item.oldFile];
+          }
+        }
+        fs.writeFileSync(spacingPath, JSON.stringify(newSpacing, null, 2), 'utf-8');
+      } catch (e) { /* spacing update is best-effort */ }
+    }
+
+    await logAudit({
+      userId: req.user.id,
+      action: 'section_reorder',
+      entityType: 'page',
+      entityId: slug,
+      details: { order: plan.map(p => `${p.oldFile} -> ${p.newFile}`) },
+      ip: getClientIp(req),
+      userAgent: req.headers['user-agent']
+    });
+
+    res.json({ success: true, sections: plan.map(p => p.newFile) });
+
+  } catch (err) {
+    console.error('[Pages] Reorder error:', err.message);
+    res.status(500).json({ error: 'Erreur lors du reordonnancement' });
+  }
+});
+
+/**
  * DELETE /:slug/delete-section — Remove a section from a page
  * Body: { file: "20-section.html" }
  * RBAC: admin only

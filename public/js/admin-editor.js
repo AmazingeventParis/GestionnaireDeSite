@@ -2738,6 +2738,149 @@
   });
 
   // ===== EMBEDDED MODE: direct init without admin bar =====
+  // ===== SECTION SIDEBAR (drag & drop reorder) =====
+  function initSectionSidebar() {
+    const wrappers = document.querySelectorAll('.gds-section-wrapper');
+    if (wrappers.length < 2) return;
+
+    // Build sidebar
+    const sidebar = document.createElement('div');
+    sidebar.id = 'gds-section-sidebar';
+    sidebar.innerHTML = '<div class="gds-ss-title">Sections</div><div class="gds-ss-list"></div>';
+    document.body.appendChild(sidebar);
+
+    const list = sidebar.querySelector('.gds-ss-list');
+    let dragItem = null;
+    let dragOverItem = null;
+
+    function buildList() {
+      list.innerHTML = '';
+      const currentWrappers = document.querySelectorAll('.gds-section-wrapper');
+      currentWrappers.forEach((w, i) => {
+        const file = w.getAttribute('data-gds-file');
+        if (!file) return;
+        const pill = document.createElement('div');
+        pill.className = 'gds-ss-pill';
+        pill.draggable = true;
+        pill.dataset.file = file;
+        pill.dataset.index = i;
+        const name = file.replace(/\.html$/, '');
+        pill.innerHTML = '<span class="gds-ss-num">' + (i + 1) + '</span>' + name;
+
+        // Click to scroll to section
+        pill.addEventListener('click', () => {
+          w.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+
+        // Drag events
+        pill.addEventListener('dragstart', (e) => {
+          dragItem = pill;
+          pill.classList.add('gds-ss-dragging');
+          e.dataTransfer.effectAllowed = 'move';
+        });
+
+        pill.addEventListener('dragend', () => {
+          pill.classList.remove('gds-ss-dragging');
+          list.querySelectorAll('.gds-ss-pill').forEach(p => p.classList.remove('gds-ss-over'));
+          if (dragItem && dragOverItem && dragItem !== dragOverItem) {
+            applyReorder();
+          }
+          dragItem = null;
+          dragOverItem = null;
+        });
+
+        pill.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          if (pill !== dragItem) {
+            list.querySelectorAll('.gds-ss-pill').forEach(p => p.classList.remove('gds-ss-over'));
+            pill.classList.add('gds-ss-over');
+            dragOverItem = pill;
+
+            // Reorder pills visually
+            const items = [...list.querySelectorAll('.gds-ss-pill')];
+            const fromIdx = items.indexOf(dragItem);
+            const toIdx = items.indexOf(pill);
+            if (fromIdx < toIdx) {
+              pill.after(dragItem);
+            } else {
+              pill.before(dragItem);
+            }
+          }
+        });
+
+        list.appendChild(pill);
+      });
+    }
+
+    function applyReorder() {
+      const pills = [...list.querySelectorAll('.gds-ss-pill')];
+      const newOrder = pills.map(p => p.dataset.file);
+
+      // Update pill numbers immediately
+      pills.forEach((p, i) => {
+        p.querySelector('.gds-ss-num').textContent = i + 1;
+      });
+
+      // Show saving state
+      sidebar.classList.add('gds-ss-saving');
+
+      // Call API
+      fetch('/api/pages/' + currentSlug + '/reorder-sections', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order: newOrder })
+      })
+      .then(r => r.json())
+      .then(data => {
+        sidebar.classList.remove('gds-ss-saving');
+        if (data.success) {
+          // Reload the iframe to reflect new order
+          if (isEmbedded) {
+            window.parent.postMessage({ type: 'gds-reload-preview' }, '*');
+          }
+          window.location.reload();
+        } else {
+          alert(data.error || 'Erreur lors du reordonnancement');
+          buildList(); // reset visual
+        }
+      })
+      .catch(() => {
+        sidebar.classList.remove('gds-ss-saving');
+        alert('Erreur reseau');
+        buildList();
+      });
+    }
+
+    buildList();
+
+    // Toggle button
+    const toggle = document.createElement('button');
+    toggle.id = 'gds-ss-toggle';
+    toggle.innerHTML = '&#9776;';
+    toggle.title = 'Sections';
+    document.body.appendChild(toggle);
+    toggle.addEventListener('click', () => {
+      sidebar.classList.toggle('gds-ss-open');
+    });
+
+    // Highlight active section on scroll
+    let scrollTimeout;
+    window.addEventListener('scroll', () => {
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        const scrollY = window.scrollY + 120;
+        let activeFile = null;
+        document.querySelectorAll('.gds-section-wrapper').forEach(w => {
+          if (w.offsetTop <= scrollY) activeFile = w.getAttribute('data-gds-file');
+        });
+        list.querySelectorAll('.gds-ss-pill').forEach(p => {
+          p.classList.toggle('gds-ss-active', p.dataset.file === activeFile);
+        });
+      }, 50);
+    });
+  }
+
   function initEmbedded() {
     document.body.classList.add('gds-admin-mode');
     try { autoTagEditableElements(); } catch (e) { console.error('[GDS] autoTagEditableElements error:', e); }
@@ -2746,6 +2889,7 @@
     try { initPlaceholderImages(); } catch (e) { console.error('[GDS] initPlaceholderImages error:', e); }
     try { initBlockInserters(); } catch (e) { console.error('[GDS] initBlockInserters error:', e); }
     try { initMurGallery(); } catch (e) { console.error('[GDS] initMurGallery error:', e); }
+    try { initSectionSidebar(); } catch (e) { console.error('[GDS] initSectionSidebar error:', e); }
     console.log('[GDS Admin] Embedded mode — slug:', currentSlug);
   }
 
