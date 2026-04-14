@@ -130,7 +130,15 @@ body.gds-admin-mode .gds-page-content {
 [data-gds-edit]:focus {
   outline: 3px solid #58a6ff !important;
   outline-offset: 4px;
-  background: rgba(88,166,255,0.05);
+}
+/* Fix gradient-text elements (background-clip:text + -webkit-text-fill-color:transparent)
+   becoming invisible when contenteditable activates.
+   Temporarily disable the gradient and show text in a readable color. */
+[data-gds-edit][contenteditable="true"] {
+  -webkit-text-fill-color: #2d1b4e !important;
+  background-clip: border-box !important;
+  -webkit-background-clip: border-box !important;
+  background: rgba(88,166,255,0.05) !important;
 }
 
 /* Badge showing tag type — always visible */
