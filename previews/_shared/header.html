@@ -752,4 +752,4 @@ Obtenir un devis
   document.addEventListener('DOMContentLoaded', initHeader);
 })();
 </script>
-<script>(function(){if(document.querySelector('.snb-promo-banner'))return;fetch('https://sites.swipego.app/api/banners/active').then(function(r){return r.ok?r.text():''}).then(function(h){if(!h)return;var hdr=document.querySelector('.snb-header');if(hdr)hdr.insertAdjacentHTML('afterend',h)}).catch(function(){})})()</script>
+<script>(function(){if(document.querySelector('.snb-promo-banner'))return;fetch('https://sites.swipego.app/api/banners/active').then(function(r){return r.ok?r.text():''}).then(function(h){if(!h)return;var main=document.querySelector('.snb-page-content')||document.querySelector('main');if(main)main.insertAdjacentHTML('afterbegin',h);else{var hdr=document.querySelector('.snb-header');if(hdr)hdr.insertAdjacentHTML('afterend',h)}}).catch(function(){})})()</script>
