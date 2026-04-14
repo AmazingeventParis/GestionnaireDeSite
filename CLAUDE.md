@@ -455,6 +455,68 @@ var(--max-width)          /* 1300px */
 - Mapping automatique slug → badge colore : mariage=rose, entreprise=bleu, anniversaire=violet, conseils=orange
 - Auteur : photo Gravatar avec fallback initiales
 
+## Bannieres promotionnelles
+
+### Architecture
+- **Stockage** : `previews/_shared/banners/{id}.json` (dans le volume Docker `gds-previews`, persiste entre les deploys)
+- **Route backend** : `routes/banners.js` — CRUD + endpoints publics
+- **Page admin** : `public/banners.html` (onglet "Bannieres" dans la nav)
+- **Injection** : via script client dans le header partage (fetch `/api/banners/active`)
+- **Pas de cron** : verification de date a chaque requete, cache 5min sur endpoints publics
+
+### API
+
+| Methode | Endpoint | Auth | Description |
+|---------|----------|------|-------------|
+| GET | `/api/banners` | verifyToken | Liste toutes les bannieres |
+| GET | `/api/banners/:id` | verifyToken | Detail d'une banniere |
+| POST | `/api/banners` | admin/editor | Creer une banniere |
+| PUT | `/api/banners/:id` | admin/editor | Modifier une banniere |
+| DELETE | `/api/banners/:id` | admin | Supprimer une banniere |
+| GET | `/api/banners/active` | **public** | HTML+CSS+JS de la banniere active (CORS, cache 5min) |
+| GET | `/api/banners/active.js` | **public** | Script loader JS pour WordPress |
+| GET | `/api/shared/banner` | **public** | Alias dans shared.js (meme pattern que header/footer) |
+
+### Donnees d'une banniere (JSON)
+- `name`, `html` (contenu — texte simple OU bloc HTML complet avec `<style>`+`<script>`), `css`
+- `textColor`, `startDate`, `endDate`, `priority`, `closable`, `enabled`
+- `createdAt`, `createdBy`, `updatedAt`
+
+### Planification
+- Champs `startDate` + `endDate` (date picker dans l'admin)
+- Seule la banniere active avec la plus haute `priority` est affichee
+- Statuts calcules : Active (vert), Programmee (jaune), Expiree (gris), Desactivee (rouge)
+- Toggle activer/desactiver directement sur la carte (sans ouvrir le formulaire)
+
+### Affichage responsive
+- **Desktop** : banniere en haut, premier enfant de `<main class="snb-page-content">`, pleine largeur
+- **Mobile (< 850px)** : `position:fixed!important;bottom:0` (sticky en bas, suit le scroll)
+- Fond transparent par defaut (pas de bgColor)
+- Fermable (croix) avec `sessionStorage` pour ne pas reafficher dans la session
+
+### Types de contenu
+- **Texte simple** : wrapper `.snb-promo-banner__inner` avec flex center
+- **Bloc HTML complet** (detecte par presence de `<style>` ou `<div class=`) : injecte tel quel dans le wrapper, sans styles par defaut — permet les animations, tickers, designs custom
+
+### Injection dans les pages
+- **Script client dans le header partage** (`previews/_shared/header.html`) : fetch `/api/banners/active`, injecte dans `.snb-page-content`, recree les `<script>` pour les executer
+- Fonctionne sur toutes les pages GDS (preview + deployees) et WordPress (via le header partage)
+- `insertAdjacentHTML` n'execute pas les scripts → le loader les recree via `document.createElement('script')`
+
+### WordPress
+- Script loader deployé sur server 79 : `/manager/snb-banner-loader.js`
+- Helper PHP : `/manager/snb-banner-inject.php` (a inclure dans `functions.php`)
+- Ou directement via le header partage qui contient le loader
+
+### Page admin (banners.html)
+- Dark theme, grille de cartes avec badge statut + toggle on/off
+- Formulaire : nom, contenu HTML (textarea code), CSS custom, couleur texte, dates (date picker), priorite, fermable, apercu live
+- Les textareas sont remplies via `.value` apres insertion DOM (evite que le HTML casse le template JS)
+
+### Build.js — iframes lazy-load
+- Tous les `<iframe>` (YouTube, Google Maps, etc.) recoivent `loading="lazy"` automatiquement au build
+- Empeche le chargement du player YouTube (~800KB JS) tant que le visiteur ne scroll pas
+
 ## Bugs resolus importants
 
 - **Sections disparaissant au deploy** : Volumes Docker non montes → corrige avec docker-compose build pack
@@ -481,3 +543,10 @@ var(--max-width)          /* 1300px */
 - **Email accents casses** : "déménage" → "d�m�nage" → ajout `Content-Type: text/html; charset=utf-8` + `encoding: 'utf-8'` Nodemailer
 - **Spam russe sur formulaire contact** : bots POST direct → 4 couches anti-spam invisibles (honeypot, JS proof, time trap, filtre contenu)
 - **Elementor ne charge pas les articles** : `single.php` du theme enfant court-circuite Elementor → desactiver Elementor sur les Articles dans les parametres
+- **Banniere invisible derriere header fixe** : injectee `afterend` du header (`position:fixed;z-index:9999`), masquee en dessous → injectee dans `<main>` (premier enfant) qui a deja le `padding-top:72px`
+- **Banniere doublon** : injectee cote serveur (pages.js) ET cote client (header loader) → supprime l'injection serveur, garde uniquement le loader client
+- **Banniere mobile en haut au lieu du bas** : `style="position:relative"` inline ecrasait `position:fixed` de la media query → ajoute `!important` sur les proprietes mobile
+- **Banniere sans texte (ticker)** : `insertAdjacentHTML` n'execute pas les `<script>` → le loader recree les scripts via `document.createElement('script')`
+- **Bannieres perdues au redeploy** : stockees dans `banners/` (volume Docker non persiste) → deplacees dans `previews/_shared/banners/` (volume `gds-previews` persiste)
+- **Bouton Enregistrer banniere ne marchait pas** : HTML complexe de la banniere (avec `<style>`/`<script>`) cassait le template string JS du formulaire → textareas remplies via `.value` apres insertion DOM
+- **Header ecrase par rebuild** : fichier local `previews/_shared/header.html` ancien a ecrase la version serveur → restaure depuis git commit `8eee946` (version avec mega-menu dropdowns)
