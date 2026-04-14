@@ -279,8 +279,18 @@
 
     // Link / Unlink
     tagBar.appendChild(tbBtn('&#128279;', 'Inserer un lien', () => {
-      const url = prompt('URL du lien :');
-      if (url) document.execCommand('createLink', false, url);
+      // Save selection before opening picker (otherwise it's lost)
+      const sel = window.getSelection();
+      const savedRange = sel.rangeCount > 0 ? sel.getRangeAt(0).cloneRange() : null;
+      openLinkPicker((url) => {
+        if (!url) return;
+        // Restore selection
+        if (savedRange) {
+          sel.removeAllRanges();
+          sel.addRange(savedRange);
+        }
+        document.execCommand('createLink', false, url);
+      });
     }));
     tagBar.appendChild(tbBtn('&#10060;', 'Supprimer le lien', () => document.execCommand('unlink', false, null)));
     tagBar.appendChild(tbSep());
@@ -811,6 +821,171 @@
   }
 
   // ===== IMAGE REPLACE MODAL (double-click on any image) =====
+  // ===== LINK PICKER WITH AUTOCOMPLETE =====
+  let _linkPickerPages = null; // cached page list
+
+  function openLinkPicker(callback) {
+    const existing = document.getElementById('gds-link-picker');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'gds-link-picker';
+    overlay.className = 'gds-modal-overlay';
+    overlay.innerHTML = `
+      <div class="gds-modal" style="max-width:520px;">
+        <div class="gds-modal-header">
+          <h3>Inserer un lien</h3>
+          <button class="gds-modal-close" id="gds-lp-close">&times;</button>
+        </div>
+        <div class="gds-modal-body">
+          <input type="text" id="gds-lp-input" placeholder="Tapez une URL ou recherchez une page / un media..." autocomplete="off"
+            style="width:100%;padding:11px 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:14px;box-sizing:border-box;margin-bottom:4px;">
+          <div id="gds-lp-results" style="max-height:300px;overflow-y:auto;"></div>
+          <div style="margin-top:12px;">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#8b949e;cursor:pointer;">
+              <input type="checkbox" id="gds-lp-newtab"> Ouvrir dans un nouvel onglet
+            </label>
+          </div>
+        </div>
+        <div class="gds-modal-footer">
+          <button class="gds-modal-btn gds-modal-btn-cancel" id="gds-lp-cancel">Annuler</button>
+          <button class="gds-modal-btn gds-modal-btn-submit" id="gds-lp-submit" disabled>Inserer</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    const input = document.getElementById('gds-lp-input');
+    const results = document.getElementById('gds-lp-results');
+    const submitBtn = document.getElementById('gds-lp-submit');
+    let selectedUrl = '';
+
+    const close = () => overlay.remove();
+    document.getElementById('gds-lp-close').addEventListener('click', close);
+    document.getElementById('gds-lp-cancel').addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+    // Enable submit when input looks like a URL
+    function checkInput() {
+      const v = input.value.trim();
+      selectedUrl = v;
+      submitBtn.disabled = !v;
+    }
+
+    input.addEventListener('input', () => {
+      checkInput();
+      debounceSearch();
+    });
+
+    // Submit
+    submitBtn.addEventListener('click', () => {
+      if (!selectedUrl) return;
+      close();
+      callback(selectedUrl);
+    });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && selectedUrl) {
+        e.preventDefault();
+        close();
+        callback(selectedUrl);
+      }
+      if (e.key === 'Escape') close();
+    });
+
+    // Result item click
+    function selectResult(url, label) {
+      input.value = url;
+      selectedUrl = url;
+      submitBtn.disabled = false;
+      results.innerHTML = '<div style="padding:8px 12px;color:#3fb950;font-size:12px;">&#10003; ' + escapeHtml(label) + '</div>';
+    }
+
+    function renderResults(pages, media) {
+      results.innerHTML = '';
+      if (!pages.length && !media.length) {
+        results.innerHTML = '<div style="padding:12px;color:#8b949e;font-size:12px;">Aucun resultat</div>';
+        return;
+      }
+
+      if (pages.length) {
+        const h = document.createElement('div');
+        h.style.cssText = 'padding:6px 12px;font-size:10px;font-weight:800;color:#8b949e;text-transform:uppercase;letter-spacing:1px;';
+        h.textContent = 'Pages (' + pages.length + ')';
+        results.appendChild(h);
+
+        pages.forEach(p => {
+          const row = document.createElement('div');
+          row.className = 'gds-lp-row';
+          const urlPath = p.urlPath || '/' + p.slug;
+          row.innerHTML = '<span style="color:#e6edf3;font-weight:600;">' + escapeHtml(p.name || p.slug) + '</span>'
+            + '<span style="color:#8b949e;font-size:11px;margin-left:8px;">' + escapeHtml(urlPath) + '</span>';
+          row.addEventListener('click', () => selectResult('https://shootnbox.fr' + urlPath, p.name || p.slug));
+          results.appendChild(row);
+        });
+      }
+
+      if (media.length) {
+        const h = document.createElement('div');
+        h.style.cssText = 'padding:6px 12px;font-size:10px;font-weight:800;color:#8b949e;text-transform:uppercase;letter-spacing:1px;margin-top:6px;';
+        h.textContent = 'Medias (' + media.length + ')';
+        results.appendChild(h);
+
+        media.forEach(m => {
+          const row = document.createElement('div');
+          row.className = 'gds-lp-row';
+          const isImg = /\.(webp|jpg|jpeg|png|gif|svg)$/i.test(m.name);
+          row.innerHTML = (isImg ? '<img src="' + escapeHtml(m.path) + '" style="width:28px;height:28px;object-fit:cover;border-radius:4px;flex-shrink:0;">' : '')
+            + '<span style="color:#e6edf3;font-weight:600;">' + escapeHtml(m.name) + '</span>'
+            + (m.folder ? '<span style="color:#8b949e;font-size:11px;margin-left:8px;">/' + escapeHtml(m.folder) + '</span>' : '');
+          row.addEventListener('click', () => selectResult(m.path, m.name));
+          results.appendChild(row);
+        });
+      }
+    }
+
+    // Search with debounce
+    let searchTimer;
+    function debounceSearch() {
+      clearTimeout(searchTimer);
+      const q = input.value.trim();
+      if (!q || q.startsWith('http') || q.startsWith('/')) {
+        results.innerHTML = '';
+        return;
+      }
+      if (q.length < 2) return;
+      searchTimer = setTimeout(() => doSearch(q), 200);
+    }
+
+    async function doSearch(q) {
+      const qLower = q.toLowerCase();
+
+      // Pages: filter from cached list
+      if (!_linkPickerPages) {
+        try {
+          const res = await Auth.apiFetch('/api/pages');
+          const data = await res.json();
+          _linkPickerPages = data.pages || [];
+        } catch { _linkPickerPages = []; }
+      }
+      const matchedPages = _linkPickerPages.filter(p => {
+        const haystack = ((p.name || '') + ' ' + (p.slug || '') + ' ' + (p.urlPath || '')).toLowerCase();
+        return haystack.includes(qLower);
+      }).slice(0, 8);
+
+      // Media: server-side search
+      let matchedMedia = [];
+      try {
+        const res = await Auth.apiFetch('/api/media?search=' + encodeURIComponent(q));
+        const data = await res.json();
+        matchedMedia = (data.images || []).slice(0, 8);
+      } catch {}
+
+      renderResults(matchedPages, matchedMedia);
+    }
+
+    // Focus input
+    setTimeout(() => input.focus(), 50);
+  }
+
   function openImageReplaceModal(imgEl) {
     const existing = document.getElementById('gds-imgreplace-modal');
     if (existing) existing.remove();

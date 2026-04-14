@@ -1327,6 +1327,19 @@ body.gds-admin-mode .gds-page-content {
   flex-shrink: 0;
 }
 
+/* Link picker results */
+.gds-lp-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.12s;
+  font-size: 13px;
+}
+.gds-lp-row:hover { background: #161b22; }
+
 #gds-section-sidebar.gds-ss-saving {
   opacity: 0.6;
   pointer-events: none;
