@@ -971,15 +971,7 @@
         return haystack.includes(qLower);
       }).slice(0, 8);
 
-      // Media: server-side search
-      let matchedMedia = [];
-      try {
-        const res = await Auth.apiFetch('/api/media?search=' + encodeURIComponent(q));
-        const data = await res.json();
-        matchedMedia = (data.images || []).slice(0, 8);
-      } catch {}
-
-      renderResults(matchedPages, matchedMedia);
+      renderResults(matchedPages, []);
     }
 
     // Focus input
