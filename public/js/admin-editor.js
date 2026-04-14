@@ -817,38 +817,56 @@
 
     const isVideo = imgEl.tagName.toLowerCase() === 'video';
     const currentSrc = imgEl.src || '';
+    const currentAlt = imgEl.getAttribute('alt') || '';
+    const currentTitle = imgEl.getAttribute('title') || '';
+    // Extract filename from src for display
+    const fileName = currentSrc.split('/').pop().split('?')[0] || '';
 
     const overlay = document.createElement('div');
     overlay.id = 'gds-imgreplace-modal';
     overlay.className = 'gds-modal-overlay';
     overlay.innerHTML = `
-      <div class="gds-modal" style="max-width:500px;">
+      <div class="gds-modal" style="max-width:520px;">
         <div class="gds-modal-header">
-          <h3>Remplacer ${isVideo ? 'la video' : "l'image"}</h3>
+          <h3>${isVideo ? 'Video' : 'Image'}</h3>
           <button class="gds-modal-close" id="gds-ir-close">&times;</button>
         </div>
         <div class="gds-modal-body">
           <div style="margin-bottom:16px;text-align:center;">
-            <${isVideo ? 'video autoplay loop muted playsinline' : 'img'} src="${escapeHtml(currentSrc)}" style="max-width:100%;max-height:150px;border-radius:8px;border:1px solid #30363d;">
+            <${isVideo ? 'video autoplay loop muted playsinline' : 'img'} src="${escapeHtml(currentSrc)}" style="max-width:100%;max-height:120px;border-radius:8px;border:1px solid #30363d;">
+            ${fileName ? '<div style="font-size:11px;color:#8b949e;margin-top:6px;">' + escapeHtml(fileName) + '</div>' : ''}
           </div>
-          <div style="display:flex;gap:12px;margin-bottom:16px;">
-            <button class="gds-ph-tab" id="gds-ir-tab-upload" style="flex:1;padding:10px;border:1px solid #30363d;border-radius:8px;background:#21262d;color:#e6edf3;font-size:13px;font-weight:600;cursor:pointer;">Uploader</button>
-            <button class="gds-ph-tab" id="gds-ir-tab-url" style="flex:1;padding:10px;border:1px solid #30363d;border-radius:8px;background:#0d1117;color:#8b949e;font-size:13px;font-weight:600;cursor:pointer;">URL</button>
+
+          <div style="margin-bottom:14px;">
+            <label style="display:block;font-size:11px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Texte alternatif (alt)</label>
+            <input type="text" id="gds-ir-alt" value="${escapeHtml(currentAlt)}" placeholder="Description de l'image pour le SEO et l'accessibilite" style="width:100%;padding:9px 12px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:13px;box-sizing:border-box;">
           </div>
-          <div id="gds-ir-upload-area">
-            <div class="gds-block-upload visible" id="gds-ir-dropzone" style="display:block;">
-              <input type="file" id="gds-ir-file" accept="image/*,video/mp4" style="display:none;">
-              <div style="font-size:24px;margin-bottom:6px;">&#128247;</div>
-              <div style="font-size:13px;">Cliquez pour choisir un fichier</div>
+          <div style="margin-bottom:16px;">
+            <label style="display:block;font-size:11px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Titre du fichier</label>
+            <input type="text" id="gds-ir-title" value="${escapeHtml(currentTitle)}" placeholder="Titre affiche au survol" style="width:100%;padding:9px 12px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:13px;box-sizing:border-box;">
+          </div>
+
+          <div style="border-top:1px solid #21262d;padding-top:14px;margin-bottom:14px;">
+            <label style="display:block;font-size:11px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Remplacer le fichier (optionnel)</label>
+            <div style="display:flex;gap:12px;margin-bottom:12px;">
+              <button class="gds-ph-tab" id="gds-ir-tab-upload" style="flex:1;padding:8px;border:1px solid #30363d;border-radius:8px;background:#21262d;color:#e6edf3;font-size:12px;font-weight:600;cursor:pointer;">Uploader</button>
+              <button class="gds-ph-tab" id="gds-ir-tab-url" style="flex:1;padding:8px;border:1px solid #30363d;border-radius:8px;background:#0d1117;color:#8b949e;font-size:12px;font-weight:600;cursor:pointer;">URL</button>
             </div>
-          </div>
-          <div id="gds-ir-url-area" style="display:none;">
-            <input type="url" id="gds-ir-url-input" placeholder="https://example.com/image.jpg" style="width:100%;padding:10px 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:14px;">
+            <div id="gds-ir-upload-area">
+              <div class="gds-block-upload visible" id="gds-ir-dropzone" style="display:block;">
+                <input type="file" id="gds-ir-file" accept="image/*,video/mp4" style="display:none;">
+                <div style="font-size:20px;margin-bottom:4px;">&#128247;</div>
+                <div style="font-size:12px;">Cliquez pour choisir un fichier</div>
+              </div>
+            </div>
+            <div id="gds-ir-url-area" style="display:none;">
+              <input type="url" id="gds-ir-url-input" placeholder="https://example.com/image.jpg" style="width:100%;padding:9px 12px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:13px;box-sizing:border-box;">
+            </div>
           </div>
         </div>
         <div class="gds-modal-footer">
           <button class="gds-modal-btn gds-modal-btn-cancel" id="gds-ir-cancel">Annuler</button>
-          <button class="gds-modal-btn gds-modal-btn-submit" id="gds-ir-submit" disabled>Appliquer</button>
+          <button class="gds-modal-btn gds-modal-btn-submit" id="gds-ir-submit">Enregistrer</button>
         </div>
       </div>
     `;
@@ -899,11 +917,18 @@
     document.getElementById('gds-ir-submit').addEventListener('click', async () => {
       const btn = document.getElementById('gds-ir-submit');
       btn.disabled = true;
-      btn.textContent = 'Application...';
+      btn.textContent = 'Enregistrement...';
 
       try {
-        let newSrc = '';
+        // 1. Apply alt + title
+        const newAlt = document.getElementById('gds-ir-alt').value.trim();
+        const newTitle = document.getElementById('gds-ir-title').value.trim();
 
+        // Save wrapper reference BEFORE any replaceWith
+        const saveWrapper = imgEl.closest('.gds-section-wrapper') || (imgEl.parentElement && imgEl.parentElement.closest('.gds-section-wrapper'));
+
+        // 2. Replace file if provided
+        let newSrc = '';
         if (selectedFile) {
           const formData = new FormData();
           formData.append('images', selectedFile);
@@ -916,30 +941,34 @@
           newSrc = document.getElementById('gds-ir-url-input').value.trim();
         }
 
-        if (!newSrc) throw new Error('Aucune source');
-
-        const isNewVideo = newSrc.match(/\.(mp4|webm|mov)(\?|$)/i);
-
-        // Save wrapper reference BEFORE any replaceWith (which removes imgEl from DOM)
-        const saveWrapper = imgEl.closest('.gds-section-wrapper') || (imgEl.parentElement && imgEl.parentElement.closest('.gds-section-wrapper'));
-
-        if (isNewVideo && !isVideo) {
-          const vid = document.createElement('video');
-          vid.src = newSrc;
-          vid.autoplay = true; vid.loop = true; vid.muted = true; vid.playsInline = true;
-          vid.style.cssText = imgEl.style.cssText || 'width:100%;height:100%;object-fit:cover;';
-          imgEl.replaceWith(vid);
-        } else if (!isNewVideo && isVideo) {
-          const img = document.createElement('img');
-          img.src = newSrc;
-          img.alt = 'Image';
-          img.style.cssText = imgEl.style.cssText || 'width:100%;height:100%;object-fit:cover;';
-          imgEl.replaceWith(img);
+        if (newSrc) {
+          const isNewVideo = newSrc.match(/\.(mp4|webm|mov)(\?|$)/i);
+          if (isNewVideo && !isVideo) {
+            const vid = document.createElement('video');
+            vid.src = newSrc;
+            vid.autoplay = true; vid.loop = true; vid.muted = true; vid.playsInline = true;
+            vid.style.cssText = imgEl.style.cssText || 'width:100%;height:100%;object-fit:cover;';
+            if (newTitle) vid.title = newTitle;
+            imgEl.replaceWith(vid);
+          } else if (!isNewVideo && isVideo) {
+            const img = document.createElement('img');
+            img.src = newSrc;
+            img.alt = newAlt;
+            if (newTitle) img.title = newTitle;
+            img.style.cssText = imgEl.style.cssText || 'width:100%;height:100%;object-fit:cover;';
+            imgEl.replaceWith(img);
+          } else {
+            imgEl.src = newSrc;
+            imgEl.alt = newAlt;
+            if (newTitle) imgEl.title = newTitle; else imgEl.removeAttribute('title');
+          }
         } else {
-          imgEl.src = newSrc;
+          // No new file — just update alt + title
+          if (!isVideo) imgEl.alt = newAlt;
+          if (newTitle) imgEl.title = newTitle; else imgEl.removeAttribute('title');
         }
 
-        // Save the section
+        // 3. Save the section
         const wrapper = saveWrapper;
         if (wrapper) {
           const file = wrapper.getAttribute('data-gds-file');
@@ -954,13 +983,13 @@
         }
 
         close();
-        showToast('Media remplace !', 'success');
+        showToast(newSrc ? 'Media remplace !' : 'Attributs mis a jour !', 'success');
         imageChanges++;
         updateChangesCount();
       } catch (err) {
         showToast('Erreur: ' + err.message, 'error');
         btn.disabled = false;
-        btn.textContent = 'Appliquer';
+        btn.textContent = 'Enregistrer';
       }
     });
   }
