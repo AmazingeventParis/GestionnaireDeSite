@@ -50,19 +50,19 @@ function buildBannerHtml(banner) {
   const closable = banner.closable !== false;
 
   const css = `
-.snb-promo-banner{width:100%;z-index:998;position:relative;background:${bg};color:${color};font-family:'Raleway',Arial,sans-serif;}
+.snb-promo-banner{width:100%;z-index:998;position:relative;background:${bg};color:${color};font-family:'Raleway',Arial,sans-serif;padding-top:72px;}
 .snb-promo-banner__inner{max-width:1300px;margin:0 auto;display:flex;align-items:center;justify-content:center;padding:12px 20px;gap:12px;font-size:14px;font-weight:600;text-align:center;}
 .snb-promo-banner__inner a{color:inherit;text-decoration:underline;}
 .snb-promo-banner__close{background:none;border:none;color:inherit;font-size:22px;cursor:pointer;opacity:0.7;padding:0 4px;line-height:1;flex-shrink:0;}
 .snb-promo-banner__close:hover{opacity:1;}
-@media(max-width:850px){.snb-promo-banner{position:fixed;bottom:0;left:0;right:0;z-index:9998;box-shadow:0 -4px 20px rgba(0,0,0,0.15);}body{padding-bottom:52px;}}
+@media(max-width:850px){.snb-promo-banner{position:fixed;bottom:0;left:0;right:0;z-index:9998;box-shadow:0 -4px 20px rgba(0,0,0,0.15);padding-top:0;margin-top:0;}body{padding-bottom:52px;}}
 ${banner.css || ''}`;
 
   const closeScript = closable
     ? `onclick="this.closest('.snb-promo-banner').remove();try{sessionStorage.setItem('snb-banner-closed-${id}','1')}catch(e){};var s=document.querySelector('body');if(s)s.style.paddingBottom='0';"`
     : 'style="display:none"';
 
-  const checkClosed = `<script>(function(){try{if(sessionStorage.getItem('snb-banner-closed-${id}')){var b=document.querySelector('.snb-promo-banner[data-banner-id="${id}"]');if(b)b.remove();}}catch(e){}})()</script>`;
+  const checkClosed = `<script>(function(){try{if(sessionStorage.getItem('snb-banner-closed-${id}')){var b=document.querySelector('.snb-promo-banner[data-banner-id="${id}"]');if(b)b.remove();return;}}catch(e){}var m=document.querySelector('.snb-page-content');if(m)m.style.paddingTop='0';})()</script>`;
 
   return `<style>${css}</style>
 <div class="snb-promo-banner" data-banner-id="${id}" role="complementary" aria-label="Promotion">
