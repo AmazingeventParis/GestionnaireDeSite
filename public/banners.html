@@ -25,6 +25,12 @@
     .bn-btn-edit:hover { background: #30363d; }
     .bn-btn-del { background: transparent; color: #f85149; border-color: rgba(248,81,73,0.3); }
     .bn-btn-del:hover { background: rgba(248,81,73,0.1); }
+    .bn-toggle-switch { position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0; }
+    .bn-toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .bn-toggle-slider { position: absolute; cursor: pointer; inset: 0; background: #30363d; border-radius: 22px; transition: 0.2s; }
+    .bn-toggle-slider::before { content: ''; position: absolute; height: 16px; width: 16px; left: 3px; bottom: 3px; background: #8b949e; border-radius: 50%; transition: 0.2s; }
+    .bn-toggle-switch input:checked + .bn-toggle-slider { background: #238636; }
+    .bn-toggle-switch input:checked + .bn-toggle-slider::before { transform: translateX(18px); background: #fff; }
     .bn-btn-create { background: #238636; color: #fff; border-color: #2ea04366; padding: 10px 24px; font-size: 14px; }
     .bn-btn-create:hover { background: #2ea043; }
     .bn-empty { text-align: center; padding: 60px 20px; color: #8b949e; }
@@ -109,6 +115,7 @@
             + '<div class="bn-card-dates">Du ' + fmtDate(b.startDate) + ' au ' + fmtDate(b.endDate) + '</div>'
             + (b.bgColor ? '<div style="height:6px;border-radius:3px;background:' + esc(b.bgColor) + ';margin:8px 0;"></div>' : '')
             + '<div class="bn-card-actions">'
+            + '<label class="bn-toggle-switch" title="' + (b.enabled ? 'Activee' : 'Desactivee') + '"><input type="checkbox" class="bn-toggle-cb" data-id="' + esc(b.id) + '" ' + (b.enabled ? 'checked' : '') + '><span class="bn-toggle-slider"></span></label>'
             + '<button class="bn-btn bn-btn-edit" data-id="' + esc(b.id) + '">Modifier</button>'
             + '<button class="bn-btn bn-btn-del" data-id="' + esc(b.id) + '">Supprimer</button>'
             + '</div></div>';
@@ -122,6 +129,17 @@
           var delBtn = e.target.closest('.bn-btn-del');
           if (editBtn) openForm(editBtn.dataset.id);
           if (delBtn) deleteBanner(delBtn.dataset.id);
+        });
+        // Toggle enable/disable
+        list.addEventListener('change', async function(e) {
+          var cb = e.target.closest('.bn-toggle-cb');
+          if (!cb) return;
+          await Auth.apiFetch('/api/banners/' + cb.dataset.id, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled: cb.checked })
+          });
+          loadBanners();
         });
       } catch (err) {
         list.innerHTML = '<div class="bn-empty" style="color:#f85149;">Erreur: ' + esc(err.message) + '</div>';
