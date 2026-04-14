@@ -311,7 +311,13 @@ function postProcess(html, pageSlug) {
     return `<img ${attrs}>`;
   });
 
-  // 2. Add rel="noopener noreferrer" to external links with target="_blank"
+  // 2. Iframes: lazy loading (YouTube, Google Maps, etc.)
+  html = html.replace(/<iframe\s([^>]*?)>/gi, (match, attrs) => {
+    if (!attrs.includes('loading=')) attrs += ' loading="lazy"';
+    return `<iframe ${attrs}>`;
+  });
+
+  // 3. Add rel="noopener noreferrer" to external links with target="_blank"
   html = html.replace(/<a\s([^>]*?target="_blank"[^>]*?)>/gi, (match, attrs) => {
     if (!attrs.includes('rel=')) {
       attrs += ' rel="noopener noreferrer"';
