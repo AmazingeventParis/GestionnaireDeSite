@@ -128,6 +128,49 @@ function scanSections(dirPath) {
 }
 
 /**
+ * Create a history snapshot of a page (all sections + SEO).
+ * Called before save, section edit, reorder, etc.
+ */
+function createSnapshot(slug, userId, reason) {
+  try {
+    const previewDir = getPreviewDir(slug);
+    if (!fs.existsSync(previewDir)) return;
+    const historyDir = path.join(previewDir, '.history');
+    if (!fs.existsSync(historyDir)) fs.mkdirSync(historyDir, { recursive: true });
+
+    const snapshot = {
+      timestamp: new Date().toISOString(),
+      userId: userId || 'system',
+      reason: reason || 'save'
+    };
+    snapshot.sections = {};
+    const sectionFiles = fs.readdirSync(previewDir).filter(f => f.endsWith('.html'));
+    for (const f of sectionFiles) {
+      snapshot.sections[f] = fs.readFileSync(path.join(previewDir, f), 'utf-8');
+    }
+    const seoPath = slug === 'home' ? path.join(getPD(), 'seo-home.json') : path.join(previewDir, 'seo.json');
+    if (fs.existsSync(seoPath)) {
+      try { snapshot.seo = JSON.parse(fs.readFileSync(seoPath, 'utf-8')); } catch {}
+    }
+    // Save spacing too
+    const spacingPath = path.join(previewDir, '.spacing.json');
+    if (fs.existsSync(spacingPath)) {
+      try { snapshot.spacing = JSON.parse(fs.readFileSync(spacingPath, 'utf-8')); } catch {}
+    }
+
+    fs.writeFileSync(path.join(historyDir, Date.now() + '.json'), JSON.stringify(snapshot), 'utf-8');
+
+    // Prune: keep only last 30
+    const snapshots = fs.readdirSync(historyDir).filter(f => f.endsWith('.json')).sort();
+    while (snapshots.length > 30) {
+      fs.unlinkSync(path.join(historyDir, snapshots.shift()));
+    }
+  } catch (err) {
+    console.error('[Pages] Snapshot error:', err.message);
+  }
+}
+
+/**
  * Determine page status by comparing preview and published timestamps.
  */
 function getPageStatus(previewDir, publicDir) {
@@ -1214,34 +1257,7 @@ router.post('/:slug/save', verifyToken, requireRole('admin', 'editor'), async (r
     }
 
     // Create history snapshot before applying changes
-    try {
-      const historyDir = path.join(previewDir, '.history');
-      if (!fs.existsSync(historyDir)) fs.mkdirSync(historyDir, { recursive: true });
-
-      const snapshot = { timestamp: new Date().toISOString(), userId: req.user.id };
-      // Capture current sections
-      snapshot.sections = {};
-      const sectionFiles = fs.readdirSync(previewDir).filter(f => f.endsWith('.html'));
-      for (const f of sectionFiles) {
-        snapshot.sections[f] = fs.readFileSync(path.join(previewDir, f), 'utf-8');
-      }
-      // Capture current SEO
-      const currentSeoPath = slug === 'home' ? path.join(getPD(), 'seo-home.json') : path.join(previewDir, 'seo.json');
-      if (fs.existsSync(currentSeoPath)) {
-        try { snapshot.seo = JSON.parse(fs.readFileSync(currentSeoPath, 'utf-8')); } catch(e) {}
-      }
-
-      const snapshotFile = Date.now() + '.json';
-      fs.writeFileSync(path.join(historyDir, snapshotFile), JSON.stringify(snapshot), 'utf-8');
-
-      // Prune: keep only last 30 snapshots
-      const snapshots = fs.readdirSync(historyDir).filter(f => f.endsWith('.json')).sort();
-      while (snapshots.length > 30) {
-        fs.unlinkSync(path.join(historyDir, snapshots.shift()));
-      }
-    } catch (histErr) {
-      console.error('[Pages] History snapshot error:', histErr.message);
-    }
+    createSnapshot(slug, req.user.id, 'save');
 
     // Apply text changes using cheerio for reliable element matching
     // Change ID format: "sectionName:index:tag" (index is relative to ALL editable elements in section)
@@ -1520,6 +1536,8 @@ router.post('/:slug/reorder-sections', verifyToken, requireRole('admin'), async 
       return res.status(400).json({ error: 'order[] requis' });
     }
 
+    createSnapshot(slug, req.user.id, 'reorder');
+
     // Verify all files exist
     for (const file of order) {
       if (!fs.existsSync(path.join(previewDir, file))) {
@@ -1753,6 +1771,7 @@ router.put('/:slug/section/:file', verifyToken, requireRole('admin', 'editor'), 
     }
 
     const previewDir = getPreviewDir(slug);
+    createSnapshot(slug, req.user.id, 'section-edit:' + file);
     const filePath = path.join(previewDir, file);
 
     if (!fs.existsSync(filePath)) {
@@ -1851,7 +1870,9 @@ router.get('/:slug/history', verifyToken, async (req, res) => {
           id: f.replace('.json', ''),
           timestamp: data.timestamp,
           userId: data.userId,
-          sectionsCount: Object.keys(data.sections || {}).length
+          reason: data.reason || 'save',
+          sectionsCount: Object.keys(data.sections || {}).length,
+          sections: Object.keys(data.sections || {})
         };
       } catch(e) { return null; }
     }).filter(Boolean);
@@ -1881,13 +1902,8 @@ router.post('/:slug/history/:id/restore', verifyToken, requireRole('admin'), asy
 
     const snapshot = JSON.parse(fs.readFileSync(snapshotPath, 'utf-8'));
 
-    // Create a snapshot of current state before restoring
-    const currentSnapshot = { timestamp: new Date().toISOString(), userId: req.user.id, sections: {} };
-    const currentFiles = fs.readdirSync(previewDir).filter(f => f.endsWith('.html'));
-    for (const f of currentFiles) {
-      currentSnapshot.sections[f] = fs.readFileSync(path.join(previewDir, f), 'utf-8');
-    }
-    fs.writeFileSync(path.join(historyDir, Date.now() + '.json'), JSON.stringify(currentSnapshot), 'utf-8');
+    // Snapshot current state before restoring
+    createSnapshot(slug, req.user.id, 'before-restore');
 
     // Restore sections
     if (snapshot.sections) {
@@ -1907,6 +1923,12 @@ router.post('/:slug/history/:id/restore', verifyToken, requireRole('admin'), asy
     if (snapshot.seo) {
       const seoPath = slug === 'home' ? path.join(getPD(), 'seo-home.json') : path.join(previewDir, 'seo.json');
       fs.writeFileSync(seoPath, JSON.stringify(snapshot.seo, null, 2), 'utf-8');
+    }
+
+    // Restore spacing
+    if (snapshot.spacing) {
+      const spacingPath = path.join(previewDir, '.spacing.json');
+      fs.writeFileSync(spacingPath, JSON.stringify(snapshot.spacing, null, 2), 'utf-8');
     }
 
     await logAudit({

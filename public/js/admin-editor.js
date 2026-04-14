@@ -65,6 +65,7 @@
       <div class="gds-ab-changes" id="gdsChangesCount"></div>
       <div class="gds-ab-spacer"></div>
       <button class="gds-ab-btn gds-ab-btn-seo" id="gdsSeoBtn">SEO</button>
+      <button class="gds-ab-btn gds-ab-btn-history" id="gdsHistoryBtn">Historique</button>
       <button class="gds-ab-btn gds-ab-btn-publish" id="gdsPublishBtn" disabled>Publier</button>
       <button class="gds-ab-btn gds-ab-btn-logout" id="gdsLogoutBtn">Deconnexion</button>
     `;
@@ -107,6 +108,7 @@
     document.getElementById('gdsLogoutBtn').addEventListener('click', logout);
     document.getElementById('gdsSeoBtn').addEventListener('click', () => seoPanel.classList.toggle('open'));
     document.getElementById('gdsSeoClose').addEventListener('click', () => seoPanel.classList.remove('open'));
+    document.getElementById('gdsHistoryBtn').addEventListener('click', openHistoryModal);
 
     // SEO field changes
     ['gdsSeoTitle', 'gdsSeoDesc', 'gdsSeoOgTitle', 'gdsSeoOgDesc'].forEach(id => {
@@ -835,6 +837,135 @@
   }
 
   // ===== IMAGE REPLACE MODAL (double-click on any image) =====
+  // ===== HISTORY / BACKUP MODAL =====
+  async function openHistoryModal() {
+    const existing = document.getElementById('gds-history-modal');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'gds-history-modal';
+    overlay.className = 'gds-modal-overlay';
+    overlay.innerHTML = `
+      <div class="gds-modal" style="max-width:620px;">
+        <div class="gds-modal-header">
+          <h3>Historique — ${escapeHtml(currentSlug)}</h3>
+          <button class="gds-modal-close" id="gds-hist-close">&times;</button>
+        </div>
+        <div class="gds-modal-body" id="gds-hist-body" style="max-height:60vh;overflow-y:auto;">
+          <div style="text-align:center;padding:20px;color:#8b949e;">Chargement...</div>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    const close = () => overlay.remove();
+    document.getElementById('gds-hist-close').addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+    const body = document.getElementById('gds-hist-body');
+
+    try {
+      const res = await Auth.apiFetch('/api/pages/' + currentSlug + '/history');
+      const data = await res.json();
+      const history = data.history || [];
+
+      if (!history.length) {
+        body.innerHTML = '<div style="text-align:center;padding:30px;color:#8b949e;">Aucun historique disponible</div>';
+        return;
+      }
+
+      const reasonLabels = {
+        'save': 'Sauvegarde',
+        'reorder': 'Reordonnancement',
+        'before-restore': 'Avant restauration'
+      };
+
+      body.innerHTML = '';
+      history.forEach(snap => {
+        const date = new Date(snap.timestamp);
+        const ago = timeAgo(date);
+        const dateStr = date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+          + ' ' + date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+        let reason = snap.reason || 'save';
+        let reasonLabel = reasonLabels[reason] || reason;
+        if (reason.startsWith('section-edit:')) {
+          reasonLabel = 'Edition ' + reason.replace('section-edit:', '');
+        }
+
+        const row = document.createElement('div');
+        row.className = 'gds-hist-row';
+        row.innerHTML = `
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:600;color:#e6edf3;">${dateStr} <span style="color:#8b949e;font-weight:400;font-size:12px;">— ${ago}</span></div>
+            <div style="font-size:12px;color:#8b949e;margin-top:2px;">
+              <span class="gds-hist-reason">${escapeHtml(reasonLabel)}</span>
+              — ${snap.sectionsCount} section${snap.sectionsCount > 1 ? 's' : ''}
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0;">
+            <button class="gds-modal-btn gds-modal-btn-cancel gds-hist-restore" data-id="${snap.id}" style="font-size:12px;padding:6px 12px;">Restaurer</button>
+            <button class="gds-modal-btn gds-modal-btn-submit gds-hist-deploy" data-id="${snap.id}" style="font-size:12px;padding:6px 12px;background:#E51981;border-color:#E51981;">Restaurer & Deployer</button>
+          </div>`;
+        body.appendChild(row);
+      });
+
+      // Event delegation for buttons
+      body.addEventListener('click', async (e) => {
+        const restoreBtn = e.target.closest('.gds-hist-restore');
+        const deployBtn = e.target.closest('.gds-hist-deploy');
+        if (!restoreBtn && !deployBtn) return;
+
+        const id = (restoreBtn || deployBtn).dataset.id;
+        const withDeploy = !!deployBtn;
+        const btn = restoreBtn || deployBtn;
+
+        if (!confirm('Restaurer cette version' + (withDeploy ? ' et la deployer en production' : '') + ' ?')) return;
+
+        btn.disabled = true;
+        btn.textContent = 'Restauration...';
+
+        try {
+          // 1. Restore
+          const restoreRes = await Auth.apiFetch('/api/pages/' + currentSlug + '/history/' + id + '/restore', { method: 'POST' });
+          if (!restoreRes.ok) throw new Error('Restauration echouee');
+
+          // 2. Deploy if requested
+          if (withDeploy) {
+            btn.textContent = 'Deploiement...';
+            const deployRes = await Auth.apiFetch('/api/deploy/shootnbox/' + currentSlug, { method: 'POST' });
+            if (!deployRes.ok) {
+              const deployData = await deployRes.json();
+              throw new Error(deployData.error || 'Deploiement echoue');
+            }
+          }
+
+          close();
+          showToast(withDeploy ? 'Restaure et deploye !' : 'Restaure !', 'success');
+          setTimeout(() => window.location.reload(), 500);
+        } catch (err) {
+          showToast('Erreur: ' + err.message, 'error');
+          btn.disabled = false;
+          btn.textContent = withDeploy ? 'Restaurer & Deployer' : 'Restaurer';
+        }
+      });
+
+    } catch (err) {
+      body.innerHTML = '<div style="text-align:center;padding:20px;color:#f85149;">Erreur: ' + escapeHtml(err.message) + '</div>';
+    }
+  }
+
+  function timeAgo(date) {
+    const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+    if (seconds < 60) return 'a l\'instant';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return 'il y a ' + minutes + 'min';
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return 'il y a ' + hours + 'h';
+    const days = Math.floor(hours / 24);
+    if (days === 1) return 'hier';
+    return 'il y a ' + days + 'j';
+  }
+
   // ===== LINK PICKER WITH AUTOCOMPLETE =====
 
   function openLinkPicker(callback) {
