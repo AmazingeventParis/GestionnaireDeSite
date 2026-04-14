@@ -58,7 +58,7 @@ function buildBannerHtml(banner) {
 
   const checkClosed = `<script>(function(){try{if(sessionStorage.getItem('snb-banner-closed-${id}')){var b=document.querySelector('.snb-promo-banner[data-banner-id="${id}"]');if(b)b.remove()}}catch(e){}})()</script>`;
 
-  const mobileCss = `@media(max-width:850px){.snb-promo-banner{position:fixed;bottom:0;left:0;right:0;z-index:9998;box-shadow:0 -4px 20px rgba(0,0,0,0.15);}body{padding-bottom:90px;}}`;
+  const mobileCss = `@media(max-width:850px){.snb-promo-banner{position:fixed!important;bottom:0!important;left:0!important;right:0!important;top:auto!important;z-index:9998!important;box-shadow:0 -4px 20px rgba(0,0,0,0.15);}body{padding-bottom:90px;}}`;
 
   if (isFullBlock) {
     // Full HTML block — inject as-is, wrapped only in the banner container
