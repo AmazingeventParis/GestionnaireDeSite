@@ -49,6 +49,18 @@
     /* Preview */
     .bn-preview-box { margin-top: 12px; border: 1px solid #30363d; border-radius: 8px; overflow: hidden; }
     .bn-preview-label { font-size: 11px; color: #8b949e; padding: 6px 12px; background: #0d1117; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+
+    /* Date inputs: force calendar picker visibility in dark theme */
+    .bn-field input[type="date"] {
+      color-scheme: dark;
+      cursor: pointer;
+    }
+    .bn-field input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(0.7);
+      cursor: pointer;
+      font-size: 18px;
+      padding: 4px;
+    }
   </style>
 </head>
 <body>
@@ -148,8 +160,8 @@
         + '</div>'
         + '<div class="bn-field"><label>Lien CTA (optionnel)</label><input type="url" id="bnLink" value="' + esc(banner ? banner.linkUrl || '' : '') + '" placeholder="https://shootnbox.fr/reservation/"></div>'
         + '<div class="bn-row">'
-        + '<div class="bn-field"><label>Date de debut</label><input type="datetime-local" id="bnStart" value="' + (banner && banner.startDate ? banner.startDate.slice(0,16) : '') + '"></div>'
-        + '<div class="bn-field"><label>Date de fin</label><input type="datetime-local" id="bnEnd" value="' + (banner && banner.endDate ? banner.endDate.slice(0,16) : '') + '"></div>'
+        + '<div class="bn-field"><label>Date de debut</label><input type="date" id="bnStart" value="' + (banner && banner.startDate ? banner.startDate.slice(0,10) : '') + '"></div>'
+        + '<div class="bn-field"><label>Date de fin</label><input type="date" id="bnEnd" value="' + (banner && banner.endDate ? banner.endDate.slice(0,10) : '') + '"></div>'
         + '</div>'
         + '<div class="bn-row">'
         + '<div class="bn-field"><label>Priorite</label><input type="number" id="bnPriority" value="' + (banner ? banner.priority || 0 : 0) + '" min="0" max="100"></div>'
@@ -195,8 +207,8 @@
           bgColor: document.getElementById('bnBg').value,
           textColor: document.getElementById('bnText').value,
           linkUrl: document.getElementById('bnLink').value.trim(),
-          startDate: document.getElementById('bnStart').value ? new Date(document.getElementById('bnStart').value).toISOString() : null,
-          endDate: document.getElementById('bnEnd').value ? new Date(document.getElementById('bnEnd').value).toISOString() : null,
+          startDate: document.getElementById('bnStart').value ? new Date(document.getElementById('bnStart').value + 'T00:00:00').toISOString() : null,
+          endDate: document.getElementById('bnEnd').value ? new Date(document.getElementById('bnEnd').value + 'T23:59:59').toISOString() : null,
           priority: parseInt(document.getElementById('bnPriority').value) || 0,
           closable: document.getElementById('bnClosable').checked,
           enabled: document.getElementById('bnEnabled').checked
