@@ -6,7 +6,8 @@ const { requireRole } = require('../middleware/rbac');
 const { logAudit } = require('../utils/audit');
 const { getClientIp } = require('../middleware/threatDetector');
 
-const BANNERS_DIR = path.join(__dirname, '..', 'banners');
+// Store banners inside previews/_shared/banners/ (persisted Docker volume gds-previews)
+const BANNERS_DIR = path.join(__dirname, '..', 'previews', '_shared', 'banners');
 if (!fs.existsSync(BANNERS_DIR)) fs.mkdirSync(BANNERS_DIR, { recursive: true });
 
 /**
