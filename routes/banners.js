@@ -51,7 +51,7 @@ function buildBannerHtml(banner) {
 
   const css = `
 .snb-promo-banner{width:100%;z-index:998;position:relative;color:${color};font-family:'Raleway',Arial,sans-serif;}
-.snb-promo-banner__inner{max-width:1300px;margin:0 auto;display:flex;align-items:center;justify-content:center;padding:12px 20px;gap:12px;font-size:14px;font-weight:600;text-align:center;}
+.snb-promo-banner__inner{width:100%;display:flex;align-items:center;justify-content:center;padding:12px 20px;gap:12px;font-size:14px;font-weight:600;text-align:center;box-sizing:border-box;}
 .snb-promo-banner__inner a{color:inherit;text-decoration:underline;}
 .snb-promo-banner__close{background:none;border:none;color:inherit;font-size:22px;cursor:pointer;opacity:0.7;padding:0 4px;line-height:1;flex-shrink:0;}
 .snb-promo-banner__close:hover{opacity:1;}
