@@ -815,6 +815,10 @@
     const existing = document.getElementById('gds-imgreplace-modal');
     if (existing) existing.remove();
 
+    // Hide floating image toolbar while modal is open
+    const imgToolbar = document.querySelector('.gds-img-toolbar');
+    if (imgToolbar) imgToolbar.style.display = 'none';
+
     const isVideo = imgEl.tagName.toLowerCase() === 'video';
     const currentSrc = imgEl.src || '';
     const currentAlt = imgEl.getAttribute('alt') || '';
