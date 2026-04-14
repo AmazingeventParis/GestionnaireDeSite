@@ -355,6 +355,98 @@ router.get('/', verifyToken, async (req, res) => {
 });
 
 /**
+ * GET /search?q=keyword — Search pages by title and content
+ * Returns pages sorted: title matches first (by relevance), then content matches (by occurrence count)
+ */
+router.get('/search', verifyToken, async (req, res) => {
+  try {
+    const q = (req.query.q || '').toLowerCase().trim();
+    if (!q || q.length < 2) return res.json({ results: [] });
+
+    const baseDir = getPD();
+    if (!fs.existsSync(baseDir)) return res.json({ results: [] });
+
+    const titleMatches = [];
+    const contentMatches = [];
+
+    // Collect all page dirs
+    const dirs = [{ dir: baseDir, slug: 'home' }];
+    const subDirs = fs.readdirSync(baseDir, { withFileTypes: true })
+      .filter(d => d.isDirectory() && !d.name.startsWith('.') && !d.name.startsWith('_'));
+    for (const d of subDirs) {
+      dirs.push({ dir: path.join(baseDir, d.name), slug: d.name });
+    }
+
+    for (const { dir, slug } of dirs) {
+      // Read SEO
+      let seo = {};
+      const seoPath = path.join(dir, 'seo.json');
+      if (fs.existsSync(seoPath)) {
+        try { seo = JSON.parse(fs.readFileSync(seoPath, 'utf-8')); } catch {}
+      }
+
+      const name = seo.title || slug.replace(/-/g, ' ').replace(/^\w/, c => c.toUpperCase());
+      const urlPath = seo.urlPath ? '/' + seo.urlPath.replace(/^\//, '') : '/' + slug;
+      const titleHaystack = (name + ' ' + slug + ' ' + urlPath).toLowerCase();
+
+      // Check title match
+      const inTitle = titleHaystack.includes(q);
+
+      // Count occurrences in content
+      let contentCount = 0;
+      const htmlFiles = fs.readdirSync(dir).filter(f => f.endsWith('.html') && !f.startsWith('.'));
+      for (const f of htmlFiles) {
+        try {
+          const content = fs.readFileSync(path.join(dir, f), 'utf-8').toLowerCase();
+          // Strip HTML tags for cleaner matching
+          const text = content.replace(/<[^>]+>/g, ' ');
+          let idx = 0;
+          while ((idx = text.indexOf(q, idx)) !== -1) { contentCount++; idx += q.length; }
+        } catch {}
+      }
+
+      if (!inTitle && contentCount === 0) continue;
+
+      const entry = { slug, name, urlPath, inTitle, contentCount };
+
+      if (inTitle) {
+        // Score title matches: exact slug match > word start > contains
+        let score = 0;
+        if (slug === q) score = 1000;
+        else if (slug.startsWith(q)) score = 500;
+        else if (name.toLowerCase().startsWith(q)) score = 400;
+        else if (name.toLowerCase().includes(q)) score = 200;
+        else score = 100;
+        // Boost by content count too
+        score += Math.min(contentCount, 50);
+        entry._score = score;
+        titleMatches.push(entry);
+      } else {
+        entry._score = contentCount;
+        contentMatches.push(entry);
+      }
+    }
+
+    // Sort: title matches by score desc, content matches by count desc
+    titleMatches.sort((a, b) => b._score - a._score);
+    contentMatches.sort((a, b) => b._score - a._score);
+
+    const results = [...titleMatches, ...contentMatches].map(r => ({
+      slug: r.slug,
+      name: r.name,
+      urlPath: r.urlPath,
+      inTitle: r.inTitle,
+      contentCount: r.contentCount
+    }));
+
+    res.json({ results });
+  } catch (err) {
+    console.error('[Pages] Search error:', err.message);
+    res.status(500).json({ error: 'Erreur recherche' });
+  }
+});
+
+/**
  * POST /create — Create a new page with a default hero section
  * Body: { slug: "my-page", name: "Ma page" }
  * RBAC: admin only

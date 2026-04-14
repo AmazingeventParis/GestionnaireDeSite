@@ -822,7 +822,6 @@
 
   // ===== IMAGE REPLACE MODAL (double-click on any image) =====
   // ===== LINK PICKER WITH AUTOCOMPLETE =====
-  let _linkPickerPages = null; // cached page list
 
   function openLinkPicker(callback) {
     const existing = document.getElementById('gds-link-picker');
@@ -899,47 +898,43 @@
       results.innerHTML = '<div style="padding:8px 12px;color:#3fb950;font-size:12px;">&#10003; ' + escapeHtml(label) + '</div>';
     }
 
-    function renderResults(pages, media) {
+    function renderResults(pages) {
       results.innerHTML = '';
-      if (!pages.length && !media.length) {
+      if (!pages.length) {
         results.innerHTML = '<div style="padding:12px;color:#8b949e;font-size:12px;">Aucun resultat</div>';
         return;
       }
 
-      if (pages.length) {
-        const h = document.createElement('div');
-        h.style.cssText = 'padding:6px 12px;font-size:10px;font-weight:800;color:#8b949e;text-transform:uppercase;letter-spacing:1px;';
-        h.textContent = 'Pages (' + pages.length + ')';
-        results.appendChild(h);
+      // Split into title matches and content-only matches
+      const titlePages = pages.filter(p => p.inTitle);
+      const contentPages = pages.filter(p => !p.inTitle);
 
-        pages.forEach(p => {
-          const row = document.createElement('div');
-          row.className = 'gds-lp-row';
-          const urlPath = p.urlPath || '/' + p.slug;
-          row.innerHTML = '<span style="color:#e6edf3;font-weight:600;">' + escapeHtml(p.name || p.slug) + '</span>'
-            + '<span style="color:#8b949e;font-size:11px;margin-left:8px;">' + escapeHtml(urlPath) + '</span>';
-          row.addEventListener('click', () => selectResult('https://shootnbox.fr' + urlPath, p.name || p.slug));
-          results.appendChild(row);
-        });
+      if (titlePages.length) {
+        const h = document.createElement('div');
+        h.style.cssText = 'padding:6px 12px;font-size:10px;font-weight:800;color:#E51981;text-transform:uppercase;letter-spacing:1px;';
+        h.textContent = 'Pages — titre (' + titlePages.length + ')';
+        results.appendChild(h);
+        titlePages.forEach(p => results.appendChild(makePageRow(p)));
       }
 
-      if (media.length) {
+      if (contentPages.length) {
         const h = document.createElement('div');
         h.style.cssText = 'padding:6px 12px;font-size:10px;font-weight:800;color:#8b949e;text-transform:uppercase;letter-spacing:1px;margin-top:6px;';
-        h.textContent = 'Medias (' + media.length + ')';
+        h.textContent = 'Pages — contenu (' + contentPages.length + ')';
         results.appendChild(h);
-
-        media.forEach(m => {
-          const row = document.createElement('div');
-          row.className = 'gds-lp-row';
-          const isImg = /\.(webp|jpg|jpeg|png|gif|svg)$/i.test(m.name);
-          row.innerHTML = (isImg ? '<img src="' + escapeHtml(m.path) + '" style="width:28px;height:28px;object-fit:cover;border-radius:4px;flex-shrink:0;">' : '')
-            + '<span style="color:#e6edf3;font-weight:600;">' + escapeHtml(m.name) + '</span>'
-            + (m.folder ? '<span style="color:#8b949e;font-size:11px;margin-left:8px;">/' + escapeHtml(m.folder) + '</span>' : '');
-          row.addEventListener('click', () => selectResult(m.path, m.name));
-          results.appendChild(row);
-        });
+        contentPages.forEach(p => results.appendChild(makePageRow(p)));
       }
+    }
+
+    function makePageRow(p) {
+      const row = document.createElement('div');
+      row.className = 'gds-lp-row';
+      const urlPath = p.urlPath || '/' + p.slug;
+      row.innerHTML = '<span style="color:#e6edf3;font-weight:600;">' + escapeHtml(p.name || p.slug) + '</span>'
+        + '<span style="color:#58a6ff;font-size:11px;margin-left:8px;">' + escapeHtml(urlPath) + '</span>'
+        + (p.contentCount ? '<span style="color:#8b949e;font-size:10px;margin-left:auto;white-space:nowrap;">' + p.contentCount + 'x</span>' : '');
+      row.addEventListener('click', () => selectResult('https://shootnbox.fr' + urlPath, p.name || p.slug));
+      return row;
     }
 
     // Search with debounce
@@ -956,22 +951,15 @@
     }
 
     async function doSearch(q) {
-      const qLower = q.toLowerCase();
-
-      // Pages: filter from cached list
-      if (!_linkPickerPages) {
-        try {
-          const res = await Auth.apiFetch('/api/pages');
-          const data = await res.json();
-          _linkPickerPages = data.pages || [];
-        } catch { _linkPickerPages = []; }
+      results.innerHTML = '<div style="padding:12px;color:#8b949e;font-size:12px;">Recherche...</div>';
+      try {
+        const res = await Auth.apiFetch('/api/pages/search?q=' + encodeURIComponent(q));
+        const data = await res.json();
+        const pages = data.results || [];
+        renderResults(pages, []);
+      } catch {
+        results.innerHTML = '<div style="padding:12px;color:#f85149;font-size:12px;">Erreur de recherche</div>';
       }
-      const matchedPages = _linkPickerPages.filter(p => {
-        const haystack = ((p.name || '') + ' ' + (p.slug || '') + ' ' + (p.urlPath || '')).toLowerCase();
-        return haystack.includes(qLower);
-      }).slice(0, 8);
-
-      renderResults(matchedPages, []);
     }
 
     // Focus input
