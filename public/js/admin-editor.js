@@ -430,14 +430,21 @@
     });
 
     // Global Ctrl+Z: undo when not actively editing a contenteditable
-    document.addEventListener('keydown', (e) => {
+    function handleGlobalUndo(e) {
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-        const active = document.activeElement;
-        if (active && active.getAttribute('contenteditable') === 'true') return; // let browser handle it
+        // Skip if user is typing in a contenteditable or input/textarea
+        const active = e.target;
+        if (active && (active.getAttribute('contenteditable') === 'true' ||
+            active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
         e.preventDefault();
         undoPop();
       }
-    });
+    }
+    document.addEventListener('keydown', handleGlobalUndo);
+    // Also listen on parent document if embedded in iframe
+    if (isEmbedded) {
+      try { window.parent.document.addEventListener('keydown', handleGlobalUndo); } catch(e) {}
+    }
   }
 
   // ===== INIT EDITABLE IMAGES =====
