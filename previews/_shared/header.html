@@ -259,66 +259,6 @@
 .card-vegas .snb-mega-card-cta { color: #0250FF; background: rgba(2,80,255,0.08); }
 .card-miroir .snb-mega-card-cta { color: #7828C8; background: rgba(120,40,200,0.08); }
 .card-spinner .snb-mega-card-cta { color: #FF7A00; background: rgba(255,122,0,0.08); }
-.card-aircam .snb-mega-card-cta { color: #16A34A; background: rgba(22,163,74,0.08); }
-.card-fashion .snb-mega-card-cta { color: #E51981; background: rgba(229,25,129,0.08); }
-.card-karaoke .snb-mega-card-cta { color: #7828C8; background: rgba(120,40,200,0.08); }
-
-/* Hover couleurs nouvelles bornes */
-.snb-mega-card.card-aircam:hover { background: rgba(22,163,74,0.05); }
-.snb-mega-card.card-fashion:hover { background: rgba(229,25,129,0.05); }
-.snb-mega-card.card-karaoke:hover { background: rgba(120,40,200,0.05); }
-
-/* Placeholder image pour bornes sans photo */
-.snb-mega-card-img-placeholder {
-  width: 52px;
-  height: 52px;
-  min-width: 52px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-}
-
-/* ========== DROPDOWN LOCATION ========== */
-.snb-mega--location {
-  width: 290px;
-}
-
-.snb-location-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 10px;
-  border-radius: 10px;
-  text-decoration: none;
-  color: #323338;
-  font-size: 13.5px;
-  font-weight: 600;
-  transition: all 0.2s ease;
-}
-
-.snb-location-item:hover {
-  background: rgba(229,25,129,0.06);
-  color: #E51981;
-  padding-left: 14px;
-}
-
-.snb-location-item .snb-loc-emoji {
-  font-size: 18px;
-  width: 34px;
-  height: 34px;
-  min-width: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f8f0ff;
-  border-radius: 8px;
-}
-
-.snb-location-item:hover .snb-loc-emoji {
-  background: rgba(229,25,129,0.1);
-}
 
 .snb-mega-card-cta svg { width: 14px; height: 14px; }
 
@@ -423,24 +363,6 @@
 .snb-header-cta:hover svg { transform: translateX(3px); }
 
 /* ========== BURGER MOBILE ========== */
-.snb-mobile-reserver {
-  display: none;
-  align-items: center;
-  gap: 6px;
-  background: linear-gradient(135deg, #E51981, #c41470);
-  color: #fff !important;
-  text-decoration: none !important;
-  font-size: 13px;
-  font-weight: 700;
-  padding: 8px 14px;
-  border-radius: 20px;
-  letter-spacing: 0.2px;
-  box-shadow: 0 3px 10px rgba(229,25,129,0.3);
-  transition: all 0.25s ease;
-  font-family: 'Raleway', sans-serif;
-}
-.snb-mobile-reserver:hover { transform: translateY(-1px); box-shadow: 0 5px 16px rgba(229,25,129,0.45); }
-
 .snb-burger {
   display: none;
   flex-direction: column;
@@ -480,7 +402,6 @@
   opacity: 0;
   pointer-events: none;
   transition: all 0.3s ease;
-  z-index: 9998;
 }
 
 .snb-mobile-menu.open { transform: translateY(0); opacity: 1; pointer-events: auto; }
@@ -535,7 +456,6 @@
   .snb-header-cta,
   .snb-header-cta:link,
   .snb-header-cta:visited { display: none !important; }
-  .snb-mobile-reserver { display: inline-flex !important; }
   .snb-burger { display: flex !important; }
   .snb-mobile-menu { display: block !important; }
   .snb-mega, .snb-mega-overlay { display: none !important; }
@@ -547,48 +467,19 @@
 </style>
 <header class="snb-header" id="snbHeader">
 <div class="snb-header-inner">
-<a href="https://shootnbox.fr/" class="snb-logo">
+<a href="/" class="snb-logo">
 <img src="/images/logo/shootnbox-logo-new-1.webp" alt="Shootnbox" width="330" height="175" fetchpriority="high" decoding="async">
 </a>
 <nav class="snb-nav">
+<a href="/location-photobooth/" class="snb-nav-link">Location</a>
 <div class="snb-dropdown">
-<a href="/location-photobooth/" class="snb-nav-link snb-dropdown-trigger">
-Location
-<svg class="snb-chevron" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
-</a>
-<div class="snb-mega snb-mega--location">
-<div class="snb-mega-grid">
-<a href="/location-photobooth/" class="snb-location-item">
-<span class="snb-loc-emoji">📸</span>
-Location Photobooth
-</a>
-<a href="/photobooth-soiree-entreprise/" class="snb-location-item">
-<span class="snb-loc-emoji">🏭</span>
-Location Photobooth Entreprises
-</a>
-<a href="/mariage/" class="snb-location-item">
-<span class="snb-loc-emoji">💍</span>
-Location Photobooth Mariage
-</a>
-<a href="/anniversaire/" class="snb-location-item">
-<span class="snb-loc-emoji">🎂</span>
-Location Photobooth Anniversaire
-</a>
-<a href="https://shootnbox.fr/location-photocall/" class="snb-location-item">
-<span class="snb-loc-emoji">🧱</span>
-Location Photocall
-</a>
-</div>
-</div>
-</div>
-<div class="snb-dropdown">
-<a href="/location-photobooth/" class="snb-nav-link snb-dropdown-trigger">
+<a href="/nos-bornes/" class="snb-nav-link snb-dropdown-trigger">
 Nos bornes
 <svg class="snb-chevron" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
 </a>
 <div class="snb-mega">
 <div class="snb-mega-grid">
-<a href="/le-ring/" class="snb-mega-card card-ring">
+<a href="/borne-photo-ring/" class="snb-mega-card card-ring">
 <div class="snb-mega-card-img">
 <img src="/images/bornes/Ring.webp" alt="Borne Ring" width="1200" height="898" loading="lazy" decoding="async">
 </div>
@@ -598,7 +489,7 @@ Nos bornes
 </div>
 <div class="snb-mega-card-cta" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></div>
 </a>
-<a href="/vegas/" class="snb-mega-card card-vegas">
+<a href="/borne-photo-vegas/" class="snb-mega-card card-vegas">
 <div class="snb-mega-card-img">
 <img src="/images/bornes/Vegas.webp" alt="Borne Vegas" width="1200" height="898" loading="lazy" decoding="async">
 </div>
@@ -608,7 +499,7 @@ Nos bornes
 </div>
 <div class="snb-mega-card-cta" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></div>
 </a>
-<a href="/location-photobooth-miroir/" class="snb-mega-card card-miroir">
+<a href="/borne-photo-miroir/" class="snb-mega-card card-miroir">
 <div class="snb-mega-card-img">
 <img src="/images/bornes/Miroir.webp" alt="Borne Miroir" width="1200" height="898" loading="lazy" decoding="async">
 </div>
@@ -618,7 +509,7 @@ Nos bornes
 </div>
 <div class="snb-mega-card-cta" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></div>
 </a>
-<a href="/le-spinner/" class="snb-mega-card card-spinner">
+<a href="/borne-photo-spinner/" class="snb-mega-card card-spinner">
 <div class="snb-mega-card-img">
 <img src="/images/bornes/Spinner.webp" alt="Spinner 360" width="1200" height="898" loading="lazy" decoding="async">
 </div>
@@ -628,43 +519,13 @@ Nos bornes
 </div>
 <div class="snb-mega-card-cta" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></div>
 </a>
-<a href="https://shootnbox.fr/aircam-360/" class="snb-mega-card card-aircam">
-<div class="snb-mega-card-img">
-<img src="/site-images/aircam---28-1775807293086-480w.webp" alt="AirCam 360" width="480" height="480" loading="lazy" decoding="async">
 </div>
-<div class="snb-mega-card-body">
-<div class="snb-mega-card-name">AirCam 360 ©</div>
-<div class="snb-mega-card-desc">La caméra 360 suspendue</div>
-</div>
-<div class="snb-mega-card-cta" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></div>
-</a>
-<a href="https://shootnbox.fr/location-fashion-box/" class="snb-mega-card card-fashion">
-<div class="snb-mega-card-img">
-<img src="/site-images/contour-fashion-box-1-1775822388898.webp" alt="Fashion Box" width="480" height="480" loading="lazy" decoding="async">
-</div>
-<div class="snb-mega-card-body">
-<div class="snb-mega-card-name">Fashion Box</div>
-<div class="snb-mega-card-desc">Le photobooth mode & style</div>
-</div>
-<div class="snb-mega-card-cta" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></div>
-</a>
-<a href="/location-karaoke/" class="snb-mega-card card-karaoke">
-<div class="snb-mega-card-img">
-<img src="/site-images/karaoke-1775744507586.webp" alt="Borne Karaoké" width="768" height="731" loading="lazy" decoding="async">
-</div>
-<div class="snb-mega-card-body">
-<div class="snb-mega-card-name">Karaoké</div>
-<div class="snb-mega-card-desc">La scène karaoké interactive</div>
-</div>
-<div class="snb-mega-card-cta" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></div>
-</a>
-</div>
-<a href="/location-photobooth/" class="snb-mega-footer">Voir toutes les bornes</a>
+<a href="/nos-bornes/" class="snb-mega-footer">Voir toutes les bornes</a>
 </div>
 </div>
-<a href="https://shootnbox.fr/reservation/" class="snb-nav-link">Réservation</a>
-<a href="https://shootnbox.fr/contacts/" class="snb-nav-link">Contact</a>
-<a href="https://shootnbox.fr/blog/" class="snb-nav-link">Blog</a>
+<a href="/reservation/" class="snb-nav-link">Reservation</a>
+<a href="/contact/" class="snb-nav-link">Contact</a>
+<a href="/blog/" class="snb-nav-link">Blog</a>
 </nav>
 <div class="snb-header-right">
 <div class="snb-phones">
@@ -672,12 +533,15 @@ Nos bornes
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
 01.45.01.66.66
 </a>
+<a href="tel:0532969696" class="snb-phone">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+05.32.96.96.96
+</a>
 </div>
-<a href="https://shootnbox.fr/reservation/" class="snb-header-cta">
+<a href="/reservation/" class="snb-header-cta">
 Obtenir un devis
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
 </a>
-<a href="https://shootnbox.fr/reservation/" class="snb-mobile-reserver" aria-label="Réserver">Réserver</a>
 <button class="snb-burger" id="snbBurger" aria-label="Menu">
 <span></span>
 <span></span>
@@ -687,68 +551,22 @@ Obtenir un devis
 </div>
 <div class="snb-mobile-menu" id="snbMobileMenu">
 <a href="/location-photobooth/">Location</a>
+<a href="/nos-bornes/">Nos bornes</a>
 <div class="snb-mobile-sub">
-<a href="/location-photobooth/">📸 Location Photobooth</a>
-<a href="/photobooth-soiree-entreprise/">🏭 Entreprises</a>
-<a href="/mariage/">💍 Mariage</a>
-<a href="/anniversaire/">🎂 Anniversaire</a>
-<a href="https://shootnbox.fr/location-photocall/">🧱 Photocall</a>
+<a href="/borne-photo-ring/">Borne Ring</a>
+<a href="/borne-photo-vegas/">Borne Vegas</a>
+<a href="/borne-photo-miroir/">Borne Miroir</a>
+<a href="/borne-photo-spinner/">Spinner 360°</a>
 </div>
-<a href="/location-photobooth/">Nos bornes</a>
-<div class="snb-mobile-sub">
-<a href="/le-ring/">Borne Ring</a>
-<a href="/vegas/">Borne Vegas</a>
-<a href="/location-photobooth-miroir/">Borne Miroir</a>
-<a href="/le-spinner/">Spinner 360°</a>
-<a href="https://shootnbox.fr/aircam-360/">AirCam 360 ©</a>
-<a href="https://shootnbox.fr/location-fashion-box/">Fashion Box</a>
-<a href="/location-karaoke/">Karaoké</a>
-</div>
-<a href="https://shootnbox.fr/reservation/">Réservation</a>
-<a href="https://shootnbox.fr/contacts/">Contact</a>
-<a href="https://shootnbox.fr/blog/">Blog</a>
+<a href="/reservation/">Reservation</a>
+<a href="/contact/">Contact</a>
+<a href="/blog/">Blog</a>
 <div class="snb-mobile-divider"></div>
 <div class="snb-mobile-phones">
 <a href="tel:0145016666" class="snb-phone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"></path></svg> 01.45.01.66.66</a>
+<a href="tel:0532969696" class="snb-phone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"></path></svg> 05.32.96.96.96</a>
 </div>
-<a href="https://shootnbox.fr/reservation/" class="snb-mobile-cta">Obtenir un devis</a>
+<a href="/reservation/" class="snb-mobile-cta">Obtenir un devis</a>
 </div>
+<script>(function(){if(document.querySelector('.snb-promo-banner'))return;fetch('https://sites.swipego.app/api/banners/active').then(function(r){return r.ok?r.text():''}).then(function(h){if(!h)return;var hdr=document.querySelector('.snb-header');if(hdr)hdr.insertAdjacentHTML('afterend',h)}).catch(function(){})})()</script>
 </header>
-<script>
-(function() {
-  function initHeader() {
-    var burger = document.getElementById('snbBurger');
-    var menu = document.getElementById('snbMobileMenu');
-    if (!burger || !menu || burger._snbInit) return;
-    burger._snbInit = true;
-
-    burger.addEventListener('click', function() {
-      var isOpen = menu.classList.toggle('open');
-      burger.classList.toggle('active', isOpen);
-      document.body.style.overflow = isOpen ? 'hidden' : '';
-    });
-
-    // Close menu when a link is clicked
-    menu.querySelectorAll('a').forEach(function(link) {
-      link.addEventListener('click', function() {
-        menu.classList.remove('open');
-        burger.classList.remove('active');
-        document.body.style.overflow = '';
-      });
-    });
-
-    // Scroll effect on header
-    var header = document.getElementById('snbHeader');
-    if (header) {
-      window.addEventListener('scroll', function() {
-        header.classList.toggle('scrolled', window.scrollY > 30);
-      }, { passive: true });
-    }
-  }
-
-  // Le burger est déjà dans le DOM (il est avant ce script) — init immédiate
-  initHeader();
-  // Fallback au cas où (page en cache ou readyState déjà avancé)
-  document.addEventListener('DOMContentLoaded', initHeader);
-})();
-</script>
