@@ -19,11 +19,7 @@
   function undoPush(el) {
     const id = el.getAttribute('data-gds-edit');
     if (!id) return;
-    const tagBar = el.querySelector('.gds-tag-select');
-    if (tagBar) tagBar.remove();
-    const html = el.innerHTML.trim();
-    if (tagBar) el.appendChild(tagBar);
-    undoStack.push({ id, html, tag: el.tagName.toLowerCase() });
+    undoStack.push({ id, html: el.innerHTML.trim(), tag: el.tagName.toLowerCase() });
     if (undoStack.length > UNDO_MAX) undoStack.shift();
   }
 
@@ -32,11 +28,7 @@
     const snap = undoStack.pop();
     const el = document.querySelector('[data-gds-edit="' + snap.id + '"]');
     if (!el) return;
-    // Save current state for redo possibility (not implemented, just for safety)
-    const tagBar = el.querySelector('.gds-tag-select');
-    if (tagBar) tagBar.remove();
     el.innerHTML = snap.html;
-    if (tagBar) el.appendChild(tagBar);
     // Restore tag if changed
     if (el.tagName.toLowerCase() !== snap.tag) {
       const newEl = document.createElement(snap.tag);
@@ -377,8 +369,12 @@
       });
       tagBar.appendChild(undoBtn);
 
-      el.style.position = 'relative';
-      el.appendChild(tagBar);
+      // Place toolbar as a sibling wrapper (not inside the editable element)
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'position:relative;display:contents;';
+      el.parentNode.insertBefore(wrapper, el);
+      wrapper.appendChild(tagBar);
+      wrapper.appendChild(el);
 
       // On click: enter edit mode
       el.addEventListener('click', (e) => {
@@ -395,6 +391,10 @@
         undoPush(el);
         el.setAttribute('contenteditable', 'true');
         tagBar.style.display = 'flex';
+        // Position toolbar above the element
+        tagBar.style.position = 'absolute';
+        tagBar.style.top = (el.offsetTop - 42) + 'px';
+        tagBar.style.left = el.offsetLeft + 'px';
       });
 
       // On blur: exit edit mode, track changes
@@ -402,6 +402,13 @@
         el.removeAttribute('contenteditable');
         tagBar.style.display = 'none';
         trackChange(el, id);
+      });
+
+      // Paste as plain text only (preserve existing formatting)
+      el.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+        document.execCommand('insertText', false, text);
       });
 
       // Prevent Enter from creating divs
@@ -1450,12 +1457,7 @@
   }
 
   function trackChange(el, id) {
-    // Temporarily remove the tag bar from DOM to get clean innerHTML
-    const tagBar = el.querySelector('.gds-tag-select');
-    if (tagBar) tagBar.remove();
     const cleanText = el.innerHTML.trim();
-    if (tagBar) el.appendChild(tagBar);
-
     const currentTag = el.tagName.toLowerCase();
     const origTag = el.dataset.gdsOrigTag || currentTag;
 
@@ -1476,13 +1478,13 @@
     el.dataset.gdsOrigTag = el.dataset.gdsOrigTag || tag;
     el.setAttribute('tabindex', '0');
 
-    // Rebuild tag bar
-    let tagBar = el.querySelector('.gds-tag-select');
+    // Rebuild tag bar as sibling (not inside editable element)
+    let tagBar = el.parentNode && el.previousElementSibling && el.previousElementSibling.classList.contains('gds-tag-select')
+      ? el.previousElementSibling : null;
     if (!tagBar) {
       tagBar = document.createElement('div');
       tagBar.className = 'gds-tag-select';
-      el.style.position = 'relative';
-      el.appendChild(tagBar);
+      el.parentNode.insertBefore(tagBar, el);
     }
     tagBar.innerHTML = '';
     // Tag buttons
@@ -1512,6 +1514,11 @@
     const hb = document.createElement('button'); hb.className = 'gds-tag-btn'; hb.innerHTML = '&lt;/&gt;'; hb.title = 'Editer HTML'; hb.type = 'button';
     hb.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); openHtmlEditor(el, id); });
     tagBar.appendChild(hb);
+    // Undo button
+    const sep4b = document.createElement('div'); sep4b.className = 'gds-toolbar-sep'; tagBar.appendChild(sep4b);
+    const ub = document.createElement('button'); ub.className = 'gds-tag-btn'; ub.innerHTML = '&#8630;'; ub.title = 'Annuler (Ctrl+Z)'; ub.type = 'button';
+    ub.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); undoPop(); });
+    tagBar.appendChild(ub);
     tagBar.style.display = 'none';
 
     el.addEventListener('click', (e) => {
@@ -1522,14 +1529,25 @@
     });
 
     el.addEventListener('focus', () => {
+      undoPush(el);
       el.setAttribute('contenteditable', 'true');
       tagBar.style.display = 'flex';
+      tagBar.style.position = 'absolute';
+      tagBar.style.top = (el.offsetTop - 42) + 'px';
+      tagBar.style.left = el.offsetLeft + 'px';
     });
 
     el.addEventListener('blur', () => {
       el.removeAttribute('contenteditable');
       tagBar.style.display = 'none';
       trackChange(el, id);
+    });
+
+    // Paste as plain text only
+    el.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+      document.execCommand('insertText', false, text);
     });
 
     el.addEventListener('keydown', (e) => {
