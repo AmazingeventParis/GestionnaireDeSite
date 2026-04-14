@@ -282,7 +282,7 @@
       // Save selection before opening picker (otherwise it's lost)
       const sel = window.getSelection();
       const savedRange = sel.rangeCount > 0 ? sel.getRangeAt(0).cloneRange() : null;
-      openLinkPicker((url) => {
+      openLinkPicker((url, opts) => {
         if (!url) return;
         // Restore selection
         if (savedRange) {
@@ -290,6 +290,20 @@
           sel.addRange(savedRange);
         }
         document.execCommand('createLink', false, url);
+        // Find the just-created link and apply attributes
+        const anchor = sel.anchorNode ? sel.anchorNode.parentElement.closest('a') || sel.anchorNode.querySelector && sel.anchorNode.querySelector('a[href="' + url + '"]') : null;
+        // Fallback: find by href in the editable element
+        const editableEl = el;
+        const links = editableEl.querySelectorAll('a[href="' + CSS.escape(url) + '"]');
+        const link = anchor || links[links.length - 1];
+        if (link) {
+          if (opts.newTab) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', (opts.noFollow ? 'nofollow ' : '') + 'noopener noreferrer');
+          } else if (opts.noFollow) {
+            link.setAttribute('rel', 'nofollow');
+          }
+        }
       });
     }));
     tagBar.appendChild(tbBtn('&#10060;', 'Supprimer le lien', () => document.execCommand('unlink', false, null)));
@@ -840,9 +854,12 @@
           <input type="text" id="gds-lp-input" placeholder="Tapez une URL ou recherchez une page / un media..." autocomplete="off"
             style="width:100%;padding:11px 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:14px;box-sizing:border-box;margin-bottom:4px;">
           <div id="gds-lp-results" style="max-height:300px;overflow-y:auto;"></div>
-          <div style="margin-top:12px;">
+          <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">
             <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#8b949e;cursor:pointer;">
               <input type="checkbox" id="gds-lp-newtab"> Ouvrir dans un nouvel onglet
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#8b949e;cursor:pointer;">
+              <input type="checkbox" id="gds-lp-nofollow"> nofollow <span style="font-size:10px;color:#484f58;">(ne pas transmettre le jus SEO)</span>
             </label>
           </div>
         </div>
@@ -876,16 +893,20 @@
     });
 
     // Submit
-    submitBtn.addEventListener('click', () => {
+    function doSubmit() {
       if (!selectedUrl) return;
+      const opts = {
+        newTab: document.getElementById('gds-lp-newtab').checked,
+        noFollow: document.getElementById('gds-lp-nofollow').checked
+      };
       close();
-      callback(selectedUrl);
-    });
+      callback(selectedUrl, opts);
+    }
+    submitBtn.addEventListener('click', doSubmit);
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && selectedUrl) {
         e.preventDefault();
-        close();
-        callback(selectedUrl);
+        doSubmit();
       }
       if (e.key === 'Escape') close();
     });
