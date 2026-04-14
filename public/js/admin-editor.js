@@ -2729,7 +2729,7 @@
         const level = h.tagName; // H1, H2, H3, H4
         const indent = (parseInt(level[1]) - 1) * 12;
         const color = HN_COLORS[level] || '#8b949e';
-        const text = h.textContent.trim().substring(0, 60) || '(vide)';
+        const text = h.textContent.trim().substring(0, 120) || '(vide)';
         const row = document.createElement('div');
         row.className = 'gds-ss-hn-row';
         row.style.paddingLeft = (8 + indent) + 'px';
