@@ -274,6 +274,10 @@
       <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8s3.58 8 8 8 8-3.58 8-8-3.58-8-8-8zm0 14.5a6.5 6.5 0 110-13 6.5 6.5 0 010 13zM6.5 5a1 1 0 112 0 1 1 0 01-2 0zM7 7.5a.75.75 0 011.5 0v4a.75.75 0 01-1.5 0z"/></svg>
       <span class="btn-label">SEO</span>
     </button>
+    <button class="topbar-btn" id="btn-history" title="Historique / Backup" style="background:#21262d;border-color:#30363d;">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M1.705 8.005a.75.75 0 01.834.656 5.5 5.5 0 009.592 2.97l-1.204-1.204a.25.25 0 01.177-.427h3.646a.25.25 0 01.25.25v3.646a.25.25 0 01-.427.177l-1.38-1.38A7.002 7.002 0 011.05 8.84a.75.75 0 01.656-.834zM8 2.5a5.487 5.487 0 00-4.131 1.869l1.204 1.204A.25.25 0 014.896 6H1.25A.25.25 0 011 5.75V2.104a.25.25 0 01.427-.177l1.38 1.38A7.002 7.002 0 0114.95 7.16a.75.75 0 11-1.49.178A5.5 5.5 0 008 2.5z"/></svg>
+      <span class="btn-label">Historique</span>
+    </button>
     <button class="topbar-btn btn-save" id="btn-save" title="Sauvegarder">
       <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M5.75 1a.75.75 0 00-.75.75v3c0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75v-3a.75.75 0 00-.75-.75h-4.5zm.75 3V2.5h3V4h-3zm-2.874-.467a.75.75 0 00-.752.75v7.5a.75.75 0 001.5 0V9h7.252v2.783a.75.75 0 001.5 0v-7.5a.75.75 0 00-.752-.75H3.626zM12.876 7.5H3.124V5.033h9.752V7.5z"/></svg>
       <span class="btn-label">Sauvegarder</span>
@@ -632,6 +636,88 @@
       // SEO fields live preview
       ['seo-title', 'seo-description', 'seo-og-title', 'seo-og-description'].forEach(function(id) {
         document.getElementById(id).addEventListener('input', updateSeoPreview);
+      });
+
+      // History / Backup
+      document.getElementById('btn-history').addEventListener('click', async function() {
+        var slug = currentSlug;
+        if (!slug) return;
+        // Open history modal — reuse the pattern from admin-editor.js
+        var existing = document.getElementById('gds-history-modal');
+        if (existing) existing.remove();
+
+        var overlay = document.createElement('div');
+        overlay.id = 'gds-history-modal';
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:center;justify-content:center;';
+        overlay.innerHTML = '<div style="background:#161b22;border:1px solid #30363d;border-radius:12px;width:90%;max-width:620px;max-height:85vh;overflow-y:auto;box-shadow:0 16px 48px rgba(0,0,0,0.4);">'
+          + '<div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid #30363d;"><h3 style="color:#e6edf3;font-size:18px;font-weight:700;margin:0;">Historique — ' + slug + '</h3><button id="hist-close" style="background:none;border:none;color:#8b949e;font-size:24px;cursor:pointer;">&times;</button></div>'
+          + '<div id="hist-body" style="padding:20px;max-height:60vh;overflow-y:auto;"><div style="text-align:center;padding:20px;color:#8b949e;">Chargement...</div></div></div>';
+        document.body.appendChild(overlay);
+
+        var close = function() { overlay.remove(); };
+        document.getElementById('hist-close').addEventListener('click', close);
+        overlay.addEventListener('click', function(e) { if (e.target === overlay) close(); });
+
+        try {
+          var res = await Auth.apiFetch('/api/pages/' + slug + '/history');
+          var data = await res.json();
+          var history = data.history || [];
+          var body = document.getElementById('hist-body');
+
+          if (!history.length) {
+            body.innerHTML = '<div style="text-align:center;padding:30px;color:#8b949e;">Aucun historique</div>';
+            return;
+          }
+
+          var reasonLabels = { save: 'Sauvegarde', reorder: 'Reordonnancement', 'before-restore': 'Avant restauration' };
+          var html = '';
+          history.forEach(function(snap) {
+            var date = new Date(snap.timestamp);
+            var dateStr = date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+            var reason = snap.reason || 'save';
+            var label = reasonLabels[reason] || reason;
+            if (reason.indexOf('section-edit:') === 0) label = 'Edition ' + reason.replace('section-edit:', '');
+            var secs = Math.floor((Date.now() - date.getTime()) / 1000);
+            var ago = secs < 60 ? "a l'instant" : secs < 3600 ? Math.floor(secs/60) + 'min' : secs < 86400 ? Math.floor(secs/3600) + 'h' : Math.floor(secs/86400) + 'j';
+
+            html += '<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid #21262d;border-radius:8px;margin-bottom:6px;">'
+              + '<div style="flex:1;"><div style="font-size:14px;font-weight:600;color:#e6edf3;">' + dateStr + ' <span style="color:#8b949e;font-weight:400;font-size:12px;">— il y a ' + ago + '</span></div>'
+              + '<div style="font-size:12px;color:#8b949e;margin-top:2px;"><span style="background:#21262d;padding:1px 8px;border-radius:4px;font-weight:600;">' + label + '</span> — ' + snap.sectionsCount + ' section' + (snap.sectionsCount > 1 ? 's' : '') + '</div></div>'
+              + '<div style="display:flex;gap:6px;flex-shrink:0;">'
+              + '<button class="hist-restore" data-id="' + snap.id + '" style="padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid #30363d;background:#21262d;color:#e6edf3;">Restaurer</button>'
+              + '<button class="hist-deploy" data-id="' + snap.id + '" style="padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid #E51981;background:#E51981;color:#fff;">Restaurer & Deployer</button>'
+              + '</div></div>';
+          });
+          body.innerHTML = html;
+
+          body.addEventListener('click', async function(e) {
+            var restoreBtn = e.target.closest('.hist-restore');
+            var deployBtn = e.target.closest('.hist-deploy');
+            if (!restoreBtn && !deployBtn) return;
+            var id = (restoreBtn || deployBtn).dataset.id;
+            var withDeploy = !!deployBtn;
+            var btn = restoreBtn || deployBtn;
+            if (!confirm('Restaurer cette version' + (withDeploy ? ' et la deployer en production' : '') + ' ?')) return;
+            btn.disabled = true;
+            btn.textContent = 'Restauration...';
+            try {
+              var r = await Auth.apiFetch('/api/pages/' + slug + '/history/' + id + '/restore', { method: 'POST' });
+              if (!r.ok) throw new Error('Echec');
+              if (withDeploy) {
+                btn.textContent = 'Deploiement...';
+                await Auth.apiFetch('/api/deploy/shootnbox/' + slug, { method: 'POST' });
+              }
+              close();
+              loadPage(slug);
+            } catch (err) {
+              alert('Erreur: ' + err.message);
+              btn.disabled = false;
+              btn.textContent = withDeploy ? 'Restaurer & Deployer' : 'Restaurer';
+            }
+          });
+        } catch (err) {
+          document.getElementById('hist-body').innerHTML = '<div style="text-align:center;padding:20px;color:#f85149;">Erreur: ' + err.message + '</div>';
+        }
       });
 
       // Save
