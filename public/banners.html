@@ -178,8 +178,8 @@
         + '<div class="bn-modal-header"><h3>' + (banner ? 'Modifier' : 'Creer') + ' une banniere</h3><button class="bn-modal-close" id="bnClose">&times;</button></div>'
         + '<div class="bn-modal-body">'
         + '<div class="bn-field"><label>Nom</label><input type="text" id="bnName" value="' + esc(banner ? banner.name : '') + '" placeholder="Ex: Promo Noel 2026"></div>'
-        + '<div class="bn-field"><label>Contenu HTML</label><textarea id="bnHtml" placeholder="<span>-20% sur toutes les bornes !</span> <a href=&quot;/reservation/&quot;>En profiter</a>">' + esc(banner ? banner.html : '') + '</textarea></div>'
-        + '<div class="bn-field"><label>CSS personnalise (optionnel)</label><textarea id="bnCss" style="min-height:60px;" placeholder=".snb-promo-banner { ... }">' + esc(banner ? banner.css || '' : '') + '</textarea></div>'
+        + '<div class="bn-field"><label>Contenu HTML</label><textarea id="bnHtml" placeholder="<span>-20% sur toutes les bornes !</span> <a href=&quot;/reservation/&quot;>En profiter</a>"></textarea></div>'
+        + '<div class="bn-field"><label>CSS personnalise (optionnel)</label><textarea id="bnCss" style="min-height:60px;" placeholder=".snb-promo-banner { ... }"></textarea></div>'
         + '<div class="bn-field"><label>Couleur du texte</label><input type="color" id="bnText" value="' + (banner ? banner.textColor || '#333333' : '#333333') + '" style="height:42px;padding:4px;"></div>'
         + '<div class="bn-field"><label>Lien CTA (optionnel)</label><input type="url" id="bnLink" value="' + esc(banner ? banner.linkUrl || '' : '') + '" placeholder="https://shootnbox.fr/reservation/"></div>'
         + '<div class="bn-row">'
@@ -200,6 +200,10 @@
         + '<button class="bn-btn bn-btn-create" id="bnSave">' + (banner ? 'Enregistrer' : 'Creer') + '</button>'
         + '</div></div>';
       document.body.appendChild(overlay);
+
+      // Fill textareas after DOM insertion (avoids HTML breaking the template string)
+      if (banner && banner.html) document.getElementById('bnHtml').value = banner.html;
+      if (banner && banner.css) document.getElementById('bnCss').value = banner.css;
 
       var close = function() { overlay.remove(); };
       document.getElementById('bnClose').addEventListener('click', close);
