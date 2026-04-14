@@ -52,10 +52,14 @@
 - Appliques comme `margin-top` sur le wrapper du bloc du dessous
 - Slider dans l'editeur : -100px a 200px
 
-### Historique / Versions
-- Snapshot automatique avant chaque sauvegarde (30 derniers gardes)
-- Stockes dans `.history/` par page
-- Restauration via API + UI dans page-code.html
+### Historique / Versions (Backup)
+- **Snapshot automatique** avant : sauvegarde texte/SEO, edition section HTML, reordonnancement sections, restauration
+- Fonction helper `createSnapshot(slug, userId, reason)` dans `routes/pages.js`
+- Chaque snapshot contient : toutes les sections HTML + SEO + espacements (.spacing.json)
+- Reason trackee : `save`, `section-edit:fichier.html`, `reorder`, `before-restore`
+- Stockes dans `.history/` par page (30 derniers gardes)
+- **Restauration** via API + UI dans page-code.html ET bouton "Historique" dans l'editeur visuel
+- **Restaurer & Deployer** : restaure + deploie vers server 79 en un clic
 
 ### Tri des fichiers sections
 - **Tri numerique** (pas alphabetique) : 10, 20, 30... 100 (pas 10, 100, 20)
@@ -84,17 +88,22 @@
 
 ### Pages
 - `GET /api/pages` — liste des pages
+- `GET /api/pages/search?q=keyword` — recherche pages par titre + contenu (titre d'abord par pertinence, puis contenu par nombre d'occurrences)
 - `GET /api/pages/:slug` — detail page + sections + SEO
 - `GET /api/pages/:slug/preview` — preview HTML (optionalAuth, ?edit=1 pour editeur)
 - `POST /api/pages/:slug/save` — sauvegarder modifications texte + SEO
 - `POST /api/pages/:slug/add-section` — ajouter un bloc
 - `DELETE /api/pages/:slug/delete-section` — supprimer un bloc
+- `POST /api/pages/:slug/reorder-sections` — reordonner les sections (body: `{order: ["file1.html", ...]}`)
 - `GET /api/pages/:slug/section/:file` — lire le code d'une section
 - `PUT /api/pages/:slug/section/:file` — ecrire le code (avec nettoyage auto)
 - `POST /api/pages/:slug/spacing` — sauvegarder l'espacement entre blocs
 - `POST /api/pages/:slug/publish` — build + deploy
-- `GET /api/pages/:slug/history` — liste des snapshots
+- `GET /api/pages/:slug/history` — liste des snapshots (avec reason, sections)
 - `POST /api/pages/:slug/history/:id/restore` — restaurer un snapshot
+
+### Formulaire de contact
+- `POST /api/contact-form` — soumission publique (pas d'auth), envoie email via SMTP
 
 ### Blocs
 - `GET /api/blocks` — liste de la bibliotheque
@@ -288,13 +297,54 @@ curl -s -X POST "https://shootnbox.fr/manager/m.php" \
 
 ## Editeur visuel
 
-### Toolbar de texte
+### Barre admin
+- Boutons : **SEO**, **Historique** (backup/restore), **Publier**, **Deconnexion**
+- Selecteur de page (dropdown)
+- Compteur de modifications en attente
+
+### Toolbar de texte (WYSIWYG)
 - **H1-H4, P** : change le type de balise (sauvegarde persistee)
-- **B, I, U, S** : gras, italique, souligne, barre (via execCommand)
-- **Lien** : inserer/supprimer un lien
+- **B, I, U, S** : gras, italique, souligne, barre (via execCommand, toggle)
+- **Lien** : modal avec recherche autocomplete (pages par titre puis contenu, classees par pertinence) + options nofollow et nouvel onglet
+- **Supprimer lien** : unlink
 - **Clear** : supprimer la mise en forme
 - **`</>`** : editeur HTML source (modal avec textarea monospace)
+- **Undo** : bouton ↶ + Ctrl+Z global (stack 50 niveaux, snapshot au focus + avant changeTag)
 - Tous les styles avec `!important` pour resister au CSS des blocs
+- **Toolbar inside l'element** avec mousedown+preventDefault pour garder le focus
+- **Blur retarde 80ms** + flag `_toolbarActive` pour eviter la perte de selection sur les boutons
+- **Paste force en texte brut** (insertText) pour preserver les styles existants
+- **Gradient text** : CSS `contenteditable` override `-webkit-text-fill-color` en couleur lisible pendant l'edition
+
+### Badges Hn colores
+- H1 = rose `#E51981`, H2 = bleu `#0250FF`, H3 = violet `#7828C8`, H4 = orange `#FF7A00`, P = gris discret
+- Badge `::after` avec `data-gds-tag` sur chaque element editable
+- Visibles en permanence dans l'editeur
+
+### Sidebar flottante (sections + plan Hn)
+- Bouton hamburger en bas a gauche pour ouvrir/fermer (largeur 300px)
+- **Onglet Sections** : pastilles numerotees, drag & drop pour reordonner (appelle `POST /reorder-sections`), clic pour scroller, section active surlignee en rose
+- **Onglet Plan Hn** : vue hierarchique de tous les H1-H4 de la page, indentes par niveau, memes couleurs que les badges, clic pour scroller + flash highlight
+- Texte des Hn nettoye (exclut le contenu de `.gds-tag-select`)
+
+### Link picker (bouton lien)
+- Modal avec champ de recherche
+- Tape une URL complete (interne ou externe) : insertion directe
+- Tape des mots-cles : recherche serveur `GET /api/pages/search?q=...`
+  - Pages avec le mot dans le titre (classees par pertinence : slug exact > debut > contient)
+  - Pages avec le mot dans le contenu (classees par nombre d'occurrences)
+  - Affichage en 2 groupes : "Pages — titre" (rose) et "Pages — contenu" (gris)
+- Checkbox **"Ouvrir dans un nouvel onglet"** → `target="_blank" rel="noopener noreferrer"`
+- Checkbox **"nofollow"** → `rel="nofollow"` (ne pas transmettre le jus SEO)
+- Attributs `rel` et `target` preserves par le nettoyage serveur
+
+### Double-clic sur image
+- Modal avec preview + nom du fichier
+- Champs **alt** et **titre** editables directement (pre-remplis)
+- Section **"Remplacer le fichier"** (optionnel) : upload ou URL
+- Enregistrer sans changer le fichier = sauvegarde alt/title uniquement
+- Toolbar flottante (Changer/Position/Miroir) masquee pendant la modal
+- Section auto-sauvegardee apres modification
 
 ### Labels de section
 - Bandeau permanent en haut de chaque section avec nom du fichier
@@ -306,11 +356,12 @@ curl -s -X POST "https://shootnbox.fr/manager/m.php" \
 - Elements exclus : sidebar, toc, breadcrumb, nav, script, style
 - `editMode = req.query.edit === '1'` (pas de check auth dans l'iframe)
 - Save via cheerio : match par index global dans la section
+- `setupEditable()` : fonction unique partagee entre init et reinit (apres changeTag)
 
 ### Nettoyage auto au save
 - Supprime `<!DOCTYPE>`, `<html>`, `<head>` (garde `<style>`), `<body>`
 - Supprime resets `* { margin:0!important; padding:0!important }`
-- Supprime toolbar tag-select du innerHTML avant sauvegarde
+- Supprime toolbar tag-select du innerHTML avant sauvegarde (`getCleanHTML()`)
 - Neutralise `.snb-header` herite du header du site dans les sections
 
 ### Placeholders images
@@ -352,6 +403,58 @@ var(--color-secondary)    /* #0250FF */
 var(--max-width)          /* 1300px */
 ```
 
+## Formulaire de contact (shootnbox.fr/contacts)
+
+### Architecture
+- **Section HTML** : `previews/contacts/20-section.html` (formulaire + sidebar infos)
+- **Route backend** : `routes/contact-form.js` → `POST /api/contact-form` (public, pas d'auth)
+- **SMTP** : Nodemailer via `smtp.office365.com:587` (STARTTLS), compte `contact@shootnbox.fr`
+- **Variables env Coolify** : `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `CONTACT_EMAIL`
+- **CORS** : `shootnbox.fr` et `www.shootnbox.fr` ajoutes dans `server.js`
+- **Body parser** : `express.urlencoded()` ajoute pour le POST natif (fallback sans JS)
+
+### Champs du formulaire
+- `nom` (required), `societe`, `email` (required), `telephone`, `type_evenement` (required), `date_evenement`, `ville`, `message`
+
+### Email envoye
+- Template identique a la notification admin de `send-mail.php` (mode `devis-admin`)
+- Bandeau orange `#FF7A00`, carte prospect avec avatar initiales rose, pills contact, cartes colorees (type/date/ville), bloc message orange, boutons Repondre + Appeler
+- Sujet : `Demande de contact - [Nom] - [Type] - [JJ/MM/AAAA]`
+- `replyTo` = email du prospect, `from` = `contact@shootnbox.fr`
+- Charset UTF-8 force (`Content-Type` meta + `encoding: 'utf-8'` Nodemailer)
+
+### Anti-spam (4 couches invisibles)
+1. **Honeypot** : champ `_honey` cache, rejet silencieux si rempli
+2. **JS proof** : champ `_returnUrl` injecte par JS au chargement — bots qui POST directement n'ont pas ce champ
+3. **Time trap** : champ `_t` = timestamp au chargement, rejet si soumission < 3 secondes
+4. **Filtre contenu** : rejet cyrillique/CJK, mots-cles spam (casino, viagra, crypto...), 3+ URLs
+- Tous les rejets retournent `{"ok":true}` (le bot ne sait pas qu'il est bloque)
+- Rate limit : 5 soumissions / 15 minutes par IP
+
+### Apres soumission
+- **POST AJAX** (JS actif) : reponse JSON `{"ok":true}`, formulaire remplace par message de confirmation
+- **POST natif** (JS inactif) : redirect vers `?sent=1`, script detecte le param et affiche message vert "Votre demande a bien ete envoyee !"
+- Le champ `_returnUrl` sert a rediriger vers la bonne page (Referer non envoye en cross-origin)
+
+## Blog WordPress
+
+### Template article custom
+- Fichiers dans `docs/wp-template/` (supprimes du working tree, recuperables dans git : commits `489ac3e` et `2d778e5`)
+- `single.php` : template PHP article, classes `snb-*`, meme design que le site GDS
+- `snb-blog.css` : copie de `blog-styles.css`, charte Raleway/couleurs Shootnbox
+- `snb-toc.js` : sommaire dynamique (TOC) depuis les H2 + scroll actif
+- `functions-snippet.php` : charge CSS/JS/Raleway dans le theme enfant
+
+### Configuration WordPress
+- **Elementor desactive sur les Articles** : WP Admin → Elementor → Parametres → General → Types de contenu → decocher "Articles"
+- Les articles se modifient dans **Gutenberg** (editeur classique WordPress), pas Elementor
+- Le design est rendu par `single.php` + `snb-blog.css` (pas par Elementor)
+- Elementor reste actif uniquement pour les Pages WordPress
+
+### Badges categories
+- Mapping automatique slug → badge colore : mariage=rose, entreprise=bleu, anniversaire=violet, conseils=orange
+- Auteur : photo Gravatar avec fallback initiales
+
 ## Bugs resolus importants
 
 - **Sections disparaissant au deploy** : Volumes Docker non montes → corrige avec docker-compose build pack
@@ -369,3 +472,12 @@ var(--max-width)          /* 1300px */
 - **Save ne persistait pas** : index global vs index par tag → fix avec cheerio match par index global
 - **Toolbar BIUS dans le HTML sauve** : regex ne matchait pas la barre complete → fix avec remove/reappend DOM
 - **Boutons section invisibles** : position absolute dans wrapper avec overflow:hidden → fix avec labels permanents en haut de section
+- **Bold/Italic toggle ne marchait pas** : toolbar en sibling causait blur avant execCommand → toolbar remise inside + mousedown preventDefault + blur retarde 80ms avec flag `_toolbarActive`
+- **Texte gradient invisible au clic** : elements avec `background-clip:text` + `-webkit-text-fill-color:transparent` deviennent blancs quand contenteditable s'active → CSS override force couleur lisible `#2d1b4e` pendant l'edition
+- **Paste casse la mise en page** : collage HTML riche ecrase les styles existants → force paste en texte brut via `insertText`
+- **Plan Hn pollue par la toolbar** : `textContent` des headings incluait les boutons H1H2H3H4PBIUS → clone + remove `.gds-tag-select` avant lecture
+- **Formulaire contact redirige vers la home** : Referer non envoye en POST cross-origin → champ `_returnUrl` injecte par JS
+- **Formulaire contact "Route non trouvee"** : POST natif en `urlencoded` mais serveur n'avait que `express.json()` → ajout `express.urlencoded()`
+- **Email accents casses** : "déménage" → "d�m�nage" → ajout `Content-Type: text/html; charset=utf-8` + `encoding: 'utf-8'` Nodemailer
+- **Spam russe sur formulaire contact** : bots POST direct → 4 couches anti-spam invisibles (honeypot, JS proof, time trap, filtre contenu)
+- **Elementor ne charge pas les articles** : `single.php` du theme enfant court-circuite Elementor → desactiver Elementor sur les Articles dans les parametres
