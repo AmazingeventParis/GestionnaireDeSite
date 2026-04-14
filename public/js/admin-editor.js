@@ -19,7 +19,7 @@
   function undoPush(el) {
     const id = el.getAttribute('data-gds-edit');
     if (!id) return;
-    undoStack.push({ id, html: el.innerHTML.trim(), tag: el.tagName.toLowerCase() });
+    undoStack.push({ id, html: getCleanHTML(el), tag: el.tagName.toLowerCase() });
     if (undoStack.length > UNDO_MAX) undoStack.shift();
   }
 
@@ -216,230 +216,156 @@
   }
 
   // ===== INIT EDITABLE ELEMENTS =====
+  // Toolbar interaction flag — prevents blur while clicking toolbar buttons
+  let _toolbarActive = false;
+
+  function setupEditable(el) {
+    const id = el.getAttribute('data-gds-edit');
+    const tag = el.tagName.toLowerCase();
+
+    if (!originalTexts[id]) originalTexts[id] = el.innerHTML;
+
+    el.setAttribute('data-gds-tag', tag.toUpperCase());
+    el.dataset.gdsOrigTag = el.dataset.gdsOrigTag || tag;
+    el.setAttribute('tabindex', '0');
+
+    // Remove old toolbar if re-init (e.g. after changeTag)
+    const oldBar = el.querySelector('.gds-tag-select');
+    if (oldBar) oldBar.remove();
+
+    // Build toolbar INSIDE element — mousedown+preventDefault keeps focus on el
+    const tagBar = document.createElement('div');
+    tagBar.className = 'gds-tag-select';
+
+    function tbBtn(html, title, fn) {
+      const btn = document.createElement('button');
+      btn.className = 'gds-tag-btn';
+      btn.innerHTML = html;
+      if (title) btn.title = title;
+      btn.type = 'button';
+      btn.addEventListener('mousedown', (e) => {
+        e.preventDefault(); // critical: keeps focus on contenteditable
+        _toolbarActive = true;
+        fn(e);
+        setTimeout(() => { _toolbarActive = false; }, 50);
+      });
+      return btn;
+    }
+
+    function tbSep() {
+      const s = document.createElement('div');
+      s.className = 'gds-toolbar-sep';
+      return s;
+    }
+
+    // Tag buttons
+    ['H1','H2','H3','H4','P'].forEach(t => {
+      const btn = tbBtn(t, t, () => changeTag(el, t.toLowerCase()));
+      btn.className = 'gds-tag-btn' + (t === tag.toUpperCase() ? ' active' : '');
+      tagBar.appendChild(btn);
+    });
+    tagBar.appendChild(tbSep());
+
+    // Format buttons
+    [
+      { cmd: 'bold', icon: '<b>B</b>', title: 'Gras (Ctrl+B)' },
+      { cmd: 'italic', icon: '<i>I</i>', title: 'Italique (Ctrl+I)' },
+      { cmd: 'underline', icon: '<u>U</u>', title: 'Souligne (Ctrl+U)' },
+      { cmd: 'strikeThrough', icon: '<s>S</s>', title: 'Barre' },
+    ].forEach(f => {
+      tagBar.appendChild(tbBtn(f.icon, f.title, () => document.execCommand(f.cmd, false, null)));
+    });
+    tagBar.appendChild(tbSep());
+
+    // Link / Unlink
+    tagBar.appendChild(tbBtn('&#128279;', 'Inserer un lien', () => {
+      const url = prompt('URL du lien :');
+      if (url) document.execCommand('createLink', false, url);
+    }));
+    tagBar.appendChild(tbBtn('&#10060;', 'Supprimer le lien', () => document.execCommand('unlink', false, null)));
+    tagBar.appendChild(tbSep());
+
+    // Clear formatting
+    tagBar.appendChild(tbBtn('&#128465;', 'Supprimer la mise en forme', () => document.execCommand('removeFormat', false, null)));
+    tagBar.appendChild(tbSep());
+
+    // HTML editor
+    tagBar.appendChild(tbBtn('&lt;/&gt;', 'Editer le code HTML', () => openHtmlEditor(el, id)));
+    tagBar.appendChild(tbSep());
+
+    // Undo
+    tagBar.appendChild(tbBtn('&#8630;', 'Annuler (Ctrl+Z)', () => undoPop()));
+
+    el.style.position = 'relative';
+    el.appendChild(tagBar);
+
+    // Click: enter edit mode
+    el.addEventListener('click', (e) => {
+      if (e.target.closest('.gds-tag-select')) return;
+      if (e.target.tagName === 'A' && !el.getAttribute('contenteditable')) e.preventDefault();
+      el.setAttribute('contenteditable', 'true');
+      el.focus();
+    });
+
+    // Focus: snapshot + show toolbar
+    el.addEventListener('focus', () => {
+      undoPush(el);
+      el.setAttribute('contenteditable', 'true');
+      tagBar.style.display = 'flex';
+    });
+
+    // Blur: delayed to allow toolbar clicks
+    el.addEventListener('blur', () => {
+      setTimeout(() => {
+        if (_toolbarActive) return;
+        const active = document.activeElement;
+        if (active && (active.closest('.gds-tag-select') || active === el)) return;
+        el.removeAttribute('contenteditable');
+        tagBar.style.display = 'none';
+        trackChange(el, id);
+      }, 80);
+    });
+
+    // Paste as plain text
+    el.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+      document.execCommand('insertText', false, text);
+    });
+
+    // Keyboard
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        if (['h1','h2','h3','h4','p'].includes(el.tagName.toLowerCase())) {
+          e.preventDefault();
+          el.blur();
+        }
+      }
+      if (e.key === 'Escape') {
+        el.innerHTML = originalTexts[id];
+        el.blur();
+      }
+    });
+
+    // Prevent link navigation while editing
+    el.querySelectorAll('a').forEach(a => {
+      a.addEventListener('click', (e) => {
+        if (el.getAttribute('contenteditable') === 'true') e.preventDefault();
+      });
+    });
+  }
+
   function initEditableElements() {
     const editables = document.querySelectorAll('[data-gds-edit]');
     console.log('[GDS Admin] Found', editables.length, 'editable elements');
     if (editables.length === 0) {
       showToast('Aucun element editable trouve !', 'error');
     }
+    editables.forEach(el => setupEditable(el));
 
-    editables.forEach(el => {
-      const id = el.getAttribute('data-gds-edit');
-      const tag = el.tagName.toLowerCase();
-
-      // Store original text
-      originalTexts[id] = el.innerHTML;
-
-      // Set tag badge
-      el.setAttribute('data-gds-tag', tag.toUpperCase());
-
-      // Store original tag
-      el.dataset.gdsOrigTag = tag;
-
-      // Make focusable
-      el.setAttribute('tabindex', '0');
-
-      // Build editing toolbar: tag selectors + formatting buttons
-      const tagBar = document.createElement('div');
-      tagBar.className = 'gds-tag-select';
-
-      // Tag buttons (H1-H4, P)
-      ['H1','H2','H3','H4','P'].forEach(t => {
-        const btn = document.createElement('button');
-        btn.className = 'gds-tag-btn' + (t === tag.toUpperCase() ? ' active' : '');
-        btn.textContent = t;
-        btn.type = 'button';
-        btn.addEventListener('mousedown', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          changeTag(el, t.toLowerCase());
-        });
-        tagBar.appendChild(btn);
-      });
-
-      // Separator
-      const sep1 = document.createElement('div');
-      sep1.className = 'gds-toolbar-sep';
-      tagBar.appendChild(sep1);
-
-      // Formatting buttons
-      const formatBtns = [
-        { cmd: 'bold', icon: '<b>B</b>', title: 'Gras (Ctrl+B)' },
-        { cmd: 'italic', icon: '<i>I</i>', title: 'Italique (Ctrl+I)' },
-        { cmd: 'underline', icon: '<u>U</u>', title: 'Souligne (Ctrl+U)' },
-        { cmd: 'strikeThrough', icon: '<s>S</s>', title: 'Barre' },
-      ];
-      formatBtns.forEach(f => {
-        const btn = document.createElement('button');
-        btn.className = 'gds-tag-btn';
-        btn.innerHTML = f.icon;
-        btn.title = f.title;
-        btn.type = 'button';
-        btn.addEventListener('mousedown', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          document.execCommand(f.cmd, false, null);
-        });
-        tagBar.appendChild(btn);
-      });
-
-      // Separator
-      const sep2 = document.createElement('div');
-      sep2.className = 'gds-toolbar-sep';
-      tagBar.appendChild(sep2);
-
-      // Link button
-      const linkBtn = document.createElement('button');
-      linkBtn.className = 'gds-tag-btn';
-      linkBtn.innerHTML = '&#128279;';
-      linkBtn.title = 'Inserer un lien';
-      linkBtn.type = 'button';
-      linkBtn.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const url = prompt('URL du lien :');
-        if (url) document.execCommand('createLink', false, url);
-      });
-      tagBar.appendChild(linkBtn);
-
-      // Unlink button
-      const unlinkBtn = document.createElement('button');
-      unlinkBtn.className = 'gds-tag-btn';
-      unlinkBtn.innerHTML = '&#10060;';
-      unlinkBtn.title = 'Supprimer le lien';
-      unlinkBtn.type = 'button';
-      unlinkBtn.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        document.execCommand('unlink', false, null);
-      });
-      tagBar.appendChild(unlinkBtn);
-
-      // Separator
-      const sep3 = document.createElement('div');
-      sep3.className = 'gds-toolbar-sep';
-      tagBar.appendChild(sep3);
-
-      // Clear formatting
-      const clearBtn = document.createElement('button');
-      clearBtn.className = 'gds-tag-btn';
-      clearBtn.innerHTML = '&#128465;';
-      clearBtn.title = 'Supprimer la mise en forme';
-      clearBtn.type = 'button';
-      clearBtn.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        document.execCommand('removeFormat', false, null);
-      });
-      tagBar.appendChild(clearBtn);
-
-      // Separator
-      const sep4 = document.createElement('div');
-      sep4.className = 'gds-toolbar-sep';
-      tagBar.appendChild(sep4);
-
-      // HTML source editor button
-      const htmlBtn = document.createElement('button');
-      htmlBtn.className = 'gds-tag-btn';
-      htmlBtn.innerHTML = '&lt;/&gt;';
-      htmlBtn.title = 'Editer le code HTML';
-      htmlBtn.type = 'button';
-      htmlBtn.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        openHtmlEditor(el, id);
-      });
-      tagBar.appendChild(htmlBtn);
-
-      // Separator
-      const sep5 = document.createElement('div');
-      sep5.className = 'gds-toolbar-sep';
-      tagBar.appendChild(sep5);
-
-      // Undo button
-      const undoBtn = document.createElement('button');
-      undoBtn.className = 'gds-tag-btn';
-      undoBtn.innerHTML = '&#8630;';
-      undoBtn.title = 'Annuler (Ctrl+Z)';
-      undoBtn.type = 'button';
-      undoBtn.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        undoPop();
-      });
-      tagBar.appendChild(undoBtn);
-
-      // Place toolbar as a sibling wrapper (not inside the editable element)
-      const wrapper = document.createElement('div');
-      wrapper.style.cssText = 'position:relative;display:contents;';
-      el.parentNode.insertBefore(wrapper, el);
-      wrapper.appendChild(tagBar);
-      wrapper.appendChild(el);
-
-      // On click: enter edit mode
-      el.addEventListener('click', (e) => {
-        if (e.target.closest('.gds-tag-select')) return;
-        if (e.target.tagName === 'A' && !e.target.closest('[data-gds-edit]').getAttribute('contenteditable')) {
-          e.preventDefault();
-        }
-        el.setAttribute('contenteditable', 'true');
-        el.focus();
-      });
-
-      // On focus: snapshot for undo, show toolbar + enable editing
-      el.addEventListener('focus', () => {
-        undoPush(el);
-        el.setAttribute('contenteditable', 'true');
-        tagBar.style.display = 'flex';
-        // Position toolbar above the element
-        tagBar.style.position = 'absolute';
-        tagBar.style.top = (el.offsetTop - 42) + 'px';
-        tagBar.style.left = el.offsetLeft + 'px';
-      });
-
-      // On blur: exit edit mode, track changes
-      el.addEventListener('blur', () => {
-        el.removeAttribute('contenteditable');
-        tagBar.style.display = 'none';
-        trackChange(el, id);
-      });
-
-      // Paste as plain text only (preserve existing formatting)
-      el.addEventListener('paste', (e) => {
-        e.preventDefault();
-        const text = (e.clipboardData || window.clipboardData).getData('text/plain');
-        document.execCommand('insertText', false, text);
-      });
-
-      // Prevent Enter from creating divs
-      el.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-          const t = el.tagName.toLowerCase();
-          if (['h1', 'h2', 'h3', 'h4', 'p'].includes(t)) {
-            e.preventDefault();
-            el.blur();
-          }
-        }
-        if (e.key === 'Escape') {
-          el.innerHTML = originalTexts[id];
-          el.blur();
-        }
-      });
-
-      // Prevent link clicks when editing
-      el.querySelectorAll('a').forEach(a => {
-        a.addEventListener('click', (e) => {
-          if (el.getAttribute('contenteditable') === 'true') {
-            e.preventDefault();
-          }
-        });
-      });
-    });
-
-    // Global Ctrl+Z: undo when not actively editing a contenteditable
+    // Global Ctrl+Z
     function handleGlobalUndo(e) {
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-        // Skip if user is typing in a contenteditable or input/textarea
         const active = e.target;
         if (active && (active.getAttribute('contenteditable') === 'true' ||
             active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
@@ -448,7 +374,6 @@
       }
     }
     document.addEventListener('keydown', handleGlobalUndo);
-    // Also listen on parent document if embedded in iframe
     if (isEmbedded) {
       try { window.parent.document.addEventListener('keydown', handleGlobalUndo); } catch(e) {}
     }
@@ -1456,8 +1381,17 @@
     newEl.focus();
   }
 
+  function getCleanHTML(el) {
+    // Get innerHTML without the toolbar
+    const tagBar = el.querySelector('.gds-tag-select');
+    if (tagBar) tagBar.remove();
+    const html = el.innerHTML.trim();
+    if (tagBar) el.appendChild(tagBar);
+    return html;
+  }
+
   function trackChange(el, id) {
-    const cleanText = el.innerHTML.trim();
+    const cleanText = getCleanHTML(el);
     const currentTag = el.tagName.toLowerCase();
     const origTag = el.dataset.gdsOrigTag || currentTag;
 
@@ -1472,103 +1406,8 @@
   }
 
   function initSingleEditable(el) {
-    const id = el.getAttribute('data-gds-edit');
-    const tag = el.tagName.toLowerCase();
-
-    el.dataset.gdsOrigTag = el.dataset.gdsOrigTag || tag;
-    el.setAttribute('tabindex', '0');
-
-    // Rebuild tag bar as sibling (not inside editable element)
-    let tagBar = el.parentNode && el.previousElementSibling && el.previousElementSibling.classList.contains('gds-tag-select')
-      ? el.previousElementSibling : null;
-    if (!tagBar) {
-      tagBar = document.createElement('div');
-      tagBar.className = 'gds-tag-select';
-      el.parentNode.insertBefore(tagBar, el);
-    }
-    tagBar.innerHTML = '';
-    // Tag buttons
-    ['H1','H2','H3','H4','P'].forEach(t => {
-      const btn = document.createElement('button');
-      btn.className = 'gds-tag-btn' + (t === tag.toUpperCase() ? ' active' : '');
-      btn.textContent = t;
-      btn.type = 'button';
-      btn.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); changeTag(el, t.toLowerCase()); });
-      tagBar.appendChild(btn);
-    });
-    // Separator + formatting buttons
-    const sep = document.createElement('div'); sep.className = 'gds-toolbar-sep'; tagBar.appendChild(sep);
-    [{ cmd:'bold', icon:'<b>B</b>' }, { cmd:'italic', icon:'<i>I</i>' }, { cmd:'underline', icon:'<u>U</u>' }, { cmd:'strikeThrough', icon:'<s>S</s>' }].forEach(f => {
-      const btn = document.createElement('button'); btn.className = 'gds-tag-btn'; btn.innerHTML = f.icon; btn.type = 'button';
-      btn.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); document.execCommand(f.cmd, false, null); });
-      tagBar.appendChild(btn);
-    });
-    const sep2 = document.createElement('div'); sep2.className = 'gds-toolbar-sep'; tagBar.appendChild(sep2);
-    const lb = document.createElement('button'); lb.className = 'gds-tag-btn'; lb.innerHTML = '&#128279;'; lb.type = 'button';
-    lb.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); const url = prompt('URL du lien :'); if (url) document.execCommand('createLink', false, url); });
-    tagBar.appendChild(lb);
-    const cb = document.createElement('button'); cb.className = 'gds-tag-btn'; cb.innerHTML = '&#128465;'; cb.type = 'button';
-    cb.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); document.execCommand('removeFormat', false, null); });
-    tagBar.appendChild(cb);
-    const sep3b = document.createElement('div'); sep3b.className = 'gds-toolbar-sep'; tagBar.appendChild(sep3b);
-    const hb = document.createElement('button'); hb.className = 'gds-tag-btn'; hb.innerHTML = '&lt;/&gt;'; hb.title = 'Editer HTML'; hb.type = 'button';
-    hb.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); openHtmlEditor(el, id); });
-    tagBar.appendChild(hb);
-    // Undo button
-    const sep4b = document.createElement('div'); sep4b.className = 'gds-toolbar-sep'; tagBar.appendChild(sep4b);
-    const ub = document.createElement('button'); ub.className = 'gds-tag-btn'; ub.innerHTML = '&#8630;'; ub.title = 'Annuler (Ctrl+Z)'; ub.type = 'button';
-    ub.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); undoPop(); });
-    tagBar.appendChild(ub);
-    tagBar.style.display = 'none';
-
-    el.addEventListener('click', (e) => {
-      if (e.target.closest('.gds-tag-select')) return;
-      if (e.target.tagName === 'A') e.preventDefault();
-      el.setAttribute('contenteditable', 'true');
-      el.focus();
-    });
-
-    el.addEventListener('focus', () => {
-      undoPush(el);
-      el.setAttribute('contenteditable', 'true');
-      tagBar.style.display = 'flex';
-      tagBar.style.position = 'absolute';
-      tagBar.style.top = (el.offsetTop - 42) + 'px';
-      tagBar.style.left = el.offsetLeft + 'px';
-    });
-
-    el.addEventListener('blur', () => {
-      el.removeAttribute('contenteditable');
-      tagBar.style.display = 'none';
-      trackChange(el, id);
-    });
-
-    // Paste as plain text only
-    el.addEventListener('paste', (e) => {
-      e.preventDefault();
-      const text = (e.clipboardData || window.clipboardData).getData('text/plain');
-      document.execCommand('insertText', false, text);
-    });
-
-    el.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        if (['h1','h2','h3','h4','p'].includes(el.tagName.toLowerCase())) {
-          e.preventDefault();
-          el.blur();
-        }
-      }
-      if (e.key === 'Escape') {
-        el.innerHTML = originalTexts[id];
-        initSingleEditable(el);
-        el.blur();
-      }
-    });
-
-    el.querySelectorAll('a').forEach(a => {
-      a.addEventListener('click', (e) => {
-        if (el.getAttribute('contenteditable') === 'true') e.preventDefault();
-      });
-    });
+    // Re-uses setupEditable from initEditableElements (same toolbar + events)
+    setupEditable(el);
   }
 
   // ===== UPDATE CHANGES COUNT =====

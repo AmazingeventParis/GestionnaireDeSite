@@ -200,7 +200,10 @@ body.gds-admin-mode .gds-page-content {
   border: none !important;
   padding: 0 !important;
 }
-/* Toolbar show/hide managed by JS (focus/blur events) */
+[data-gds-edit]:focus .gds-tag-select,
+[data-gds-edit]:hover .gds-tag-select {
+  display: flex;
+}
 .gds-tag-btn {
   padding: 4px 10px !important;
   font-size: 11px !important;
