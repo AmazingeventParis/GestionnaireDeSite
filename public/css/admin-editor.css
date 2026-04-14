@@ -141,7 +141,7 @@ body.gds-admin-mode .gds-page-content {
   background: rgba(88,166,255,0.05) !important;
 }
 
-/* Badge showing tag type — always visible */
+/* Badge showing tag type — color-coded by heading level */
 [data-gds-edit]::after {
   content: attr(data-gds-tag);
   position: absolute;
@@ -151,7 +151,7 @@ body.gds-admin-mode .gds-page-content {
   font-weight: 800;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
   color: #fff;
-  background: #E51981;
+  background: #8b949e;
   padding: 3px 10px;
   border-radius: 5px;
   letter-spacing: 0.5px;
@@ -159,8 +159,13 @@ body.gds-admin-mode .gds-page-content {
   pointer-events: none;
   opacity: 1 !important;
   z-index: 11;
-  box-shadow: 0 2px 6px rgba(229,25,129,0.3);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
 }
+[data-gds-edit][data-gds-tag="H1"]::after { background: #E51981; box-shadow: 0 2px 6px rgba(229,25,129,0.3); }
+[data-gds-edit][data-gds-tag="H2"]::after { background: #0250FF; box-shadow: 0 2px 6px rgba(2,80,255,0.3); }
+[data-gds-edit][data-gds-tag="H3"]::after { background: #7828C8; box-shadow: 0 2px 6px rgba(120,40,200,0.3); }
+[data-gds-edit][data-gds-tag="H4"]::after { background: #FF7A00; box-shadow: 0 2px 6px rgba(255,122,0,0.3); }
+[data-gds-edit][data-gds-tag="P"]::after  { background: #484f58; font-size: 9px; padding: 2px 6px; opacity: 0.6 !important; }
 
 /* Modified indicator */
 [data-gds-edit].gds-modified {
@@ -1200,15 +1205,6 @@ body.gds-admin-mode .gds-page-content {
 }
 #gds-section-sidebar.gds-ss-open { left: 10px; }
 
-.gds-ss-title {
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  color: #8b949e;
-  padding: 14px 14px 10px;
-  border-bottom: 1px solid #21262d;
-}
 .gds-ss-list {
   flex: 1;
   overflow-y: auto;
@@ -1262,6 +1258,73 @@ body.gds-admin-mode .gds-page-content {
   color: #fff;
   font-size: 10px;
   font-weight: 800;
+  flex-shrink: 0;
+}
+
+/* Sidebar tabs */
+.gds-ss-tabs {
+  display: flex;
+  border-bottom: 1px solid #21262d;
+  flex-shrink: 0;
+}
+.gds-ss-tab {
+  flex: 1;
+  padding: 10px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #8b949e;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  font-family: inherit;
+}
+.gds-ss-tab:hover { color: #c9d1d9; }
+.gds-ss-tab.active { color: #E51981; border-bottom-color: #E51981; }
+
+.gds-ss-panel {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* Heading outline */
+.gds-ss-outline {
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.gds-ss-hn-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  color: #c9d1d9;
+  cursor: pointer;
+  transition: background 0.15s;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gds-ss-hn-row:hover { background: #1f2937; }
+.gds-ss-hn-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 18px;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
   flex-shrink: 0;
 }
 

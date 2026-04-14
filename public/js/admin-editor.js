@@ -2585,8 +2585,29 @@
     // Build sidebar
     const sidebar = document.createElement('div');
     sidebar.id = 'gds-section-sidebar';
-    sidebar.innerHTML = '<div class="gds-ss-title">Sections</div><div class="gds-ss-list"></div>';
+    sidebar.innerHTML = `
+      <div class="gds-ss-tabs">
+        <button class="gds-ss-tab active" data-tab="sections">Sections</button>
+        <button class="gds-ss-tab" data-tab="outline">Plan Hn</button>
+      </div>
+      <div class="gds-ss-panel" data-panel="sections">
+        <div class="gds-ss-list"></div>
+      </div>
+      <div class="gds-ss-panel" data-panel="outline" style="display:none">
+        <div class="gds-ss-outline"></div>
+      </div>`;
     document.body.appendChild(sidebar);
+
+    // Tab switching
+    sidebar.querySelectorAll('.gds-ss-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        sidebar.querySelectorAll('.gds-ss-tab').forEach(t => t.classList.remove('active'));
+        sidebar.querySelectorAll('.gds-ss-panel').forEach(p => p.style.display = 'none');
+        tab.classList.add('active');
+        sidebar.querySelector('[data-panel="' + tab.dataset.tab + '"]').style.display = '';
+        if (tab.dataset.tab === 'outline') buildOutline();
+      });
+    });
 
     const list = sidebar.querySelector('.gds-ss-list');
     let dragItem = null;
@@ -2692,6 +2713,36 @@
     }
 
     buildList();
+
+    // Heading outline
+    const outlineEl = sidebar.querySelector('.gds-ss-outline');
+    const HN_COLORS = { H1: '#E51981', H2: '#0250FF', H3: '#7828C8', H4: '#FF7A00' };
+
+    function buildOutline() {
+      const headings = document.querySelectorAll('.gds-section-wrapper h1, .gds-section-wrapper h2, .gds-section-wrapper h3, .gds-section-wrapper h4');
+      outlineEl.innerHTML = '';
+      if (!headings.length) {
+        outlineEl.innerHTML = '<div style="padding:12px;color:#8b949e;font-size:12px;">Aucun titre trouve</div>';
+        return;
+      }
+      headings.forEach(h => {
+        const level = h.tagName; // H1, H2, H3, H4
+        const indent = (parseInt(level[1]) - 1) * 12;
+        const color = HN_COLORS[level] || '#8b949e';
+        const text = h.textContent.trim().substring(0, 60) || '(vide)';
+        const row = document.createElement('div');
+        row.className = 'gds-ss-hn-row';
+        row.style.paddingLeft = (8 + indent) + 'px';
+        row.innerHTML = '<span class="gds-ss-hn-badge" style="background:' + color + '">' + level + '</span>' + text;
+        row.addEventListener('click', () => {
+          h.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Flash highlight
+          h.style.outline = '3px solid ' + color;
+          setTimeout(() => { h.style.outline = ''; }, 1500);
+        });
+        outlineEl.appendChild(row);
+      });
+    }
 
     // Toggle button
     const toggle = document.createElement('button');
