@@ -350,6 +350,7 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 30px 20px;
+  display: none;
 }
 
 .snb-ft-zones-title {
@@ -918,5 +919,12 @@ document.addEventListener('click', function(e) {
     group.classList.toggle('open');
   }
 });
+(function() {
+  var p = window.location.pathname.replace(/\/+$/, '') + '/';
+  if (p === '/location-photobooth/') {
+    var z = document.querySelector('.snb-ft-zones');
+    if (z) z.style.display = 'block';
+  }
+})();
 </script>
 </footer>
