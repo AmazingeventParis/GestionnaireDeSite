@@ -97,15 +97,16 @@ async function installMphp(destPath) {
 async function deployPageToShootnbox(slug) {
   const PORT = process.env.PORT || 3000;
   const LOCAL = `http://localhost:${PORT}`;
-  const apiKey = process.env.GDS_API_SECRET || '';
 
-  // 1. Get page SEO + urlPath (via local server, no auth needed with api key)
-  const pageResp = await fetch(`${LOCAL}/api/pages/${encodeURIComponent(slug)}`, {
-    headers: { 'x-api-key': apiKey }
-  });
-  if (!pageResp.ok) throw new Error(`Page not found: ${slug}`);
-  const pageData = await pageResp.json();
-  const seo = pageData.seo || {};
+  // 1. Get page SEO + urlPath (read seo.json directly from filesystem)
+  const previewsDir = path.join(__dirname, '..', 'previews');
+  const pageDir = path.join(previewsDir, slug);
+  if (!fs.existsSync(pageDir)) throw new Error(`Page not found: ${slug}`);
+  let seo = {};
+  const seoPath = path.join(pageDir, 'seo.json');
+  if (fs.existsSync(seoPath)) {
+    try { seo = JSON.parse(fs.readFileSync(seoPath, 'utf-8')); } catch {}
+  }
 
   // Determine dest path: prefer canonical, fallback to urlPath or slug
   let destPath;
@@ -120,10 +121,8 @@ async function deployPageToShootnbox(slug) {
     destPath = `/${slug}`;
   }
 
-  // 2. Fetch preview HTML (from local server)
-  const htmlResp = await fetch(`${LOCAL}/api/pages/${encodeURIComponent(slug)}/preview`, {
-    headers: { 'x-api-key': apiKey }
-  });
+  // 2. Fetch preview HTML (from local server — optionalAuth, no token needed)
+  const htmlResp = await fetch(`${LOCAL}/api/pages/${encodeURIComponent(slug)}/preview`);
   if (!htmlResp.ok) throw new Error(`Preview fetch failed: ${htmlResp.status}`);
   let html = await htmlResp.text();
 
