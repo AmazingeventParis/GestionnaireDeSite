@@ -104,12 +104,16 @@ async function deployPageToShootnbox(slug) {
   const pageDir = slug === 'home' ? previewsDir : path.join(previewsDir, slug);
   if (!fs.existsSync(pageDir)) throw new Error(`Page not found: ${slug}`);
   let seo = {};
-  const seoPath = path.join(pageDir, 'seo.json');
+  // home page seo is stored as seo-home.json in previews root; others as seo.json in their subdir
+  const seoPath = slug === 'home'
+    ? path.join(previewsDir, 'seo-home.json')
+    : path.join(pageDir, 'seo.json');
   if (fs.existsSync(seoPath)) {
     try { seo = JSON.parse(fs.readFileSync(seoPath, 'utf-8')); } catch {}
   }
 
   // Determine dest path: prefer canonical, fallback to urlPath or slug
+  // home page always deploys to root (destPath = '')
   let destPath;
   if (seo.canonical) {
     try {
@@ -118,6 +122,8 @@ async function deployPageToShootnbox(slug) {
     } catch { destPath = `/${slug}`; }
   } else if (seo.urlPath) {
     destPath = '/' + seo.urlPath.replace(/^\//, '').replace(/\/$/, '');
+  } else if (slug === 'home') {
+    destPath = '';
   } else {
     destPath = `/${slug}`;
   }
