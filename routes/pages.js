@@ -22,13 +22,12 @@ const _phUpload = multer({
 });
 
 // Multi-site: dynamic paths resolved from AsyncLocalStorage context
-const { siteStorage } = require('../middleware/activeSite');
 const _DEFAULT_PD = path.join(__dirname, '..', 'previews');
 const PUBLIC_DIR = path.join(__dirname, '..', 'public', 'site');
 const BUILD_SCRIPT = path.join(__dirname, '..', 'scripts', 'build.js');
 
-/** Get the current request's previews directory (falls back to Shootnbox default). */
-function getPD() { const s = siteStorage.getStore(); return (s && s.previewsDir) || _DEFAULT_PD; }
+/** Get previews directory (single-site Shootnbox). */
+function getPD() { return _DEFAULT_PD; }
 /** Get the current request's shared components directory. */
 function getSD() { return path.join(getPD(), '_shared'); }
 
