@@ -1139,7 +1139,7 @@
     overlay.innerHTML = `
       <div class="gds-modal" style="max-width:520px;">
         <div class="gds-modal-header">
-          <h3>${isVideo ? 'Video' : 'Image'}</h3>
+          <h3>${isVideo ? 'Remplacer la video' : "Modifier l'image"}</h3>
           <button class="gds-modal-close" id="gds-ir-close">&times;</button>
         </div>
         <div class="gds-modal-body">
@@ -1183,6 +1183,12 @@
     `;
     document.body.appendChild(overlay);
 
+    // Pre-fill alt and title after DOM insertion (avoids HTML injection via .value)
+    if (!isVideo) {
+      document.getElementById('gds-ir-alt').value = currentAlt;
+      document.getElementById('gds-ir-title').value = currentTitle;
+    }
+
     const close = () => overlay.remove();
     document.getElementById('gds-ir-close').addEventListener('click', close);
     document.getElementById('gds-ir-cancel').addEventListener('click', close);
@@ -1214,17 +1220,10 @@
       if (fileInput.files[0]) {
         selectedFile = fileInput.files[0];
         document.getElementById('gds-ir-dropzone').innerHTML = '<div style="color:#3fb950;font-size:13px;">&#10003; ' + selectedFile.name + '</div>';
-        document.getElementById('gds-ir-submit').disabled = false;
       }
     });
 
-    // URL input
-    document.getElementById('gds-ir-url-input').addEventListener('input', () => {
-      const url = document.getElementById('gds-ir-url-input').value.trim();
-      document.getElementById('gds-ir-submit').disabled = !(url.startsWith('http') || url.startsWith('/'));
-    });
-
-    // Submit
+    // Submit — always enabled, src change is optional (can save alt/title alone)
     document.getElementById('gds-ir-submit').addEventListener('click', async () => {
       const btn = document.getElementById('gds-ir-submit');
       btn.disabled = true;
@@ -1234,6 +1233,8 @@
         // 1. Apply alt + title
         const newAlt = document.getElementById('gds-ir-alt').value.trim();
         const newTitle = document.getElementById('gds-ir-title').value.trim();
+        const urlInput = document.getElementById('gds-ir-url-input');
+        const urlVal = urlInput ? urlInput.value.trim() : '';
 
         // Save wrapper reference BEFORE any replaceWith
         const saveWrapper = imgEl.closest('.gds-section-wrapper') || (imgEl.parentElement && imgEl.parentElement.closest('.gds-section-wrapper'));
@@ -1248,8 +1249,8 @@
           if (!res.ok) throw new Error('Upload echoue');
           const data = await res.json();
           newSrc = (data.uploaded && data.uploaded[0] && data.uploaded[0].path) || '';
-        } else {
-          newSrc = document.getElementById('gds-ir-url-input').value.trim();
+        } else if (urlVal && (urlVal.startsWith('http') || urlVal.startsWith('/'))) {
+          newSrc = urlVal;
         }
 
         if (newSrc) {
@@ -1284,7 +1285,7 @@
         if (wrapper) {
           const file = wrapper.getAttribute('data-gds-file');
           if (file) {
-            const sectionHtml = cleanSectionHtml(wrapper);
+            const sectionHtml = cleanSectionHtml(saveWrapper);
             await Auth.apiFetch('/api/pages/' + currentSlug + '/section/' + encodeURIComponent(file), {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },

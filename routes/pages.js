@@ -1295,11 +1295,14 @@ router.post('/:slug/save', verifyToken, requireRole('admin', 'editor'), async (r
         const editables = [];
         $(editableSelector).each((i, el) => {
           const $el = $(el);
-          // Same filters as auto-tagging
+          // Same filters as auto-tagging — MUST stay in sync with preview route (pages.js:2488-2500)
           if ($el.closest('[onclick]').length) return;
           const text = $el.text().trim();
           if (!text || text.length < 2) return;
           if ($el.closest('.gds-section-actions, .gds-section-label, .gds-block-inserter, .snb-sidebar, .snb-toc, .snb-breadcrumb, nav, script, style').length) return;
+          // [A] Mirror the preview route filter: skip non-heading elements with < 5 chars (icons, badges)
+          // Without this, short non-heading elements shift all subsequent indices → saves go to wrong element
+          if (text.length < 5 && !['h1','h2','h3','h4','h5','h6'].includes(el.tagName.toLowerCase())) return;
           editables.push({ el, $el, tag: el.tagName.toLowerCase() });
         });
 
@@ -1314,9 +1317,8 @@ router.post('/:slug/save', verifyToken, requireRole('admin', 'editor'), async (r
           cleanText = cleanText.replace(/<div class="gds-tag-select">[\s\S]*?<\/div>(?:\s*<\/div>)*/g, '');
           cleanText = cleanText.replace(/<button class="gds-tag-btn"[\s\S]*?<\/button>/g, '');
           cleanText = cleanText.replace(/<div class="gds-toolbar-sep"[\s\S]*?<\/div>/g, '');
-          $el.html(cleanText);
 
-          // Change tag if needed
+          // Change tag if needed — [B] use cleanText (not change.text) to avoid re-introducing raw toolbar markup
           if (change.tagChanged && change.tag && change.tag !== target.tag) {
             const newTag = change.tag;
             const attrs = [];
@@ -1326,7 +1328,9 @@ router.post('/:slug/save', verifyToken, requireRole('admin', 'editor'), async (r
                 attrs.push(`${k}="${v}"`);
               }
             }
-            $el.replaceWith(`<${newTag} ${attrs.join(' ')}>${change.text}</${newTag}>`);
+            $el.replaceWith(`<${newTag} ${attrs.join(' ')}>${cleanText}</${newTag}>`);
+          } else {
+            $el.html(cleanText);
           }
         }
 
