@@ -99,8 +99,9 @@ async function deployPageToShootnbox(slug) {
   const LOCAL = `http://localhost:${PORT}`;
 
   // 1. Get page SEO + urlPath (read seo.json directly from filesystem)
+  // home page lives in the root of previews/ (not in a subdirectory)
   const previewsDir = path.join(__dirname, '..', 'previews');
-  const pageDir = path.join(previewsDir, slug);
+  const pageDir = slug === 'home' ? previewsDir : path.join(previewsDir, slug);
   if (!fs.existsSync(pageDir)) throw new Error(`Page not found: ${slug}`);
   let seo = {};
   const seoPath = path.join(pageDir, 'seo.json');
