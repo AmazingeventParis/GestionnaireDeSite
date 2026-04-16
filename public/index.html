@@ -33,21 +33,10 @@
             </div>
         </div>
 
-        <!-- GDS Sites (multi-site switcher) -->
-        <div class="section">
-            <div class="section-header">
-                <h2 class="section-title">Sites GDS</h2>
-                <a href="/gds-sites.html" class="btn btn-primary">Gerer les sites</a>
-            </div>
-            <div id="gds-sites-list" class="grid">
-                <p class="text-muted">Chargement...</p>
-            </div>
-        </div>
-
         <!-- Recent sites -->
         <div class="section">
             <div class="section-header">
-                <h2 class="section-title">Sites surveilles</h2>
+                <h2 class="section-title">Sites recents</h2>
                 <a href="/sites.html" class="btn btn-primary">Voir tous</a>
             </div>
             <div id="recent-sites" class="grid">
@@ -72,44 +61,6 @@
     <script>
     async function loadDashboard() {
         await Components.initPage();
-
-        // Load GDS-managed sites
-        try {
-            var gdsRes = await Auth.apiFetch('/api/gds-sites');
-            var gdsData = await gdsRes.json();
-            var gdsSitesEl = document.getElementById('gds-sites-list');
-            var gdsSites = gdsData.sites || [];
-            if (gdsSites.length === 0) {
-                gdsSitesEl.innerHTML = '<p class="text-muted">Aucun site. <a href="/gds-sites.html">Creer un site</a></p>';
-            } else {
-                gdsSitesEl.innerHTML = gdsSites.map(function(site) {
-                    var activeClass = site.isActive ? ' style="border-color:' + Components.escapeHtml(site.color) + ';box-shadow:0 0 0 2px ' + Components.escapeHtml(site.color) + '33"' : '';
-                    var activeBadge = site.isActive ? '<span class="badge badge-prod" style="margin-left:6px;">ACTIF</span>' : '';
-                    var dot = '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:' + Components.escapeHtml(site.color) + ';margin-right:8px;flex-shrink:0;"></span>';
-                    return '<div class="card"' + activeClass + '>' +
-                        '<div class="card-content">' +
-                            '<div class="card-name">' + dot + Components.escapeHtml(site.name) + activeBadge + '</div>' +
-                            '<div class="card-desc">' + Components.escapeHtml(site.domain || '') + (site.description ? ' — ' + Components.escapeHtml(site.description) : '') + '</div>' +
-                        '</div>' +
-                        '<div style="display:flex;gap:8px;margin-top:12px;">' +
-                            '<a href="/pages.html" class="btn btn-sm btn-secondary" style="flex:1;text-align:center;">Pages</a>' +
-                            (site.isActive ? '' : '<button class="btn btn-sm btn-primary gds-activate-btn" data-id="' + Components.escapeHtml(site.id) + '" style="flex:1;">Activer</button>') +
-                        '</div>' +
-                    '</div>';
-                }).join('');
-
-                // Bind activate buttons
-                gdsSitesEl.querySelectorAll('.gds-activate-btn').forEach(function(btn) {
-                    btn.addEventListener('click', async function() {
-                        var id = this.dataset.id;
-                        await Auth.apiFetch('/api/gds-sites/' + id + '/activate', { method: 'POST' });
-                        window.location.reload();
-                    });
-                });
-            }
-        } catch(e) {
-            console.error('GDS sites error:', e);
-        }
 
         try {
             var [statsRes, sitesRes] = await Promise.all([

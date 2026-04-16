@@ -25,25 +25,6 @@ if [ -d "$PREVIEWS_SEED" ]; then
     cp "$PREVIEWS_SEED/_shared"/*.html "$PREVIEWS_DIR/_shared/" 2>/dev/null || true
     echo "[init] Synced shared header/footer from repo"
   fi
-
-  # Seed the sites registry if not already in volume
-  if [ ! -f "$PREVIEWS_DIR/_sites-registry.json" ] && [ -f "$PREVIEWS_SEED/_sites-registry.json" ]; then
-    cp "$PREVIEWS_SEED/_sites-registry.json" "$PREVIEWS_DIR/_sites-registry.json"
-    echo "[init] Seeded sites registry from repo"
-  fi
-
-  # Create site directories declared in registry (idempotent)
-  if [ -f "$PREVIEWS_DIR/_sites-registry.json" ]; then
-    node -e "
-      var reg = JSON.parse(require('fs').readFileSync('$PREVIEWS_DIR/_sites-registry.json','utf8'));
-      reg.sites.forEach(function(s){
-        var pd = require('path').join('/app', s.previewsDir);
-        var bd = require('path').join('/app', s.blocksDir);
-        var sd = require('path').join(pd, '_shared');
-        [pd, sd, bd].forEach(function(d){ if(!require('fs').existsSync(d)) { require('fs').mkdirSync(d,{recursive:true}); console.log('[init] Created: '+d); }});
-      });
-    " 2>/dev/null || true
-  fi
 fi
 
 # === SITE IMAGES ===

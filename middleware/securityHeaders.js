@@ -10,7 +10,6 @@ const securityHeaders = helmet({
       imgSrc: ["'self'", "data:", "blob:", "https:", "https://i.ytimg.com"],
       connectSrc: ["'self'", "https://www.google-analytics.com", "https://*.supabase.co"],
       frameSrc: ["'self'", "https://www.youtube.com", "https://www.google.com"],
-      scriptSrcAttr: ["'unsafe-inline'"],
       objectSrc: ["'none'"],
       baseUri: ["'self'"],
       formAction: ["'self'"],

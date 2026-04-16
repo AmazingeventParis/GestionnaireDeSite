@@ -1,6 +1,6 @@
 node_modules/
+data/
 .env
-.env.local
+uploads_tmp/
+backups/
 *.log
-.DS_Store
-Thumbs.db
