@@ -62,14 +62,7 @@ try {
   console.warn('Redirect handler not loaded:', e.message);
 }
 
-// 9. Active site context (multi-site support)
-const { activeSiteMiddleware } = require('./middleware/activeSite');
-app.use(activeSiteMiddleware);
-
 // ===== API ROUTES =====
-
-// GDS Sites management (multi-site)
-app.use('/api/gds-sites', require('./routes/gds-sites'));
 
 // Auth (no auth middleware needed — it handles its own)
 app.use('/api/auth', require('./routes/auth'));
