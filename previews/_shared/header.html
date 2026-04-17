@@ -537,12 +537,16 @@
   .snb-header-cta:visited { display: none !important; }
   .snb-mobile-reserver { display: inline-flex !important; }
   .snb-burger { display: flex !important; }
-  .snb-mobile-menu { display: block !important; }
+  /* display:block mais visibility:hidden — Safari respecte visibility pour les pointer-events
+     contrairement à pointer-events:none seul sur position:fixed */
+  .snb-mobile-menu { display: block !important; visibility: hidden; }
   .snb-mega, .snb-mega-overlay { display: none !important; }
   .snb-logo img { height: 70px !important; }
   .snb-header-inner { height: 60px; padding: 0 16px; }
   .snb-mobile-menu { top: 60px; height: calc(100vh - 60px); }
 }
+
+.snb-mobile-menu.open { visibility: visible; }
 
 </style>
 <header class="snb-header" id="snbHeader">
