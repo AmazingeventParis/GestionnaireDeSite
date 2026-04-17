@@ -60,7 +60,7 @@ router.post('/', verifyToken, requireRole('admin'), async (req, res) => {
       .from('site_manager_backups')
       .insert({
         user_id: req.user.id,
-        type: 'full',
+        type: 'manual',
         file_path: filename,
         file_size_bytes: stats.size,
         description: description || null
