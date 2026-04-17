@@ -2812,6 +2812,112 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
       } catch (e) { /* ignore */ }
     }
 
+    // === OG / JSON-LD COMPUTATION ===
+    const escAttr = v => (v || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const PROD_DOMAIN = 'https://shootnbox.fr';
+
+    // Canonical page URL (for og:url and JSON-LD)
+    const pageCanonicalUrl = seo.canonical
+      || (slug === 'home' ? `${PROD_DOMAIN}/`
+        : seo.urlPath ? `${PROD_DOMAIN}/${seo.urlPath}/`
+        : null);
+
+    // OG image — absolute (images served from GDS server, build.js absolutizes the same way)
+    const ogImageRaw = seo.ogImage || config.seo?.ogImageDefault || '';
+    const ogImageAbs = ogImageRaw
+      ? (ogImageRaw.startsWith('http') ? ogImageRaw : `https://sites.swipego.app${ogImageRaw}`)
+      : '';
+
+    // Open Graph + Twitter Card
+    const ogType = (seo.schemaType === 'Article' || seo.schemaType === 'BlogPosting') ? 'article' : 'website';
+    const ogTagsHtml = [
+      `  <meta property="og:type" content="${ogType}">`,
+      `  <meta property="og:site_name" content="${escAttr(config.identity?.name)}">`,
+      `  <meta property="og:locale" content="fr_FR">`,
+      `  <meta property="og:title" content="${escAttr(seo.ogTitle || seo.title || '')}">`,
+      `  <meta property="og:description" content="${escAttr(seo.ogDescription || seo.description || '')}">`,
+      ogImageAbs ? `  <meta property="og:image" content="${escAttr(ogImageAbs)}">\n  <meta property="og:image:width" content="1200">\n  <meta property="og:image:height" content="630">` : '',
+      pageCanonicalUrl ? `  <meta property="og:url" content="${escAttr(pageCanonicalUrl)}">` : '',
+      `  <meta name="twitter:card" content="summary_large_image">`,
+      `  <meta name="twitter:title" content="${escAttr(seo.ogTitle || seo.title || '')}">`,
+      `  <meta name="twitter:description" content="${escAttr(seo.ogDescription || seo.description || '')}">`,
+      ogImageAbs ? `  <meta name="twitter:image" content="${escAttr(ogImageAbs)}">` : '',
+    ].filter(Boolean).join('\n');
+
+    // JSON-LD Schema.org
+    const jsonLdBlocks = [];
+    const sameAs = Object.values(config.footer?.socials || {}).filter(Boolean);
+    const phoneFormatted = (config.contact?.phone || '').replace(/\./g, '').replace(/^0/, '+33');
+
+    // Organization — always present on all pages
+    jsonLdBlocks.push({
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      name: config.identity?.name || 'Shootnbox',
+      url: PROD_DOMAIN,
+      logo: `https://sites.swipego.app${config.identity?.logo || ''}`,
+      telephone: phoneFormatted,
+      email: config.contact?.email || '',
+      sameAs,
+    });
+
+    // LocalBusiness + AggregateRating — home page only
+    if (slug === 'home') {
+      jsonLdBlocks.push({
+        '@context': 'https://schema.org',
+        '@type': 'LocalBusiness',
+        name: config.identity?.name || 'Shootnbox',
+        description: config.seo?.defaultDescription || '',
+        url: PROD_DOMAIN,
+        telephone: phoneFormatted,
+        email: config.contact?.email || '',
+        address: { '@type': 'PostalAddress', addressLocality: 'Paris', addressCountry: 'FR' },
+        openingHours: 'Mo-Su 00:00-23:59',
+        priceRange: '\u20ac\u20ac',
+        aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.8', reviewCount: '1192', bestRating: '5' },
+      });
+    }
+
+    // Product + Offer — specific product pages (prices confirmed via audit)
+    const productCatalog = {
+      'le-ring':          { name: 'Location Borne Ring',      price: '149' },
+      'borne-photo-vegas': { name: 'Location Borne Vegas',    price: '299' },
+      'le-spinner':       { name: 'Location Spinner 360\u00b0', price: '799' },
+    };
+    if (productCatalog[slug]) {
+      const prod = productCatalog[slug];
+      jsonLdBlocks.push({
+        '@context': 'https://schema.org',
+        '@type': 'Product',
+        name: prod.name,
+        description: seo.description || '',
+        brand: { '@type': 'Brand', name: 'Shootnbox' },
+        ...(ogImageAbs ? { image: ogImageAbs } : {}),
+        offers: {
+          '@type': 'Offer',
+          price: prod.price,
+          priceCurrency: 'EUR',
+          availability: 'https://schema.org/InStock',
+          url: pageCanonicalUrl || PROD_DOMAIN,
+        },
+        aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.8', reviewCount: '1192', bestRating: '5' },
+      });
+    }
+
+    // Custom JSON-LD from seo.json (validated before injection)
+    if (seo.schema?.customJsonLd) {
+      try {
+        JSON.parse(seo.schema.customJsonLd);
+        jsonLdBlocks.push(seo.schema.customJsonLd);
+      } catch (e) { /* invalid JSON, skip silently */ }
+    }
+
+    const jsonLdHtml = jsonLdBlocks.map(block => {
+      const json = typeof block === 'string' ? block : JSON.stringify(block);
+      return `  <script type="application/ld+json">${json}</script>`;
+    }).join('\n');
+    // === END OG / JSON-LD ===
+
     const fontMain = config.typography?.fontMain || 'Raleway';
     const fontHeadings = config.typography?.fontHeadings || 'Raleway';
 
@@ -2824,6 +2930,7 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
   <meta name="description" content="${seo.description || ''}">
 ${seo.canonical ? `  <link rel="canonical" href="${seo.canonical}">` : ''}
 ${seo.noindex ? `  <meta name="robots" content="noindex,nofollow">` : ''}
+${ogTagsHtml}
   <link rel="preload" as="font" href="/fonts/raleway-latin.woff2" type="font/woff2" crossorigin>
   <link rel="preload" as="font" href="/fonts/raleway-900i-latin.woff2" type="font/woff2" crossorigin>
   <style>
@@ -2930,6 +3037,7 @@ ${sectionStyles ? `<style>${sectionStyles}</style>` : ''}
 ${preconnectLinks}
 ${lcpImageUrl ? `  <link rel="preload" as="image" href="${lcpImageUrl}" fetchpriority="high">` : ''}
 ${cssLink}
+${jsonLdHtml}
   ${config.scripts?.headCustom || ''}
 </head>
 <body>
