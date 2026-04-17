@@ -592,18 +592,21 @@ var(--max-width)          /* 1300px */
 
 ### A FAIRE (reprendre ici)
 
-**PRIORITE 1 — Semaines 1-2**
-- [ ] **JSON-LD Schema.org** dans `routes/pages.js` (generation du `<head>`) :
-  - Organization (toutes les pages)
-  - LocalBusiness (accueil + pages locales)
-  - Product + Offer (Ring 149€, Vegas 299€, Spinner 799€, Karaoke 299€)
-  - FAQPage (page /faq/ avec 33 Q/R)
-  - AggregateRating (4.8/5 sur 1192 avis)
-- [ ] **Open Graph + Twitter Card** dans `routes/pages.js` :
-  - og:title, og:description, og:image, og:url, og:type, og:locale, og:site_name
-  - twitter:card summary_large_image
-  - Adapter par page selon seo.json
-- [ ] Meta description + canonical sur `/reservation/` et `/contact/` (pages WordPress — via WP admin ou Yoast)
+**PRIORITE 1 — Semaines 1-2** ✓ FAIT le 17/04/2026
+- [x] **JSON-LD Schema.org** dans `routes/pages.js` (commit e659ef0) :
+  - Organization (toutes les pages) ✓
+  - LocalBusiness + AggregateRating (4.8/5, 1192 avis) sur home ✓
+  - Product + Offer : le-ring (149€), borne-photo-vegas (299€), le-spinner (799€) ✓
+  - Custom JSON-LD via seo.schema.customJsonLd ✓
+  - FAQPage : a faire via customJsonLd si besoin
+- [x] **Open Graph + Twitter Card** dans `routes/pages.js` :
+  - og:type, og:site_name, og:locale, og:title, og:description, og:image (1200x630), og:url ✓
+  - twitter:card summary_large_image ✓
+  - Fallback ogTitle→title, ogDescription→description ✓
+  - escAttr helper (protection XSS) ✓
+- [x] **Canonical + meta + OG sur `/reservation/` et `/contact/`** :
+  - Pages GDS statiques (pas WordPress) deployees sur server 79
+  - Canonical, description, og:* injectes directement dans les index.html ✓
 
 **PRIORITE 2 — Semaines 3-4**
 - [ ] **Avis en HTML statique** dans le bloc avis de la home (5-10 avis hardcodes pour crawlers IA)
