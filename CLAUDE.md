@@ -560,3 +560,74 @@ var(--max-width)          /* 1300px */
 - **Stockage** : volume Docker `gds-backups` sur serveur 217
 - **Restaurer** : `POST /api/backups/ac89dac5-c6ed-4295-8fad-421dfbbe00c7/restore`
 - **Contexte** : etat du site avant les modifications de l'audit GEO (JSON-LD, OG, redirections, corrections HTML)
+
+## Audit GEO — Avancement (17/04/2026)
+
+**Score actuel estimé : ~6/10 (etait 4.4/10)**
+**Document source** : `C:\Users\shoot\Downloads\Audit_GEO_Shootnbox.pdf`
+
+### FAIT ✓
+
+**URGENT — Liens morts (footer.html)**
+- 9 liens corriges dans `previews/_shared/footer.html` : bornes ring/vegas/miroir/spinner, nos-bornes, ils-nous-font-confiance, location-photobooth-paris, CGV
+- Footer pousse sur serveur 217 via `PUT /api/shared/footer`
+- Home re-deployee sur serveur 79 ✓
+
+**URGENT — Redirections 301 (serveur 79)**
+- Methode : `.htaccess` Apache (pas Nginx — Nginx = reverse proxy uniquement, Apache = backend port 8082)
+- Ajout en tete du `.htaccess` sur serveur 79 :
+  - `/miroir/` → `/location-photobooth-miroir/`
+  - `/nos-bornes/` → `/location-photobooth/`
+  - `/ils-nous-font-confiance/` → `/location-photobooth/`
+  - `/location-photobooth-paris/` → `/location-photobooth/`
+  - `/contacts/` → `/contact/`
+- Toutes les 5 redirections operationnelles ✓
+
+**URGENT — Blog WordPress 500 pour les browsers**
+- Cause : `snb-server-track.php` inclus dans `wp-config.php` ligne 2 crashait avec Fatal Error mysqli pour tous les User-Agents non-bots
+- Bug : `$vid` et `$browser` utilises AVANT leur definition + `session_id` "Data too long" (hash 64 chars > colonne)
+- Fix : variables deplacees avant le bloc conn2, session_id tronque a 50 chars, bloc conn2 wrappe dans try-catch
+- Backup : `/var/www/.../snb-server-track.php.bak-20260417`
+- Blog accessible pour navigateurs, bots, WP Rocket Preload ✓
+
+### A FAIRE (reprendre ici)
+
+**PRIORITE 1 — Semaines 1-2**
+- [ ] **JSON-LD Schema.org** dans `routes/pages.js` (generation du `<head>`) :
+  - Organization (toutes les pages)
+  - LocalBusiness (accueil + pages locales)
+  - Product + Offer (Ring 149€, Vegas 299€, Spinner 799€, Karaoke 299€)
+  - FAQPage (page /faq/ avec 33 Q/R)
+  - AggregateRating (4.8/5 sur 1192 avis)
+- [ ] **Open Graph + Twitter Card** dans `routes/pages.js` :
+  - og:title, og:description, og:image, og:url, og:type, og:locale, og:site_name
+  - twitter:card summary_large_image
+  - Adapter par page selon seo.json
+- [ ] Meta description + canonical sur `/reservation/` et `/contact/` (pages WordPress — via WP admin ou Yoast)
+
+**PRIORITE 2 — Semaines 3-4**
+- [ ] **Avis en HTML statique** dans le bloc avis de la home (5-10 avis hardcodes pour crawlers IA)
+  - Note : bloc avis-google dans bibliotheque = marquee dark qui fetch `/api/reviews` (deja fait)
+  - Pour la home : section `06-avis.html` a ces avis hardcodes nativement ✓ (pas d action)
+  - Pour les pages qui ont le bloc avis bibliotheque : avis sont deja charges via JS depuis `/api/reviews`
+- [ ] **Phrases definitoires** en debut de chaque page (sous le H1)
+- [ ] **Corriger H1 multiples** : /mariage/ (plusieurs H1 → garder 1), /le-spinner/ (H1 duplique)
+- [ ] **Alt text** sur toutes les images sans description
+- [ ] **Yoast SEO WordPress** : profils sociaux → comptes Shootnbox officiels, image OG → 1200x630px
+
+**PRIORITE 3 — Mois suivant**
+- [ ] Maillage interne : articles blog → liens vers pages bornes et /reservation/
+- [ ] Reformuler reponses FAQ (phrase directe en tete)
+- [ ] Convertir comparatifs en vrais tableaux HTML `<table>`
+- [ ] Reduire emojis pages /mariage/ et /anniversaire/
+- [ ] Article pilier "Guide complet location photobooth"
+
+### Notes architecture serveur 79 (decouverte pendant l'audit)
+- **Nginx** = reverse proxy uniquement (SSL, headers)
+- **Apache** = backend PHP port 8082
+- **`.htaccess`** fonctionne (Apache le lit)
+- **WP Rocket** cache : fichiers `index-https.html` dans `wp-content/cache/wp-rocket/shootnbox.fr/`
+- **Wordfence WAF** : `auto_prepend_file wordfence-waf.php` dans `.htaccess`
+- **Pages GDS deployees** : uniquement `home` (published) + `location-photobooth` (modified)
+- Toutes les autres pages du site = WordPress natif
+- **`snb-server-track.php`** a la racine : inclus dans wp-config.php ligne 2, tracking standalone avant WordPress
