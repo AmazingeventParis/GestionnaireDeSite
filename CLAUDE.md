@@ -550,3 +550,13 @@ var(--max-width)          /* 1300px */
 - **Bannieres perdues au redeploy** : stockees dans `banners/` (volume Docker non persiste) → deplacees dans `previews/_shared/banners/` (volume `gds-previews` persiste)
 - **Bouton Enregistrer banniere ne marchait pas** : HTML complexe de la banniere (avec `<style>`/`<script>`) cassait le template string JS du formulaire → textareas remplies via `.value` apres insertion DOM
 - **Header ecrase par rebuild** : fichier local `previews/_shared/header.html` ancien a ecrase la version serveur → restaure depuis git commit `8eee946` (version avec mega-menu dropdowns)
+
+## Sauvegardes
+
+### Backup avant audit GEO (17/04/2026)
+- **Fichier** : `backup-2026-04-17T09-48-24-283Z.zip`
+- **ID Supabase** : `ac89dac5-c6ed-4295-8fad-421dfbbe00c7`
+- **Taille** : 30.87 MB (previews/ + site-config.json)
+- **Stockage** : volume Docker `gds-backups` sur serveur 217
+- **Restaurer** : `POST /api/backups/ac89dac5-c6ed-4295-8fad-421dfbbe00c7/restore`
+- **Contexte** : etat du site avant les modifications de l'audit GEO (JSON-LD, OG, redirections, corrections HTML)
