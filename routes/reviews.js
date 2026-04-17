@@ -22,7 +22,7 @@ function loadReviews() {
  */
 router.get('/', (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Cache-Control', 'public, max-age=3600');
+  res.setHeader('Cache-Control', 'public, max-age=300');
 
   const data = loadReviews();
   if (!data) {
