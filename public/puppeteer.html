@@ -254,7 +254,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
       <h2>Aucun audit disponible</h2>
       <p>Lance le script Puppeteer pour générer les résultats.</p>
-      <button class="btn btn-primary" onclick="document.getElementById('btn-launch-audit').click()">▶ Lancer l'audit</button>
+      <button class="btn btn-primary" id="btn-launch-empty">▶ Lancer l'audit</button>
     </div>
     <table class="pup-table" id="pup-table" style="display:none">
       <thead>
@@ -789,6 +789,14 @@
     if (sseReader) { try { sseReader.cancel(); } catch(e) {} sseReader = null; }
     document.getElementById('pup-live').classList.remove('visible');
   });
+
+  // ===== EMPTY STATE LAUNCH BUTTON =====
+  var btnLaunchEmpty = document.getElementById('btn-launch-empty');
+  if (btnLaunchEmpty) {
+    btnLaunchEmpty.addEventListener('click', function() {
+      document.getElementById('btn-launch-audit').click();
+    });
+  }
 
   // ===== INIT =====
   Components.initPage().then(function() {

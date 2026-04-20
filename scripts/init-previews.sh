@@ -43,7 +43,19 @@ if [ -d "$IMAGES_SEED" ]; then
   fi
 fi
 
-echo "[init] Volume initialization complete. Starting server..."
+echo "[init] Volume initialization complete."
+
+# === PUPPETEER ===
+# Ensure puppeteer is available (fallback if Docker build didn't include it)
+if ! node -e "require('puppeteer')" 2>/dev/null; then
+  echo "[init] puppeteer not found — installing..."
+  npm install puppeteer --no-save 2>&1 | tail -3
+  echo "[init] puppeteer installed."
+else
+  echo "[init] puppeteer OK."
+fi
+
+echo "[init] Starting server..."
 
 # Start the Node.js server
 exec node server.js
