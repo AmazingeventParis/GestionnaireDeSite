@@ -25,6 +25,28 @@
 .pup-header h1 { font-size: 22px; font-weight: 700; color: #e6edf3; margin: 0; }
 .pup-meta { font-size: 13px; color: #8b949e; }
 .pup-meta span { color: #58a6ff; }
+.pup-header-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+/* ===== HISTORY PANEL ===== */
+.pup-history { background: #161b22; border: 1px solid #30363d; border-radius: 10px; margin-bottom: 20px; overflow: hidden; }
+.pup-history-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; cursor: pointer; user-select: none; }
+.pup-history-header:hover { background: #1c2128; }
+.pup-history-title { font-size: 13px; font-weight: 700; color: #8b949e; text-transform: uppercase; letter-spacing: .5px; display: flex; align-items: center; gap: 8px; }
+.pup-history-toggle { font-size: 11px; color: #484f58; transition: transform .2s; }
+.pup-history-toggle.open { transform: rotate(180deg); }
+.pup-history-body { display: none; border-top: 1px solid #30363d; }
+.pup-history-body.open { display: block; }
+.pup-history-list { display: flex; flex-wrap: wrap; gap: 10px; padding: 14px 16px; }
+.hist-item { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 12px 16px; cursor: pointer; transition: border-color .15s; min-width: 200px; flex: 1; }
+.hist-item:hover { border-color: #58a6ff; }
+.hist-item.active { border-color: #58a6ff; background: #1f6feb11; }
+.hist-item-date { font-size: 13px; font-weight: 700; color: #e6edf3; margin-bottom: 4px; }
+.hist-item-meta { font-size: 12px; color: #8b949e; display: flex; gap: 10px; flex-wrap: wrap; }
+.hist-score { font-weight: 700; }
+.hist-score.ok { color: #3fb950; }
+.hist-score.warn { color: #d29922; }
+.hist-score.crit { color: #f85149; }
+.hist-empty { padding: 20px 16px; text-align: center; color: #484f58; font-size: 13px; }
 
 /* ===== FILTERS ===== */
 .pup-filters { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 14px 16px; }
@@ -108,6 +130,20 @@
 .score-bar { width: 60px; height: 4px; background: #21262d; border-radius: 2px; margin-top: 4px; }
 .score-bar-fill { height: 100%; border-radius: 2px; }
 
+/* ===== LAUNCH MODAL ===== */
+.pup-modal-overlay { position: fixed; inset: 0; background: rgba(1,4,9,.7); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.pup-modal { background: #161b22; border: 1px solid #30363d; border-radius: 12px; width: 100%; max-width: 600px; padding: 28px; }
+.pup-modal h2 { font-size: 18px; font-weight: 700; color: #e6edf3; margin: 0 0 8px; }
+.pup-modal p { font-size: 14px; color: #8b949e; margin: 0 0 20px; line-height: 1.6; }
+.pup-modal-cmd { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 14px 16px; font-family: 'Consolas', 'Monaco', monospace; font-size: 14px; color: #3fb950; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; word-break: break-all; }
+.pup-modal-steps { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 16px; margin-bottom: 20px; }
+.pup-modal-steps ol { margin: 0; padding-left: 20px; color: #8b949e; font-size: 13px; line-height: 2; }
+.pup-modal-steps li code { background: #21262d; padding: 2px 6px; border-radius: 4px; color: #e6edf3; font-size: 12px; }
+.pup-modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.btn-copy { background: #21262d; border: 1px solid #30363d; color: #8b949e; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: all .15s; white-space: nowrap; flex-shrink: 0; }
+.btn-copy:hover { border-color: #58a6ff; color: #58a6ff; }
+.btn-copy.copied { border-color: #3fb950; color: #3fb950; }
+
 @media(max-width:900px) {
   .pup-summary { grid-template-columns: repeat(3,1fr); }
   .pup-table th:nth-child(n+5), .pup-table td:nth-child(n+5) { display: none; }
@@ -126,11 +162,29 @@
       <h1>Audit Technique Puppeteer</h1>
       <div class="pup-meta" id="pup-meta">Aucun audit disponible</div>
     </div>
+    <div class="pup-header-actions">
+      <button class="btn btn-primary" id="btn-launch-audit">▶ Lancer l'audit</button>
+    </div>
   </div>
 
   <!-- Progress -->
   <div class="pup-progress" id="pup-progress">
     <div class="pup-progress-bar" id="pup-progress-bar" style="width:0%"></div>
+  </div>
+
+  <!-- History panel -->
+  <div class="pup-history" id="pup-history" style="display:none">
+    <div class="pup-history-header" id="pup-history-toggle">
+      <div class="pup-history-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        Historique des audits
+        <span id="pup-history-count" style="background:#21262d;color:#8b949e;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700"></span>
+      </div>
+      <span class="pup-history-toggle" id="pup-history-chevron">▼</span>
+    </div>
+    <div class="pup-history-body" id="pup-history-body">
+      <div class="pup-history-list" id="pup-history-list"></div>
+    </div>
   </div>
 
   <!-- Summary cards -->
@@ -173,7 +227,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
       <h2>Aucun audit disponible</h2>
       <p>Lance le script Puppeteer pour générer les résultats.</p>
-      <code style="background:#161b22;padding:8px 16px;border-radius:6px;font-size:13px;display:inline-block;">node scripts/puppeteer-audit.js</code>
+      <button class="btn btn-primary" onclick="document.getElementById('btn-launch-audit').click()">▶ Lancer l'audit</button>
     </div>
     <table class="pup-table" id="pup-table" style="display:none">
       <thead>
@@ -198,6 +252,29 @@
 
 </div>
 
+<!-- Launch Modal -->
+<div class="pup-modal-overlay" id="pup-modal" style="display:none">
+  <div class="pup-modal">
+    <h2>Lancer l'audit Puppeteer</h2>
+    <p>Le script tourne en local sur ton poste. Il va auditer toutes les pages du site via Chrome headless et envoyer les résultats ici automatiquement.</p>
+    <div class="pup-modal-steps">
+      <ol>
+        <li>Ouvre un terminal dans le dossier <code>GestionnaireDeSite</code></li>
+        <li>Connecte-toi (variable d'environnement <code>GDS_TOKEN</code> optionnelle)</li>
+        <li>Lance la commande ci-dessous</li>
+      </ol>
+    </div>
+    <div class="pup-modal-cmd">
+      <span id="modal-cmd-text">node scripts/puppeteer-audit.js</span>
+      <button class="btn-copy" id="btn-copy-cmd">Copier</button>
+    </div>
+    <p style="font-size:12px;color:#484f58;margin:0 0 20px">L'audit dure ~5-10 minutes selon le nombre de pages. Les résultats s'affichent ici dès la fin.</p>
+    <div class="pup-modal-actions">
+      <button class="btn btn-secondary" id="btn-modal-close">Fermer</button>
+    </div>
+  </div>
+</div>
+
 <script src="/js/auth.js"></script>
 <script src="/js/components.js"></script>
 <script>
@@ -212,6 +289,7 @@
   var filterCheck = 'all';
   var searchQ = '';
   var expandedSlug = null;
+  var currentAuditId = null;
 
   // ===== SCORE HELPERS =====
   function getScoreClass(s) {
@@ -220,37 +298,118 @@
   function getScoreColor(s) {
     return s >= 80 ? '#3fb950' : s >= 50 ? '#d29922' : '#f85149';
   }
-  function ckIcon(ok, warn) {
+  function ckIcon(ok) {
     if (ok === null || ok === undefined) return '<span class="ck ck-na">—</span>';
     if (ok === true) return '<span class="ck ck-ok">✓</span>';
-    if (warn) return '<span class="ck ck-warn">⚠</span>';
     return '<span class="ck ck-err">✗</span>';
   }
   function escHtml(s) {
     if (!s) return '';
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
+  function fmtDate(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    if (isNaN(d)) return iso;
+    return d.getDate() + '/' + (d.getMonth()+1) + '/' + d.getFullYear() +
+      ' à ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+  }
+  function fmtDuration(ms) {
+    if (!ms) return '';
+    if (ms < 60000) return Math.round(ms/1000) + 's';
+    return Math.floor(ms/60000) + 'min ' + Math.round((ms%60000)/1000) + 's';
+  }
 
-  // ===== LOAD DATA =====
-  function loadData() {
-    Auth.getToken().then(function(token) {
+  // ===== AUTH TOKEN HELPER =====
+  function getToken() {
+    return Auth.getToken ? Auth.getToken() : Promise.resolve(localStorage.getItem('accessToken'));
+  }
+
+  // ===== LOAD LATEST DATA =====
+  function loadData(id) {
+    getToken().then(function(token) {
       if (!token) return;
-      fetch('/api/puppeteer-audit', { headers: { 'Authorization': 'Bearer ' + token } })
+      var url = id ? '/api/puppeteer-audit/history/' + id : '/api/puppeteer-audit';
+      fetch(url, { headers: { 'Authorization': 'Bearer ' + token } })
         .then(function(r) { return r.json(); })
         .then(function(data) {
           if (!data.pages || data.pages.length === 0) return;
+          currentAuditId = data.id || null;
           allPages = data.pages;
-          var d = new Date(data.auditDate);
-          var fmt = d.getDate() + '/' + (d.getMonth()+1) + '/' + d.getFullYear() + ' à ' +
-            String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
-          document.getElementById('pup-meta').innerHTML = 'Dernier audit : <span>' + fmt + '</span> — ' + data.totalPages + ' pages';
+          document.getElementById('pup-meta').innerHTML =
+            'Audit du <span>' + fmtDate(data.auditDate) + '</span>' +
+            ' — ' + data.totalPages + ' pages' +
+            (data.avgScore ? ' — Score moyen : <span>' + data.avgScore + '/100</span>' : '') +
+            (data.duration ? ' — Durée : ' + fmtDuration(data.duration) : '');
           renderSummary();
           applyFilters();
           document.getElementById('pup-empty').style.display = 'none';
           document.getElementById('pup-table').style.display = 'table';
+          // Mark active in history
+          document.querySelectorAll('.hist-item').forEach(function(el) {
+            el.classList.toggle('active', el.getAttribute('data-id') === String(data.id));
+          });
         }).catch(function() {});
     });
   }
+
+  // ===== LOAD HISTORY LIST =====
+  function loadHistory() {
+    getToken().then(function(token) {
+      if (!token) return;
+      fetch('/api/puppeteer-audit/history', { headers: { 'Authorization': 'Bearer ' + token } })
+        .then(function(r) { return r.json(); })
+        .then(function(history) {
+          renderHistory(history);
+        }).catch(function() {});
+    });
+  }
+
+  function renderHistory(history) {
+    var panel = document.getElementById('pup-history');
+    var list = document.getElementById('pup-history-list');
+    var count = document.getElementById('pup-history-count');
+
+    if (!history || history.length === 0) {
+      panel.style.display = 'none';
+      return;
+    }
+
+    panel.style.display = 'block';
+    count.textContent = history.length;
+
+    var html = '';
+    history.forEach(function(h) {
+      var score = h.avgScore || 0;
+      var scoreClass = score >= 80 ? 'ok' : score >= 50 ? 'warn' : 'crit';
+      html += '<div class="hist-item" data-id="' + escHtml(h.id) + '">';
+      html += '<div class="hist-item-date">' + fmtDate(h.auditDate) + '</div>';
+      html += '<div class="hist-item-meta">';
+      html += '<span>' + (h.totalPages || '?') + ' pages</span>';
+      if (score) html += '<span class="hist-score ' + scoreClass + '">' + score + '/100</span>';
+      if (h.duration) html += '<span>' + fmtDuration(h.duration) + '</span>';
+      html += '</div></div>';
+    });
+    list.innerHTML = html;
+
+    list.querySelectorAll('.hist-item').forEach(function(item) {
+      item.addEventListener('click', function() {
+        var id = this.getAttribute('data-id');
+        loadData(id);
+        // Open history body
+        document.getElementById('pup-history-body').classList.add('open');
+        document.getElementById('pup-history-chevron').classList.add('open');
+      });
+    });
+  }
+
+  // ===== HISTORY TOGGLE =====
+  document.getElementById('pup-history-toggle').addEventListener('click', function() {
+    var body = document.getElementById('pup-history-body');
+    var chev = document.getElementById('pup-history-chevron');
+    body.classList.toggle('open');
+    chev.classList.toggle('open');
+  });
 
   // ===== SUMMARY =====
   function renderSummary() {
@@ -269,14 +428,11 @@
   // ===== FILTERS =====
   function applyFilters() {
     filtered = allPages.filter(function(p) {
-      // search
       if (searchQ && p.slug.toLowerCase().indexOf(searchQ) === -1) return false;
-      // score tab
       var s = p.score || 0;
       if (filterScore === 'ok' && s < 80) return false;
       if (filterScore === 'warn' && (s < 50 || s >= 80)) return false;
       if (filterScore === 'crit' && s >= 50) return false;
-      // check filter — only show pages with issue on this check
       if (filterCheck !== 'all') {
         var c = p.checks || {};
         var checkOk = true;
@@ -292,12 +448,11 @@
           case 'images':     checkOk = c.images && c.images.ok; break;
           case 'softFake':   checkOk = c.softFake && c.softFake.ok; break;
         }
-        if (checkOk) return false; // only show pages with problems on this check
+        if (checkOk) return false;
       }
       return true;
     });
 
-    // sort
     filtered.sort(function(a, b) {
       var av, bv;
       switch(sortKey) {
@@ -331,13 +486,10 @@
       var barW = Math.round(s) + '%';
 
       html += '<tr class="pup-row' + (isExpanded?' expanded':'') + '" data-slug="' + escHtml(p.slug) + '">';
-      // Page
       html += '<td class="pup-slug">' + escHtml(p.slug) +
         '<a href="' + escHtml(p.url) + '" target="_blank" title="' + escHtml(p.url) + '">↗</a></td>';
-      // Score
       html += '<td><span class="pup-score ' + getScoreClass(s) + '">' + s + '</span>' +
         '<div class="score-bar"><div class="score-bar-fill" style="width:' + barW + ';background:' + scoreColor + '"></div></div></td>';
-      // Checks
       html += '<td>' + ckIcon(c.http&&c.http.ok) + '</td>';
       html += '<td>' + ckIcon(c.title&&c.title.ok) + '</td>';
       html += '<td>' + ckIcon(c.description&&c.description.ok) + '</td>';
@@ -347,10 +499,8 @@
       html += '<td>' + ckJsonLd(c.jsonLd) + '</td>';
       html += '<td>' + ckIcon(c.ogTags&&c.ogTags.ok) + '</td>';
       html += '<td>' + ckImages(c.images) + '</td>';
-      // Issues
       html += '<td>' + renderIssuesBadge(issues) + '</td>';
       html += '</tr>';
-      // Detail row
       if (isExpanded) {
         html += '<tr class="pup-detail-row"><td colspan="12"><div class="pup-detail">' + renderDetail(p) + '</div></td></tr>';
       }
@@ -358,7 +508,6 @@
     if (!html) html = '<tr><td colspan="12" style="text-align:center;padding:40px;color:#8b949e">Aucune page ne correspond aux filtres</td></tr>';
     tbody.innerHTML = html;
 
-    // bind row clicks
     tbody.querySelectorAll('.pup-row').forEach(function(row) {
       row.addEventListener('click', function() {
         var slug = this.getAttribute('data-slug');
@@ -429,7 +578,6 @@
 
     html += '</div>';
 
-    // Issues list
     var issues = p.issues || [];
     if (issues.length) {
       html += '<div style="margin-top:14px;border-top:1px solid #30363d;padding-top:12px">';
@@ -487,8 +635,49 @@
     }, 200);
   });
 
+  // ===== LAUNCH MODAL =====
+  var modal = document.getElementById('pup-modal');
+
+  document.getElementById('btn-launch-audit').addEventListener('click', function() {
+    modal.style.display = 'flex';
+  });
+
+  document.getElementById('btn-modal-close').addEventListener('click', function() {
+    modal.style.display = 'none';
+  });
+
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal) modal.style.display = 'none';
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && modal.style.display !== 'none') modal.style.display = 'none';
+  });
+
+  document.getElementById('btn-copy-cmd').addEventListener('click', function() {
+    var btn = this;
+    var cmd = document.getElementById('modal-cmd-text').textContent;
+    navigator.clipboard.writeText(cmd).then(function() {
+      btn.textContent = '✓ Copié';
+      btn.classList.add('copied');
+      setTimeout(function() { btn.textContent = 'Copier'; btn.classList.remove('copied'); }, 2000);
+    }).catch(function() {
+      // fallback
+      var ta = document.createElement('textarea');
+      ta.value = cmd;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      btn.textContent = '✓ Copié';
+      btn.classList.add('copied');
+      setTimeout(function() { btn.textContent = 'Copier'; btn.classList.remove('copied'); }, 2000);
+    });
+  });
+
   // ===== INIT =====
-  Components.initPage(function() {
+  Components.initPage().then(function() {
+    loadHistory();
     loadData();
   });
 
