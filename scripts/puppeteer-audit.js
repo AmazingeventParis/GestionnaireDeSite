@@ -146,8 +146,10 @@ async function getToken() {
 // ─── URL mapping ─────────────────────────────────────────────────────────────
 function pageUrl(page) {
   if (page.slug === 'home') return `${SITE_BASE}/`;
-  if (page.seo && page.seo.urlPath) {
-    const p = page.seo.urlPath.endsWith('/') ? page.seo.urlPath : page.seo.urlPath + '/';
+  // API returns urlPath as top-level field (e.g. "/location-photobooth-lyon")
+  const urlPath = page.urlPath || (page.seo && page.seo.urlPath);
+  if (urlPath) {
+    const p = urlPath.endsWith('/') ? urlPath : urlPath + '/';
     return `${SITE_BASE}${p}`;
   }
   return `${SITE_BASE}/${page.slug}/`;
