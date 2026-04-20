@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Audit Puppeteer — GDS</title>
+<link rel="stylesheet" href="/css/admin.css?v=1">
+<style>
+/* ===== LAYOUT ===== */
+.pup-wrap { max-width: 1600px; margin: 0 auto; padding: 24px 20px; }
+
+/* ===== SUMMARY CARDS ===== */
+.pup-summary { display: grid; grid-template-columns: repeat(5,1fr); gap: 14px; margin-bottom: 28px; }
+.pup-card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 18px 20px; text-align: center; }
+.pup-card .card-num { font-size: 32px; font-weight: 800; line-height: 1; margin-bottom: 6px; }
+.pup-card .card-lbl { font-size: 12px; color: #8b949e; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+.pup-card.c-total .card-num { color: #e6edf3; }
+.pup-card.c-ok .card-num { color: #3fb950; }
+.pup-card.c-warn .card-num { color: #d29922; }
+.pup-card.c-crit .card-num { color: #f85149; }
+.pup-card.c-score .card-num { color: #58a6ff; }
+
+/* ===== HEADER ===== */
+.pup-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+.pup-header h1 { font-size: 22px; font-weight: 700; color: #e6edf3; margin: 0; }
+.pup-meta { font-size: 13px; color: #8b949e; }
+.pup-meta span { color: #58a6ff; }
+
+/* ===== FILTERS ===== */
+.pup-filters { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 14px 16px; }
+.pup-search { flex: 1; min-width: 200px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 8px 12px; color: #e6edf3; font-size: 14px; outline: none; }
+.pup-search:focus { border-color: #58a6ff; }
+.pup-search::placeholder { color: #484f58; }
+
+.pup-tabs { display: flex; gap: 6px; }
+.pup-tab { padding: 7px 14px; border-radius: 6px; border: 1px solid #30363d; background: transparent; color: #8b949e; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .15s; white-space: nowrap; }
+.pup-tab:hover { border-color: #58a6ff; color: #58a6ff; }
+.pup-tab.active { background: #1f6feb22; border-color: #58a6ff; color: #58a6ff; }
+.pup-tab.tab-ok.active { background: #3fb95022; border-color: #3fb950; color: #3fb950; }
+.pup-tab.tab-warn.active { background: #d2992222; border-color: #d29922; color: #d29922; }
+.pup-tab.tab-crit.active { background: #f8514922; border-color: #f85149; color: #f85149; }
+
+.pup-check-filter { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 8px 12px; color: #e6edf3; font-size: 13px; outline: none; cursor: pointer; }
+.pup-check-filter:focus { border-color: #58a6ff; }
+
+.pup-count { font-size: 13px; color: #8b949e; white-space: nowrap; margin-left: auto; }
+
+/* ===== TABLE ===== */
+.pup-table-wrap { background: #161b22; border: 1px solid #30363d; border-radius: 10px; overflow: hidden; }
+.pup-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.pup-table thead th { background: #0d1117; color: #8b949e; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; padding: 10px 12px; text-align: left; border-bottom: 1px solid #30363d; white-space: nowrap; cursor: pointer; user-select: none; }
+.pup-table thead th:hover { color: #58a6ff; }
+.pup-table thead th.sorted { color: #58a6ff; }
+.pup-table tbody tr { border-bottom: 1px solid #21262d; transition: background .1s; cursor: pointer; }
+.pup-table tbody tr:last-child { border-bottom: none; }
+.pup-table tbody tr:hover { background: #1c2128; }
+.pup-table tbody tr.expanded { background: #1c2128; }
+.pup-table td { padding: 10px 12px; vertical-align: middle; }
+
+/* slug cell */
+.pup-slug { font-weight: 600; color: #e6edf3; max-width: 200px; }
+.pup-slug a { color: #58a6ff; text-decoration: none; font-size: 11px; margin-left: 6px; opacity: .7; }
+.pup-slug a:hover { opacity: 1; }
+
+/* score badge */
+.pup-score { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 24px; border-radius: 12px; font-weight: 800; font-size: 12px; }
+.score-ok { background: #1a4731; color: #3fb950; }
+.score-warn { background: #3d2f0a; color: #d29922; }
+.score-crit { background: #3d1212; color: #f85149; }
+
+/* check icons */
+.ck { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+.ck-ok { background: #1a473144; color: #3fb950; }
+.ck-err { background: #3d121244; color: #f85149; }
+.ck-warn { background: #3d2f0a44; color: #d29922; }
+.ck-na { background: #21262d; color: #484f58; }
+
+/* issues count */
+.pup-issues-count { display: inline-flex; align-items: center; gap: 5px; }
+.issue-dot { width: 8px; height: 8px; border-radius: 50%; background: #f85149; }
+.issue-dot.warn { background: #d29922; }
+
+/* expanded detail row */
+.pup-detail-row td { padding: 0; }
+.pup-detail { background: #0d1117; border-top: 1px solid #30363d; padding: 16px 20px; }
+.pup-detail-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+.detail-item { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px 14px; }
+.detail-item.item-err { border-color: #f8514944; }
+.detail-item.item-warn { border-color: #d2992244; }
+.detail-item.item-ok { border-color: #3fb95022; }
+.detail-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #8b949e; margin-bottom: 4px; }
+.detail-value { font-size: 12px; color: #e6edf3; word-break: break-all; line-height: 1.4; }
+.detail-value.err { color: #f85149; }
+.detail-value.warn { color: #d29922; }
+.detail-value.ok { color: #3fb950; }
+
+/* empty state */
+.pup-empty { text-align: center; padding: 80px 20px; color: #8b949e; }
+.pup-empty svg { width: 64px; height: 64px; opacity: .3; margin-bottom: 20px; }
+.pup-empty h2 { font-size: 18px; color: #8b949e; margin-bottom: 8px; }
+.pup-empty p { font-size: 14px; margin-bottom: 24px; }
+
+/* progress bar */
+.pup-progress { height: 3px; background: #21262d; border-radius: 2px; overflow: hidden; margin-bottom: 28px; display: none; }
+.pup-progress-bar { height: 100%; background: linear-gradient(90deg, #58a6ff, #3fb950); border-radius: 2px; transition: width .3s ease; }
+
+/* score bar mini */
+.score-bar { width: 60px; height: 4px; background: #21262d; border-radius: 2px; margin-top: 4px; }
+.score-bar-fill { height: 100%; border-radius: 2px; }
+
+@media(max-width:900px) {
+  .pup-summary { grid-template-columns: repeat(3,1fr); }
+  .pup-table th:nth-child(n+5), .pup-table td:nth-child(n+5) { display: none; }
+}
+@media(max-width:600px) {
+  .pup-summary { grid-template-columns: repeat(2,1fr); }
+}
+</style>
+</head>
+<body>
+<div id="navbar"></div>
+<div class="pup-wrap">
+
+  <div class="pup-header">
+    <div>
+      <h1>Audit Technique Puppeteer</h1>
+      <div class="pup-meta" id="pup-meta">Aucun audit disponible</div>
+    </div>
+  </div>
+
+  <!-- Progress -->
+  <div class="pup-progress" id="pup-progress">
+    <div class="pup-progress-bar" id="pup-progress-bar" style="width:0%"></div>
+  </div>
+
+  <!-- Summary cards -->
+  <div class="pup-summary">
+    <div class="pup-card c-total"><div class="card-num" id="s-total">—</div><div class="card-lbl">Pages auditées</div></div>
+    <div class="pup-card c-score"><div class="card-num" id="s-score">—</div><div class="card-lbl">Score moyen</div></div>
+    <div class="pup-card c-ok"><div class="card-num" id="s-ok">—</div><div class="card-lbl">OK ≥ 80</div></div>
+    <div class="pup-card c-warn"><div class="card-num" id="s-warn">—</div><div class="card-lbl">Warnings 50–79</div></div>
+    <div class="pup-card c-crit"><div class="card-num" id="s-crit">—</div><div class="card-lbl">Critiques &lt; 50</div></div>
+  </div>
+
+  <!-- Filters -->
+  <div class="pup-filters">
+    <input type="text" class="pup-search" id="pup-search" placeholder="Rechercher une page…">
+    <div class="pup-tabs">
+      <button class="pup-tab active" data-score="all">Tous</button>
+      <button class="pup-tab tab-ok" data-score="ok">✓ OK</button>
+      <button class="pup-tab tab-warn" data-score="warn">⚠ Warning</button>
+      <button class="pup-tab tab-crit" data-score="crit">✗ Critique</button>
+    </div>
+    <select class="pup-check-filter" id="pup-check-filter">
+      <option value="all">Tous les checks</option>
+      <option value="http">HTTP 200</option>
+      <option value="title">Title</option>
+      <option value="description">Description</option>
+      <option value="canonical">Canonical</option>
+      <option value="h1">H1</option>
+      <option value="noindex">Noindex accidentel</option>
+      <option value="jsonLd">JSON-LD</option>
+      <option value="ogTags">Open Graph</option>
+      <option value="images">Images (alt)</option>
+      <option value="softFake">Soft 404</option>
+    </select>
+    <div class="pup-count" id="pup-count">0 pages</div>
+  </div>
+
+  <!-- Table -->
+  <div class="pup-table-wrap" id="pup-table-wrap">
+    <div class="pup-empty" id="pup-empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+      <h2>Aucun audit disponible</h2>
+      <p>Lance le script Puppeteer pour générer les résultats.</p>
+      <code style="background:#161b22;padding:8px 16px;border-radius:6px;font-size:13px;display:inline-block;">node scripts/puppeteer-audit.js</code>
+    </div>
+    <table class="pup-table" id="pup-table" style="display:none">
+      <thead>
+        <tr>
+          <th data-sort="slug">Page ↕</th>
+          <th data-sort="score">Score ↕</th>
+          <th data-sort="http">HTTP</th>
+          <th data-sort="title">Title</th>
+          <th data-sort="description">Desc</th>
+          <th data-sort="h1">H1</th>
+          <th data-sort="canonical">Canon.</th>
+          <th data-sort="noindex">Noindex</th>
+          <th data-sort="jsonLd">JSON-LD</th>
+          <th data-sort="ogTags">OG</th>
+          <th data-sort="images">Images</th>
+          <th data-sort="issues">Problèmes</th>
+        </tr>
+      </thead>
+      <tbody id="pup-tbody"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script src="/js/auth.js"></script>
+<script src="/js/components.js"></script>
+<script>
+(function() {
+  'use strict';
+
+  var allPages = [];
+  var filtered = [];
+  var sortKey = 'score';
+  var sortDir = 1; // 1=asc, -1=desc
+  var filterScore = 'all';
+  var filterCheck = 'all';
+  var searchQ = '';
+  var expandedSlug = null;
+
+  // ===== SCORE HELPERS =====
+  function getScoreClass(s) {
+    return s >= 80 ? 'score-ok' : s >= 50 ? 'score-warn' : 'score-crit';
+  }
+  function getScoreColor(s) {
+    return s >= 80 ? '#3fb950' : s >= 50 ? '#d29922' : '#f85149';
+  }
+  function ckIcon(ok, warn) {
+    if (ok === null || ok === undefined) return '<span class="ck ck-na">—</span>';
+    if (ok === true) return '<span class="ck ck-ok">✓</span>';
+    if (warn) return '<span class="ck ck-warn">⚠</span>';
+    return '<span class="ck ck-err">✗</span>';
+  }
+  function escHtml(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ===== LOAD DATA =====
+  function loadData() {
+    Auth.getToken().then(function(token) {
+      if (!token) return;
+      fetch('/api/puppeteer-audit', { headers: { 'Authorization': 'Bearer ' + token } })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (!data.pages || data.pages.length === 0) return;
+          allPages = data.pages;
+          var d = new Date(data.auditDate);
+          var fmt = d.getDate() + '/' + (d.getMonth()+1) + '/' + d.getFullYear() + ' à ' +
+            String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+          document.getElementById('pup-meta').innerHTML = 'Dernier audit : <span>' + fmt + '</span> — ' + data.totalPages + ' pages';
+          renderSummary();
+          applyFilters();
+          document.getElementById('pup-empty').style.display = 'none';
+          document.getElementById('pup-table').style.display = 'table';
+        }).catch(function() {});
+    });
+  }
+
+  // ===== SUMMARY =====
+  function renderSummary() {
+    var scores = allPages.map(function(p) { return p.score || 0; });
+    var avg = scores.length ? Math.round(scores.reduce(function(a,b){return a+b;},0)/scores.length) : 0;
+    var ok = scores.filter(function(s){return s>=80;}).length;
+    var warn = scores.filter(function(s){return s>=50&&s<80;}).length;
+    var crit = scores.filter(function(s){return s<50;}).length;
+    document.getElementById('s-total').textContent = allPages.length;
+    document.getElementById('s-score').textContent = avg + '/100';
+    document.getElementById('s-ok').textContent = ok;
+    document.getElementById('s-warn').textContent = warn;
+    document.getElementById('s-crit').textContent = crit;
+  }
+
+  // ===== FILTERS =====
+  function applyFilters() {
+    filtered = allPages.filter(function(p) {
+      // search
+      if (searchQ && p.slug.toLowerCase().indexOf(searchQ) === -1) return false;
+      // score tab
+      var s = p.score || 0;
+      if (filterScore === 'ok' && s < 80) return false;
+      if (filterScore === 'warn' && (s < 50 || s >= 80)) return false;
+      if (filterScore === 'crit' && s >= 50) return false;
+      // check filter — only show pages with issue on this check
+      if (filterCheck !== 'all') {
+        var c = p.checks || {};
+        var checkOk = true;
+        switch(filterCheck) {
+          case 'http':       checkOk = c.http && c.http.ok; break;
+          case 'title':      checkOk = c.title && c.title.ok; break;
+          case 'description':checkOk = c.description && c.description.ok; break;
+          case 'canonical':  checkOk = c.canonical && c.canonical.ok; break;
+          case 'h1':         checkOk = c.h1 && c.h1.ok; break;
+          case 'noindex':    checkOk = c.noindex && c.noindex.ok; break;
+          case 'jsonLd':     checkOk = c.jsonLd && c.jsonLd.ok; break;
+          case 'ogTags':     checkOk = c.ogTags && c.ogTags.ok; break;
+          case 'images':     checkOk = c.images && c.images.ok; break;
+          case 'softFake':   checkOk = c.softFake && c.softFake.ok; break;
+        }
+        if (checkOk) return false; // only show pages with problems on this check
+      }
+      return true;
+    });
+
+    // sort
+    filtered.sort(function(a, b) {
+      var av, bv;
+      switch(sortKey) {
+        case 'slug':  av=a.slug; bv=b.slug; break;
+        case 'score': av=a.score||0; bv=b.score||0; break;
+        case 'issues': av=(a.issues||[]).length; bv=(b.issues||[]).length; break;
+        default:
+          var ac=a.checks||{}, bc=b.checks||{};
+          av=(ac[sortKey]&&ac[sortKey].ok)?1:0;
+          bv=(bc[sortKey]&&bc[sortKey].ok)?1:0;
+      }
+      if (av < bv) return sortDir;
+      if (av > bv) return -sortDir;
+      return 0;
+    });
+
+    document.getElementById('pup-count').textContent = filtered.length + ' page' + (filtered.length>1?'s':'');
+    renderTable();
+  }
+
+  // ===== TABLE =====
+  function renderTable() {
+    var tbody = document.getElementById('pup-tbody');
+    var html = '';
+    filtered.forEach(function(p) {
+      var c = p.checks || {};
+      var s = p.score || 0;
+      var issues = p.issues || [];
+      var isExpanded = expandedSlug === p.slug;
+      var scoreColor = getScoreColor(s);
+      var barW = Math.round(s) + '%';
+
+      html += '<tr class="pup-row' + (isExpanded?' expanded':'') + '" data-slug="' + escHtml(p.slug) + '">';
+      // Page
+      html += '<td class="pup-slug">' + escHtml(p.slug) +
+        '<a href="' + escHtml(p.url) + '" target="_blank" title="' + escHtml(p.url) + '">↗</a></td>';
+      // Score
+      html += '<td><span class="pup-score ' + getScoreClass(s) + '">' + s + '</span>' +
+        '<div class="score-bar"><div class="score-bar-fill" style="width:' + barW + ';background:' + scoreColor + '"></div></div></td>';
+      // Checks
+      html += '<td>' + ckIcon(c.http&&c.http.ok) + '</td>';
+      html += '<td>' + ckIcon(c.title&&c.title.ok) + '</td>';
+      html += '<td>' + ckIcon(c.description&&c.description.ok) + '</td>';
+      html += '<td>' + ckH1(c.h1) + '</td>';
+      html += '<td>' + ckIcon(c.canonical&&c.canonical.ok) + '</td>';
+      html += '<td>' + ckIcon(c.noindex&&c.noindex.ok) + '</td>';
+      html += '<td>' + ckJsonLd(c.jsonLd) + '</td>';
+      html += '<td>' + ckIcon(c.ogTags&&c.ogTags.ok) + '</td>';
+      html += '<td>' + ckImages(c.images) + '</td>';
+      // Issues
+      html += '<td>' + renderIssuesBadge(issues) + '</td>';
+      html += '</tr>';
+      // Detail row
+      if (isExpanded) {
+        html += '<tr class="pup-detail-row"><td colspan="12"><div class="pup-detail">' + renderDetail(p) + '</div></td></tr>';
+      }
+    });
+    if (!html) html = '<tr><td colspan="12" style="text-align:center;padding:40px;color:#8b949e">Aucune page ne correspond aux filtres</td></tr>';
+    tbody.innerHTML = html;
+
+    // bind row clicks
+    tbody.querySelectorAll('.pup-row').forEach(function(row) {
+      row.addEventListener('click', function() {
+        var slug = this.getAttribute('data-slug');
+        expandedSlug = expandedSlug === slug ? null : slug;
+        renderTable();
+      });
+    });
+  }
+
+  function ckH1(h1) {
+    if (!h1) return '<span class="ck ck-na">—</span>';
+    if (h1.ok) return '<span class="ck ck-ok" title="' + escHtml(h1.value) + '">1</span>';
+    if (h1.count === 0) return '<span class="ck ck-err" title="Aucun H1">0</span>';
+    return '<span class="ck ck-warn" title="' + h1.count + ' H1 détectés">' + h1.count + '</span>';
+  }
+
+  function ckJsonLd(jld) {
+    if (!jld) return '<span class="ck ck-na">—</span>';
+    if (jld.ok) return '<span class="ck ck-ok" title="' + escHtml((jld.types||[]).join(', ')) + '">✓</span>';
+    return '<span class="ck ck-err" title="JSON-LD absent">✗</span>';
+  }
+
+  function ckImages(img) {
+    if (!img) return '<span class="ck ck-na">—</span>';
+    if (img.ok) return '<span class="ck ck-ok">✓</span>';
+    var n = (img.missingAlt||0) + (img.missingDimensions||0);
+    return '<span class="ck ck-warn" title="' + n + ' problème(s)">' + n + '</span>';
+  }
+
+  function renderIssuesBadge(issues) {
+    if (!issues.length) return '<span style="color:#3fb950;font-size:12px">Aucun</span>';
+    var crits = issues.filter(function(i){return i.sev==='crit';}).length;
+    var warns = issues.filter(function(i){return i.sev!=='crit';}).length;
+    var html = '<div class="pup-issues-count">';
+    if (crits) html += '<span class="issue-dot"></span><span style="color:#f85149;font-size:12px">' + crits + '</span>';
+    if (warns) html += '<span class="issue-dot warn"></span><span style="color:#d29922;font-size:12px">' + warns + '</span>';
+    html += '</div>';
+    return html;
+  }
+
+  function renderDetail(p) {
+    var c = p.checks || {};
+    var html = '<div class="pup-detail-grid">';
+
+    function item(label, ok, val, sev) {
+      var cls = ok ? 'item-ok' : (sev==='warn' ? 'item-warn' : 'item-err');
+      var vcls = ok ? 'ok' : (sev==='warn' ? 'warn' : 'err');
+      html += '<div class="detail-item ' + cls + '">';
+      html += '<div class="detail-label">' + label + '</div>';
+      html += '<div class="detail-value ' + vcls + '">' + escHtml(val) + '</div>';
+      html += '</div>';
+    }
+
+    item('HTTP Status', c.http&&c.http.ok, c.http?(c.http.status||'—'):'—');
+    if (c.title) item('Title (' + (c.title.length||0) + ' car.)', c.title.ok, c.title.value||'Manquant');
+    if (c.description) item('Description (' + (c.description.length||0) + ' car.)', c.description.ok, c.description.value||'Manquant');
+    if (c.canonical) item('Canonical', c.canonical.ok, c.canonical.value||'Absent');
+    if (c.h1) item('H1 (' + (c.h1.count||0) + ')', c.h1.ok, c.h1.value||'Absent');
+    if (c.noindex) item('Noindex', c.noindex.ok, c.noindex.hasNoindex?'NOINDEX DÉTECTÉ ⚠':'index, follow');
+    if (c.jsonLd) item('JSON-LD', c.jsonLd.ok, (c.jsonLd.types||[]).join(', ')||'Absent');
+    if (c.ogTags) item('Open Graph', c.ogTags.ok, c.ogTags.ok?'og:title, og:description, og:image présents':'Tags OG manquants');
+    if (c.lang) item('lang="fr"', c.lang.ok, c.lang.value||'Absent');
+    if (c.images) item('Images', c.images.ok,
+      'Sans alt: ' + (c.images.missingAlt||0) + ' · Sans dimensions: ' + (c.images.missingDimensions||0),
+      (c.images.missingAlt||0)>0 ? 'crit' : 'warn');
+    if (c.softFake) item('Soft 404', c.softFake.ok, c.softFake.ok?'Contenu suffisant':'Contenu insuffisant (soft 404 probable)');
+    if (c.headings) item('Hiérarchie Hn', c.headings.ok, c.headings.ok?'OK':('Saut détecté: '+escHtml(c.headings.issue||'')));
+
+    html += '</div>';
+
+    // Issues list
+    var issues = p.issues || [];
+    if (issues.length) {
+      html += '<div style="margin-top:14px;border-top:1px solid #30363d;padding-top:12px">';
+      html += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#8b949e;margin-bottom:8px">Problèmes détectés</div>';
+      html += '<div style="display:flex;flex-wrap:wrap;gap:6px">';
+      issues.forEach(function(issue) {
+        var txt = typeof issue === 'string' ? issue : issue.msg;
+        var sev = typeof issue === 'object' ? issue.sev : 'warn';
+        var col = sev === 'crit' ? '#f85149' : '#d29922';
+        var bg = sev === 'crit' ? '#3d121233' : '#3d2f0a33';
+        html += '<span style="background:' + bg + ';color:' + col + ';padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600">' + escHtml(txt) + '</span>';
+      });
+      html += '</div></div>';
+    }
+
+    return html;
+  }
+
+  // ===== SORT HEADERS =====
+  document.querySelectorAll('[data-sort]').forEach(function(th) {
+    th.addEventListener('click', function() {
+      var key = this.getAttribute('data-sort');
+      if (sortKey === key) sortDir = -sortDir;
+      else { sortKey = key; sortDir = 1; }
+      document.querySelectorAll('[data-sort]').forEach(function(h) { h.classList.remove('sorted'); });
+      this.classList.add('sorted');
+      applyFilters();
+    });
+  });
+
+  // ===== TAB FILTERS =====
+  document.querySelectorAll('.pup-tab').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.pup-tab').forEach(function(b) { b.classList.remove('active'); });
+      this.classList.add('active');
+      filterScore = this.getAttribute('data-score');
+      applyFilters();
+    });
+  });
+
+  // ===== CHECK FILTER =====
+  document.getElementById('pup-check-filter').addEventListener('change', function() {
+    filterCheck = this.value;
+    applyFilters();
+  });
+
+  // ===== SEARCH =====
+  var searchTimeout;
+  document.getElementById('pup-search').addEventListener('input', function() {
+    clearTimeout(searchTimeout);
+    var val = this.value;
+    searchTimeout = setTimeout(function() {
+      searchQ = val.toLowerCase().trim();
+      applyFilters();
+    }, 200);
+  });
+
+  // ===== INIT =====
+  Components.initPage(function() {
+    loadData();
+  });
+
+})();
+</script>
+</body>
+</html>

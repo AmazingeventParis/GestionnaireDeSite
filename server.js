@@ -93,6 +93,7 @@ try { app.use('/api/banners', require('./routes/banners')); } catch {}
 try { app.use('/api/navigation', require('./routes/navigation')); } catch {}
 try { app.use('/api/seo', require('./routes/seo')); } catch {}
 try { app.use('/api/audit', require('./routes/audit')); } catch {}
+try { app.use('/api/puppeteer-audit', require('./routes/puppeteer-audit')); } catch {}
 
 // Phase 4 routes (security, performance, monitoring, activity)
 try { app.use('/api/security', require('./routes/security')); } catch {}

@@ -14,6 +14,7 @@ const Components = (function() {
         { label: 'Parametres',  href: '/settings.html',  icon: null, adminOnly: true },
         { label: 'Securite',    href: '/security.html',  icon: null, adminOnly: true },
         { label: 'Audit SEO',  href: '/audit.html',      icon: null, adminOnly: true },
+        { label: 'Puppeteer',   href: '/puppeteer.html', icon: null, adminOnly: true },
         { label: 'Utilisateurs', href: '/users.html',    icon: null, adminOnly: true }
     ];
 
