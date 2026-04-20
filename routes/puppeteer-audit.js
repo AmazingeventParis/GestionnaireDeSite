@@ -27,11 +27,20 @@ router.get('/', verifyToken, requireRole('admin'), function(req, res) {
 
 // POST /api/puppeteer-audit — save audit results
 router.post('/', verifyToken, requireRole('admin'), function(req, res) {
-  const { pages, auditDate } = req.body;
-  if (!Array.isArray(pages)) return res.status(400).json({ error: 'pages[] requis' });
-  const data = { auditDate: auditDate || new Date().toISOString(), totalPages: pages.length, pages };
+  const body = req.body;
+  if (!Array.isArray(body.pages)) return res.status(400).json({ error: 'pages[] requis' });
+  // Sauvegarder toutes les métadonnées (global, stats, avgScore, etc.)
+  const data = {
+    auditDate: body.createdAt || body.auditDate || new Date().toISOString(),
+    totalPages: body.pages.length,
+    duration: body.duration || null,
+    avgScore: body.avgScore || null,
+    stats: body.stats || null,
+    global: body.global || null,
+    pages: body.pages
+  };
   fs.writeFileSync(RESULTS_FILE, JSON.stringify(data, null, 2), 'utf8');
-  res.json({ success: true, totalPages: pages.length });
+  res.json({ success: true, totalPages: body.pages.length });
 });
 
 module.exports = router;
