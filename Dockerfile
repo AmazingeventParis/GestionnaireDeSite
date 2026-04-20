@@ -1,5 +1,19 @@
 FROM node:20-alpine
 
+# Chromium + dependencies for Puppeteer on Alpine
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
+    font-noto
+
+# Tell Puppeteer to use system Chromium instead of downloading its own
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+
 WORKDIR /app
 
 COPY package*.json ./

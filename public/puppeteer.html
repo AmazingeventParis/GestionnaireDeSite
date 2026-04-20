@@ -184,6 +184,7 @@
     </div>
     <div class="pup-header-actions">
       <button class="btn btn-primary" id="btn-launch-audit">▶ Lancer l'audit</button>
+      <button class="btn btn-secondary" id="btn-stop-audit" style="display:none;border-color:#f85149;color:#f85149">✕ Arrêter</button>
     </div>
   </div>
 
@@ -278,29 +279,6 @@
 
 </div>
 
-<!-- Launch Modal -->
-<div class="pup-modal-overlay" id="pup-modal" style="display:none">
-  <div class="pup-modal">
-    <h2>Lancer l'audit Puppeteer</h2>
-    <p>Le script tourne en local sur ton poste. Il va auditer toutes les pages du site via Chrome headless et envoyer les résultats ici automatiquement.</p>
-    <div class="pup-modal-steps">
-      <ol>
-        <li>Ouvre un terminal dans le dossier <code>GestionnaireDeSite</code></li>
-        <li>Connecte-toi (variable d'environnement <code>GDS_TOKEN</code> optionnelle)</li>
-        <li>Lance la commande ci-dessous</li>
-      </ol>
-    </div>
-    <div class="pup-modal-cmd">
-      <span id="modal-cmd-text">node scripts/puppeteer-audit.js</span>
-      <button class="btn-copy" id="btn-copy-cmd">Copier</button>
-    </div>
-    <p style="font-size:12px;color:#484f58;margin:0 0 20px">L'audit dure ~5-10 minutes selon le nombre de pages. Les résultats s'affichent ici dès la fin.</p>
-    <div class="pup-modal-actions">
-      <button class="btn btn-secondary" id="btn-modal-close">Fermer</button>
-      <button class="btn btn-primary" id="btn-watch-progress">⟳ Surveiller la progression</button>
-    </div>
-  </div>
-</div>
 
 <script src="/js/auth.js"></script>
 <script src="/js/components.js"></script>
@@ -662,87 +640,52 @@
     }, 200);
   });
 
-  // ===== LAUNCH MODAL =====
-  var modal = document.getElementById('pup-modal');
-
-  document.getElementById('btn-launch-audit').addEventListener('click', function() {
-    modal.style.display = 'flex';
-  });
-
-  document.getElementById('btn-modal-close').addEventListener('click', function() {
-    modal.style.display = 'none';
-  });
-
-  modal.addEventListener('click', function(e) {
-    if (e.target === modal) modal.style.display = 'none';
-  });
-
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && modal.style.display !== 'none') modal.style.display = 'none';
-  });
-
-  document.getElementById('btn-copy-cmd').addEventListener('click', function() {
-    var btn = this;
-    var cmd = document.getElementById('modal-cmd-text').textContent;
-    navigator.clipboard.writeText(cmd).then(function() {
-      btn.textContent = '✓ Copié';
-      btn.classList.add('copied');
-      setTimeout(function() { btn.textContent = 'Copier'; btn.classList.remove('copied'); }, 2000);
-    }).catch(function() {
-      var ta = document.createElement('textarea');
-      ta.value = cmd;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-      btn.textContent = '✓ Copié';
-      btn.classList.add('copied');
-      setTimeout(function() { btn.textContent = 'Copier'; btn.classList.remove('copied'); }, 2000);
-    });
-  });
-
-  document.getElementById('btn-watch-progress').addEventListener('click', function() {
-    modal.style.display = 'none';
-    startProgressWatch();
-  });
-
   // ===== SSE PROGRESS =====
   var sseReader = null;
   var sseFinished = false;
 
-  function startProgressWatch() {
-    if (sseReader) return; // already watching
-    sseFinished = false;
+  function setRunningUI(running) {
+    var btnLaunch = document.getElementById('btn-launch-audit');
+    var btnStop = document.getElementById('btn-stop-audit');
+    if (running) {
+      btnLaunch.disabled = true;
+      btnLaunch.textContent = '⟳ Audit en cours…';
+      btnStop.style.display = '';
+    } else {
+      btnLaunch.disabled = false;
+      btnLaunch.textContent = '▶ Lancer l\'audit';
+      btnStop.style.display = 'none';
+    }
+  }
 
+  function startProgressWatch() {
+    if (sseReader) return;
+    sseFinished = false;
     var panel = document.getElementById('pup-live');
     var spinner = document.getElementById('live-spinner');
     var msgEl = document.getElementById('live-msg');
     var countEl = document.getElementById('live-count');
     var fill = document.getElementById('live-fill');
-
     panel.classList.add('visible');
     fill.classList.add('indeterminate');
     msgEl.className = 'pup-live-msg';
-    msgEl.textContent = 'Connexion au flux de progression…';
+    msgEl.textContent = 'Connexion…';
     spinner.className = 'pup-live-spinner';
     countEl.textContent = '';
 
     getToken().then(function(token) {
       if (!token) { msgEl.textContent = 'Erreur : non authentifié'; return; }
-
       fetch('/api/puppeteer-audit/progress/stream', {
         headers: { 'Authorization': 'Bearer ' + token }
       }).then(function(response) {
         if (!response.ok) {
-          var msgEl = document.getElementById('live-msg');
-          if (msgEl) msgEl.textContent = 'Erreur SSE ' + response.status + ' — le serveur n\'est peut-être pas encore déployé';
+          msgEl.textContent = 'Erreur SSE ' + response.status;
           return;
         }
         var reader = response.body.getReader();
         sseReader = reader;
         var decoder = new TextDecoder();
         var buffer = '';
-
         function read() {
           reader.read().then(function(result) {
             if (result.done) { onStreamEnd(); return; }
@@ -751,10 +694,7 @@
             buffer = lines.pop();
             lines.forEach(function(line) {
               if (line.startsWith('data: ')) {
-                try {
-                  var data = JSON.parse(line.slice(6));
-                  onProgressEvent(data);
-                } catch (e) {}
+                try { onProgressEvent(JSON.parse(line.slice(6))); } catch (e) {}
               }
             });
             if (!sseFinished) read();
@@ -769,56 +709,55 @@
 
   function onProgressEvent(data) {
     if (!data) return;
-    if (data.status === 'idle') {
-      // Connected but no audit running
-      var msgEl = document.getElementById('live-msg');
-      var fill = document.getElementById('live-fill');
-      if (msgEl) { msgEl.textContent = 'En attente du script… Lance node scripts/puppeteer-audit.js'; }
-      if (fill) { fill.classList.add('indeterminate'); }
-      return;
-    }
-
-    var panel = document.getElementById('pup-live');
     var spinner = document.getElementById('live-spinner');
     var msgEl = document.getElementById('live-msg');
     var countEl = document.getElementById('live-count');
     var fill = document.getElementById('live-fill');
 
-    panel.classList.add('visible');
+    if (data.status === 'idle') {
+      document.getElementById('pup-live').classList.remove('visible');
+      setRunningUI(false);
+      return;
+    }
 
+    document.getElementById('pup-live').classList.add('visible');
     var index = data.index || 0;
     var total = data.total || 0;
     var pct = total > 0 ? Math.round((index / total) * 100) : 0;
-
     msgEl.textContent = data.message || ('Page ' + index + ' / ' + total);
     countEl.textContent = total > 0 ? (index + ' / ' + total + ' pages') : '';
 
     if (data.status === 'done') {
       sseFinished = true;
+      setRunningUI(false);
       spinner.className = 'pup-live-spinner done';
       msgEl.className = 'pup-live-msg done';
       fill.classList.remove('indeterminate');
       fill.style.width = '100%';
-      // Reload data after short delay
       setTimeout(function() {
         loadHistory();
         loadData();
         Components.showToast('Audit terminé ! Résultats mis à jour.', 'success');
-        setTimeout(function() { stopProgressWatch(); }, 4000);
+        setTimeout(function() {
+          document.getElementById('pup-live').classList.remove('visible');
+          sseReader = null;
+        }, 4000);
       }, 1000);
     } else if (data.status === 'uploading') {
+      setRunningUI(true);
       spinner.className = 'pup-live-spinner';
       msgEl.className = 'pup-live-msg uploading';
       fill.classList.remove('indeterminate');
       fill.style.width = '100%';
     } else if (data.status === 'error') {
       sseFinished = true;
+      setRunningUI(false);
       spinner.className = 'pup-live-spinner error';
       msgEl.className = 'pup-live-msg error';
       fill.classList.remove('indeterminate');
       fill.style.width = pct + '%';
     } else {
-      // running
+      setRunningUI(true);
       spinner.className = 'pup-live-spinner';
       msgEl.className = 'pup-live-msg';
       fill.classList.remove('indeterminate');
@@ -830,26 +769,65 @@
     sseReader = null;
     if (!sseFinished) {
       var msgEl = document.getElementById('live-msg');
-      if (msgEl) msgEl.textContent = 'Flux interrompu. Lance le script pour reprendre.';
+      if (msgEl) msgEl.textContent = 'Connexion perdue. Relance l\'audit si nécessaire.';
     }
   }
 
-  function stopProgressWatch() {
-    if (sseReader) {
-      try { sseReader.cancel(); } catch (e) {}
-      sseReader = null;
-    }
-    sseFinished = false;
-    var panel = document.getElementById('pup-live');
-    if (panel) panel.classList.remove('visible');
-  }
+  // ===== LAUNCH BUTTON (direct API call) =====
+  document.getElementById('btn-launch-audit').addEventListener('click', function() {
+    getToken().then(function(token) {
+      if (!token) return;
+      fetch('/api/puppeteer-audit/run', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
+      }).then(function(r) { return r.json(); }).then(function(res) {
+        if (res.error) {
+          Components.showToast(res.error, 'error');
+          return;
+        }
+        startProgressWatch();
+      }).catch(function() {
+        Components.showToast('Erreur lors du lancement', 'error');
+      });
+    });
+  });
 
-  document.getElementById('btn-stop-watch').addEventListener('click', stopProgressWatch);
+  // ===== STOP BUTTON =====
+  document.getElementById('btn-stop-audit').addEventListener('click', function() {
+    getToken().then(function(token) {
+      if (!token) return;
+      fetch('/api/puppeteer-audit/stop', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
+      }).then(function() {
+        setRunningUI(false);
+        document.getElementById('pup-live').classList.remove('visible');
+        sseReader = null;
+      });
+    });
+  });
+
+  document.getElementById('btn-stop-watch').addEventListener('click', function() {
+    if (sseReader) { try { sseReader.cancel(); } catch(e) {} sseReader = null; }
+    document.getElementById('pup-live').classList.remove('visible');
+  });
 
   // ===== INIT =====
   Components.initPage().then(function() {
     loadHistory();
     loadData();
+    // Check if an audit is already running on the server
+    getToken().then(function(token) {
+      if (!token) return;
+      fetch('/api/puppeteer-audit/status', { headers: { 'Authorization': 'Bearer ' + token } })
+        .then(function(r) { return r.json(); })
+        .then(function(s) {
+          if (s.running) {
+            setRunningUI(true);
+            startProgressWatch();
+          }
+        }).catch(function() {});
+    });
   });
 
 })();

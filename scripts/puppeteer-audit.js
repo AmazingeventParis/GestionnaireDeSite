@@ -869,7 +869,7 @@ async function main() {
 
   // Lancer Puppeteer
   console.log('Lancement de Puppeteer...');
-  const browser = await puppeteer.launch({
+  const launchOpts = {
     headless: true,
     args: [
       '--no-sandbox',
@@ -878,7 +878,12 @@ async function main() {
       '--disable-gpu',
       '--disable-extensions',
     ],
-  });
+  };
+  // In Docker (Alpine), use system Chromium
+  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    launchOpts.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+  }
+  const browser = await puppeteer.launch(launchOpts);
   console.log('Puppeteer prêt ✓\n');
 
   const totalPages = pages.length;

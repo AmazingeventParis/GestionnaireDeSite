@@ -14,9 +14,10 @@ const AUDITS_DIR = path.join(DATA_DIR, 'puppeteer-audits');
   if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
 });
 
-// ── In-memory SSE state ──────────────────────────────────────────────────────
+// ── In-memory state ──────────────────────────────────────────────────────────
 var sseClients = [];
 var currentProgress = null;
+var auditProcess = null;
 
 function broadcastProgress(data) {
   currentProgress = data;
@@ -34,6 +35,49 @@ function readHistory() {
   if (!fs.existsSync(HISTORY_FILE)) return [];
   try { return JSON.parse(fs.readFileSync(HISTORY_FILE, 'utf8')); } catch { return []; }
 }
+
+// GET /api/puppeteer-audit/status — is an audit running?
+router.get('/status', verifyToken, requireRole('admin'), function(req, res) {
+  res.json({ running: auditProcess !== null, progress: currentProgress });
+});
+
+// POST /api/puppeteer-audit/run — launch audit on server
+router.post('/run', verifyToken, requireRole('admin'), function(req, res) {
+  if (auditProcess) {
+    return res.status(409).json({ error: 'Un audit est déjà en cours', running: true });
+  }
+  var spawn = require('child_process').spawn;
+  var scriptPath = path.join(__dirname, '..', 'scripts', 'puppeteer-audit.js');
+  broadcastProgress({ status: 'running', index: 0, total: 0, message: 'Démarrage de l\'audit…' });
+  var proc = spawn(process.execPath, [scriptPath], {
+    cwd: path.join(__dirname, '..'),
+    env: Object.assign({}, process.env),
+  });
+  auditProcess = proc;
+  proc.stdout.on('data', function(d) { process.stdout.write('[audit] ' + d); });
+  proc.stderr.on('data', function(d) { process.stderr.write('[audit] ' + d); });
+  proc.on('exit', function(code) {
+    auditProcess = null;
+    if (code !== 0 && (!currentProgress || currentProgress.status !== 'done')) {
+      broadcastProgress({ status: 'error', message: 'Audit interrompu (code ' + code + ')' });
+    }
+  });
+  proc.on('error', function(err) {
+    auditProcess = null;
+    broadcastProgress({ status: 'error', message: 'Impossible de lancer Puppeteer: ' + err.message });
+  });
+  res.json({ ok: true, pid: proc.pid });
+});
+
+// POST /api/puppeteer-audit/stop — kill running audit
+router.post('/stop', verifyToken, requireRole('admin'), function(req, res) {
+  if (auditProcess) {
+    try { auditProcess.kill('SIGTERM'); } catch (e) {}
+    auditProcess = null;
+    broadcastProgress({ status: 'idle' });
+  }
+  res.json({ ok: true });
+});
 
 // GET /api/puppeteer-audit — latest results
 router.get('/', verifyToken, requireRole('admin'), function(req, res) {
