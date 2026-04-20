@@ -325,22 +325,16 @@
     return Math.floor(ms/60000) + 'min ' + Math.round((ms%60000)/1000) + 's';
   }
 
-  // ===== AUTH TOKEN HELPER =====
-  function getToken() {
-    var raw = Auth && typeof Auth.getToken === 'function' ? Auth.getToken() : null;
-    // Auth.getToken() may return null or a Promise — always return a Promise
-    return Promise.resolve(raw).then(function(t) {
-      return t || localStorage.getItem('accessToken') || localStorage.getItem('token') || null;
-    });
+  // Auth uses httpOnly cookies — use Auth.apiFetch for all API calls
+  function apiFetch(url, options) {
+    return Auth.apiFetch(url, options || {});
   }
 
   // ===== LOAD LATEST DATA =====
   function loadData(id) {
-    getToken().then(function(token) {
-      if (!token) return;
-      var url = id ? '/api/puppeteer-audit/history/' + id : '/api/puppeteer-audit';
-      fetch(url, { headers: { 'Authorization': 'Bearer ' + token } })
-        .then(function(r) { return r.json(); })
+    var url = id ? '/api/puppeteer-audit/history/' + id : '/api/puppeteer-audit';
+    apiFetch(url)
+      .then(function(r) { return r.json(); })
         .then(function(data) {
           if (!data.pages || data.pages.length === 0) return;
           currentAuditId = data.id || null;
@@ -359,19 +353,14 @@
             el.classList.toggle('active', el.getAttribute('data-id') === String(data.id));
           });
         }).catch(function() {});
-    });
   }
 
   // ===== LOAD HISTORY LIST =====
   function loadHistory() {
-    getToken().then(function(token) {
-      if (!token) return;
-      fetch('/api/puppeteer-audit/history', { headers: { 'Authorization': 'Bearer ' + token } })
-        .then(function(r) { return r.json(); })
-        .then(function(history) {
-          renderHistory(history);
-        }).catch(function() {});
-    });
+    apiFetch('/api/puppeteer-audit/history')
+      .then(function(r) { return r.json(); })
+      .then(function(history) { renderHistory(history); })
+      .catch(function() {});
   }
 
   function renderHistory(history) {
@@ -677,11 +666,7 @@
     spinner.className = 'pup-live-spinner';
     countEl.textContent = '';
 
-    getToken().then(function(token) {
-      if (!token) { msgEl.textContent = 'Erreur : non authentifié'; return; }
-      fetch('/api/puppeteer-audit/progress/stream', {
-        headers: { 'Authorization': 'Bearer ' + token }
-      }).then(function(response) {
+    apiFetch('/api/puppeteer-audit/progress/stream').then(function(response) {
         if (!response.ok) {
           msgEl.textContent = 'Erreur SSE ' + response.status;
           return;
@@ -706,8 +691,7 @@
         }
         read();
       }).catch(function() {
-        msgEl.textContent = 'Impossible de se connecter au flux SSE';
-      });
+      msgEl.textContent = 'Impossible de se connecter au flux SSE';
     });
   }
 
@@ -780,19 +764,12 @@
   // ===== LAUNCH BUTTON (direct API call) =====
   document.getElementById('btn-launch-audit').addEventListener('click', function() {
     Components.showToast('Démarrage en cours…', 'info');
-    // Auth.getToken() can return null or a Promise — wrap to be safe
-    Promise.resolve(Auth && typeof Auth.getToken === 'function' ? Auth.getToken() : null)
-      .then(function(token) {
-        if (!token) token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-        if (!token) { Components.showToast('Non authentifié — recharge la page', 'error'); return; }
-        return fetch('/api/puppeteer-audit/run', {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
-        }).then(function(r) { return r.json(); }).then(function(res) {
-          if (res && res.error) { Components.showToast(res.error, 'error'); return; }
-          Components.showToast('Audit lancé sur le serveur', 'success');
-          startProgressWatch();
-        });
+    apiFetch('/api/puppeteer-audit/run', { method: 'POST' })
+      .then(function(r) { return r.json(); })
+      .then(function(res) {
+        if (res && res.error) { Components.showToast(res.error, 'error'); return; }
+        Components.showToast('Audit lancé sur le serveur', 'success');
+        startProgressWatch();
       }).catch(function(err) {
         console.error('launch error:', err);
         Components.showToast('Erreur : ' + (err.message || 'inconnue'), 'error');
@@ -801,16 +778,10 @@
 
   // ===== STOP BUTTON =====
   document.getElementById('btn-stop-audit').addEventListener('click', function() {
-    getToken().then(function(token) {
-      if (!token) return;
-      fetch('/api/puppeteer-audit/stop', {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
-      }).then(function() {
-        setRunningUI(false);
-        document.getElementById('pup-live').classList.remove('visible');
-        sseReader = null;
-      });
+    apiFetch('/api/puppeteer-audit/stop', { method: 'POST' }).then(function() {
+      setRunningUI(false);
+      document.getElementById('pup-live').classList.remove('visible');
+      sseReader = null;
     });
   });
 
@@ -824,17 +795,10 @@
     loadHistory();
     loadData();
     // Check if an audit is already running on the server
-    getToken().then(function(token) {
-      if (!token) return;
-      fetch('/api/puppeteer-audit/status', { headers: { 'Authorization': 'Bearer ' + token } })
-        .then(function(r) { return r.json(); })
-        .then(function(s) {
-          if (s.running) {
-            setRunningUI(true);
-            startProgressWatch();
-          }
-        }).catch(function() {});
-    });
+    apiFetch('/api/puppeteer-audit/status')
+      .then(function(r) { return r.json(); })
+      .then(function(s) { if (s.running) { setRunningUI(true); startProgressWatch(); } })
+      .catch(function() {});
   });
 
 })();
