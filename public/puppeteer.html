@@ -775,20 +775,46 @@
 
   // ===== LAUNCH BUTTON (direct API call) =====
   document.getElementById('btn-launch-audit').addEventListener('click', function() {
-    getToken().then(function(token) {
-      if (!token) return;
-      fetch('/api/puppeteer-audit/run', {
+    Components.showToast('Démarrage en cours…', 'info');
+    var token = null;
+
+    // Try Auth.getToken first, fallback to localStorage keys
+    var p;
+    if (Auth && typeof Auth.getToken === 'function') {
+      p = Auth.getToken();
+    } else {
+      var raw = localStorage.getItem('accessToken') || localStorage.getItem('token') || localStorage.getItem('gds_token');
+      p = Promise.resolve(raw);
+    }
+
+    p.then(function(tok) {
+      token = tok;
+      if (!token) {
+        Components.showToast('Non authentifié — recharge la page', 'error');
+        return;
+      }
+      return fetch('/api/puppeteer-audit/run', {
         method: 'POST',
         headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
-      }).then(function(r) { return r.json(); }).then(function(res) {
-        if (res.error) {
-          Components.showToast(res.error, 'error');
-          return;
-        }
-        startProgressWatch();
-      }).catch(function() {
-        Components.showToast('Erreur lors du lancement', 'error');
       });
+    }).then(function(r) {
+      if (!r) return;
+      if (!r.ok && r.status !== 409) {
+        Components.showToast('Erreur serveur ' + r.status, 'error');
+        return r.json().then(function(e) { console.error('run error:', e); });
+      }
+      return r.json();
+    }).then(function(res) {
+      if (!res) return;
+      if (res.error) {
+        Components.showToast(res.error, 'error');
+        return;
+      }
+      Components.showToast('Audit lancé sur le serveur', 'success');
+      startProgressWatch();
+    }).catch(function(err) {
+      console.error('launch error:', err);
+      Components.showToast('Erreur : ' + (err.message || 'inconnue'), 'error');
     });
   });
 
