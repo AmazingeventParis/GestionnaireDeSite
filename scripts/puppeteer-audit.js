@@ -860,6 +860,13 @@ async function main() {
   const globalChecks = await auditGlobal();
   console.log(`  robots.txt: ${globalChecks.robotsTxt.accessible ? '✓' : '✗'} | sitemap.xml: ${globalChecks.sitemapXml.accessible ? '✓' : '✗'} (${globalChecks.sitemapXml.urlCount} URLs)\n`);
 
+  // ── Helpers progression ──
+  async function postProgress(data) {
+    try {
+      await postJson(`${API_BASE}/api/puppeteer-audit/progress`, data, token);
+    } catch (e) { /* non bloquant */ }
+  }
+
   // Lancer Puppeteer
   console.log('Lancement de Puppeteer...');
   const browser = await puppeteer.launch({
@@ -878,12 +885,26 @@ async function main() {
   const auditStartTime = Date.now();
   let completed = 0;
 
+  // Signal de démarrage
+  await postProgress({ status: 'running', index: 0, total: totalPages, slug: '', message: `Démarrage — ${totalPages} pages à analyser…` });
+
   // Audit de toutes les pages en parallèle (pool de CONCURRENCY onglets)
   const results = await runPool(pages, CONCURRENCY, async (pageObj, taskIdx) => {
     const result = await auditPage(browser, pageObj, token);
 
     completed++;
     const idx = completed;
+
+    // Post progression (fire-and-forget)
+    postProgress({
+      status: 'running',
+      index: idx,
+      total: totalPages,
+      slug: result.slug,
+      score: result.score,
+      message: `[${idx}/${totalPages}] ${result.slug} — score ${result.score}/100`,
+    }).catch(() => {});
+
     const prefix = `[${padStart(idx, 3)}/${totalPages}]`;
     const statusIcon = result.score >= 80 ? '✓' : result.score >= 50 ? '⚠' : '✗';
     const slugPadded = padEnd(result.slug, 35);
@@ -955,6 +976,15 @@ async function main() {
   } catch (e) {
     console.error('Erreur sauvegarde locale:', e.message);
   }
+
+  // Signal fin d'audit
+  await postProgress({
+    status: 'uploading',
+    index: totalPages,
+    total: totalPages,
+    slug: '',
+    message: `Envoi des résultats… ${totalPages} pages, score moyen ${avgScore}/100`,
+  });
 
   // Upload vers l'API
   console.log('Upload des résultats sur sites.swipego.app...');

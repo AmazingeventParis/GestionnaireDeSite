@@ -122,9 +122,29 @@
 .pup-empty h2 { font-size: 18px; color: #8b949e; margin-bottom: 8px; }
 .pup-empty p { font-size: 14px; margin-bottom: 24px; }
 
-/* progress bar */
+/* progress bar (legacy, kept for compat) */
 .pup-progress { height: 3px; background: #21262d; border-radius: 2px; overflow: hidden; margin-bottom: 28px; display: none; }
 .pup-progress-bar { height: 100%; background: linear-gradient(90deg, #58a6ff, #3fb950); border-radius: 2px; transition: width .3s ease; }
+
+/* ===== LIVE PROGRESS PANEL ===== */
+.pup-live { background: #0d2a0d; border: 1px solid #238636; border-radius: 10px; padding: 18px 20px; margin-bottom: 20px; display: none; }
+.pup-live.visible { display: block; }
+.pup-live-header { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.pup-live-spinner { width: 20px; height: 20px; border: 2.5px solid #3fb95044; border-top-color: #3fb950; border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0; }
+.pup-live-spinner.done { animation: none; border-color: #3fb950; }
+.pup-live-spinner.error { animation: none; border-color: #f85149; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.pup-live-msg { flex: 1; font-size: 14px; font-weight: 600; color: #3fb950; word-break: break-word; }
+.pup-live-msg.uploading { color: #58a6ff; }
+.pup-live-msg.done { color: #3fb950; }
+.pup-live-msg.error { color: #f85149; }
+.pup-live-count { font-size: 13px; color: #8b949e; white-space: nowrap; font-weight: 700; }
+.pup-live-track { height: 6px; background: #21262d; border-radius: 4px; overflow: hidden; }
+.pup-live-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, #238636, #3fb950); transition: width .4s ease; }
+.pup-live-fill.indeterminate { width: 30% !important; animation: indeterminate 1.5s ease-in-out infinite; }
+@keyframes indeterminate { 0%{margin-left:-30%} 100%{margin-left:100%} }
+.pup-live-btn { background: none; border: 1px solid #30363d; color: #8b949e; padding: 5px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; white-space: nowrap; }
+.pup-live-btn:hover { border-color: #f85149; color: #f85149; }
 
 /* score bar mini */
 .score-bar { width: 60px; height: 4px; background: #21262d; border-radius: 2px; margin-top: 4px; }
@@ -167,9 +187,15 @@
     </div>
   </div>
 
-  <!-- Progress -->
-  <div class="pup-progress" id="pup-progress">
-    <div class="pup-progress-bar" id="pup-progress-bar" style="width:0%"></div>
+  <!-- Live progress panel (shown while audit runs) -->
+  <div class="pup-live" id="pup-live">
+    <div class="pup-live-header">
+      <div class="pup-live-spinner" id="live-spinner"></div>
+      <div class="pup-live-msg" id="live-msg">Connexion au flux de progression…</div>
+      <div class="pup-live-count" id="live-count"></div>
+      <button class="pup-live-btn" id="btn-stop-watch">✕ Fermer</button>
+    </div>
+    <div class="pup-live-track"><div class="pup-live-fill indeterminate" id="live-fill"></div></div>
   </div>
 
   <!-- History panel -->
@@ -271,6 +297,7 @@
     <p style="font-size:12px;color:#484f58;margin:0 0 20px">L'audit dure ~5-10 minutes selon le nombre de pages. Les résultats s'affichent ici dès la fin.</p>
     <div class="pup-modal-actions">
       <button class="btn btn-secondary" id="btn-modal-close">Fermer</button>
+      <button class="btn btn-primary" id="btn-watch-progress">⟳ Surveiller la progression</button>
     </div>
   </div>
 </div>
@@ -662,7 +689,6 @@
       btn.classList.add('copied');
       setTimeout(function() { btn.textContent = 'Copier'; btn.classList.remove('copied'); }, 2000);
     }).catch(function() {
-      // fallback
       var ta = document.createElement('textarea');
       ta.value = cmd;
       document.body.appendChild(ta);
@@ -674,6 +700,138 @@
       setTimeout(function() { btn.textContent = 'Copier'; btn.classList.remove('copied'); }, 2000);
     });
   });
+
+  document.getElementById('btn-watch-progress').addEventListener('click', function() {
+    modal.style.display = 'none';
+    startProgressWatch();
+  });
+
+  // ===== SSE PROGRESS =====
+  var sseReader = null;
+  var sseFinished = false;
+
+  function startProgressWatch() {
+    if (sseReader) return; // already watching
+    sseFinished = false;
+
+    var panel = document.getElementById('pup-live');
+    var spinner = document.getElementById('live-spinner');
+    var msgEl = document.getElementById('live-msg');
+    var countEl = document.getElementById('live-count');
+    var fill = document.getElementById('live-fill');
+
+    panel.classList.add('visible');
+    fill.classList.add('indeterminate');
+    msgEl.className = 'pup-live-msg';
+    msgEl.textContent = 'Connexion au flux de progression…';
+    spinner.className = 'pup-live-spinner';
+    countEl.textContent = '';
+
+    getToken().then(function(token) {
+      if (!token) { msgEl.textContent = 'Erreur : non authentifié'; return; }
+
+      fetch('/api/puppeteer-audit/progress/stream', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      }).then(function(response) {
+        var reader = response.body.getReader();
+        sseReader = reader;
+        var decoder = new TextDecoder();
+        var buffer = '';
+
+        function read() {
+          reader.read().then(function(result) {
+            if (result.done) { onStreamEnd(); return; }
+            buffer += decoder.decode(result.value, { stream: true });
+            var lines = buffer.split('\n');
+            buffer = lines.pop();
+            lines.forEach(function(line) {
+              if (line.startsWith('data: ')) {
+                try {
+                  var data = JSON.parse(line.slice(6));
+                  onProgressEvent(data);
+                } catch (e) {}
+              }
+            });
+            if (!sseFinished) read();
+          }).catch(function() { onStreamEnd(); });
+        }
+        read();
+      }).catch(function() {
+        msgEl.textContent = 'Impossible de se connecter au flux SSE';
+      });
+    });
+  }
+
+  function onProgressEvent(data) {
+    if (!data || data.status === 'idle') return;
+
+    var panel = document.getElementById('pup-live');
+    var spinner = document.getElementById('live-spinner');
+    var msgEl = document.getElementById('live-msg');
+    var countEl = document.getElementById('live-count');
+    var fill = document.getElementById('live-fill');
+
+    panel.classList.add('visible');
+
+    var index = data.index || 0;
+    var total = data.total || 0;
+    var pct = total > 0 ? Math.round((index / total) * 100) : 0;
+
+    msgEl.textContent = data.message || ('Page ' + index + ' / ' + total);
+    countEl.textContent = total > 0 ? (index + ' / ' + total + ' pages') : '';
+
+    if (data.status === 'done') {
+      sseFinished = true;
+      spinner.className = 'pup-live-spinner done';
+      msgEl.className = 'pup-live-msg done';
+      fill.classList.remove('indeterminate');
+      fill.style.width = '100%';
+      // Reload data after short delay
+      setTimeout(function() {
+        loadHistory();
+        loadData();
+        Components.showToast('Audit terminé ! Résultats mis à jour.', 'success');
+        setTimeout(function() { stopProgressWatch(); }, 4000);
+      }, 1000);
+    } else if (data.status === 'uploading') {
+      spinner.className = 'pup-live-spinner';
+      msgEl.className = 'pup-live-msg uploading';
+      fill.classList.remove('indeterminate');
+      fill.style.width = '100%';
+    } else if (data.status === 'error') {
+      sseFinished = true;
+      spinner.className = 'pup-live-spinner error';
+      msgEl.className = 'pup-live-msg error';
+      fill.classList.remove('indeterminate');
+      fill.style.width = pct + '%';
+    } else {
+      // running
+      spinner.className = 'pup-live-spinner';
+      msgEl.className = 'pup-live-msg';
+      fill.classList.remove('indeterminate');
+      fill.style.width = pct + '%';
+    }
+  }
+
+  function onStreamEnd() {
+    sseReader = null;
+    if (!sseFinished) {
+      var msgEl = document.getElementById('live-msg');
+      if (msgEl) msgEl.textContent = 'Flux interrompu. Lance le script pour reprendre.';
+    }
+  }
+
+  function stopProgressWatch() {
+    if (sseReader) {
+      try { sseReader.cancel(); } catch (e) {}
+      sseReader = null;
+    }
+    sseFinished = false;
+    var panel = document.getElementById('pup-live');
+    if (panel) panel.classList.remove('visible');
+  }
+
+  document.getElementById('btn-stop-watch').addEventListener('click', stopProgressWatch);
 
   // ===== INIT =====
   Components.initPage().then(function() {

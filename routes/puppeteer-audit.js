@@ -10,17 +10,28 @@ const RESULTS_FILE = path.join(DATA_DIR, 'puppeteer-audit.json');
 const HISTORY_FILE = path.join(DATA_DIR, 'puppeteer-audit-history.json');
 const AUDITS_DIR = path.join(DATA_DIR, 'puppeteer-audits');
 
-// Ensure dirs exist
 [DATA_DIR, AUDITS_DIR].forEach(function(d) {
   if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
 });
+
+// ── In-memory SSE state ──────────────────────────────────────────────────────
+var sseClients = [];
+var currentProgress = null;
+
+function broadcastProgress(data) {
+  currentProgress = data;
+  var payload = 'data: ' + JSON.stringify(data) + '\n\n';
+  sseClients = sseClients.filter(function(client) {
+    try { client.write(payload); return true; } catch (e) { return false; }
+  });
+}
 
 function readHistory() {
   if (!fs.existsSync(HISTORY_FILE)) return [];
   try { return JSON.parse(fs.readFileSync(HISTORY_FILE, 'utf8')); } catch { return []; }
 }
 
-// GET /api/puppeteer-audit — retrieve latest stored results
+// GET /api/puppeteer-audit — latest results
 router.get('/', verifyToken, requireRole('admin'), function(req, res) {
   if (!fs.existsSync(RESULTS_FILE)) {
     return res.json({ results: null, auditDate: null, totalPages: 0 });
@@ -33,7 +44,7 @@ router.get('/', verifyToken, requireRole('admin'), function(req, res) {
   }
 });
 
-// GET /api/puppeteer-audit/history — list of past audits (metadata only)
+// GET /api/puppeteer-audit/history — list of past audits (metadata)
 router.get('/history', verifyToken, requireRole('admin'), function(req, res) {
   res.json(readHistory());
 });
@@ -49,7 +60,29 @@ router.get('/history/:id', verifyToken, requireRole('admin'), function(req, res)
   }
 });
 
-// POST /api/puppeteer-audit — save audit results
+// GET /api/puppeteer-audit/progress/stream — SSE endpoint for browser
+router.get('/progress/stream', verifyToken, requireRole('admin'), function(req, res) {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  });
+  // Send current state immediately
+  res.write('data: ' + JSON.stringify(currentProgress || { status: 'idle' }) + '\n\n');
+  sseClients.push(res);
+  req.on('close', function() {
+    sseClients = sseClients.filter(function(c) { return c !== res; });
+  });
+});
+
+// POST /api/puppeteer-audit/progress — script sends progress updates
+router.post('/progress', verifyToken, requireRole('admin'), function(req, res) {
+  broadcastProgress(req.body);
+  res.json({ ok: true });
+});
+
+// POST /api/puppeteer-audit — save full audit results
 router.post('/', verifyToken, requireRole('admin'), function(req, res) {
   const body = req.body;
   if (!Array.isArray(body.pages)) return res.status(400).json({ error: 'pages[] requis' });
@@ -66,13 +99,9 @@ router.post('/', verifyToken, requireRole('admin'), function(req, res) {
     pages: body.pages
   };
 
-  // Save as latest
   fs.writeFileSync(RESULTS_FILE, JSON.stringify(data, null, 2), 'utf8');
-
-  // Save full snapshot in audits dir
   fs.writeFileSync(path.join(AUDITS_DIR, id + '.json'), JSON.stringify(data, null, 2), 'utf8');
 
-  // Append metadata to history (keep last 20)
   const history = readHistory();
   history.unshift({
     id,
@@ -84,6 +113,9 @@ router.post('/', verifyToken, requireRole('admin'), function(req, res) {
   });
   if (history.length > 20) history.splice(20);
   fs.writeFileSync(HISTORY_FILE, JSON.stringify(history, null, 2), 'utf8');
+
+  // Reset progress state
+  broadcastProgress({ status: 'done', index: data.totalPages, total: data.totalPages, avgScore: data.avgScore });
 
   res.json({ success: true, id, totalPages: body.pages.length });
 });
