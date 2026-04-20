@@ -173,26 +173,48 @@ function createSnapshot(slug, userId, reason) {
  * Determine page status by comparing preview and published timestamps.
  */
 function getPageStatus(previewDir, publicDir) {
+  // Primary: check deployedAt in seo.json (persisted in gds-previews volume, survives rebuilds)
+  const seoJsonPath = path.join(previewDir, 'seo.json');
+  const seoHomePath = path.join(previewDir, '..', 'seo-home.json'); // for home page
+  let deployedAt = null;
+  for (const seoPath of [seoJsonPath, seoHomePath]) {
+    if (fs.existsSync(seoPath)) {
+      try {
+        const seo = JSON.parse(fs.readFileSync(seoPath, 'utf-8'));
+        if (seo.deployedAt) { deployedAt = new Date(seo.deployedAt).getTime(); break; }
+      } catch {}
+    }
+  }
+
+  if (deployedAt) {
+    // Compare preview mtime vs deployedAt to detect modifications since last deploy
+    const previewFiles = fs.existsSync(previewDir)
+      ? fs.readdirSync(previewDir).filter(f => f.endsWith('.html'))
+      : [];
+    let latestPreview = 0;
+    for (const f of previewFiles) {
+      const mtime = fs.statSync(path.join(previewDir, f)).mtimeMs;
+      if (mtime > latestPreview) latestPreview = mtime;
+    }
+    return latestPreview > deployedAt ? 'modified' : 'published';
+  }
+
+  // Fallback: legacy filesystem check (public/site/ directory)
   if (!fs.existsSync(publicDir)) return 'draft';
+  const publicFiles = fs.existsSync(publicDir)
+    ? fs.readdirSync(publicDir).filter(f => f.endsWith('.html'))
+    : [];
+  if (publicFiles.length === 0) return 'draft';
 
   const previewFiles = fs.existsSync(previewDir)
     ? fs.readdirSync(previewDir).filter(f => f.endsWith('.html'))
     : [];
-  const publicFiles = fs.existsSync(publicDir)
-    ? fs.readdirSync(publicDir).filter(f => f.endsWith('.html'))
-    : [];
-
-  if (publicFiles.length === 0) return 'draft';
-
-  // Check if preview is newer than published
   let latestPreview = 0;
   let latestPublic = 0;
-
   for (const f of previewFiles) {
     const mtime = fs.statSync(path.join(previewDir, f)).mtimeMs;
     if (mtime > latestPreview) latestPreview = mtime;
   }
-
   for (const f of publicFiles) {
     const fullPath = path.join(publicDir, f);
     if (fs.existsSync(fullPath)) {
@@ -200,7 +222,6 @@ function getPageStatus(previewDir, publicDir) {
       if (mtime > latestPublic) latestPublic = mtime;
     }
   }
-
   return latestPreview > latestPublic ? 'modified' : 'published';
 }
 

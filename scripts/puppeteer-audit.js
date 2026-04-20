@@ -849,12 +849,6 @@ async function main() {
     } else {
       throw new Error('Réponse inattendue: ' + JSON.stringify(res.body).substring(0, 100));
     }
-    // Exclure les pages en brouillon (jamais déployées sur shootnbox.fr)
-    const allCount = pages.length;
-    pages = pages.filter(p => p.status !== 'draft');
-    if (allCount !== pages.length) {
-      console.log(`  (${allCount - pages.length} brouillons exclus)`);
-    }
     console.log(`${pages.length} pages à auditer ✓\n`);
   } catch (e) {
     console.error('Erreur récupération pages:', e.message);

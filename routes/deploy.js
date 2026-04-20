@@ -150,6 +150,14 @@ async function deployPageToShootnbox(slug) {
   // Disable m.php
   await mWrite(targetMph, 'm.php', '<?php http_response_code(404); ?>');
 
+  // Persist deployedAt in seo.json so getPageStatus() survives Docker rebuilds
+  try {
+    if (fs.existsSync(seoPath)) {
+      seo.deployedAt = new Date().toISOString();
+      fs.writeFileSync(seoPath, JSON.stringify(seo, null, 2), 'utf-8');
+    }
+  } catch {}
+
   return { destPath, bytes: html.length, uploadResult };
 }
 

@@ -45,6 +45,36 @@ fi
 
 echo "[init] Volume initialization complete."
 
+# === DEPLOYED AT MIGRATION ===
+# Set deployedAt for all pages that don't have it (marks them as published)
+node -e "
+const fs = require('fs'), path = require('path');
+const previewsDir = '/app/previews';
+const now = new Date().toISOString();
+let count = 0;
+// Home page
+const homeSeo = path.join(previewsDir, 'seo-home.json');
+if (fs.existsSync(homeSeo)) {
+  try {
+    const seo = JSON.parse(fs.readFileSync(homeSeo, 'utf-8'));
+    if (!seo.deployedAt) { seo.deployedAt = now; fs.writeFileSync(homeSeo, JSON.stringify(seo, null, 2)); count++; }
+  } catch {}
+}
+// Other pages
+const entries = fs.existsSync(previewsDir) ? fs.readdirSync(previewsDir, { withFileTypes: true }) : [];
+for (const e of entries) {
+  if (!e.isDirectory() || e.name.startsWith('_')) continue;
+  const seoPath = path.join(previewsDir, e.name, 'seo.json');
+  if (fs.existsSync(seoPath)) {
+    try {
+      const seo = JSON.parse(fs.readFileSync(seoPath, 'utf-8'));
+      if (!seo.deployedAt) { seo.deployedAt = now; fs.writeFileSync(seoPath, JSON.stringify(seo, null, 2)); count++; }
+    } catch {}
+  }
+}
+console.log('[init] deployedAt set for', count, 'pages');
+"
+
 # === PUPPETEER ===
 # Ensure puppeteer is available (fallback if Docker build didn't include it)
 if ! node -e "require('puppeteer')" 2>/dev/null; then
