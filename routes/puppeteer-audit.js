@@ -22,7 +22,11 @@ function broadcastProgress(data) {
   currentProgress = data;
   var payload = 'data: ' + JSON.stringify(data) + '\n\n';
   sseClients = sseClients.filter(function(client) {
-    try { client.write(payload); return true; } catch (e) { return false; }
+    try {
+      client.write(payload);
+      if (typeof client.flush === 'function') client.flush();
+      return true;
+    } catch (e) { return false; }
   });
 }
 
@@ -62,16 +66,36 @@ router.get('/history/:id', verifyToken, requireRole('admin'), function(req, res)
 
 // GET /api/puppeteer-audit/progress/stream — SSE endpoint for browser
 router.get('/progress/stream', verifyToken, requireRole('admin'), function(req, res) {
-  res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive',
-    'X-Accel-Buffering': 'no',
-  });
+  // Disable compression for SSE (compression middleware buffers responses)
+  req.headers['accept-encoding'] = 'identity';
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders();
+
+  function send(data) {
+    try {
+      res.write('data: ' + JSON.stringify(data) + '\n\n');
+      if (typeof res.flush === 'function') res.flush();
+    } catch (e) {}
+  }
+
   // Send current state immediately
-  res.write('data: ' + JSON.stringify(currentProgress || { status: 'idle' }) + '\n\n');
+  send(currentProgress || { status: 'idle' });
   sseClients.push(res);
+
+  // Heartbeat every 15s to keep connection alive
+  var heartbeat = setInterval(function() {
+    try {
+      res.write(': ping\n\n');
+      if (typeof res.flush === 'function') res.flush();
+    } catch (e) { clearInterval(heartbeat); }
+  }, 15000);
+
   req.on('close', function() {
+    clearInterval(heartbeat);
     sseClients = sseClients.filter(function(c) { return c !== res; });
   });
 });

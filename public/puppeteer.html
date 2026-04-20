@@ -733,6 +733,11 @@
       fetch('/api/puppeteer-audit/progress/stream', {
         headers: { 'Authorization': 'Bearer ' + token }
       }).then(function(response) {
+        if (!response.ok) {
+          var msgEl = document.getElementById('live-msg');
+          if (msgEl) msgEl.textContent = 'Erreur SSE ' + response.status + ' — le serveur n\'est peut-être pas encore déployé';
+          return;
+        }
         var reader = response.body.getReader();
         sseReader = reader;
         var decoder = new TextDecoder();
@@ -763,7 +768,15 @@
   }
 
   function onProgressEvent(data) {
-    if (!data || data.status === 'idle') return;
+    if (!data) return;
+    if (data.status === 'idle') {
+      // Connected but no audit running
+      var msgEl = document.getElementById('live-msg');
+      var fill = document.getElementById('live-fill');
+      if (msgEl) { msgEl.textContent = 'En attente du script… Lance node scripts/puppeteer-audit.js'; }
+      if (fill) { fill.classList.add('indeterminate'); }
+      return;
+    }
 
     var panel = document.getElementById('pup-live');
     var spinner = document.getElementById('live-spinner');
