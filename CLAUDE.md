@@ -561,9 +561,10 @@ var(--max-width)          /* 1300px */
 - **Restaurer** : `POST /api/backups/ac89dac5-c6ed-4295-8fad-421dfbbe00c7/restore`
 - **Contexte** : etat du site avant les modifications de l'audit GEO (JSON-LD, OG, redirections, corrections HTML)
 
-## Audit GEO — Avancement (17/04/2026)
+## Audit GEO — Avancement (20/04/2026)
 
-**Score actuel estimé : ~6/10 (etait 4.4/10)**
+**Score actuel estimé : ~7/10 (etait 4.4/10)**
+**Derniere session : 17/04/2026 — Priorite 1 completee. Reprendre a Priorite 2.**
 **Document source** : `C:\Users\shoot\Downloads\Audit_GEO_Shootnbox.pdf`
 
 ### FAIT ✓
