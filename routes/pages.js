@@ -2895,11 +2895,37 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
         url: PROD_DOMAIN,
         telephone: phoneFormatted,
         email: config.contact?.email || '',
-        address: { '@type': 'PostalAddress', addressLocality: 'Paris', addressCountry: 'FR' },
-        openingHours: 'Mo-Su 00:00-23:59',
+        address: {
+          '@type': 'PostalAddress',
+          streetAddress: '3 sentier des marécages',
+          postalCode: '93100',
+          addressLocality: 'Montreuil',
+          addressRegion: 'Île-de-France',
+          addressCountry: 'FR',
+        },
+        areaServed: { '@type': 'Country', name: 'France' },
+        openingHoursSpecification: [
+          { '@type': 'OpeningHoursSpecification', dayOfWeek: ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'], opens: '09:00', closes: '19:00' },
+        ],
+        foundingDate: '2019',
+        paymentAccepted: 'Cash, Credit Card, 4x without fees',
+        currenciesAccepted: 'EUR',
         priceRange: '\u20ac\u20ac',
         aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.8', reviewCount: '1192', bestRating: '5' },
       });
+      // Enrich LocalBusiness with optional fields (logo, image, sameAs, Google Place ID)
+      const _lb = jsonLdBlocks[jsonLdBlocks.length - 1];
+      const _logoAbs = config.identity?.logo
+        ? (config.identity.logo.startsWith('http') ? config.identity.logo : `https://sites.swipego.app${config.identity.logo}`)
+        : '';
+      if (_logoAbs) _lb.logo = _logoAbs;
+      if (ogImageAbs || _logoAbs) _lb.image = ogImageAbs || _logoAbs;
+      if (sameAs.length) _lb.sameAs = sameAs;
+      const _mapsPlaceId = config.contact?.mapsPlaceId || '';
+      if (_mapsPlaceId) {
+        _lb['@id'] = `${PROD_DOMAIN}/#localbusiness`;
+        _lb.hasMap = `https://www.google.com/maps/place/?q=place_id:${_mapsPlaceId}`;
+      }
     }
 
     // Product + Offer — specific product pages (prices confirmed via audit)

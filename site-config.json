@@ -71,6 +71,7 @@
         "links": [
           { "label": "Location Photobooth", "url": "/location-photobooth/" },
           { "label": "Le Shootnblog", "url": "/blog/" },
+          { "label": "Qui sommes-nous", "url": "/qui-sommes-nous/" },
           { "label": "Ils nous font confiance", "url": "/ils-nous-font-confiance/" },
           { "label": "FAQ", "url": "/faq/" },
           { "label": "Contact", "url": "/contact/" }
