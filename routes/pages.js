@@ -2873,6 +2873,27 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
     const sameAs = Object.values(config.footer?.socials || {}).filter(Boolean);
     const phoneFormatted = (config.contact?.phone || '').replace(/\./g, '').replace(/^0/, '+33');
 
+    // WebSite + SearchAction — home page only (Google sitelinks searchbox)
+    if (slug === 'home') {
+      jsonLdBlocks.push({
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        '@id': `${PROD_DOMAIN}/#website`,
+        name: config.identity?.name || 'Shootnbox',
+        url: `${PROD_DOMAIN}/`,
+        inLanguage: 'fr-FR',
+        publisher: { '@id': `${PROD_DOMAIN}/#organization` },
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: {
+            '@type': 'EntryPoint',
+            urlTemplate: `${PROD_DOMAIN}/?s={search_term_string}`,
+          },
+          'query-input': 'required name=search_term_string',
+        },
+      });
+    }
+
     // Organization — always present on all pages
     jsonLdBlocks.push({
       '@context': 'https://schema.org',
