@@ -2877,12 +2877,21 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
     jsonLdBlocks.push({
       '@context': 'https://schema.org',
       '@type': 'Organization',
+      '@id': `${PROD_DOMAIN}/#organization`,
       name: config.identity?.name || 'Shootnbox',
       url: PROD_DOMAIN,
       logo: `https://sites.swipego.app${config.identity?.logo || ''}`,
       telephone: phoneFormatted,
       email: config.contact?.email || '',
+      foundingDate: '2019',
       sameAs,
+      aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: '4.8',
+        reviewCount: '1192',
+        bestRating: '5',
+        worstRating: '1',
+      },
     });
 
     // LocalBusiness + AggregateRating — home page only
