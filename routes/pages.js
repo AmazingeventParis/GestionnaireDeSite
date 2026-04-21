@@ -2891,7 +2891,7 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
         '@context': 'https://schema.org',
         '@type': 'LocalBusiness',
         name: config.identity?.name || 'Shootnbox',
-        description: config.seo?.defaultDescription || '',
+        description: seo.description || config.seo?.defaultDescription || '',
         url: PROD_DOMAIN,
         telephone: phoneFormatted,
         email: config.contact?.email || '',
