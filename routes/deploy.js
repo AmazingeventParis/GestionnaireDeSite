@@ -31,6 +31,14 @@ function absolutizeHtml(html) {
   html = html.replace(/url\((\/(?:fonts|images|site-images)\/[^)'"]+)\)/g, (_, p) => `url(${BASE_GDS}${p})`);
   // fetch('/api/...')
   html = html.replace(/fetch\('\/api\//g, `fetch('${BASE_GDS}/api/`);
+  // Add loading="lazy" to all <img> except the first (LCP candidate)
+  let _imgIdx = 0;
+  html = html.replace(/<img(\s[^>]*)?\/?>/gi, (match, attrs) => {
+    _imgIdx++;
+    if (_imgIdx === 1) return match;
+    if (/\bloading\s*=/i.test(attrs || '')) return match;
+    return attrs ? `<img${attrs} loading="lazy">` : '<img loading="lazy">';
+  });
   return html;
 }
 

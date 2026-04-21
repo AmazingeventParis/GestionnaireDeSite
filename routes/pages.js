@@ -2925,6 +2925,22 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
       });
     }
 
+    // BreadcrumbList — toutes les pages sauf home
+    if (slug !== 'home' && pageCanonicalUrl) {
+      const rawTitle = (seo.title || '').replace(/\s*[|\-–—]\s*Shootnbox\s*$/i, '').trim();
+      const isCityPage = (seo.urlPath || '').startsWith('location-photobooth-');
+      const breadcrumbItems = [
+        { '@type': 'ListItem', position: 1, name: 'Accueil', item: `${PROD_DOMAIN}/` },
+      ];
+      if (isCityPage) {
+        breadcrumbItems.push({ '@type': 'ListItem', position: 2, name: 'Location de photobooth', item: `${PROD_DOMAIN}/location-photobooth/` });
+        breadcrumbItems.push({ '@type': 'ListItem', position: 3, name: rawTitle, item: pageCanonicalUrl });
+      } else {
+        breadcrumbItems.push({ '@type': 'ListItem', position: 2, name: rawTitle, item: pageCanonicalUrl });
+      }
+      jsonLdBlocks.push({ '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: breadcrumbItems });
+    }
+
     // Custom JSON-LD from seo.json (validated before injection)
     if (seo.schema?.customJsonLd) {
       try {
@@ -2949,8 +2965,11 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${seo.title || config.identity?.name || 'Preview'}</title>
   <meta name="description" content="${seo.description || ''}">
+  <meta name="author" content="Shootnbox">
 ${seo.canonical ? `  <link rel="canonical" href="${seo.canonical}">` : ''}
 ${seo.noindex ? `  <meta name="robots" content="noindex,nofollow">` : ''}
+  <link rel="icon" href="https://shootnbox.fr/wp-content/uploads/2022/04/cropped-SHOOTNBOX-e1650722432718-32x32.png" sizes="32x32">
+  <link rel="apple-touch-icon" href="https://shootnbox.fr/wp-content/uploads/2022/04/cropped-SHOOTNBOX-e1650722432718-180x180.png">
 ${ogTagsHtml}
   <link rel="preload" as="font" href="/fonts/raleway-latin.woff2" type="font/woff2" crossorigin>
   <link rel="preload" as="font" href="/fonts/raleway-900i-latin.woff2" type="font/woff2" crossorigin>
