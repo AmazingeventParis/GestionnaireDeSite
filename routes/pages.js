@@ -2851,6 +2851,7 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
 
     // Open Graph + Twitter Card
     const ogType = (seo.schemaType === 'Article' || seo.schemaType === 'BlogPosting') ? 'article' : 'website';
+    const ogImageAlt = seo.ogImageAlt || '';
     const ogTagsHtml = [
       `  <meta property="og:type" content="${ogType}">`,
       `  <meta property="og:site_name" content="${escAttr(config.identity?.name)}">`,
@@ -2858,11 +2859,13 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
       `  <meta property="og:title" content="${escAttr(seo.ogTitle || seo.title || '')}">`,
       `  <meta property="og:description" content="${escAttr(seo.ogDescription || seo.description || '')}">`,
       ogImageAbs ? `  <meta property="og:image" content="${escAttr(ogImageAbs)}">\n  <meta property="og:image:width" content="1200">\n  <meta property="og:image:height" content="630">` : '',
+      ogImageAbs && ogImageAlt ? `  <meta property="og:image:alt" content="${escAttr(ogImageAlt)}">` : '',
       pageCanonicalUrl ? `  <meta property="og:url" content="${escAttr(pageCanonicalUrl)}">` : '',
       `  <meta name="twitter:card" content="summary_large_image">`,
       `  <meta name="twitter:title" content="${escAttr(seo.ogTitle || seo.title || '')}">`,
       `  <meta name="twitter:description" content="${escAttr(seo.ogDescription || seo.description || '')}">`,
       ogImageAbs ? `  <meta name="twitter:image" content="${escAttr(ogImageAbs)}">` : '',
+      ogImageAbs && ogImageAlt ? `  <meta name="twitter:image:alt" content="${escAttr(ogImageAlt)}">` : '',
     ].filter(Boolean).join('\n');
 
     // JSON-LD Schema.org

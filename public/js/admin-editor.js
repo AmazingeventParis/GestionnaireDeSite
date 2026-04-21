@@ -421,10 +421,11 @@
       e.stopPropagation();
       openImageReplaceModal(el);
     });
-    // Style all current images as clickable
+    // Mark current images as clickable — cursor styled via admin-editor.css
+    // to avoid polluting the saved HTML with inline style="cursor:pointer"
     document.querySelectorAll('.gds-section-wrapper img, .gds-section-wrapper video').forEach(el => {
       if (el.closest('.snb-header, .snb-nav, nav, header, .snb-footer, footer')) return;
-      el.style.cursor = 'pointer';
+      el.classList.add('gds-editable-media');
     });
 
     // Hidden file input
@@ -2172,6 +2173,12 @@
     // Remove gds-modified class
     clone.querySelectorAll('.gds-modified').forEach(el => el.classList.remove('gds-modified'));
     clone.querySelectorAll('.gds-img-hover').forEach(el => el.classList.remove('gds-img-hover'));
+    // Remove admin-only marker class + any legacy inline cursor:pointer on media
+    clone.querySelectorAll('.gds-editable-media, img[style*="cursor"], video[style*="cursor"]').forEach(el => {
+      el.classList.remove('gds-editable-media');
+      if (el.style && el.style.cursor) el.style.removeProperty('cursor');
+      if (el.getAttribute('style') === '') el.removeAttribute('style');
+    });
     // Unwrap gds-ph-img-wrap divs — these are added by the placeholder system
     // and accumulate on each save. Replace each wrapper with its children.
     clone.querySelectorAll('.gds-ph-img-wrap').forEach(wrap => {

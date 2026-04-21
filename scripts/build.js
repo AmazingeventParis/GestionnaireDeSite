@@ -881,9 +881,11 @@ for (const page of pages) {
 <meta property="og:site_name" content="${siteConfig.identity?.name || 'Shootnbox'}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
+${page.ogImageAlt ? `<meta property="og:image:alt" content="${page.ogImageAlt}">` : ''}
 <meta name="twitter:title" content="${page.ogTitle}">
 <meta name="twitter:description" content="${page.ogDescription}">
 <meta name="twitter:image" content="${page.ogImage}">
+${page.ogImageAlt ? `<meta name="twitter:image:alt" content="${page.ogImageAlt}">` : ''}
 ${preloadImg}
 <link rel="alternate" type="application/rss+xml" title="Shootnbox Blog" href="/api/seo/feed">
 <link rel="dns-prefetch" href="https://shootnbox.fr">

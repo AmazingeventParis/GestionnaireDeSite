@@ -605,6 +605,11 @@
           </div>
 
           <div class="form-group">
+            <label for="og-image-alt">OG Image ALT (accessibilité réseaux sociaux)</label>
+            <input type="text" id="og-image-alt" class="form-input" placeholder="Description courte de l'image pour lecteurs d'écran et partages">
+          </div>
+
+          <div class="form-group">
             <label for="twitter-card">Twitter Card</label>
             <select id="twitter-card" class="form-select">
               <option value="summary">summary</option>
@@ -1056,6 +1061,7 @@
           ogTitle: document.getElementById('og-title').value,
           ogDescription: document.getElementById('og-desc').value,
           ogImage: document.getElementById('og-image').value,
+          ogImageAlt: document.getElementById('og-image-alt').value,
           twitterCard: document.getElementById('twitter-card').value,
           customHeadCSS: document.getElementById('head-css').value,
           customHeadScripts: document.getElementById('head-scripts').value,
@@ -1133,6 +1139,7 @@
         document.getElementById('og-title').value = seo.ogTitle || '';
         document.getElementById('og-desc').value = seo.ogDescription || '';
         document.getElementById('og-image').value = seo.ogImage || '';
+        document.getElementById('og-image-alt').value = seo.ogImageAlt || '';
         if (seo.twitterCard) document.getElementById('twitter-card').value = seo.twitterCard;
 
         document.getElementById('head-css').value = seo.customHeadCSS || '';
