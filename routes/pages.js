@@ -468,6 +468,39 @@ function preRenderBlogLatest(html) {
   return html;
 }
 
+/**
+ * Extract FAQ Q/A pairs from a section built with <details class="snb-faq-item">
+ * and inject a <script type="application/ld+json"> FAQPage schema into the head.
+ * Runs on bodyContent AFTER assembly, so each page gets only its own FAQ schema.
+ * Returns the (possibly updated) bodyContent and the JSON-LD block to inject.
+ */
+function buildFAQSchema(bodyContent) {
+  if (!bodyContent || bodyContent.indexOf('snb-faq-item') === -1) return null;
+  const items = [...bodyContent.matchAll(/<details class="snb-faq-item">[\s\S]*?<div class="snb-faq-q">([\s\S]*?)<\/div>[\s\S]*?<div class="snb-faq-ans">([\s\S]*?)<\/div>[\s\S]*?<\/details>/g)];
+  if (!items.length) return null;
+  const stripTags = (s) => String(s || '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: items.map((m) => ({
+      '@type': 'Question',
+      name: stripTags(m[1]),
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: stripTags(m[2]),
+      },
+    })),
+  };
+  return faqSchema;
+}
+
 // ==================== ROUTES ====================
 
 /**
@@ -3197,6 +3230,43 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
       }
     }
 
+    // Service + AggregateOffer — money page /location-photobooth/
+    if (slug === 'location-photobooth') {
+      let liveRating = 4.8;
+      let liveCount = 1192;
+      try {
+        const revPath = path.join(__dirname, '..', 'previews', '_shared', 'reviews.json');
+        if (fs.existsSync(revPath)) {
+          const rev = JSON.parse(fs.readFileSync(revPath, 'utf-8'));
+          if (rev.rating) liveRating = parseFloat(rev.rating);
+          if (rev.totalRatings) liveCount = parseInt(rev.totalRatings, 10);
+        }
+      } catch {}
+      jsonLdBlocks.push({
+        '@context': 'https://schema.org',
+        '@type': 'Service',
+        serviceType: 'Location de photobooth',
+        name: 'Location de photobooth et photomaton',
+        description: seo.description || 'Location de photobooth et photomaton partout en France, à partir de 149€ le week-end entier.',
+        provider: { '@id': `${PROD_DOMAIN}/#organization` },
+        areaServed: { '@type': 'Country', name: 'France' },
+        offers: {
+          '@type': 'AggregateOffer',
+          lowPrice: '149',
+          highPrice: '899',
+          priceCurrency: 'EUR',
+          offerCount: '4',
+        },
+        aggregateRating: {
+          '@type': 'AggregateRating',
+          ratingValue: String(liveRating),
+          reviewCount: String(liveCount),
+          bestRating: '5',
+          worstRating: '1',
+        },
+      });
+    }
+
     // Product + Offer — specific product pages (prices confirmed via audit)
     const productCatalog = {
       'le-ring':          { name: 'Location Borne Ring',      price: '149' },
@@ -3246,6 +3316,10 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
         jsonLdBlocks.push(seo.schema.customJsonLd);
       } catch (e) { /* invalid JSON, skip silently */ }
     }
+
+    // FAQPage — generated from <details class="snb-faq-item"> in bodyContent
+    const faqSchema = buildFAQSchema(bodyContent);
+    if (faqSchema) jsonLdBlocks.push(faqSchema);
 
     const jsonLdHtml = jsonLdBlocks.map(block => {
       const json = typeof block === 'string' ? block : JSON.stringify(block);
