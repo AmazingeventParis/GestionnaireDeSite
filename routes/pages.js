@@ -240,6 +240,129 @@ function getPublicDir(slug) {
   return path.join(PUBLIC_DIR, slug);
 }
 
+// ==================== SSR helpers ====================
+
+/**
+ * Pre-render the reviews carousel + JSON-LD Schema Review server-side.
+ * Detects the placeholders (id="snbAvisTrack", id="snb-avis-jsonld") and injects:
+ *   - real cards with microdata (itemtype="https://schema.org/Review")
+ *   - full JSON-LD AggregateRating + Review[] linked to #localbusiness
+ *   - rating/count/buttons in the biz card
+ * Falls through (no change) if reviews.json is missing or the placeholders
+ * aren't present in the bodyContent.
+ * Client-side JS in the block still runs and re-renders the same data —
+ * keeps content fresh if reviews.json is updated between deploys.
+ */
+function preRenderReviews(html) {
+  if (!html || html.indexOf('id="snbAvisTrack"') === -1) return html;
+
+  const reviewsPath = path.join(__dirname, '..', 'previews', '_shared', 'reviews.json');
+  if (!fs.existsSync(reviewsPath)) return html;
+
+  let data;
+  try { data = JSON.parse(fs.readFileSync(reviewsPath, 'utf-8')); } catch { return html; }
+  if (!data || !Array.isArray(data.reviews) || !data.reviews.length) return html;
+
+  const GRADIENTS = ['#E51981,#c0137a', '#0250FF,#0140cc', '#7828C8,#6020a8', '#FF7A00,#e06b00', '#34A853,#2d8f47', '#EA4335,#d03a2f'];
+  const STAR_FILLED = '<svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="#FBBC04" stroke="#FBBC04" stroke-width="1"></polygon></svg>';
+  const STAR_EMPTY = '<svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="#e5e7eb" stroke="#d1d5db" stroke-width="1"></polygon></svg>';
+  const GOOGLE_SVG = '<svg class="avis-google" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"></path><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"></path><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"></path></svg>';
+
+  const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const stars = (n) => { let h = ''; for (let i = 0; i < 5; i++) h += (i < n ? STAR_FILLED : STAR_EMPTY); return h; };
+  const gradientFor = (name) => GRADIENTS[((name || '?').charCodeAt(0)) % GRADIENTS.length];
+
+  const reviews = data.reviews;
+  const rating = parseFloat(data.rating || 4.8);
+  const total = parseInt(data.totalRatings || reviews.length, 10);
+
+  function renderCard(r) {
+    const grad = gradientFor(r.author);
+    const initial = (r.author || '?').charAt(0).toUpperCase();
+    const iso = r.iso_date ? String(r.iso_date).split('T')[0] : '';
+    const avatarEl = r.avatar
+      ? '<img src="' + esc(r.avatar) + '" alt="' + esc(r.author) + '" loading="lazy">'
+      : '<span class="initials">' + esc(initial) + '</span>';
+    return '<article class="avis-card" itemscope itemtype="https://schema.org/Review">'
+      + '<meta itemprop="itemReviewed" content="Shootnbox">'
+      + '<div class="avis-header">'
+        + '<div class="avis-avatar" style="background:linear-gradient(135deg,' + grad + ')">' + avatarEl + '</div>'
+        + '<div class="avis-meta">'
+          + '<span class="avis-name" itemprop="author" itemscope itemtype="https://schema.org/Person"><span itemprop="name">' + esc(r.author) + '</span></span>'
+          + '<span class="avis-time"' + (iso ? ' itemprop="datePublished" content="' + iso + '"' : '') + '>' + esc(r.time || '') + '</span>'
+        + '</div>'
+        + GOOGLE_SVG
+      + '</div>'
+      + '<div class="avis-stars" itemprop="reviewRating" itemscope itemtype="https://schema.org/Rating">'
+        + '<meta itemprop="ratingValue" content="' + (r.rating || 5) + '">'
+        + '<meta itemprop="bestRating" content="5">'
+        + stars(r.rating || 5)
+      + '</div>'
+      + '<p class="avis-text" itemprop="reviewBody">' + esc(r.text || '') + '</p>'
+    + '</article>';
+  }
+
+  // 1. Replace placeholder cards with real ones
+  const cardsHtml = reviews.map(renderCard).join('\n');
+  html = html.replace(
+    /<div class="avis-track" id="snbAvisTrack">[\s\S]*?<\/div>/,
+    '<div class="avis-track" id="snbAvisTrack">' + cardsHtml + '</div>'
+  );
+
+  // 2. Biz card numbers + links
+  html = html.replace(
+    /(<span class="rating-num" id="snb-avis-biz-rating">)[^<]*(<\/span>)/,
+    '$1' + rating.toFixed(1).replace('.', ',') + '$2'
+  );
+  html = html.replace(
+    /(<span class="stars" id="snb-avis-biz-stars">)[\s\S]*?(<\/span>)/,
+    '$1' + stars(Math.round(rating)) + '$2'
+  );
+  html = html.replace(
+    /(<span id="snb-avis-biz-count">)[^<]*(<\/span>)/,
+    '$1' + total.toLocaleString('fr-FR') + '$2'
+  );
+  if (data.googleUrl) {
+    html = html.replace(/(<a href=")[^"]*(" id="snb-avis-biz-link")/, '$1' + data.googleUrl + '$2');
+  }
+  if (data.writeReviewUrl) {
+    html = html.replace(/(<a href=")[^"]*(" id="snb-avis-write-link")/, '$1' + data.writeReviewUrl + '$2');
+  }
+
+  // 3. JSON-LD Schema Review
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'LocalBusiness',
+    '@id': 'https://shootnbox.fr/#localbusiness',
+    name: 'Shootnbox',
+    url: 'https://shootnbox.fr',
+    aggregateRating: {
+      '@type': 'AggregateRating',
+      ratingValue: String(rating),
+      reviewCount: String(total),
+      bestRating: '5',
+      worstRating: '1',
+    },
+    review: reviews.map((r) => {
+      const o = {
+        '@type': 'Review',
+        author: { '@type': 'Person', name: r.author || '' },
+        reviewRating: { '@type': 'Rating', ratingValue: String(r.rating || 5), bestRating: '5' },
+        reviewBody: r.text || '',
+        publisher: { '@type': 'Organization', name: 'Google' },
+      };
+      if (r.iso_date) o.datePublished = String(r.iso_date).split('T')[0];
+      return o;
+    }),
+  };
+  html = html.replace(
+    /<script type="application\/ld\+json" id="snb-avis-jsonld">[\s\S]*?<\/script>/,
+    '<script type="application/ld+json" id="snb-avis-jsonld">' + JSON.stringify(jsonLd) + '</script>'
+  );
+
+  return html;
+}
+
 // ==================== ROUTES ====================
 
 /**
@@ -2780,6 +2903,10 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
       if (/\bfetchpriority\s*=\s*["']high["']/i.test(attrs)) return match;
       return `<img${attrs} loading="lazy">`;
     });
+
+    // A-bis. SSR des avis + JSON-LD Schema Review (voir preRenderReviews)
+    //         → Googlebot voit les 50 cartes + l'aggregateRating dès le 1er passage HTML
+    bodyContent = preRenderReviews(bodyContent);
 
     // B. Déduplication :root{} dans sectionStyles
     //    Les variables Shootnbox (--rose, --bleu, etc.) sont maintenant dans le :root global
