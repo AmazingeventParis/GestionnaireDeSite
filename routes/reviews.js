@@ -66,4 +66,46 @@ router.put('/', verifyToken, requireRole('admin'), (req, res) => {
   }
 });
 
+/**
+ * POST /api/reviews/refresh — Admin: trigger SerpAPI fetch immediately
+ * Respects the weekly throttle unless ?force=1 is passed.
+ */
+router.post('/refresh', verifyToken, requireRole('admin'), async (req, res) => {
+  const force = req.query.force === '1' || req.body?.force === true;
+  const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+  if (!force) {
+    const existing = loadReviews();
+    if (existing && existing.lastUpdated) {
+      const elapsed = Date.now() - new Date(existing.lastUpdated).getTime();
+      if (elapsed < ONE_WEEK_MS) {
+        const hoursLeft = Math.round((ONE_WEEK_MS - elapsed) / 3600000);
+        return res.status(429).json({
+          error: 'Rafraîchissement trop récent',
+          message: `Dernier fetch il y a ${Math.round(elapsed / 3600000)}h. Prochain possible dans ${hoursLeft}h (quota SerpAPI). Utilise ?force=1 pour forcer.`,
+          lastUpdated: existing.lastUpdated,
+        });
+      }
+    }
+  }
+
+  try {
+    const { fetchReviews } = require('../scripts/fetch-reviews-serpapi');
+    const data = await fetchReviews({ silent: true });
+    res.json({
+      success: true,
+      count: data.reviews.length,
+      raw: data.rawFetched,
+      pages: data.pagesFetched,
+      rating: data.rating,
+      totalRatings: data.totalRatings,
+      distribution: data.ratingDistributionSample,
+      lastUpdated: data.lastUpdated,
+    });
+  } catch (err) {
+    console.error('[Reviews] Refresh error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

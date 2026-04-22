@@ -239,6 +239,48 @@ app.use((err, req, res, next) => {
   });
 });
 
+// ===== SCHEDULER: Weekly reviews refresh via SerpAPI =====
+// Free plan 250 searches/month — weekly is safe. Checks every 6h, refreshes if > 7d old.
+(function scheduleReviewsFetch() {
+  if (!process.env.SERPAPI_KEY) {
+    logger.info('[reviews-cron] SERPAPI_KEY not set — scheduler disabled');
+    return;
+  }
+  const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+  const reviewsPath = path.join(__dirname, 'previews', '_shared', 'reviews.json');
+  let running = false;
+
+  async function checkAndFetch() {
+    if (running) return;
+    try {
+      const fs = require('fs');
+      let lastUpdated = 0;
+      if (fs.existsSync(reviewsPath)) {
+        try {
+          const data = JSON.parse(fs.readFileSync(reviewsPath, 'utf-8'));
+          if (data.lastUpdated) lastUpdated = new Date(data.lastUpdated).getTime();
+        } catch {}
+      }
+      if (Date.now() - lastUpdated < ONE_WEEK_MS) return;
+
+      running = true;
+      logger.info('[reviews-cron] Weekly fetch starting');
+      const { fetchReviews } = require('./scripts/fetch-reviews-serpapi');
+      const data = await fetchReviews({ silent: true });
+      logger.info(`[reviews-cron] Done — ${data.reviews.length} reviews saved, ${data.pagesFetched} pages used`);
+    } catch (err) {
+      logger.error(`[reviews-cron] Failed: ${err.message}`);
+    } finally {
+      running = false;
+    }
+  }
+
+  // Check 60s after startup, then every 6h
+  setTimeout(checkAndFetch, 60 * 1000);
+  setInterval(checkAndFetch, 6 * 60 * 60 * 1000);
+  logger.info('[reviews-cron] Scheduler started — weekly SerpAPI refresh');
+})();
+
 // ===== START =====
 app.listen(PORT, () => {
   logger.info(`Gestionnaire de Site running on port ${PORT}`);

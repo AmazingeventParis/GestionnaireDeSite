@@ -134,7 +134,8 @@
     "email": "contact@shootnbox.fr",
     "address": "Paris & Bordeaux, France",
     "hours": "7j/7",
-    "mapsPlaceId": "ChIJYTN4e3Bx5kcRIG4bJMuaZlA"
+    "mapsPlaceId": "ChIJxSIRRC5x5kcRX2Elmh-CeRI",
+    "mapsDataId": "0x47e6712e441122c5:0x1279821f9a25615f"
   },
   "seo": {
     "titleTemplate": "%page% | Shootnbox - Location Photobooth",
