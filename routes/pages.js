@@ -254,14 +254,38 @@ function getPublicDir(slug) {
  * keeps content fresh if reviews.json is updated between deploys.
  */
 function preRenderReviews(html) {
-  if (!html || html.indexOf('id="snbAvisTrack"') === -1) return html;
+  if (!html) return html;
+  const hasTrack = html.indexOf('id="snbAvisTrack"') !== -1;
+  const hasHeroProof = html.indexOf('id="lp-hero-rating"') !== -1 || html.indexOf('id="lp-hero-review-count"') !== -1;
+  if (!hasTrack && !hasHeroProof) return html;
 
   const reviewsPath = path.join(__dirname, '..', 'previews', '_shared', 'reviews.json');
   if (!fs.existsSync(reviewsPath)) return html;
 
   let data;
   try { data = JSON.parse(fs.readFileSync(reviewsPath, 'utf-8')); } catch { return html; }
-  if (!data || !Array.isArray(data.reviews) || !data.reviews.length) return html;
+  if (!data) return html;
+
+  // ── Hero proof update (LP) — works independently of the full carousel ──
+  if (hasHeroProof) {
+    const rating = parseFloat(data.rating || 4.8);
+    const total = parseInt(data.totalRatings || 0, 10);
+    if (rating) {
+      html = html.replace(
+        /(<strong id="lp-hero-rating"[^>]*>)[^<]*(<\/strong>)/,
+        '$1' + rating.toFixed(1).replace('.', ',') + '$2'
+      );
+    }
+    if (total) {
+      html = html.replace(
+        /(<strong id="lp-hero-review-count"[^>]*>)[^<]*(<\/strong>)/,
+        '$1' + total.toLocaleString('fr-FR') + '$2'
+      );
+    }
+  }
+
+  if (!hasTrack) return html;
+  if (!Array.isArray(data.reviews) || !data.reviews.length) return html;
 
   const GRADIENTS = ['#E51981,#c0137a', '#0250FF,#0140cc', '#7828C8,#6020a8', '#FF7A00,#e06b00', '#34A853,#2d8f47', '#EA4335,#d03a2f'];
   const STAR_FILLED = '<svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="#FBBC04" stroke="#FBBC04" stroke-width="1"></polygon></svg>';
