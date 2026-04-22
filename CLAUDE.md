@@ -561,10 +561,10 @@ var(--max-width)          /* 1300px */
 - **Restaurer** : `POST /api/backups/ac89dac5-c6ed-4295-8fad-421dfbbe00c7/restore`
 - **Contexte** : etat du site avant les modifications de l'audit GEO (JSON-LD, OG, redirections, corrections HTML)
 
-## Audit GEO — Avancement (20/04/2026)
+## Audit GEO — Avancement (21/04/2026)
 
-**Score actuel estimé : ~7/10 (etait 4.4/10)**
-**Derniere session : 17/04/2026 — Priorite 1 completee. Reprendre a Priorite 2.**
+**Score actuel estimé : ~8/10 (etait 4.4/10)**
+**Derniere session : 21/04/2026 — Audit Puppeteer + corrections Hn + SEO technique. Reprendre a Priorite 2 (phrases definitoires, alt text).**
 **Document source** : `C:\Users\shoot\Downloads\Audit_GEO_Shootnbox.pdf`
 
 ### FAIT ✓
@@ -635,3 +635,110 @@ var(--max-width)          /* 1300px */
 - **Pages GDS deployees** : uniquement `home` (published) + `location-photobooth` (modified)
 - Toutes les autres pages du site = WordPress natif
 - **`snb-server-track.php`** a la racine : inclus dans wp-config.php ligne 2, tracking standalone avant WordPress
+
+## Multi-site GDS (ajout 22/04/2026)
+
+### Architecture multi-site
+- **Middleware** : `middleware/activeSite.js` — lit header `X-Site-Id`, expose `req.activeSite` + `getActiveSite()` via AsyncLocalStorage
+- **Site legacy** (Shootnbox) : aucun header ou `X-Site-Id: shootnbox` → paths identiques a avant, zero impact
+- **Nouveaux sites** : `X-Site-Id: {uuid}` → paths scopés sous `previews/_sites/{uuid}/`
+- **Frontend** : `localStorage.gds_active_site` + `gds_active_site_name` → `apiFetch` envoie `X-Site-Id` automatiquement
+- **Sélection** : `sites.html` — clic sur carte = site actif, badge navbar mis a jour immédiatement
+
+### Structure filesystem nouveaux sites
+```
+previews/_sites/{siteId}/
+├── _config.json        ← équivalent site-config.json
+├── _shared/            ← header/footer du site
+├── _banners/           ← banners du site
+├── _blog-index.json
+└── {slug}/             ← pages (home/, contacts/, etc.)
+public/site-images/_sites/{siteId}/   ← médias
+blocks/_sites/{siteId}/               ← blocs réutilisables
+```
+
+### Routes adaptées (toutes rétrocompatibles Shootnbox)
+- `pages.js` : `getPD()` / `getSD()` → `getActiveSite().previewsDir / .sharedDir`
+- `banners.js` : `getBD()` → `getActiveSite().bannersDir`
+- `media.js` : `getImagesDir()` / `getMetaFile()` → `getActiveSite().imagesDir`
+- `seo.js` : `readConfig()` / `writeConfig()` → `getActiveSite().configPath`
+- `blog.js` : `getPD()` / `getBlogIndex()` → `getActiveSite().previewsDir / .blogIndexPath`
+- `shared.js` : `getSharedDir()` → `getActiveSite().sharedDir`
+- `settings.js` : `readConfig()` / `writeConfig()` → `getActiveSite().configPath`
+- `blocks.js` : déjà adapté via `getBD(req)` → `req.activeSite.blocksDir`
+
+### A FAIRE — multi-site
+- [ ] Adapter `routes/puppeteer-audit.js` pour utiliser `req.activeSite.previewsDir`
+- [ ] Initialiser `_config.json` pour le site Smakk (une fois specs reçues)
+- [ ] Adapter `routes/pages.js` injection JSON-LD (Organization, LocalBusiness) pour lire depuis `_config.json` du site actif au lieu de valeurs Shootnbox hardcodées
+
+## Référentiel de configuration — Shootnbox (source : site-config.json + routes/pages.js)
+
+### Identité
+- Nom : `Shootnbox`
+- Tagline : `Createur de souvenirs depuis 2019. Location de photobooths pour mariages, entreprises et evenements partout en France.`
+- Logo : `/images/logo/shootnbox-logo-new-1.webp`
+- Favicon 32x32 : `https://shootnbox.fr/wp-content/uploads/2022/04/cropped-SHOOTNBOX-e1650722432718-32x32.png`
+- Favicon 180x180 : `https://shootnbox.fr/wp-content/uploads/2022/04/cropped-SHOOTNBOX-e1650722432718-180x180.png`
+- Domaine prod : `shootnbox.fr`
+
+### Couleurs (site-config.json → injectées en CSS variables :root)
+- Primary : `#E51981` (rose magenta)
+- Secondary : `#0250FF` (bleu)
+- Tertiary : `#7828C8` (violet)
+- Accent1 : `#FF7A00` (orange)
+- Accent2 : `#16A34A` (vert)
+- Text Dark : `#323338`
+- Text Light : `#ffffff`
+- BG Main : `#ffffff`
+- BG Alt : `#f8eaff` (lavande clair — fond body)
+
+### Typographie
+- Police : `Raleway` (400–900, italic pour H1/H2)
+- Fichiers : `/fonts/raleway-latin.woff2`, `/fonts/raleway-900i-latin.woff2`
+- H1/H2 desktop : `50px`, weight 900, line-height 1.08
+- H3 : `28px`, weight 700
+- Body : `16px`, weight 400
+
+### Layout
+- Max-width : `1300px`
+- Section padding desktop : `80px 24px` (standard), `48px 24px` (compact)
+- Hero height : `520px / 420px / 360px`
+- Border radius : `12px`, CTA radius : `25px`
+- Header height : `72px desktop / 60px mobile`
+
+### Header / Navigation
+- Logo size : `100px`, sticky, scroll effect shadow
+- CTA : `Obtenir un devis` → `/reservation/`, gradient rose, radius 25px
+- Phone : `01.45.01.66.66`
+- Nav : Location → /location-photobooth/ | Nos bornes (Ring/Vegas/Miroir/Spinner) | Reservation | Contact | Blog
+
+### Footer / Réseaux sociaux
+- Instagram : `https://www.instagram.com/shootnbox/`
+- Facebook : `https://www.facebook.com/shootnbox`
+- TikTok : `https://www.tiktok.com/@shootnbox`
+- YouTube : `https://www.youtube.com/@shootnbox`
+- Copyright : `© 2019-{year} Shootnbox`
+- Mentions légales : `/mentions-legales/`
+
+### SEO & Schema (routes/pages.js — partiellement hardcodé)
+- Title template : `%page% | Shootnbox - Location Photobooth`
+- OG image default : `/images/vegas-hero-group.webp`
+- Meta author : `Shootnbox`
+- Organization : fondée 2019, `+33145016666`, `contact@shootnbox.fr`, Montreuil 93100
+- LocalBusiness : Lun–Sam 09h–19h, `€€`, Île-de-France
+- AggregateRating : `4.8/5` — 1192 avis (hardcodé)
+- Produits : Ring `€149`, Vegas `€299`, Spinner `€799`
+- BreadcrumbList : auto-généré pour toutes les pages non-home
+
+### Points de config pour un nouveau site (checklist Smakk)
+- [ ] Nom, tagline, domaine prod
+- [ ] Logo URL + favicon URLs (32x32, 180x180)
+- [ ] Palette couleurs (primary, secondary, tertiary, accent1, accent2, bgAlt)
+- [ ] Police (ou conserver Raleway)
+- [ ] Téléphone, email, adresse, horaires
+- [ ] Menu navigation + CTA texte/lien
+- [ ] Réseaux sociaux
+- [ ] Schema : type activité, produits/services + prix, rating
+- [ ] OG image par défaut
+- [ ] Title template SEO
