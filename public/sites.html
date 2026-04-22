@@ -111,7 +111,7 @@
 
         // Always show Shootnbox (legacy) as first card
         var shootnboxActive = !activeSiteId;
-        var cards = '<div class="card" style="cursor:pointer;' + (shootnboxActive ? 'border-color:#58a6ff;' : '') + '" onclick="selectSite(null)" title="Gérer Shootnbox">' +
+        var cards = '<div class="card" data-site-idx="-1" style="cursor:pointer;' + (shootnboxActive ? 'border-color:#58a6ff;' : '') + '" title="Gérer Shootnbox">' +
             '<div class="card-icon">🎯</div>' +
             '<div class="card-content">' +
                 '<div class="card-name">Shootnbox ' + (shootnboxActive ? '<span class="badge badge-prod">ACTIF</span>' : '<span class="badge badge-infra">LEGACY</span>') + '</div>' +
@@ -124,7 +124,7 @@
             var statusClass = site.status === 'active' ? 'badge-prod' :
                              site.status === 'maintenance' ? 'badge-tool' : 'badge-infra';
             var isActive = activeSiteId === site.id;
-            return '<div class="card" style="cursor:pointer;' + (isActive ? 'border-color:#58a6ff;' : '') + '" onclick="selectSite(sites[' + idx + '])" title="Gérer ce site">' +
+            return '<div class="card" data-site-idx="' + idx + '" style="cursor:pointer;' + (isActive ? 'border-color:#58a6ff;' : '') + '" title="Gérer ce site">' +
                 '<div class="card-icon">🌐</div>' +
                 '<div class="card-content">' +
                     '<div class="card-name">' + Components.escapeHtml(site.name) + ' ' +
@@ -133,12 +133,27 @@
                     '<div class="card-desc">' + Components.escapeHtml(site.description || 'Pas de description') + '</div>' +
                     '<div class="card-url">' + Components.escapeHtml(site.url) + '</div>' +
                     (site.hosting_provider ? '<div style="font-size:11px;color:#6e7681;margin-top:4px">Hebergeur: ' + Components.escapeHtml(site.hosting_provider) + '</div>' : '') +
-                    '<div style="margin-top:10px"><button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();openEditModal(sites[' + idx + '])">Modifier</button></div>' +
+                    '<div style="margin-top:10px"><button class="btn btn-sm btn-secondary" data-edit-idx="' + idx + '">Modifier</button></div>' +
                 '</div>' +
             '</div>';
         }).join('');
 
         el.innerHTML = cards;
+
+        // Attach listeners via JS — no inline onclick, no JSON in attributes
+        el.querySelectorAll('.card[data-site-idx]').forEach(function(card) {
+            var idx = parseInt(card.getAttribute('data-site-idx'));
+            card.addEventListener('click', function() {
+                selectSite(idx === -1 ? null : sites[idx]);
+            });
+            var editBtn = card.querySelector('[data-edit-idx]');
+            if (editBtn) {
+                editBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    openEditModal(sites[parseInt(editBtn.getAttribute('data-edit-idx'))]);
+                });
+            }
+        });
     }
 
     function openAddModal() {
