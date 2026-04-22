@@ -99,6 +99,14 @@ const Auth = (function() {
             options.headers['Authorization'] = 'Bearer ' + accessToken;
         }
 
+        // Multi-site: propagate active site to the server
+        try {
+            var _siteId = localStorage.getItem('gds_active_site');
+            if (_siteId && _siteId !== 'shootnbox') {
+                options.headers['X-Site-Id'] = _siteId;
+            }
+        } catch (e) { /* localStorage may be unavailable */ }
+
         // Set Content-Type for JSON bodies if not already set
         if (options.body && typeof options.body === 'string' && !options.headers['Content-Type']) {
             options.headers['Content-Type'] = 'application/json';

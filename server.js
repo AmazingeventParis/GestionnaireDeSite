@@ -62,6 +62,11 @@ try {
   console.warn('Redirect handler not loaded:', e.message);
 }
 
+// ===== MULTI-SITE CONTEXT =====
+// Resolves X-Site-Id header → req.activeSite (LEGACY for Shootnbox, scoped for new sites)
+const { activeSiteMiddleware } = require('./middleware/activeSite');
+app.use('/api/', activeSiteMiddleware);
+
 // ===== API ROUTES =====
 
 // Auth (no auth middleware needed — it handles its own)

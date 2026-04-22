@@ -8,23 +8,18 @@ const { requireRole } = require('../middleware/rbac');
 const { logAudit } = require('../utils/audit');
 const { getClientIp } = require('../middleware/threatDetector');
 
+const { getActiveSite } = require('../middleware/activeSite');
 const _DEFAULT_CONFIG_PATH = path.join(__dirname, '..', 'site-config.json');
 const BUILD_SCRIPT = path.join(__dirname, '..', 'scripts', 'build.js');
 
-/**
- * Read the site config from disk (uses active site's configPath if available).
- */
 function readConfig(configPath) {
-  const p = configPath || _DEFAULT_CONFIG_PATH;
+  const p = configPath || getActiveSite().configPath || _DEFAULT_CONFIG_PATH;
   if (!fs.existsSync(p)) return {};
   return JSON.parse(fs.readFileSync(p, 'utf-8'));
 }
 
-/**
- * Write the site config to disk.
- */
 function writeConfig(config, configPath) {
-  const p = configPath || _DEFAULT_CONFIG_PATH;
+  const p = configPath || getActiveSite().configPath || _DEFAULT_CONFIG_PATH;
   fs.writeFileSync(p, JSON.stringify(config, null, 2), 'utf-8');
 }
 

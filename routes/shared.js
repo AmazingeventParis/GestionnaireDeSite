@@ -4,14 +4,16 @@ const path = require('path');
 const { verifyToken } = require('../middleware/auth');
 const { requireRole } = require('../middleware/rbac');
 
-const SHARED_DIR = path.join(__dirname, '..', 'previews', '_shared');
+const { getActiveSite } = require('../middleware/activeSite');
+const _DEFAULT_SHARED = path.join(__dirname, '..', 'previews', '_shared');
+function getSharedDir() { return getActiveSite().sharedDir || _DEFAULT_SHARED; }
 
 /**
  * GET /header — Serve shared header HTML (public, no auth required)
  * For WordPress integration: fetch and cache this HTML
  */
 router.get('/header', (req, res) => {
-  const headerPath = path.join(SHARED_DIR, 'header.html');
+  const headerPath = path.join(getSharedDir(), 'header.html');
   if (!fs.existsSync(headerPath)) {
     return res.status(404).json({ error: 'Header not found' });
   }
@@ -49,7 +51,7 @@ router.get('/banner', (req, res) => {
  * GET /footer — Serve shared footer HTML (public, no auth required)
  */
 router.get('/footer', (req, res) => {
-  const footerPath = path.join(SHARED_DIR, 'footer.html');
+  const footerPath = path.join(getSharedDir(), 'footer.html');
   if (!fs.existsSync(footerPath)) {
     return res.status(404).json({ error: 'Footer not found' });
   }
@@ -95,7 +97,7 @@ router.put('/header', verifyToken, requireRole('admin'), (req, res) => {
   if (!html || typeof html !== 'string') {
     return res.status(400).json({ error: 'html field required' });
   }
-  const headerPath = path.join(SHARED_DIR, 'header.html');
+  const headerPath = path.join(getSharedDir(), 'header.html');
   fs.writeFileSync(headerPath, html, 'utf-8');
   res.json({ success: true, size: html.length });
 });
@@ -108,7 +110,7 @@ router.put('/footer', verifyToken, requireRole('admin'), (req, res) => {
   if (!html || typeof html !== 'string') {
     return res.status(400).json({ error: 'html field required' });
   }
-  const footerPath = path.join(SHARED_DIR, 'footer.html');
+  const footerPath = path.join(getSharedDir(), 'footer.html');
   fs.writeFileSync(footerPath, html, 'utf-8');
   res.json({ success: true, size: html.length });
 });

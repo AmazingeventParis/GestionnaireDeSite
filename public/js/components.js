@@ -63,6 +63,14 @@ const Components = (function() {
      * Build and insert the admin navbar.
      * @param {object} user - The current user object with at least { username/email, role }.
      */
+    function getActiveSiteId() {
+        try { return localStorage.getItem('gds_active_site') || null; } catch (e) { return null; }
+    }
+
+    function getActiveSiteName() {
+        try { return localStorage.getItem('gds_active_site_name') || null; } catch (e) { return null; }
+    }
+
     function buildNavbar(user) {
         var currentPath = window.location.pathname;
         // Normalize: treat /index.html as /
@@ -75,6 +83,11 @@ const Components = (function() {
             var badgeClass = user.role === 'admin' ? 'badge-prod' : 'badge-infra';
             roleBadge = '<span class="badge ' + badgeClass + '" style="margin-left:6px;vertical-align:middle;">' + escapeHtml(user.role) + '</span>';
         }
+
+        // Active site indicator
+        var siteId = getActiveSiteId();
+        var siteName = getActiveSiteName() || siteId || 'Shootnbox';
+        var siteBadge = '<a href="/sites.html" class="navbar-site-badge" title="Changer de site">' + escapeHtml(siteName) + '</a>';
 
         // Build links
         var linksHtml = '';
@@ -92,6 +105,7 @@ const Components = (function() {
 
         var navHtml =
             '<a href="/" class="navbar-brand">Gestionnaire <span>de Site</span></a>' +
+            siteBadge +
             '<div class="navbar-links">' + linksHtml + '</div>' +
             '<div class="navbar-user">' +
                 '<span class="navbar-user-name">' + displayName + roleBadge + '</span>' +
@@ -129,10 +143,13 @@ const Components = (function() {
                 '.navbar-user { margin-left: auto; display: flex; align-items: center; gap: 12px; font-size: 14px; }' +
                 '.navbar-user-name { color: #e6edf3; white-space: nowrap; }' +
                 '.navbar-logout-btn { white-space: nowrap; }' +
+                '.navbar-site-badge { display:inline-flex; align-items:center; padding:3px 10px; border-radius:12px; font-size:12px; font-weight:600; background:#21262d; border:1px solid #30363d; color:#58a6ff; text-decoration:none; white-space:nowrap; margin-left:8px; transition:border-color 0.15s; }' +
+                '.navbar-site-badge:hover { border-color:#58a6ff; color:#79c0ff; }' +
                 '@media (max-width: 768px) {' +
                 '  .navbar-user { margin-left: 0; width: 100%; justify-content: space-between; order: 3; }' +
                 '  .navbar-links { order: 2; width: 100%; overflow-x: auto; flex-wrap: nowrap; }' +
                 '  .navbar-links::-webkit-scrollbar { display: none; }' +
+                '  .navbar-site-badge { margin-left: 0; }' +
                 '}';
             document.head.appendChild(style);
         }
@@ -278,6 +295,8 @@ const Components = (function() {
         showConfirm: showConfirm,
         escapeHtml: escapeHtml,
         formatDate: formatDate,
-        initPage: initPage
+        initPage: initPage,
+        getActiveSiteId: getActiveSiteId,
+        getActiveSiteName: getActiveSiteName
     };
 })();

@@ -6,18 +6,24 @@ const { requireRole } = require('../middleware/rbac');
 const { logAudit } = require('../utils/audit');
 const { getClientIp } = require('../middleware/threatDetector');
 
-const CONFIG_PATH = path.join(__dirname, '..', 'site-config.json');
+const { getActiveSite } = require('../middleware/activeSite');
+const _DEFAULT_CONFIG = path.join(__dirname, '..', 'site-config.json');
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 const ROBOTS_PATH = path.join(PUBLIC_DIR, 'robots.txt');
-const PREVIEWS_DIR = path.join(__dirname, '..', 'previews');
+const _DEFAULT_PD = path.join(__dirname, '..', 'previews');
 
 function readConfig() {
-  return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+  const p = getActiveSite().configPath || _DEFAULT_CONFIG;
+  if (!fs.existsSync(p)) return {};
+  return JSON.parse(fs.readFileSync(p, 'utf-8'));
 }
 
 function writeConfig(config) {
-  fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf-8');
+  const p = getActiveSite().configPath || _DEFAULT_CONFIG;
+  fs.writeFileSync(p, JSON.stringify(config, null, 2), 'utf-8');
 }
+
+function getPD() { return getActiveSite().previewsDir || _DEFAULT_PD; }
 
 // ==================== ROUTES ====================
 
@@ -167,8 +173,8 @@ router.get('/sitemap', async (req, res) => {
     for (const page of pages) {
       const slug = page.loc === '/' ? 'home' : page.loc.replace(/^\/|\/$/g, '');
       const seoPath = slug === 'home'
-        ? path.join(PREVIEWS_DIR, 'seo-home.json')
-        : path.join(PREVIEWS_DIR, slug, 'seo.json');
+        ? path.join(getPD(), 'seo-home.json')
+        : path.join(getPD(), slug, 'seo.json');
       if (fs.existsSync(seoPath)) {
         try {
           const seoData = JSON.parse(fs.readFileSync(seoPath, 'utf-8'));
@@ -280,8 +286,8 @@ router.post('/generate-sitemap', verifyToken, requireRole('admin'), async (req, 
     for (const page of pages) {
       const slug = page.loc === '/' ? 'home' : page.loc.replace(/^\/|\/$/g, '');
       const seoPath = slug === 'home'
-        ? path.join(PREVIEWS_DIR, 'seo-home.json')
-        : path.join(PREVIEWS_DIR, slug, 'seo.json');
+        ? path.join(getPD(), 'seo-home.json')
+        : path.join(getPD(), slug, 'seo.json');
       if (fs.existsSync(seoPath)) {
         try {
           const seoData = JSON.parse(fs.readFileSync(seoPath, 'utf-8'));
@@ -361,7 +367,7 @@ router.get('/feed', (req, res) => {
     const baseDomain = domain.startsWith('http') ? domain : 'https://' + domain;
 
     // Read blog index
-    const blogIndexPath = path.join(PREVIEWS_DIR, '_blog-index.json');
+    const blogIndexPath = getActiveSite().blogIndexPath;
     let articles = [];
     if (fs.existsSync(blogIndexPath)) {
       try {

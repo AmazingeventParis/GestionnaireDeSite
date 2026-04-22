@@ -83,31 +83,80 @@
         renderSites();
     }
 
+    function getActiveSiteId() {
+        try { return localStorage.getItem('gds_active_site') || null; } catch (e) { return null; }
+    }
+
+    function selectSite(site) {
+        try {
+            if (!site || !site.id) {
+                localStorage.removeItem('gds_active_site');
+                localStorage.removeItem('gds_active_site_name');
+            } else {
+                localStorage.setItem('gds_active_site', site.id);
+                localStorage.setItem('gds_active_site_name', site.name);
+            }
+        } catch (e) {}
+        renderSites();
+        Components.showToast('Site actif : ' + (site ? site.name : 'Shootnbox'), 'success');
+    }
+
     function renderSites() {
         var el = document.getElementById('sites-grid');
+        var activeSiteId = getActiveSiteId();
         if (sites.length === 0) {
             el.innerHTML = '<p class="text-muted">Aucun site. Cliquez sur "Ajouter un site" pour commencer.</p>';
             return;
         }
-        el.innerHTML = sites.map(function(site) {
+
+        // Always show Shootnbox (legacy) as first card
+        var shootnboxActive = !activeSiteId;
+        var cards = '<div class="card" style="cursor:pointer;' + (shootnboxActive ? 'border-color:#58a6ff;' : '') + '" onclick="selectSite(null)" title="Gérer Shootnbox">' +
+            '<div class="card-icon">🎯</div>' +
+            '<div class="card-content">' +
+                '<div class="card-name">Shootnbox ' + (shootnboxActive ? '<span class="badge badge-prod">ACTIF</span>' : '<span class="badge badge-infra">LEGACY</span>') + '</div>' +
+                '<div class="card-desc">Site principal — shootnbox.fr</div>' +
+                '<div class="card-url">https://shootnbox.fr</div>' +
+            '</div>' +
+        '</div>';
+
+        cards += sites.map(function(site) {
             var statusClass = site.status === 'active' ? 'badge-prod' :
                              site.status === 'maintenance' ? 'badge-tool' : 'badge-infra';
-            return '<div class="card">' +
+            var isActive = activeSiteId === site.id;
+            return '<div class="card" style="cursor:pointer;' + (isActive ? 'border-color:#58a6ff;' : '') + '" onclick="selectSite(' + JSON.stringify(site) + ')" title="Gérer ce site">' +
                 '<div class="card-icon">🌐</div>' +
                 '<div class="card-content">' +
-                    '<div class="card-name">' + Components.escapeHtml(site.name) + ' <span class="badge ' + statusClass + '">' + Components.escapeHtml(site.status).toUpperCase() + '</span></div>' +
+                    '<div class="card-name">' + Components.escapeHtml(site.name) + ' ' +
+                        (isActive ? '<span class="badge badge-prod">ACTIF</span>' : '<span class="badge ' + statusClass + '">' + Components.escapeHtml(site.status).toUpperCase() + '</span>') +
+                    '</div>' +
                     '<div class="card-desc">' + Components.escapeHtml(site.description || 'Pas de description') + '</div>' +
                     '<div class="card-url">' + Components.escapeHtml(site.url) + '</div>' +
                     (site.hosting_provider ? '<div style="font-size:11px;color:#6e7681;margin-top:4px">Hebergeur: ' + Components.escapeHtml(site.hosting_provider) + '</div>' : '') +
+                    '<div style="margin-top:10px"><button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();openEditModal(' + JSON.stringify(site) + ')">Modifier</button></div>' +
                 '</div>' +
             '</div>';
         }).join('');
+
+        el.innerHTML = cards;
     }
 
     function openAddModal() {
         document.getElementById('modal-title').textContent = 'Ajouter un site';
         document.getElementById('site-id').value = '';
         document.getElementById('site-form').reset();
+        document.getElementById('modal').style.display = 'flex';
+    }
+
+    function openEditModal(site) {
+        document.getElementById('modal-title').textContent = 'Modifier le site';
+        document.getElementById('site-id').value = site.id;
+        document.getElementById('site-name').value = site.name || '';
+        document.getElementById('site-url').value = site.url || '';
+        document.getElementById('site-desc').value = site.description || '';
+        document.getElementById('site-status').value = site.status || 'active';
+        document.getElementById('site-category').value = site.category || '';
+        document.getElementById('site-hosting').value = site.hosting_provider || '';
         document.getElementById('modal').style.display = 'flex';
     }
 

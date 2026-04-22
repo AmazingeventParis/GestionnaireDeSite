@@ -5,12 +5,12 @@ const { verifyToken } = require('../middleware/auth');
 const { requireRole } = require('../middleware/rbac');
 const { logAudit } = require('../utils/audit');
 
-const PREVIEWS_DIR = path.join(__dirname, '..', 'previews');
+const { getActiveSite } = require('../middleware/activeSite');
+const _DEFAULT_PD = path.join(__dirname, '..', 'previews');
 const TEMPLATES_DIR = path.join(__dirname, '..', 'templates');
-// Store blog index in previews/ which has a persistent Docker volume (gds-previews)
-const BLOG_INDEX = path.join(PREVIEWS_DIR, '_blog-index.json');
 
-console.log('[Blog] Index path:', BLOG_INDEX);
+function getPD() { return getActiveSite().previewsDir || _DEFAULT_PD; }
+function getBlogIndex() { return getActiveSite().blogIndexPath || path.join(_DEFAULT_PD, '_blog-index.json'); }
 
 // ── Helpers ──────────────────────────────────────────────
 
@@ -18,7 +18,7 @@ const DEFAULT_CATEGORIES = ['Mariage', 'Entreprise', 'Anniversaire', 'Conseils']
 
 function readIndex() {
   try {
-    const data = JSON.parse(fs.readFileSync(BLOG_INDEX, 'utf-8'));
+    const data = JSON.parse(fs.readFileSync(getBlogIndex(), 'utf-8'));
     if (!data.categories || !data.categories.length) data.categories = [...DEFAULT_CATEGORIES];
     return data;
   } catch {
@@ -27,7 +27,7 @@ function readIndex() {
 }
 
 function writeIndex(data) {
-  fs.writeFileSync(BLOG_INDEX, JSON.stringify(data, null, 2), 'utf-8');
+  fs.writeFileSync(getBlogIndex(), JSON.stringify(data, null, 2), 'utf-8');
 }
 
 const AUTHORS = {
@@ -329,7 +329,7 @@ router.post('/create', verifyToken, requireRole('admin'), async (req, res) => {
     if (!title) return res.status(400).json({ error: 'Titre requis' });
 
     const slug = 'blog-' + slugify(title);
-    const pageDir = path.join(PREVIEWS_DIR, slug);
+    const pageDir = path.join(getPD(), slug);
 
     if (fs.existsSync(pageDir)) {
       return res.status(409).json({ error: 'Un article avec ce slug existe d\u00e9j\u00e0' });
@@ -417,7 +417,7 @@ router.put('/:slug', verifyToken, requireRole('admin'), async (req, res) => {
     writeIndex(index);
 
     // Regenerate HTML files
-    const pageDir = path.join(PREVIEWS_DIR, article.slug);
+    const pageDir = path.join(getPD(), article.slug);
     if (!fs.existsSync(pageDir)) fs.mkdirSync(pageDir, { recursive: true });
     const files = generateArticleFiles(article, index);
     // Always regenerate hero, heroimg, related + sidebar
@@ -470,7 +470,7 @@ router.delete('/:slug', verifyToken, requireRole('admin'), async (req, res) => {
     const article = index.articles.splice(idx, 1)[0];
     writeIndex(index);
 
-    const pageDir = path.join(PREVIEWS_DIR, article.slug);
+    const pageDir = path.join(getPD(), article.slug);
     if (fs.existsSync(pageDir)) {
       fs.rmSync(pageDir, { recursive: true, force: true });
     }
@@ -498,7 +498,7 @@ router.post('/:slug/regenerate', verifyToken, requireRole('admin'), (req, res) =
   const article = index.articles.find(a => a.slug === req.params.slug);
   if (!article) return res.status(404).json({ error: 'Article non trouv\u00e9' });
 
-  const pageDir = path.join(PREVIEWS_DIR, article.slug);
+  const pageDir = path.join(getPD(), article.slug);
   if (!fs.existsSync(pageDir)) fs.mkdirSync(pageDir, { recursive: true });
 
   const files = generateArticleFiles(article, index);

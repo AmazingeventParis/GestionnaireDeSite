@@ -6,18 +6,25 @@ const { requireRole } = require('../middleware/rbac');
 const { logAudit } = require('../utils/audit');
 const { getClientIp } = require('../middleware/threatDetector');
 
-// Store banners inside previews/_shared/banners/ (persisted Docker volume gds-previews)
-const BANNERS_DIR = path.join(__dirname, '..', 'previews', '_shared', 'banners');
-if (!fs.existsSync(BANNERS_DIR)) fs.mkdirSync(BANNERS_DIR, { recursive: true });
+// Banners stored per-site; resolved dynamically from activeSite context
+const { getActiveSite } = require('../middleware/activeSite');
+const _DEFAULT_BANNERS_DIR = path.join(__dirname, '..', 'previews', '_shared', 'banners');
+if (!fs.existsSync(_DEFAULT_BANNERS_DIR)) fs.mkdirSync(_DEFAULT_BANNERS_DIR, { recursive: true });
+
+function getBD() {
+  const d = getActiveSite().bannersDir || _DEFAULT_BANNERS_DIR;
+  if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
+  return d;
+}
 
 /**
  * Read all banners from disk
  */
 function readAllBanners() {
-  const files = fs.readdirSync(BANNERS_DIR).filter(f => f.endsWith('.json'));
+  const files = fs.readdirSync(getBD()).filter(f => f.endsWith('.json'));
   return files.map(f => {
     try {
-      const data = JSON.parse(fs.readFileSync(path.join(BANNERS_DIR, f), 'utf-8'));
+      const data = JSON.parse(fs.readFileSync(path.join(getBD(), f), 'utf-8'));
       data.id = f.replace('.json', '');
       return data;
     } catch { return null; }
@@ -166,7 +173,7 @@ router.get('/', verifyToken, (req, res) => {
 router.get('/:id', verifyToken, (req, res) => {
   try {
     const id = req.params.id.replace(/[^a-z0-9-_]/gi, '');
-    const filePath = path.join(BANNERS_DIR, id + '.json');
+    const filePath = path.join(getBD(), id + '.json');
     if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Banniere non trouvee' });
     const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
     data.id = id;
@@ -185,7 +192,7 @@ router.post('/', verifyToken, requireRole('admin', 'editor'), (req, res) => {
     if (!name) return res.status(400).json({ error: 'Nom requis' });
 
     const id = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    const filePath = path.join(BANNERS_DIR, id + '.json');
+    const filePath = path.join(getBD(), id + '.json');
 
     const banner = {
       name, html: html || '', css: css || '',
@@ -216,7 +223,7 @@ router.post('/', verifyToken, requireRole('admin', 'editor'), (req, res) => {
 router.put('/:id', verifyToken, requireRole('admin', 'editor'), (req, res) => {
   try {
     const id = req.params.id.replace(/[^a-z0-9-_]/gi, '');
-    const filePath = path.join(BANNERS_DIR, id + '.json');
+    const filePath = path.join(getBD(), id + '.json');
     if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Banniere non trouvee' });
 
     const existing = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
@@ -247,7 +254,7 @@ router.put('/:id', verifyToken, requireRole('admin', 'editor'), (req, res) => {
 router.delete('/:id', verifyToken, requireRole('admin'), (req, res) => {
   try {
     const id = req.params.id.replace(/[^a-z0-9-_]/gi, '');
-    const filePath = path.join(BANNERS_DIR, id + '.json');
+    const filePath = path.join(getBD(), id + '.json');
     if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Banniere non trouvee' });
 
     const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));

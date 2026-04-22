@@ -25,11 +25,12 @@ const _phUpload = multer({
 const _DEFAULT_PD = path.join(__dirname, '..', 'previews');
 const PUBLIC_DIR = path.join(__dirname, '..', 'public', 'site');
 const BUILD_SCRIPT = path.join(__dirname, '..', 'scripts', 'build.js');
+const { getActiveSite } = require('../middleware/activeSite');
 
-/** Get previews directory (single-site Shootnbox). */
-function getPD() { return _DEFAULT_PD; }
+/** Get previews directory for the current request's active site. */
+function getPD() { return getActiveSite().previewsDir; }
 /** Get the current request's shared components directory. */
-function getSD() { return path.join(getPD(), '_shared'); }
+function getSD() { return getActiveSite().sharedDir; }
 
 /**
  * Scope CSS selectors by prefixing with #scopeId.

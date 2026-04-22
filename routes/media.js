@@ -9,16 +9,27 @@ const { logAudit } = require('../utils/audit');
 const { getClientIp } = require('../middleware/threatDetector');
 const { uploadLimiter } = require('../middleware/rateLimiter');
 
-const IMAGES_DIR = path.join(__dirname, '..', 'public', 'site-images');
-const META_FILE = path.join(IMAGES_DIR, 'media-meta.json');
-const PREVIEWS_DIR = path.join(__dirname, '..', 'previews');
+const { getActiveSite } = require('../middleware/activeSite');
+// IMAGES_BASE: root of the static file server for /site-images/ — never changes
+const IMAGES_BASE = path.join(__dirname, '..', 'public', 'site-images');
+const _DEFAULT_PREVIEWS_DIR = path.join(__dirname, '..', 'previews');
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 const CONFIG_PATH = path.join(__dirname, '..', 'site-config.json');
 const UPLOADS_TMP = path.join(__dirname, '..', 'uploads_tmp');
 
-// Ensure directories exist
-if (!fs.existsSync(IMAGES_DIR)) fs.mkdirSync(IMAGES_DIR, { recursive: true });
+// Ensure base directories exist (site-specific dirs created lazily in handlers)
+if (!fs.existsSync(IMAGES_BASE)) fs.mkdirSync(IMAGES_BASE, { recursive: true });
 if (!fs.existsSync(UPLOADS_TMP)) fs.mkdirSync(UPLOADS_TMP, { recursive: true });
+
+/** Images directory for the current request's active site. */
+function getImagesDir() {
+  const d = getActiveSite().imagesDir;
+  if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
+  return d;
+}
+
+/** media-meta.json path for the current request's active site. */
+function getMetaFile() { return path.join(getImagesDir(), 'media-meta.json'); }
 
 // Multer config
 const storage = multer.diskStorage({
@@ -48,15 +59,14 @@ const upload = multer({ storage, fileFilter, limits: { fileSize: 50 * 1024 * 102
  */
 function loadMeta() {
   try {
-    if (fs.existsSync(META_FILE)) {
-      return JSON.parse(fs.readFileSync(META_FILE, 'utf-8'));
-    }
+    const f = getMetaFile();
+    if (fs.existsSync(f)) return JSON.parse(fs.readFileSync(f, 'utf-8'));
   } catch (e) { /* ignore */ }
   return {};
 }
 
 function saveMeta(meta) {
-  fs.writeFileSync(META_FILE, JSON.stringify(meta, null, 2), 'utf-8');
+  fs.writeFileSync(getMetaFile(), JSON.stringify(meta, null, 2), 'utf-8');
 }
 
 /**
@@ -172,12 +182,13 @@ router.get('/', verifyToken, async (req, res) => {
   try {
     const { folder, search, sort } = req.query;
     const results = [];
-    scanImages(IMAGES_DIR, IMAGES_DIR, results);
+    const imgDir = getImagesDir();
+    scanImages(imgDir, IMAGES_BASE, results);
 
     // Enrich with dimensions
     const meta = loadMeta();
     const enriched = await Promise.all(results.map(async (img) => {
-      const fullPath = path.join(IMAGES_DIR, img.path.replace('/site-images/', ''));
+      const fullPath = path.join(IMAGES_BASE, img.path.replace('/site-images/', ''));
       const dims = await getImageDimensions(fullPath);
       return {
         ...img,
@@ -236,10 +247,13 @@ router.post('/upload', verifyToken, requireRole('admin', 'editor'), uploadLimite
     const quality = getWebpQuality();
 
     // Ensure target folder exists
-    const targetDir = folder ? path.join(IMAGES_DIR, folder) : IMAGES_DIR;
+    const targetDir = folder ? path.join(getImagesDir(), folder) : getImagesDir();
     if (!fs.existsSync(targetDir)) {
       fs.mkdirSync(targetDir, { recursive: true });
     }
+    // Compute URL prefix relative to the static file server root
+    const relDir = path.relative(IMAGES_BASE, targetDir).replace(/\\/g, '/');
+    const urlPrefix = '/site-images/' + (relDir ? relDir + '/' : '');
 
     const uploaded = [];
 
@@ -260,7 +274,7 @@ router.post('/upload', verifyToken, requireRole('admin', 'editor'), uploadLimite
 
           uploaded.push({
             name: videoName,
-            path: '/site-images/' + (folder ? folder + '/' : '') + videoName,
+            path: urlPrefix + videoName,
             size: stat.size,
             format: ext.replace('.', '')
           });
@@ -290,13 +304,13 @@ router.post('/upload', verifyToken, requireRole('admin', 'editor'), uploadLimite
 
           uploaded.push({
             name: webpName,
-            path: '/site-images/' + (folder ? folder + '/' : '') + webpName,
+            path: urlPrefix + webpName,
             size: stat.size,
             dimensions: { width: metadata.width, height: metadata.height },
             format: 'webp',
             variants: variants.map(v => ({
               name: v.name,
-              path: '/site-images/' + (folder ? folder + '/' : '') + v.name,
+              path: urlPrefix + v.name,
               width: v.width,
               size: v.size
             }))
@@ -342,7 +356,7 @@ router.put('/:filename/alt', verifyToken, requireRole('admin', 'editor'), async 
     // Validate file exists somewhere in images dir
     let found = false;
     const results = [];
-    scanImages(IMAGES_DIR, IMAGES_DIR, results);
+    scanImages(getImagesDir(), IMAGES_BASE, results);
     for (const img of results) {
       if (img.name === filename) {
         found = true;
@@ -395,7 +409,7 @@ router.put('/:filename/rename', verifyToken, requireRole('admin', 'editor'), asy
 
     // Find file in images dir
     const results = [];
-    scanImages(IMAGES_DIR, IMAGES_DIR, results);
+    scanImages(getImagesDir(), IMAGES_BASE, results);
     const img = results.find(i => i.name === filename);
 
     if (!img) {
@@ -411,7 +425,7 @@ router.put('/:filename/rename', verifyToken, requireRole('admin', 'editor'), asy
       return res.json({ success: true, filename, newFilename: filename });
     }
 
-    const folderDir = img.folder ? path.join(IMAGES_DIR, img.folder) : IMAGES_DIR;
+    const folderDir = img.folder ? path.join(IMAGES_BASE, img.folder) : getImagesDir();
     const newPath = path.join(folderDir, newFilename);
 
     if (fs.existsSync(newPath)) {
@@ -469,7 +483,7 @@ router.delete('/:filename', verifyToken, requireRole('admin'), async (req, res) 
 
     // Find file in images dir
     const results = [];
-    scanImages(IMAGES_DIR, IMAGES_DIR, results);
+    scanImages(getImagesDir(), IMAGES_BASE, results);
     const img = results.find(i => i.name === filename);
 
     if (!img) {
@@ -486,7 +500,7 @@ router.delete('/:filename', verifyToken, requireRole('admin'), async (req, res) 
     }
 
     // Delete file
-    const fullPath = path.join(IMAGES_DIR, img.path.replace('/images/', ''));
+    const fullPath = path.join(IMAGES_BASE, img.path.replace('/site-images/', ''));
     fs.unlinkSync(fullPath);
 
     // Remove from meta
@@ -517,7 +531,7 @@ router.delete('/:filename', verifyToken, requireRole('admin'), async (req, res) 
 router.get('/unused', verifyToken, async (req, res) => {
   try {
     const images = [];
-    scanImages(IMAGES_DIR, IMAGES_DIR, images);
+    scanImages(getImagesDir(), IMAGES_BASE, images);
 
     const unused = [];
     for (const img of images) {
@@ -541,7 +555,7 @@ router.get('/unused', verifyToken, async (req, res) => {
  */
 function isImageReferenced(filename) {
   const refs = [];
-  const dirsToScan = [PREVIEWS_DIR, PUBLIC_DIR];
+  const dirsToScan = [getActiveSite().previewsDir || _DEFAULT_PREVIEWS_DIR, PUBLIC_DIR];
 
   for (const dir of dirsToScan) {
     if (!fs.existsSync(dir)) continue;
