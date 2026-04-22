@@ -363,6 +363,87 @@ function preRenderReviews(html) {
   return html;
 }
 
+/**
+ * Pre-render the latest-blog grid server-side (6 latest posts from WP REST),
+ * plus inject JSON-LD ItemList. Reads previews/_shared/latest-blog.json
+ * (refreshed every 6h by the blog scheduler). Falls through silently if the
+ * cache is missing so the section still works (empty grid).
+ */
+function preRenderBlogLatest(html) {
+  if (!html || html.indexOf('id="snbBlGrid"') === -1) return html;
+
+  const cachePath = path.join(__dirname, '..', 'previews', '_shared', 'latest-blog.json');
+  if (!fs.existsSync(cachePath)) return html;
+
+  let data;
+  try { data = JSON.parse(fs.readFileSync(cachePath, 'utf-8')); } catch { return html; }
+  const articles = Array.isArray(data.articles) ? data.articles.slice(0, 6) : [];
+  if (!articles.length) return html;
+
+  const esc = (s) => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+  function formatDateFR(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    const months = ['JANVIER','FÉVRIER','MARS','AVRIL','MAI','JUIN','JUILLET','AOÛT','SEPTEMBRE','OCTOBRE','NOVEMBRE','DÉCEMBRE'];
+    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+  }
+
+  function truncate(s, max) {
+    s = String(s || '').trim();
+    if (s.length <= max) return s;
+    return s.slice(0, max - 1).replace(/\s+\S*$/, '') + '…';
+  }
+
+  function renderCard(a) {
+    const color = a.categoryColor || 'rose';
+    const title = esc(truncate(a.title, 70));
+    const altText = esc(a.imageAlt || a.title || 'Article Shootnbox');
+    const imgSrc = esc(a.image || '');
+    const link = esc(a.url || '');
+    const cat = esc(a.categoryName || '');
+    return (
+      `<article class="snb-bl-card snb-bl-cat-${color}">` +
+        `<div class="snb-bl-card-imgwrap">` +
+          `<a href="${link}"><img src="${imgSrc}" alt="${altText}" class="snb-bl-card-img" loading="lazy" width="768" height="494" decoding="async"></a>` +
+          (cat ? `<span class="snb-bl-badge snb-bl-badge-${color}">${cat}</span>` : '') +
+        `</div>` +
+        `<div class="snb-bl-card-body">` +
+          `<div class="snb-bl-card-date">${esc(formatDateFR(a.date))}</div>` +
+          `<h3 class="snb-bl-card-title"><a href="${link}" style="color:inherit;text-decoration:none;">${title}</a></h3>` +
+          `<a href="${link}" class="snb-bl-card-link">Lire la suite <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></a>` +
+        `</div>` +
+      `</article>`
+    );
+  }
+
+  const cardsHtml = articles.map(renderCard).join('\n');
+  html = html.replace(
+    /<div id="snbBlGrid" class="snb-bl-grid">[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/,
+    '<div id="snbBlGrid" class="snb-bl-grid">\n' + cardsHtml + '\n</div>\n</div>\n</div>'
+  );
+
+  const itemList = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    itemListElement: articles.map((a, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      url: a.url,
+      name: a.title,
+    })),
+  };
+
+  html = html.replace(
+    /<script type="application\/ld\+json" id="snb-blog-jsonld">[\s\S]*?<\/script>/,
+    '<script type="application/ld+json" id="snb-blog-jsonld">' + JSON.stringify(itemList) + '</script>'
+  );
+
+  return html;
+}
+
 // ==================== ROUTES ====================
 
 /**
@@ -2910,6 +2991,9 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
     // A-bis. SSR des avis + JSON-LD Schema Review (voir preRenderReviews)
     //         → Googlebot voit les 50 cartes + l'aggregateRating dès le 1er passage HTML
     bodyContent = preRenderReviews(bodyContent);
+
+    // A-ter. SSR des 6 derniers articles du blog + JSON-LD ItemList
+    bodyContent = preRenderBlogLatest(bodyContent);
 
     // B. Déduplication :root{} dans sectionStyles
     //    Les variables Shootnbox (--rose, --bleu, etc.) sont maintenant dans le :root global

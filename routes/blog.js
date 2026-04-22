@@ -550,4 +550,80 @@ setInterval(checkScheduledArticles, 60 * 1000);
 setTimeout(checkScheduledArticles, 5000);
 console.log('[Blog] Scheduler started — checking scheduled articles every 60s');
 
+// ── WordPress REST latest-posts cache (for homepage blog section SSR) ─
+// Admin endpoint to refresh manually, and periodic scheduler every 6h.
+const LATEST_BLOG_PATH = path.join(_DEFAULT_PD, '_shared', 'latest-blog.json');
+
+/**
+ * POST /api/blog/refresh-latest — Admin: fetch latest posts from WP REST now
+ * Respects the 6h throttle unless ?force=1 is passed.
+ */
+router.post('/refresh-latest', verifyToken, requireRole('admin', 'editor'), async (req, res) => {
+  const force = req.query.force === '1' || req.body?.force === true;
+  const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
+
+  if (!force && fs.existsSync(LATEST_BLOG_PATH)) {
+    try {
+      const existing = JSON.parse(fs.readFileSync(LATEST_BLOG_PATH, 'utf-8'));
+      if (existing.lastUpdated) {
+        const elapsed = Date.now() - new Date(existing.lastUpdated).getTime();
+        if (elapsed < SIX_HOURS_MS) {
+          const minLeft = Math.round((SIX_HOURS_MS - elapsed) / 60000);
+          return res.status(429).json({
+            error: 'Rafraîchissement trop récent',
+            message: `Dernier fetch il y a ${Math.round(elapsed / 60000)} min. Prochain possible dans ${minLeft} min. ?force=1 pour forcer.`,
+            lastUpdated: existing.lastUpdated,
+          });
+        }
+      }
+    } catch {}
+  }
+
+  try {
+    const { fetchLatest } = require('../scripts/fetch-blog-latest');
+    const data = await fetchLatest();
+    res.json({
+      success: true,
+      count: data.articles.length,
+      lastUpdated: data.lastUpdated,
+      articles: data.articles.map((a) => ({ title: a.title, url: a.url, date: a.date, category: a.categoryName })),
+    });
+  } catch (err) {
+    console.error('[Blog] Refresh-latest error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Auto-refresh every 6h (check every hour, fetch if last > 6h)
+(function scheduleLatestBlog() {
+  const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
+  let running = false;
+
+  async function checkAndFetch() {
+    if (running) return;
+    try {
+      let last = 0;
+      if (fs.existsSync(LATEST_BLOG_PATH)) {
+        try {
+          const d = JSON.parse(fs.readFileSync(LATEST_BLOG_PATH, 'utf-8'));
+          if (d.lastUpdated) last = new Date(d.lastUpdated).getTime();
+        } catch {}
+      }
+      if (Date.now() - last < SIX_HOURS_MS) return;
+      running = true;
+      const { fetchLatest } = require('../scripts/fetch-blog-latest');
+      const data = await fetchLatest();
+      console.log(`[Blog] Latest-posts refreshed — ${data.articles.length} articles`);
+    } catch (err) {
+      console.warn('[Blog] Latest-posts refresh failed:', err.message);
+    } finally {
+      running = false;
+    }
+  }
+
+  setTimeout(checkAndFetch, 90 * 1000);       // 90s after startup
+  setInterval(checkAndFetch, 60 * 60 * 1000); // check hourly
+  console.log('[Blog] Latest-posts scheduler started — refresh every 6h from WP REST');
+})();
+
 module.exports = router;
