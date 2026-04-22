@@ -412,7 +412,7 @@ function preRenderBlogLatest(html) {
         `</div>` +
         `<div class="snb-bl-card-body">` +
           `<div class="snb-bl-card-date">${esc(formatDateFR(a.date))}</div>` +
-          `<h3 class="snb-bl-card-title"><a href="${link}" style="color:inherit;text-decoration:none;">${title}</a></h3>` +
+          `<div class="snb-bl-card-title"><a href="${link}" style="color:inherit;text-decoration:none;">${title}</a></div>` +
           `<a href="${link}" class="snb-bl-card-link">Lire la suite <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></a>` +
         `</div>` +
       `</article>`
