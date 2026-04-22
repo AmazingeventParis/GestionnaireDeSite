@@ -2586,8 +2586,9 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
         }
         content = bodyMatch ? bodyMatch[1].trim() : content;
 
-        // Extract scripts
+        // Extract scripts (preserve JSON-LD in place for SEO/Schema)
         content = content.replace(/<script[^>]*>([\s\S]*?)<\/script>/gi, (match, js) => {
+          if (/type=["']application\/ld\+json["']/i.test(match)) return match;
           if (js.trim()) sectionScripts += `<script>${js}</script>\n`;
           return '';
         });
@@ -2689,6 +2690,8 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
       } else {
         // Fragment HTML: extract scripts AND styles → consolidate in head
         content = content.replace(/<script[^>]*>([\s\S]*?)<\/script>/gi, (match, js) => {
+          // Preserve JSON-LD scripts in place (Schema.org structured data)
+          if (/type=["']application\/ld\+json["']/i.test(match)) return match;
           if (js.trim()) sectionScripts += `<script>${js}</script>\n`;
           return '';
         });
