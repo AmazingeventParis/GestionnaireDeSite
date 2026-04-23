@@ -304,8 +304,10 @@ function preRenderReviews(html) {
     const grad = gradientFor(r.author);
     const initial = (r.author || '?').charAt(0).toUpperCase();
     const iso = r.iso_date ? String(r.iso_date).split('T')[0] : '';
+    // Google Reviews avatars come sized at 120px; we display them at 40×40.
+    // Width/height attributes prevent CLS when they load from lh3.googleusercontent.com.
     const avatarEl = r.avatar
-      ? '<img src="' + esc(r.avatar) + '" alt="' + esc(r.author) + '" loading="lazy">'
+      ? '<img src="' + esc(r.avatar) + '" alt="' + esc(r.author) + '" width="40" height="40" loading="lazy" decoding="async">'
       : '<span class="initials">' + esc(initial) + '</span>';
     // Note: no HTML microdata on review cards — JSON-LD below is the single
     // source of truth for Google. Having both caused a GSC "invalid object
