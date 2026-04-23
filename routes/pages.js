@@ -307,22 +307,23 @@ function preRenderReviews(html) {
     const avatarEl = r.avatar
       ? '<img src="' + esc(r.avatar) + '" alt="' + esc(r.author) + '" loading="lazy">'
       : '<span class="initials">' + esc(initial) + '</span>';
-    return '<article class="avis-card" itemscope itemtype="https://schema.org/Review">'
-      + '<meta itemprop="itemReviewed" content="Shootnbox">'
+    // Note: no HTML microdata on review cards — JSON-LD below is the single
+    // source of truth for Google. Having both caused a GSC "invalid object
+    // type for field <parent_node>" error because itemReviewed=string conflicts
+    // with the expected Thing object.
+    return '<article class="avis-card">'
       + '<div class="avis-header">'
         + '<div class="avis-avatar" style="background:linear-gradient(135deg,' + grad + ')">' + avatarEl + '</div>'
         + '<div class="avis-meta">'
-          + '<span class="avis-name" itemprop="author" itemscope itemtype="https://schema.org/Person"><span itemprop="name">' + esc(r.author) + '</span></span>'
-          + '<span class="avis-time"' + (iso ? ' itemprop="datePublished" content="' + iso + '"' : '') + '>' + esc(r.time || '') + '</span>'
+          + '<span class="avis-name">' + esc(r.author) + '</span>'
+          + '<span class="avis-time">' + esc(r.time || '') + '</span>'
         + '</div>'
         + GOOGLE_SVG
       + '</div>'
-      + '<div class="avis-stars" itemprop="reviewRating" itemscope itemtype="https://schema.org/Rating">'
-        + '<meta itemprop="ratingValue" content="' + (r.rating || 5) + '">'
-        + '<meta itemprop="bestRating" content="5">'
+      + '<div class="avis-stars">'
         + stars(r.rating || 5)
       + '</div>'
-      + '<p class="avis-text" itemprop="reviewBody">' + esc(r.text || '') + '</p>'
+      + '<p class="avis-text">' + esc(r.text || '') + '</p>'
     + '</article>';
   }
 
