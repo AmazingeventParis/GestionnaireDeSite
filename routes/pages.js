@@ -3186,6 +3186,20 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
       });
     }
 
+    // Live Google rating — read once per page render from the weekly-refreshed
+    // reviews.json cache (no SerpAPI call). Used across LocalBusiness, Service,
+    // and Product schemas below to keep all aggregateRating blocks consistent.
+    let liveRating = 4.8;
+    let liveCount = 1192;
+    try {
+      const revPath = path.join(__dirname, '..', 'previews', '_shared', 'reviews.json');
+      if (fs.existsSync(revPath)) {
+        const rev = JSON.parse(fs.readFileSync(revPath, 'utf-8'));
+        if (rev.rating) liveRating = parseFloat(rev.rating);
+        if (rev.totalRatings) liveCount = parseInt(rev.totalRatings, 10);
+      }
+    } catch {}
+
     // Organization — always present on all pages.
     // No aggregateRating here: Schema.org's Organization doesn't use it for
     // rich results (that's LocalBusiness/Product/Service territory), and
@@ -3230,7 +3244,7 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
         paymentAccepted: 'Cash, Credit Card, 4x without fees',
         currenciesAccepted: 'EUR',
         priceRange: '\u20ac\u20ac',
-        aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.8', reviewCount: '1192', bestRating: '5' },
+        aggregateRating: { '@type': 'AggregateRating', ratingValue: String(liveRating), reviewCount: String(liveCount), bestRating: '5' },
       });
       // Enrich LocalBusiness with optional fields (logo, image, sameAs, Google Place ID)
       const _lb = jsonLdBlocks[jsonLdBlocks.length - 1];
@@ -3248,17 +3262,9 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
     }
 
     // Service + AggregateOffer — money page /location-photobooth/
+    // liveRating/liveCount computed at top of the JSON-LD block (shared with
+    // LocalBusiness + Product schemas for consistency).
     if (slug === 'location-photobooth') {
-      let liveRating = 4.8;
-      let liveCount = 1192;
-      try {
-        const revPath = path.join(__dirname, '..', 'previews', '_shared', 'reviews.json');
-        if (fs.existsSync(revPath)) {
-          const rev = JSON.parse(fs.readFileSync(revPath, 'utf-8'));
-          if (rev.rating) liveRating = parseFloat(rev.rating);
-          if (rev.totalRatings) liveCount = parseInt(rev.totalRatings, 10);
-        }
-      } catch {}
       jsonLdBlocks.push({
         '@context': 'https://schema.org',
         '@type': 'Service',
@@ -3306,7 +3312,7 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
           availability: 'https://schema.org/InStock',
           url: pageCanonicalUrl || PROD_DOMAIN,
         },
-        aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.8', reviewCount: '1192', bestRating: '5' },
+        aggregateRating: { '@type': 'AggregateRating', ratingValue: String(liveRating), reviewCount: String(liveCount), bestRating: '5' },
       });
     }
 
