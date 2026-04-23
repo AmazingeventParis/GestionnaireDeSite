@@ -257,7 +257,8 @@ function preRenderReviews(html) {
   if (!html) return html;
   const hasTrack = html.indexOf('id="snbAvisTrack"') !== -1;
   const hasHeroProof = html.indexOf('id="lp-hero-rating"') !== -1 || html.indexOf('id="lp-hero-review-count"') !== -1;
-  if (!hasTrack && !hasHeroProof) return html;
+  const hasFooterRating = html.indexOf('id="snb-ft-rating-value"') !== -1 || html.indexOf('id="snb-ft-rating-count"') !== -1;
+  if (!hasTrack && !hasHeroProof && !hasFooterRating) return html;
 
   const reviewsPath = path.join(__dirname, '..', 'previews', '_shared', 'reviews.json');
   if (!fs.existsSync(reviewsPath)) return html;
@@ -279,6 +280,25 @@ function preRenderReviews(html) {
     if (total) {
       html = html.replace(
         /(<strong id="lp-hero-review-count"[^>]*>)[^<]*(<\/strong>)/,
+        '$1' + total.toLocaleString('fr-FR') + '$2'
+      );
+    }
+  }
+
+  // ── Footer rating (shared across every page) — reads the cached reviews.json
+  // populated weekly by the SerpAPI cron. No extra SerpAPI call triggered here.
+  if (hasFooterRating) {
+    const rating = parseFloat(data.rating || 4.8);
+    const total = parseInt(data.totalRatings || 0, 10);
+    if (rating) {
+      html = html.replace(
+        /(<strong id="snb-ft-rating-value"[^>]*>)[^<]*(<\/strong>)/,
+        '$1' + rating.toFixed(1).replace('.', ',') + '$2'
+      );
+    }
+    if (total) {
+      html = html.replace(
+        /(<strong id="snb-ft-rating-count"[^>]*>)[^<]*(<\/strong>)/,
         '$1' + total.toLocaleString('fr-FR') + '$2'
       );
     }
