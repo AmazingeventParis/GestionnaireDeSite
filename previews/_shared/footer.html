@@ -926,5 +926,23 @@ document.addEventListener('click', function(e) {
     if (z) z.style.display = 'block';
   }
 })();
+
+// Footer rating: refresh from cached reviews.json via /api/reviews.
+// On GDS pages this is a no-op (values already SSR'd). On WordPress pages
+// served via WP Rocket cache, this keeps the rating up-to-date even when
+// the cached HTML still contains stale default values.
+(function() {
+  var v = document.getElementById('snb-ft-rating-value');
+  var c = document.getElementById('snb-ft-rating-count');
+  if (!v || !c) return;
+  fetch('https://sites.swipego.app/api/reviews', { cache: 'default' })
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(d) {
+      if (!d) return;
+      if (d.rating) v.textContent = parseFloat(d.rating).toFixed(1).replace('.', ',');
+      if (d.totalRatings) c.textContent = parseInt(d.totalRatings, 10).toLocaleString('fr-FR');
+    })
+    .catch(function() {});
+})();
 </script>
 </footer>
