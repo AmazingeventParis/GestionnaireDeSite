@@ -354,20 +354,17 @@ function preRenderReviews(html) {
     html = html.replace(/(<a href=")[^"]*(" id="snb-avis-write-link")/, '$1' + data.writeReviewUrl + '$2');
   }
 
-  // 3. JSON-LD Schema Review
+  // 3. JSON-LD Schema Review — merges by @id with the LocalBusiness block in
+  // <head>. We intentionally omit aggregateRating here: declaring it again
+  // would give Google two AggregateRating values for the same @id, which the
+  // Search Console "Extraits d'avis" validator flags as "plusieurs notes
+  // cumulées". The head block is the authoritative source of the rating.
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'LocalBusiness',
     '@id': 'https://shootnbox.fr/#localbusiness',
     name: 'Shootnbox',
     url: 'https://shootnbox.fr',
-    aggregateRating: {
-      '@type': 'AggregateRating',
-      ratingValue: String(rating),
-      reviewCount: String(total),
-      bestRating: '5',
-      worstRating: '1',
-    },
     review: reviews.map((r) => {
       const o = {
         '@type': 'Review',
@@ -3167,7 +3164,11 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
       });
     }
 
-    // Organization — always present on all pages
+    // Organization — always present on all pages.
+    // No aggregateRating here: Schema.org's Organization doesn't use it for
+    // rich results (that's LocalBusiness/Product/Service territory), and
+    // declaring it here on top of the LocalBusiness block was generating the
+    // "plusieurs notes cumulées" error in Search Console.
     jsonLdBlocks.push({
       '@context': 'https://schema.org',
       '@type': 'Organization',
@@ -3179,13 +3180,6 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
       email: config.contact?.email || '',
       foundingDate: '2019',
       sameAs,
-      aggregateRating: {
-        '@type': 'AggregateRating',
-        ratingValue: '4.8',
-        reviewCount: '1192',
-        bestRating: '5',
-        worstRating: '1',
-      },
     });
 
     // LocalBusiness + AggregateRating — home page only
