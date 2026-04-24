@@ -3290,6 +3290,36 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
       });
     }
 
+    // Service + AggregateOffer — money page /photobooth-mariage/ (slug: mariage)
+    // Wedding-specific offering. Shares liveRating/liveCount with other pages.
+    if (slug === 'mariage') {
+      jsonLdBlocks.push({
+        '@context': 'https://schema.org',
+        '@type': 'Service',
+        '@id': `${PROD_DOMAIN}/photobooth-mariage/#service`,
+        serviceType: 'Location de photobooth pour mariage',
+        name: 'Photobooth Mariage Shootnbox',
+        description: 'Location de photobooth pour mariage partout en France : borne Ring, Vegas, Miroir ou Spinner 360. Cadres personnalisés aux prénoms des mariés, 600 impressions, installation 5 minutes, support 7j/7.',
+        provider: { '@id': `${PROD_DOMAIN}/#organization` },
+        areaServed: { '@type': 'Country', name: 'France' },
+        audience: { '@type': 'Audience', audienceType: 'Couples en préparation de mariage' },
+        offers: {
+          '@type': 'AggregateOffer',
+          lowPrice: '149',
+          highPrice: '899',
+          priceCurrency: 'EUR',
+          offerCount: '4',
+        },
+        aggregateRating: {
+          '@type': 'AggregateRating',
+          ratingValue: String(liveRating),
+          reviewCount: String(liveCount),
+          bestRating: '5',
+          worstRating: '1',
+        },
+      });
+    }
+
     // Product + Offer — specific product pages (prices confirmed via audit)
     const productCatalog = {
       'le-ring':          { name: 'Location Borne Ring',      price: '149' },
