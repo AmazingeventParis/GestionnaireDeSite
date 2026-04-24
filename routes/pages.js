@@ -3324,6 +3324,34 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
       });
     }
 
+    if (slug === 'anniversaire') {
+      jsonLdBlocks.push({
+        '@context': 'https://schema.org',
+        '@type': 'Service',
+        '@id': `${PROD_DOMAIN}/photobooth-anniversaire/#service`,
+        serviceType: 'Location de photomaton pour anniversaire',
+        name: 'Photomaton Anniversaire Shootnbox',
+        description: 'Location de photomaton pour anniversaire partout en France : borne Ring, Vegas, Miroir ou Spinner 360 pour 18 ans, 30 ans, 40 ans, 50 ans, anniversaire enfant ou soirée. Cadres personnalisés, impressions instantanées, installation 5 minutes, support 7j/7.',
+        provider: { '@id': `${PROD_DOMAIN}/#organization` },
+        areaServed: { '@type': 'Country', name: 'France' },
+        audience: { '@type': 'Audience', audienceType: 'Particuliers organisant un anniversaire' },
+        offers: {
+          '@type': 'AggregateOffer',
+          lowPrice: '149',
+          highPrice: '799',
+          priceCurrency: 'EUR',
+          offerCount: '4',
+        },
+        aggregateRating: {
+          '@type': 'AggregateRating',
+          ratingValue: String(liveRating),
+          reviewCount: String(liveCount),
+          bestRating: '5',
+          worstRating: '1',
+        },
+      });
+    }
+
     // Product + Offer — specific product pages (prices confirmed via audit)
     const productCatalog = {
       'le-ring':          { name: 'Location Borne Ring',      price: '149' },
