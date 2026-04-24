@@ -349,11 +349,15 @@ function preRenderReviews(html) {
     + '</article>';
   }
 
-  // 1. Replace placeholder cards with real ones
-  const cardsHtml = reviews.map(renderCard).join('\n');
+  // 1. Replace placeholder cards with real ones.
+  // SSR only the first 10 reviews — enough for visible carousel + E-E-A-T content.
+  // Client-side script re-fetches /api/reviews and hydrates the full list on load.
+  // Saves ~100 KB of HTML on pages with 50+ reviews.
+  const SSR_LIMIT = 10;
+  const cardsHtml = reviews.slice(0, SSR_LIMIT).map(renderCard).join('\n');
   html = html.replace(
     /<div class="avis-track" id="snbAvisTrack">[\s\S]*?<\/div>/,
-    '<div class="avis-track" id="snbAvisTrack">' + cardsHtml + '</div>'
+    '<div class="avis-track" id="snbAvisTrack" data-ssr-count="' + Math.min(reviews.length, SSR_LIMIT) + '" data-total="' + reviews.length + '">' + cardsHtml + '</div>'
   );
 
   // 2. Biz card numbers + links
@@ -3517,6 +3521,11 @@ ${editMode ? `<link rel="stylesheet" href="/css/admin-editor.css">
 ${config.scripts?.bodyEndCustom || ''}
 </body>
 </html>`;
+
+    // Strip admin markers when not in edit mode (public/deploy view)
+    if (!editMode) {
+      html = html.replace(/\s+data-gds-file="[^"]*"/g, '');
+    }
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.send(html);
