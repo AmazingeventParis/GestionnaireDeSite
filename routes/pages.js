@@ -3387,7 +3387,7 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
     const fontMain = config.typography?.fontMain || 'Raleway';
     const fontHeadings = config.typography?.fontHeadings || 'Raleway';
 
-    const html = `<!DOCTYPE html>
+    let html = `<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
