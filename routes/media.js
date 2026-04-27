@@ -246,8 +246,12 @@ router.post('/upload', verifyToken, requireRole('admin', 'editor'), uploadLimite
     const resizeWidth = getResizeWidth(usage);
     const quality = getWebpQuality();
 
+    // Use req.activeSite directly — multer's async processing can lose AsyncLocalStorage context
+    const baseImgDir = (req.activeSite && req.activeSite.imagesDir) ? req.activeSite.imagesDir : IMAGES_BASE;
+    if (!fs.existsSync(baseImgDir)) fs.mkdirSync(baseImgDir, { recursive: true });
+
     // Ensure target folder exists
-    const targetDir = folder ? path.join(getImagesDir(), folder) : getImagesDir();
+    const targetDir = folder ? path.join(baseImgDir, folder) : baseImgDir;
     if (!fs.existsSync(targetDir)) {
       fs.mkdirSync(targetDir, { recursive: true });
     }
