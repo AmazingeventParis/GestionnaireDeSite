@@ -1134,6 +1134,17 @@ body.gds-admin-mode .gds-page-content {
 [data-gds-placeholder]:hover .gds-ph-overlay {
   opacity: 1;
 }
+/* When GDS wraps an <img data-gds-placeholder> in a div, the overlay is a sibling
+   of the img (not a descendant), so the rules above don't apply.
+   gds-ph-img-wrap: fill parent + show overlay on hover */
+.gds-ph-img-wrap {
+  position: absolute !important;
+  inset: 0 !important;
+  display: block !important;
+}
+.gds-ph-img-wrap:hover .gds-ph-overlay {
+  opacity: 1;
+}
 
 /* Block library in modal */
 .gds-block-library {
