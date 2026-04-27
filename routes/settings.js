@@ -75,8 +75,9 @@ const configSchema = z.object({
   typography: z.object({
     fontMain: z.string().max(100).optional(),
     fontHeadings: z.string().max(100).optional(),
-    sizes: z.record(z.any()).optional()
+    sizes: z.any().optional()
   }).optional(),
+  sections: z.any().optional(),
   header: z.object({
     logoPosition: z.enum(['left', 'center', 'right']).optional(),
     logoSize: z.string().max(20).optional(),
