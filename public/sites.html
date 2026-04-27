@@ -92,9 +92,11 @@
             if (!site || !site.id) {
                 localStorage.removeItem('gds_active_site');
                 localStorage.removeItem('gds_active_site_name');
+                document.cookie = 'gds_active_site=; path=/; max-age=0';
             } else {
                 localStorage.setItem('gds_active_site', site.id);
                 localStorage.setItem('gds_active_site_name', site.name);
+                document.cookie = 'gds_active_site=' + encodeURIComponent(site.id) + '; path=/; max-age=86400';
             }
         } catch (e) {}
         // Update navbar badge immediately without reload

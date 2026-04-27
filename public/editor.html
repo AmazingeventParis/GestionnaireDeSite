@@ -388,12 +388,7 @@
         updateChangesBadge();
 
         var frame = document.getElementById('editor-frame');
-        var _siteParam = '';
-        try {
-          var _sid = localStorage.getItem('gds_active_site');
-          if (_sid && _sid !== 'shootnbox') _siteParam = '&site=' + encodeURIComponent(_sid);
-        } catch(e) {}
-        frame.src = '/api/pages/' + encodeURIComponent(slug) + '/preview?edit=1' + _siteParam;
+        frame.src = '/api/pages/' + encodeURIComponent(slug) + '/preview?edit=1';
 
         // Load SEO data
         try {

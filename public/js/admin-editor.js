@@ -148,9 +148,7 @@
             return;
           }
         }
-        var _siteQ = '';
-        try { var _s = localStorage.getItem('gds_active_site'); if (_s && _s !== 'shootnbox') _siteQ = '&site=' + encodeURIComponent(_s); } catch(e) {}
-        window.location.href = '/api/pages/' + encodeURIComponent(newSlug) + '/preview?edit=1' + _siteQ;
+        window.location.href = '/api/pages/' + encodeURIComponent(newSlug) + '/preview?edit=1';
       });
 
       // Load SEO data
