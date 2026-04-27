@@ -742,3 +742,114 @@ blocks/_sites/{siteId}/               ← blocs réutilisables
 - [ ] Schema : type activité, produits/services + prix, rating
 - [ ] OG image par défaut
 - [ ] Title template SEO
+
+---
+
+## SMAKK — Site secondaire dans GDS
+
+> **ATTENTION** : Tout ce qui suit est propre à Smakk. Ne pas mélanger avec Shootnbox (pas de rose #E51981, pas de fond #f8eaff, pas de Raleway, header 68px pas 72px).
+
+### Identifiants & chemins
+
+- **UUID** : `cb56296b-27d3-463c-a38f-76c764911746`
+- **Previews** : `previews/_sites/cb56296b-27d3-463c-a38f-76c764911746/`
+- **Images** : `public/site-images/_sites/cb56296b-27d3-463c-a38f-76c764911746/`
+- **Blocs** : `blocks/_sites/cb56296b-27d3-463c-a38f-76c764911746/`
+- **Config** : `previews/_sites/cb56296b-27d3-463c-a38f-76c764911746/_config.json` (à créer)
+- **Header/footer** : `previews/_sites/cb56296b-27d3-463c-a38f-76c764911746/_shared/`
+
+### Activer le site dans GDS
+
+1. Aller sur `sites.swipego.app/sites.html`
+2. Cliquer sur la carte Smakk → badge navbar passe à "Smakk"
+3. Toutes les API appelées depuis le front envoient automatiquement `X-Site-Id: cb56296b-27d3-463c-a38f-76c764911746`
+4. Cookie `gds_active_site` mis à jour (max-age 7 jours)
+
+**Piège** : si le cookie expire, les uploads d'images vont dans Shootnbox au lieu de Smakk. Vérifier que le site actif est bien Smakk avant tout upload.
+
+### Charte graphique
+
+**Ambiance** : Dark · Cinématique · Premium — fond quasi-noir bleuté, effets glow/neon subtils.
+
+**Police** : `Inter` (400–900) — Google Fonts. FilsonPro mentionné dans le .ai mais **Inter est la police retenue pour le web**.
+
+**Couleurs principales** :
+| Rôle | Hex |
+|---|---|
+| Fond hero/sections | `#0a0a1a` |
+| Fond cards (gradient) | `linear-gradient(170deg, #1c1c38, #0f0f22)` |
+| Orange/Peach principal | `#F4A378` (titres, hover, accents dominants) |
+| Indigo secondaire | `#7877FF` |
+| Violet/Rose tertiaire | `#D985E5` |
+| Texte blanc | `#ffffff` |
+| Texte corps | `rgba(255,255,255,0.55)` |
+
+**Gradients signature** :
+```css
+/* CTA tricolore */      linear-gradient(135deg, #F4A378, #D985E5, #7877FF)
+/* Bouton primaire */    linear-gradient(135deg, #F4A378, #e88a55)
+/* Ligne décorative */   linear-gradient(90deg, #F4A378, #7877FF, #D985E5, #F8CEA6)
+/* Overlay hero */       linear-gradient(180deg, rgba(10,10,25,0.82) 0%, rgba(10,10,25,0.55) 40%, rgba(10,10,25,0.75) 100%)
+```
+
+**Layout** :
+- Max-width : `1280px`
+- Header height : `68px` (fixe, glassmorphism)
+- Section padding : `70–80px 0` vertical, `0 32px` horizontal
+
+**Bornes & prix** :
+| Borne | Prix | Couleur |
+|---|---|---|
+| La Smakk | 378€ | `#F4A378` orange |
+| Le Miroir | 748€ | `#7877FF` indigo |
+| Le Spinner | 948€ | `#D985E5` violet |
+
+**Identité** :
+- Téléphone : `01 89 27 27 27`
+- Email : `contact@smakk.fr`
+- Horaires : 7j/7 de 8h à minuit
+- Instagram : `smakk_photobooth` / LinkedIn : `smakk-photobooth`
+- CTA principal : "Estimer mon prix" → `/reservation/`
+
+### Header Smakk
+
+- **Fichier local** : `smakk_header.html` (à la racine du projet)
+- **Déployer** : `PUT /api/shared/header` avec body `{ "html": "..." }` (X-Site-Id Smakk actif)
+- **Hauteur** : 68px (pas 72px comme Shootnbox)
+- **Logo** : `/site-images/_sites/cb56296b-27d3-463c-a38f-76c764911746/smakk-logo-1777323863810.webp`
+- **CSS overrides critiques** en tête du header (ne pas supprimer) :
+```css
+body, html { background: #0a0a1a !important; }
+.snb-page-content { padding-top: 68px !important; }
+```
+Ces overrides écrasent le fond rose `#f8eaff` et le padding-top 72px hérités de Shootnbox.
+
+### Pages créées (accueil)
+
+Slug : `accueil` — sections actuelles dans l'ordre :
+| Fichier | Contenu |
+|---|---|
+| `10-hero.html` | Hero dark, image de fond (blur 4px, opacity 0.9), placeholders actifs |
+| `20-section.html` | "Ils nous font confiance" — bandeau logos défilants (CSS marquee) |
+| `30-section.html` | Cartes produits — 5 bornes compactes |
+| `40-section.html` | Section additionnelle |
+
+**Image hero fond** : `/site-images/smakk-arep-13-1777322399290.webp`
+- Attention : cette image a été uploadée dans Shootnbox par erreur (cookie expiré), mais le src est correctement défini dans `10-hero.html`. À ré-uploader proprement dans Smakk si besoin.
+
+### Bugs & fixes spécifiques Smakk
+
+- **Bandeau rose entre header et hero** : héritage du fond `#f8eaff` + `padding-top: 72px` Shootnbox → corrigé par CSS overrides dans le header (`background: #0a0a1a !important; padding-top: 68px !important`)
+- **Placeholders non cliquables dans sections** : `.gds-ph-img-wrap` reçoit `height: auto` inline → corrigé avec `position: absolute !important; inset: 0 !important` dans `admin-editor.css` (global) et dans chaque section (immédiat)
+- **pointer-events bloqués sur hero bg** : `.smk-heroR-bg` avait `pointer-events: none` → ajout de `pointer-events: auto !important` sur `.gds-ph-img-wrap` dans la section hero
+- **Image uploadée dans le mauvais site** : cookie `gds_active_site` expiré (était 24h, maintenant 7j) → fallback cookie ajouté dans `auth.js`
+
+### À faire — Smakk
+
+- [ ] Créer `_config.json` avec la charte Smakk (couleurs, typo, SEO template)
+- [ ] Créer footer Smakk
+- [ ] Ajouter favicon Smakk
+- [ ] Corriger SEO/OG titles (héritent actuellement les valeurs Shootnbox hardcodées dans `routes/pages.js`)
+- [ ] Adapter injection JSON-LD pour lire depuis `_config.json` du site actif
+- [ ] Ajouter `coolifyUuid` dans la config pour activer le bouton Déployer
+- [ ] Nettoyer 3 images test orphelines dans la médiathèque Shootnbox : `smakk-arep-01`, `smakk-arep-02`, `smakk-arep-03`
