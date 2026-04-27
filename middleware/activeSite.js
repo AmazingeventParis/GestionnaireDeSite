@@ -39,7 +39,7 @@ function getActiveSite() {
  *  - Valid siteId → scoped paths under previews/_sites/{siteId}/
  */
 function activeSiteMiddleware(req, res, next) {
-  const raw = (req.headers['x-site-id'] || '').trim().toLowerCase();
+  const raw = (req.headers['x-site-id'] || req.query.site || '').trim().toLowerCase();
 
   let site;
   if (!raw || raw === 'shootnbox' || !/^[a-z0-9-]{1,64}$/.test(raw)) {
