@@ -100,8 +100,16 @@ const Auth = (function() {
         }
 
         // Multi-site: propagate active site to the server
+        // Cookie is the fallback when localStorage is unavailable (e.g. in editor iframe after expiry)
         try {
             var _siteId = localStorage.getItem('gds_active_site');
+            if (!_siteId || _siteId === 'shootnbox') {
+                var _ck = document.cookie.match(/(?:^|;\s*)gds_active_site=([^;]+)/);
+                if (_ck) {
+                    _siteId = decodeURIComponent(_ck[1]);
+                    try { localStorage.setItem('gds_active_site', _siteId); } catch (e2) {}
+                }
+            }
             if (_siteId && _siteId !== 'shootnbox') {
                 options.headers['X-Site-Id'] = _siteId;
             }
