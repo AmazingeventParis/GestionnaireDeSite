@@ -745,6 +745,67 @@ blocks/_sites/{siteId}/               ← blocs réutilisables
 
 ---
 
+## Cartes de bornes dynamiques (Shootnbox)
+
+### Principe
+Les cartes de prix des bornes sur le site statique sont alimentées **en temps réel** par le manager2 de Shootnbox. Quand un prix ou un texte promo change dans le CRM, le site se met à jour automatiquement (délai max 60s, cache API).
+
+### API source
+- **Endpoint** : `https://shootnbox.fr/reservation/embed/options_api.php`
+- **CORS** : `Access-Control-Allow-Origin: *` — accessible depuis n'importe quel domaine
+- **Cache** : `public, max-age=60`
+- **Réponse** : `{ bornes: [...], options: [...], settings: { promoText, promoMode }, relance: [...] }`
+
+### Structure d'une borne dans l'API
+```json
+{
+  "id": "vegas",
+  "name": "Le Vegas",
+  "type": "Photobooth",
+  "color": "#E51981",
+  "priceParticulier": 399,
+  "promoWe": 100,
+  "enabled": true,
+  "photos": ["https://..."]
+}
+```
+**Prix affiché** = `priceParticulier - promoWe`  
+**Texte promo** = `settings.promoText` (ex: "🥳Promo Printemps !")  
+**Visibilité** = `enabled: true/false` — seules les bornes `enabled: true` sont affichées
+
+### Bornes disponibles (9 au total)
+| id | Nom | Couleur | enabled par défaut |
+|---|---|---|---|
+| `ring` | Le Ring | `#FF7A00` | ✅ |
+| `vegas` | Le Vegas (Best-seller) | `#E51981` | ✅ |
+| `miroir` | Le Miroir | `#0250FF` | ✅ |
+| `spinner` | Le Spinner | `#16A34A` | ✅ |
+| `vegas-slim` | Vegas Slim | `#E51981` | ✅ |
+| `karaoke` | Le Karaoké | `#EF4444` | ✅ |
+| `aircam` | L'Aircam 360 | `#a855f7` | ❌ |
+| `vogue` | Le Vogue | `#D4A017` | ❌ |
+| `fashionbox` | La FashionBox | `#06B6D4` | ❌ (Sur devis) |
+
+### Bloc GDS
+- **Nom** : `Cartes de bornes — dynamique`
+- **ID** : `cartes-de-bornes-dynamique`
+- **Fichier local** : `bloc_cartes_bornes.html` (à la racine du projet)
+- **Site** : Shootnbox (pas de X-Site-Id — site legacy)
+
+Le bloc est dans la bibliothèque GDS et peut être ajouté à n'importe quelle page via l'éditeur visuel. Il utilise `data-snb-bornes-target` comme div cible (pas `document.currentScript`, incompatible avec la réinjection GDS des scripts en fin de body).
+
+### Admin manager2
+- **Interface** : `https://shootnbox.fr/reservation/admin.html`
+- **Onglet "Afficher sur le site"** : à créer dans manager2 — devra mettre à jour le champ `enabled` dans `options_api.php`
+- Une fois ce toggle en place : activer/désactiver une borne dans l'admin = apparition/disparition sur le site statique dans la minute
+
+### Script original (référence)
+- `https://shootnbox.fr/reservation/embed/bornes.js` — version originale du manager2
+- `https://shootnbox.fr/reservation/embed/test.html` — page de démo avec toutes les cartes
+- **Incompatible avec GDS** : utilise `document.currentScript` + injection via `SCRIPT.parentNode.insertBefore` (ne fonctionne pas après réinjection des scripts en fin de body par GDS)
+
+---
+
 ## SMAKK — Site secondaire dans GDS
 
 > **ATTENTION** : Tout ce qui suit est propre à Smakk. Ne pas mélanger avec Shootnbox (pas de rose #E51981, pas de fond #f8eaff, pas de Raleway, header 68px pas 72px).
