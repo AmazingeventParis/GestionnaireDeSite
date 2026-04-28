@@ -901,16 +901,40 @@ Slug : `accueil` — sections actuelles dans l'ordre :
 ### Bugs & fixes spécifiques Smakk
 
 - **Bandeau rose entre header et hero** : héritage du fond `#f8eaff` + `padding-top: 72px` Shootnbox → corrigé par CSS overrides dans le header (`background: #0a0a1a !important; padding-top: 68px !important`)
-- **Placeholders non cliquables dans sections** : `.gds-ph-img-wrap` reçoit `height: auto` inline → corrigé avec `position: absolute !important; inset: 0 !important` dans `admin-editor.css` (global) et dans chaque section (immédiat)
+- **Placeholders non cliquables dans sections** : `.gds-ph-img-wrap` reçoit `height: auto` inline (GDS JS fixe `position: relative !important` via inline) → corrigé avec règles CSS section-spécifiques dans `admin-editor.css` (ex: `.smk-heroR-bg .gds-ph-img-wrap`, `.smk-slide-main-item .gds-ph-img-wrap`, etc.) — commit `597b3aa`
 - **pointer-events bloqués sur hero bg** : `.smk-heroR-bg` avait `pointer-events: none` → ajout de `pointer-events: auto !important` sur `.gds-ph-img-wrap` dans la section hero
 - **Image uploadée dans le mauvais site** : cookie `gds_active_site` expiré (était 24h, maintenant 7j) → fallback cookie ajouté dans `auth.js`
+- **Vague rose entre dernière section et footer** : `.smk-ft-waves` avait `background: #f8eaff` (fond Shootnbox) → supprimé le bloc waves entièrement, jonction dark-to-dark sans transition
+- **Accordéons section 60 et FAQ section 80 ne s'ouvrent pas** : `document.currentScript.previousElementSibling` invalide après réinjection GDS → remplacé par `document.querySelector('.smk-feat')` / `.smk-faq2` + guard `if (!root) return`
+- **Slider section 50 : double-clic placeholder bloqué** : fix global `admin-editor.css` pas déployé (commit `597b3aa` non pushé) + règle section-spécifique `.smk-slide-main-item .gds-ph-img-wrap` manquante → push + rebuild Coolify
+- **Slider section 50 : vignettes ne se mettent pas à jour** : thumbnails avaient leurs propres `data-gds-placeholder` séparés → supprimé les placeholders des vignettes, ajout `syncThumbs()` + `MutationObserver` dans le JS pour synchroniser automatiquement depuis les images principales
+
+### Pages créées (accueil) — état actuel
+
+| Fichier | Contenu | État |
+|---|---|---|
+| `10-hero.html` | Hero dark, image bg placeholder | Placeholder à remplir |
+| `20-section.html` | Bandeau logos défilants (confiance) | OK |
+| `30-section.html` | Cartes produits 5 bornes | OK |
+| `40-section.html` | Section additionnelle | OK |
+| `50-section.html` | Galerie slider 10 slides | Placeholders principaux à remplir (vignettes auto-sync) |
+| `60-section.html` | Accordéons features | OK |
+| `80-section.html` | FAQ | OK |
+
+### Footer Smakk
+
+- **Fichier** : `previews/_sites/cb56296b-27d3-463c-a38f-76c764911746/_shared/footer.html`
+- **Structure** : CTA (gradient tricolore + 2 boutons) → grid 4 colonnes (logo + Nos bornes + Événements + Contact) → séparateur tricolore → barre copyright
+- **Déployé** : ✅ (28/04/2026) — sans vague de transition (supprimée car fond dark-to-dark)
+- **Liens** : tous en `#` (pages inexistantes), à mettre à jour quand les pages Smakk seront créées
 
 ### À faire — Smakk
 
 - [ ] Créer `_config.json` avec la charte Smakk (couleurs, typo, SEO template)
-- [ ] Créer footer Smakk
 - [ ] Ajouter favicon Smakk
 - [ ] Corriger SEO/OG titles (héritent actuellement les valeurs Shootnbox hardcodées dans `routes/pages.js`)
 - [ ] Adapter injection JSON-LD pour lire depuis `_config.json` du site actif
 - [ ] Ajouter `coolifyUuid` dans la config pour activer le bouton Déployer
 - [ ] Nettoyer 3 images test orphelines dans la médiathèque Shootnbox : `smakk-arep-01`, `smakk-arep-02`, `smakk-arep-03`
+- [ ] Remplir les 10 placeholders d'images du slider (section 50) — vignettes auto-sync
+- [ ] Mettre à jour les liens du footer quand les pages Smakk seront créées
