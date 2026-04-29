@@ -1146,6 +1146,16 @@ body.gds-admin-mode .gds-page-content {
   opacity: 1;
 }
 
+/* Smakk FAQ cards: placeholder inside button with flex layout */
+.smk-faq2-card-media .gds-ph-img-wrap {
+  position: absolute !important;
+  inset: 0 !important;
+  height: 100% !important;
+}
+.smk-faq2-card-media .gds-ph-img-wrap:hover .gds-ph-overlay {
+  opacity: 1 !important;
+}
+
 /* Smakk blog cards: images inside <a> with aspect-ratio container */
 .smk-blog-card-img .gds-ph-img-wrap {
   position: absolute !important;
