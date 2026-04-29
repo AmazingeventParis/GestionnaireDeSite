@@ -1146,6 +1146,28 @@ body.gds-admin-mode .gds-page-content {
   opacity: 1;
 }
 
+/* Smakk blog cards: images inside <a> with aspect-ratio container */
+.smk-blog-card-img .gds-ph-img-wrap {
+  position: absolute !important;
+  inset: 0 !important;
+  height: 100% !important;
+  pointer-events: auto !important;
+}
+.smk-blog-card-img .gds-ph-img-wrap:hover .gds-ph-overlay {
+  opacity: 1 !important;
+}
+/* Prevent <a> click from interfering with placeholder overlay */
+.smk-blog-card {
+  pointer-events: none !important;
+}
+.smk-blog-card .gds-ph-img-wrap,
+.smk-blog-card .gds-ph-overlay,
+.smk-blog-card [data-gds-edit],
+.smk-blog-card h3,
+.smk-blog-card p {
+  pointer-events: auto !important;
+}
+
 /* Block library in modal */
 .gds-block-library {
   display: none;
