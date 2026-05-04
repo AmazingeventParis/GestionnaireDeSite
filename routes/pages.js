@@ -500,7 +500,7 @@ function preRenderBlogLatest(html) {
  */
 function buildFAQSchema(bodyContent) {
   if (!bodyContent || bodyContent.indexOf('snb-faq-item') === -1) return null;
-  const items = [...bodyContent.matchAll(/<details class="snb-faq-item">[\s\S]*?<div class="snb-faq-q">([\s\S]*?)<\/div>[\s\S]*?<div class="snb-faq-ans">([\s\S]*?)<\/div>[\s\S]*?<\/details>/g)];
+  const items = [...bodyContent.matchAll(/<details[^>]*class="[^"]*\bsnb-faq-item\b[^"]*"[^>]*>[\s\S]*?<div[^>]*class="[^"]*\bsnb-faq-q\b[^"]*"[^>]*>([\s\S]*?)<\/div>[\s\S]*?<div[^>]*class="[^"]*\bsnb-faq-ans\b[^"]*"[^>]*>([\s\S]*?)<\/div>[\s\S]*?<\/details>/g)];
   if (!items.length) return null;
   const stripTags = (s) => String(s || '')
     .replace(/<[^>]+>/g, ' ')
@@ -3357,6 +3357,7 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
       'le-ring':          { name: 'Location Borne Ring',      price: '149' },
       'borne-photo-vegas': { name: 'Location Borne Vegas',    price: '299' },
       'le-spinner':       { name: 'Location Spinner 360\u00b0', price: '799' },
+      'miroir':           { name: 'Location Photobooth Miroir Magique', price: '599' },
     };
     if (productCatalog[slug]) {
       const prod = productCatalog[slug];
