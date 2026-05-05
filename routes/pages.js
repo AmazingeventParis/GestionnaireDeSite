@@ -3358,6 +3358,7 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
       'vegas':            { name: 'Location Borne Vegas',    price: '299' },
       'spinner':          { name: 'Location Spinner 360\u00b0', price: '799' },
       'miroir':           { name: 'Location Photobooth Miroir Magique', price: '599' },
+      'karaoke':          { name: 'Location Borne Karaoké à Domicile', price: '299' },
     };
     if (productCatalog[slug]) {
       const prod = productCatalog[slug];
