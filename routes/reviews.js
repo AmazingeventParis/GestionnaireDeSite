@@ -3,14 +3,22 @@ const fs = require('fs');
 const path = require('path');
 const { verifyToken } = require('../middleware/auth');
 const { requireRole } = require('../middleware/rbac');
+const { getActiveSite } = require('../middleware/activeSite');
 
-// Reviews stored in previews/_shared/reviews.json (gds-previews Docker volume — persists across deploys)
-const REVIEWS_PATH = path.join(__dirname, '..', 'previews', '_shared', 'reviews.json');
+// Legacy fallback path (Shootnbox)
+const REVIEWS_PATH_LEGACY = path.join(__dirname, '..', 'previews', '_shared', 'reviews.json');
+
+function getReviewsPath() {
+  const site = getActiveSite();
+  if (site.isLegacy) return REVIEWS_PATH_LEGACY;
+  return path.join(site.sharedDir, 'reviews.json');
+}
 
 function loadReviews() {
-  if (!fs.existsSync(REVIEWS_PATH)) return null;
+  const p = getReviewsPath();
+  if (!fs.existsSync(p)) return null;
   try {
-    return JSON.parse(fs.readFileSync(REVIEWS_PATH, 'utf-8'));
+    return JSON.parse(fs.readFileSync(p, 'utf-8'));
   } catch {
     return null;
   }
@@ -58,7 +66,9 @@ router.put('/', verifyToken, requireRole('admin'), (req, res) => {
   };
 
   try {
-    fs.writeFileSync(REVIEWS_PATH, JSON.stringify(data, null, 2), 'utf-8');
+    const p = getReviewsPath();
+    fs.mkdirSync(path.dirname(p), { recursive: true });
+    fs.writeFileSync(p, JSON.stringify(data, null, 2), 'utf-8');
     res.json({ success: true, count: data.reviews.length });
   } catch (err) {
     console.error('[Reviews] Write error:', err.message);
