@@ -2659,8 +2659,8 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
       return res.status(404).json({ error: 'Page non trouvee' });
     }
 
-    // Read site config for template assembly
-    const configPath = path.join(__dirname, '..', 'site-config.json');
+    // Read site config for template assembly (multi-site aware)
+    const configPath = getActiveSite().configPath;
     let config = {};
     if (fs.existsSync(configPath)) {
       config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
@@ -3440,8 +3440,12 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
   <meta name="author" content="Shootnbox">
 ${seo.canonical ? `  <link rel="canonical" href="${seo.canonical}">` : ''}
 ${seo.noindex ? `  <meta name="robots" content="noindex,nofollow">` : ''}
-  <link rel="icon" href="https://shootnbox.fr/wp-content/uploads/2022/04/cropped-SHOOTNBOX-e1650722432718-32x32.png" sizes="32x32">
-  <link rel="apple-touch-icon" href="https://shootnbox.fr/wp-content/uploads/2022/04/cropped-SHOOTNBOX-e1650722432718-180x180.png">
+${config.scripts?.favicon
+  ? `  <link rel="icon" href="${config.scripts.favicon}">`
+  : getActiveSite().isLegacy
+    ? `  <link rel="icon" href="https://shootnbox.fr/wp-content/uploads/2022/04/cropped-SHOOTNBOX-e1650722432718-32x32.png" sizes="32x32">
+  <link rel="apple-touch-icon" href="https://shootnbox.fr/wp-content/uploads/2022/04/cropped-SHOOTNBOX-e1650722432718-180x180.png">`
+    : ''}
 ${ogTagsHtml}
   <link rel="preload" as="font" href="/fonts/raleway-latin.woff2" type="font/woff2" crossorigin>
   <link rel="preload" as="font" href="/fonts/raleway-900i-latin.woff2" type="font/woff2" crossorigin>
@@ -3621,7 +3625,7 @@ router.get('/shared/:component/preview', verifyToken, async (req, res) => {
       return res.status(404).json({ error: 'Composant non trouve' });
     }
 
-    const configPath = path.join(__dirname, '..', 'site-config.json');
+    const configPath = getActiveSite().configPath;
     let config = {};
     if (fs.existsSync(configPath)) {
       config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
