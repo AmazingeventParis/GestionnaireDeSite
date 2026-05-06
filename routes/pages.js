@@ -686,9 +686,11 @@ router.get('/', verifyToken, async (req, res) => {
         try { pageSeo = JSON.parse(fs.readFileSync(pageSeoPath, 'utf-8')); } catch(e) {}
       }
 
+      const rawTitle = pageSeo.title || '';
+      const displayName = (rawTitle.split(' | ')[0] || '').trim() || slug.replace(/-/g, ' ').replace(/^\w/, c => c.toUpperCase());
       pages.push({
         slug,
-        name: pageSeo.title || slug.replace(/-/g, ' ').replace(/^\w/, c => c.toUpperCase()),
+        name: displayName,
         urlPath: pageSeo.urlPath ? '/' + pageSeo.urlPath.replace(/^\//, '') : '/' + slug,
         sections: sections.map(s => s.name),
         lastModified: latestModified,
@@ -734,7 +736,8 @@ router.get('/search', verifyToken, async (req, res) => {
         try { seo = JSON.parse(fs.readFileSync(seoPath, 'utf-8')); } catch {}
       }
 
-      const name = seo.title || slug.replace(/-/g, ' ').replace(/^\w/, c => c.toUpperCase());
+      const rawSeoTitle = seo.title || '';
+      const name = (rawSeoTitle.split(' | ')[0] || '').trim() || slug.replace(/-/g, ' ').replace(/^\w/, c => c.toUpperCase());
       const urlPath = seo.urlPath ? '/' + seo.urlPath.replace(/^\//, '') : '/' + slug;
       const titleHaystack = (name + ' ' + slug + ' ' + urlPath).toLowerCase();
 
@@ -878,12 +881,22 @@ router.post('/create', verifyToken, requireRole('admin'), async (req, res) => {
 
     // Create comprehensive SEO config
     const cleanName = pageName.replace(/&amp;/g, '&');
+    // Read active site config to get site-specific SEO defaults
+    let siteIdentityName = 'Shootnbox';
+    let siteDefaultDesc = 'specialiste de la location de photobooth et borne photo pour vos evenements';
+    let siteDefaultOgImg = '/site-images/logo/shootnbox-logo-new-1.webp';
+    try {
+      const siteConf = JSON.parse(fs.readFileSync(getActiveSite().configPath, 'utf-8'));
+      if (siteConf.identity?.name) siteIdentityName = siteConf.identity.name;
+      if (siteConf.identity?.tagline) siteDefaultDesc = siteConf.identity.tagline;
+      if (siteConf.seo?.defaultOgImage) siteDefaultOgImg = siteConf.seo.defaultOgImage;
+    } catch(e) { /* use defaults */ }
     const seoData = {
-      title: `${cleanName} | Shootnbox - Location Photobooth`,
-      description: `${cleanName} - Shootnbox, specialiste de la location de photobooth et borne photo pour vos evenements.`,
-      ogTitle: `${cleanName} - Shootnbox`,
-      ogDescription: `${cleanName} - Decouvrez nos solutions de location de photobooth pour mariages, entreprises et evenements.`,
-      ogImage: '/site-images/logo/shootnbox-logo-new-1.webp',
+      title: `${cleanName} | ${siteIdentityName}`,
+      description: `${cleanName} - ${siteIdentityName}, ${siteDefaultDesc}.`,
+      ogTitle: `${cleanName} - ${siteIdentityName}`,
+      ogDescription: `${cleanName} - ${siteDefaultDesc}.`,
+      ogImage: siteDefaultOgImg,
       noindex: false,
       schemaType: 'WebPage',
       sitemap: {
