@@ -95,7 +95,11 @@ router.post('/', contactLimiter, async (req, res) => {
 
     const typeLabels = { mariage: 'Mariage', anniversaire: 'Anniversaire', corporate: 'Evenement corporate', soiree: 'Soiree privee', autre: 'Autre' };
     const typeLabel = typeLabels[type_evenement] || safe(type_evenement);
-    const dest = process.env.CONTACT_EMAIL || 'contact@shootnbox.fr';
+    const siteId = req.body._site;
+    const dest = (siteId === 'smakk' && process.env.CONTACT_EMAIL_SMAKK)
+      ? process.env.CONTACT_EMAIL_SMAKK
+      : (process.env.CONTACT_EMAIL || 'contact@shootnbox.fr');
+    const senderName = siteId === 'smakk' ? 'Smakk Contact' : 'Shootnbox Contact';
 
     // Format date (long for body, short JJ/MM/AAAA for subject)
     let dateStr = '—';
@@ -285,7 +289,7 @@ ${telephone && telephone !== '—' ? `<td align="center" width="50%" style="padd
 
     // Send email
     await getTransporter().sendMail({
-      from: `"Shootnbox Contact" <${process.env.SMTP_USER}>`,
+      from: `"${senderName}" <${process.env.SMTP_USER}>`,
       replyTo: email,
       to: dest,
       subject: `Demande de contact - ${nom.trim()} - ${typeLabel}${dateShort ? ' - ' + dateShort : ''}`,
