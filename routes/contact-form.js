@@ -11,9 +11,26 @@ const contactLimiter = rateLimit({
   message: { error: 'Trop de demandes, reessayez dans 15 minutes' }
 });
 
-// SMTP transporter (lazy init)
+// SMTP transporters (lazy init, one per site)
 let transporter = null;
-function getTransporter() {
+let transporterSmakk = null;
+
+function getTransporter(siteId) {
+  if (siteId === 'smakk' && process.env.SMTP_USER_SMAKK) {
+    if (!transporterSmakk) {
+      transporterSmakk = nodemailer.createTransport({
+        host: process.env.SMTP_HOST || 'smtp.office365.com',
+        port: parseInt(process.env.SMTP_PORT || '587'),
+        secure: false,
+        auth: {
+          user: process.env.SMTP_USER_SMAKK,
+          pass: process.env.SMTP_PASS_SMAKK
+        },
+        tls: { ciphers: 'SSLv3' }
+      });
+    }
+    return transporterSmakk;
+  }
   if (!transporter) {
     transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST || 'smtp.office365.com',
@@ -288,8 +305,9 @@ ${telephone && telephone !== '—' ? `<td align="center" width="50%" style="padd
 </body></html>`;
 
     // Send email
-    await getTransporter().sendMail({
-      from: `"${senderName}" <${process.env.SMTP_USER}>`,
+    const smtpUser = (siteId === 'smakk' && process.env.SMTP_USER_SMAKK) ? process.env.SMTP_USER_SMAKK : process.env.SMTP_USER;
+    await getTransporter(siteId).sendMail({
+      from: `"${senderName}" <${smtpUser}>`,
       replyTo: email,
       to: dest,
       subject: `Demande de contact - ${nom.trim()} - ${typeLabel}${dateShort ? ' - ' + dateShort : ''}`,
