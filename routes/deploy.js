@@ -23,6 +23,20 @@ function absolutizeHtml(html) {
     if (/^\/(fonts|images|site-images|css|js)\//.test(url)) return `${attr}="${BASE_GDS}${url}"`;
     return match;
   });
+  // srcset — comma-separated list of "url descriptor" pairs, each url must be absolutized independently
+  html = html.replace(/srcset="([^"]+)"/g, (match, value) => {
+    const parts = value.split(',').map(p => {
+      const t = p.trim();
+      if (!t) return p;
+      const sp = t.indexOf(' ');
+      const url = sp === -1 ? t : t.slice(0, sp);
+      const desc = sp === -1 ? '' : t.slice(sp);
+      if (url.startsWith('http') || url.startsWith('//') || url.startsWith('data:')) return t;
+      if (/^\/(fonts|images|site-images|css|js)\//.test(url)) return BASE_GDS + url + desc;
+      return t;
+    });
+    return `srcset="${parts.join(', ')}"`;
+  });
   // CSS url() — single quotes
   html = html.replace(/url\('(\/(?:fonts|images|site-images)\/[^']+)'\)/g, (_, p) => `url('${BASE_GDS}${p}')`);
   // CSS url() — double quotes
