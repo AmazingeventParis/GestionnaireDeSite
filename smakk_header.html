@@ -1,0 +1,440 @@
+<style>
+/* ===== SMAKK GLOBAL OVERRIDES ===== */
+body, html { background: #0a0a1a !important; }
+.snb-page-content { padding-top: 68px !important; }
+@media (max-width: 860px) { .snb-page-content { padding-top: 68px !important; } }
+
+/* ===== SMAKK HEADER ===== */
+.smk-hdr *, .smk-hdr *::before, .smk-hdr *::after { box-sizing: border-box !important; }
+
+.smk-hdr {
+  position: fixed !important;
+  top: 0 !important; left: 0 !important; right: 0 !important;
+  z-index: 1000 !important;
+  height: 68px !important;
+  display: flex !important;
+  align-items: center !important;
+  padding: 0 40px !important;
+  background: rgba(8,8,20,0.88) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+  font-family: 'Inter', sans-serif !important;
+  gap: 40px !important;
+}
+
+/* ===== LOGO ===== */
+.smk-hdr-logo {
+  display: flex !important;
+  align-items: center !important;
+  text-decoration: none !important;
+  flex-shrink: 0 !important;
+}
+.smk-hdr-logo img {
+  height: 36px !important;
+  width: auto !important;
+  display: block !important;
+}
+
+/* ===== NAV ===== */
+.smk-hdr-nav {
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  flex: 1 !important;
+}
+
+/* Nav items with dropdown */
+.smk-hdr-item {
+  position: relative !important;
+}
+.smk-hdr-item-btn {
+  display: flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  padding: 8px 14px !important;
+  background: none !important;
+  border: none !important;
+  cursor: pointer !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 13.5px !important;
+  font-weight: 500 !important;
+  color: rgba(255,255,255,0.72) !important;
+  border-radius: 8px !important;
+  transition: color 0.2s, background 0.2s !important;
+  white-space: nowrap !important;
+  letter-spacing: 0.01em !important;
+}
+.smk-hdr-item-btn:hover,
+.smk-hdr-item.is-open .smk-hdr-item-btn {
+  color: #fff !important;
+  background: rgba(255,255,255,0.06) !important;
+}
+.smk-hdr-chevron {
+  width: 14px !important;
+  height: 14px !important;
+  transition: transform 0.25s ease !important;
+  opacity: 0.6 !important;
+  flex-shrink: 0 !important;
+}
+.smk-hdr-item.is-open .smk-hdr-chevron {
+  transform: rotate(180deg) !important;
+  opacity: 1 !important;
+}
+
+/* ===== DROPDOWN ===== */
+.smk-hdr-dropdown {
+  position: absolute !important;
+  top: 100% !important;
+  left: 0 !important;
+  min-width: 210px !important;
+  background: rgba(11,11,26,0.98) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-top: 2px solid #F4A378 !important;
+  border-radius: 0 0 12px 12px !important;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.65), 0 0 0 1px rgba(244,163,120,0.06) !important;
+  padding: 10px 8px 8px !important;
+  opacity: 0 !important;
+  transform: translateY(-8px) !important;
+  pointer-events: none !important;
+  transition: opacity 0.2s ease, transform 0.2s ease !important;
+}
+.smk-hdr-item.is-open .smk-hdr-dropdown {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+  pointer-events: auto !important;
+}
+.smk-hdr-dd-link {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 10px 14px !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: rgba(255,255,255,0.72) !important;
+  text-decoration: none !important;
+  transition: background 0.15s, color 0.15s !important;
+  white-space: nowrap !important;
+}
+.smk-hdr-dd-link:hover {
+  background: rgba(244,163,120,0.1) !important;
+  color: #F4A378 !important;
+}
+.smk-hdr-dd-link::before {
+  content: '' !important;
+  width: 3px !important;
+  height: 3px !important;
+  border-radius: 50% !important;
+  background: rgba(244,163,120,0.5) !important;
+  flex-shrink: 0 !important;
+}
+.smk-hdr-dd-link:hover::before {
+  background: #F4A378 !important;
+}
+
+/* ===== RIGHT SIDE ===== */
+.smk-hdr-right {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-left: auto !important;
+  flex-shrink: 0 !important;
+}
+.smk-hdr-phone {
+  display: flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  padding: 8px 14px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: rgba(255,255,255,0.55) !important;
+  text-decoration: none !important;
+  letter-spacing: 0.02em !important;
+  border-radius: 8px !important;
+  transition: color 0.2s, background 0.2s !important;
+}
+.smk-hdr-phone:hover {
+  color: rgba(255,255,255,0.88) !important;
+  background: rgba(255,255,255,0.05) !important;
+}
+.smk-hdr-phone-icon {
+  width: 14px !important;
+  height: 14px !important;
+  opacity: 0.6 !important;
+}
+.smk-hdr-cta {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 10px 22px !important;
+  background: linear-gradient(135deg, #F4A378, #e07545) !important;
+  color: #fff !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  text-decoration: none !important;
+  border-radius: 50px !important;
+  letter-spacing: 0.02em !important;
+  box-shadow: 0 4px 18px rgba(244,163,120,0.35) !important;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease !important;
+  white-space: nowrap !important;
+}
+.smk-hdr-cta:hover {
+  transform: translateY(-2px) !important;
+  filter: brightness(1.08) !important;
+  box-shadow: 0 8px 28px rgba(244,163,120,0.5) !important;
+}
+
+/* ===== MOBILE BURGER ===== */
+.smk-hdr-burger {
+  display: none !important;
+  flex-direction: column !important;
+  gap: 5px !important;
+  padding: 8px !important;
+  background: none !important;
+  border: none !important;
+  cursor: pointer !important;
+  margin-left: auto !important;
+}
+.smk-hdr-burger span {
+  display: block !important;
+  width: 22px !important;
+  height: 2px !important;
+  background: rgba(255,255,255,0.8) !important;
+  border-radius: 2px !important;
+  transition: transform 0.3s ease, opacity 0.3s ease !important;
+}
+.smk-hdr.menu-open .smk-hdr-burger span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg) !important;
+}
+.smk-hdr.menu-open .smk-hdr-burger span:nth-child(2) {
+  opacity: 0 !important;
+}
+.smk-hdr.menu-open .smk-hdr-burger span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg) !important;
+}
+
+/* ===== MOBILE PANEL ===== */
+.smk-hdr-mobile-panel {
+  display: none !important;
+  position: fixed !important;
+  top: 68px !important;
+  left: 0 !important; right: 0 !important;
+  background: rgba(8,8,20,0.98) !important;
+  border-top: 1px solid rgba(255,255,255,0.06) !important;
+  padding: 16px 20px 28px !important;
+  overflow-y: auto !important;
+  max-height: calc(100vh - 68px) !important;
+}
+.smk-hdr.menu-open .smk-hdr-mobile-panel {
+  display: block !important;
+}
+.smk-hdr-mob-section {
+  margin-bottom: 8px !important;
+}
+.smk-hdr-mob-title {
+  display: block !important;
+  padding: 12px 4px 8px !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 3px !important;
+  text-transform: uppercase !important;
+  color: rgba(244,163,120,0.6) !important;
+}
+.smk-hdr-mob-link {
+  display: block !important;
+  padding: 11px 12px !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  color: rgba(255,255,255,0.8) !important;
+  text-decoration: none !important;
+  border-radius: 8px !important;
+  transition: background 0.15s, color 0.15s !important;
+}
+.smk-hdr-mob-link:hover {
+  background: rgba(244,163,120,0.08) !important;
+  color: #F4A378 !important;
+}
+.smk-hdr-mob-sep {
+  height: 1px !important;
+  background: rgba(255,255,255,0.06) !important;
+  margin: 12px 0 !important;
+}
+.smk-hdr-mob-cta {
+  display: block !important;
+  text-align: center !important;
+  margin-top: 20px !important;
+  padding: 14px !important;
+  background: linear-gradient(135deg, #F4A378, #e07545) !important;
+  color: #fff !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  text-decoration: none !important;
+  border-radius: 50px !important;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 860px) {
+  .smk-hdr {
+    padding: 0 20px !important;
+    gap: 0 !important;
+  }
+  .smk-hdr-nav,
+  .smk-hdr-right {
+    display: none !important;
+  }
+  .smk-hdr-burger {
+    display: flex !important;
+  }
+}
+
+/* Page body offset for fixed header */
+.smk-page-offset {
+  padding-top: 68px !important;
+}
+</style>
+
+<header class="smk-hdr" id="smk-hdr">
+
+  <!-- Logo -->
+  <a class="smk-hdr-logo" href="/">
+    <img src="/site-images/_sites/cb56296b-27d3-463c-a38f-76c764911746/smakk-logo-1777323863810.webp" alt="Smakk">
+  </a>
+
+  <!-- Desktop nav -->
+  <nav class="smk-hdr-nav">
+
+    <!-- Location photobooth -->
+    <div class="smk-hdr-item" id="smk-drop-1">
+      <a class="smk-hdr-item-btn" href="https://sites.swipego.app/api/pages/location-photobooth/preview" aria-haspopup="true" aria-expanded="false">
+        Location photobooth
+        <svg class="smk-hdr-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <polyline points="4 6 8 10 12 6"/>
+        </svg>
+      </a>
+      <div class="smk-hdr-dropdown" role="menu">
+        <a class="smk-hdr-dd-link" href="https://sites.swipego.app/api/pages/location-photobooth/preview">Photobooth Smakk</a>
+        <a class="smk-hdr-dd-link" href="/miroir-photobooth">Photobooth Miroir</a>
+        <a class="smk-hdr-dd-link" href="/photobooth-360">Photobooth 360</a>
+        <a class="smk-hdr-dd-link" href="/location-photocall">Location Photocall</a>
+      </div>
+    </div>
+
+    <!-- Événements -->
+    <div class="smk-hdr-item" id="smk-drop-2">
+      <button class="smk-hdr-item-btn" aria-haspopup="true" aria-expanded="false">
+        Événements
+        <svg class="smk-hdr-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <polyline points="4 6 8 10 12 6"/>
+        </svg>
+      </button>
+      <div class="smk-hdr-dropdown" role="menu">
+        <a class="smk-hdr-dd-link" href="#">Événements</a>
+        <a class="smk-hdr-dd-link" href="/mariage">Mariage</a>
+        <a class="smk-hdr-dd-link" href="/anniversaire">Anniversaire</a>
+      </div>
+    </div>
+
+  </nav>
+
+  <!-- Right side -->
+  <div class="smk-hdr-right">
+    <a class="smk-hdr-phone" href="tel:0189272727">
+      <svg class="smk-hdr-phone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.07 9.81 19.79 19.79 0 0 1 1 1.18 2 2 0 0 1 2.98 0h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.04 7.84a16 16 0 0 0 6.12 6.12l1.2-1.2a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 14.92z"/>
+      </svg>
+      01 89 27 27 27
+    </a>
+    <a class="smk-hdr-cta" href="/reservation/">
+      Estimer mon prix
+    </a>
+  </div>
+
+  <!-- Mobile burger -->
+  <button class="smk-hdr-burger" id="smk-burger" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+
+  <!-- Mobile panel -->
+  <div class="smk-hdr-mobile-panel">
+    <div class="smk-hdr-mob-section">
+      <span class="smk-hdr-mob-title">Location photobooth</span>
+      <a class="smk-hdr-mob-link" href="https://sites.swipego.app/api/pages/location-photobooth/preview">Photobooth Smakk</a>
+      <a class="smk-hdr-mob-link" href="/miroir-photobooth">Photobooth Miroir</a>
+      <a class="smk-hdr-mob-link" href="/photobooth-360">Photobooth 360</a>
+      <a class="smk-hdr-mob-link" href="/location-photocall">Location Photocall</a>
+    </div>
+    <div class="smk-hdr-mob-sep"></div>
+    <div class="smk-hdr-mob-section">
+      <span class="smk-hdr-mob-title">Événements</span>
+      <a class="smk-hdr-mob-link" href="#">Événements</a>
+      <a class="smk-hdr-mob-link" href="/mariage">Mariage</a>
+      <a class="smk-hdr-mob-link" href="/anniversaire">Anniversaire</a>
+    </div>
+    <div class="smk-hdr-mob-sep"></div>
+    <a class="smk-hdr-phone" href="tel:0189272727" style="padding:12px 4px;">
+      <svg class="smk-hdr-phone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.07 9.81 19.79 19.79 0 0 1 1 1.18 2 2 0 0 1 2.98 0h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.04 7.84a16 16 0 0 0 6.12 6.12l1.2-1.2a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 14.92z"/>
+      </svg>
+      01 89 27 27 27
+    </a>
+    <a class="smk-hdr-mob-cta" href="/reservation/">Estimer mon prix</a>
+  </div>
+
+</header>
+
+<script>
+(function() {
+  var hdr = document.getElementById('smk-hdr');
+  var burger = document.getElementById('smk-burger');
+
+  // Dropdown toggle on click/hover
+  var drops = hdr.querySelectorAll('.smk-hdr-item');
+  drops.forEach(function(item) {
+    var btn = item.querySelector('.smk-hdr-item-btn');
+    var closeTimer;
+    // Hover (desktop)
+    item.addEventListener('mouseenter', function() {
+      clearTimeout(closeTimer);
+      drops.forEach(function(d) { d.querySelector('.smk-hdr-item-btn').setAttribute('aria-expanded','false'); d.classList.remove('is-open'); });
+      item.classList.add('is-open');
+      btn.setAttribute('aria-expanded', 'true');
+    });
+    item.addEventListener('mouseleave', function() {
+      closeTimer = setTimeout(function() {
+        item.classList.remove('is-open');
+        btn.setAttribute('aria-expanded', 'false');
+      }, 120);
+    });
+    // Click toggle only for <button> items (not <a> links that navigate)
+    if (btn.tagName === 'BUTTON') {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var open = item.classList.contains('is-open');
+        drops.forEach(function(d) { d.querySelector('.smk-hdr-item-btn').setAttribute('aria-expanded','false'); d.classList.remove('is-open'); });
+        if (!open) { item.classList.add('is-open'); btn.setAttribute('aria-expanded','true'); }
+      });
+    }
+  });
+  // Close on outside click
+  document.addEventListener('click', function() {
+    drops.forEach(function(d) { d.querySelector('.smk-hdr-item-btn').setAttribute('aria-expanded','false'); d.classList.remove('is-open'); });
+  });
+
+  // Mobile burger
+  burger.addEventListener('click', function() {
+    hdr.classList.toggle('menu-open');
+  });
+
+  // Scroll effect
+  window.addEventListener('scroll', function() {
+    if (window.scrollY > 20) {
+      hdr.style.background = 'rgba(6,6,16,0.97)';
+      hdr.style.borderBottomColor = 'rgba(255,255,255,0.08)';
+    } else {
+      hdr.style.background = 'rgba(8,8,20,0.88)';
+      hdr.style.borderBottomColor = 'rgba(255,255,255,0.06)';
+    }
+  }, { passive: true });
+})();
+</script>
