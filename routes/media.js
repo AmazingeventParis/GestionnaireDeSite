@@ -78,6 +78,7 @@ function scanImages(dir, baseDir, results) {
   for (const entry of entries) {
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
+      if (dir === baseDir && entry.name === '_sites') continue;
       scanImages(fullPath, baseDir, results);
     } else if (/\.(jpg|jpeg|png|gif|webp|svg|avif|bmp|ico)$/i.test(entry.name)) {
       const relativePath = path.relative(baseDir, fullPath).replace(/\\/g, '/');
