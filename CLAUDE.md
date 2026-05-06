@@ -1012,3 +1012,52 @@ Slug : `accueil` — sections actuelles dans l'ordre :
 - [ ] Remplir les 10 placeholders d'images du slider (section 50) — vignettes auto-sync
 - [ ] Mettre à jour les liens du footer quand les pages Smakk seront créées
 - [ ] Ajouter le bloc `smakk_avis.html` à la page accueil Smakk (après confirmation du premier fetch SerpAPI)
+
+---
+
+## Tracking ADS / source — Shootnbox (06/05/2026)
+
+### Objectif
+Capturer en cookie first-touch la source d'acquisition de chaque visiteur (Google Ads, Facebook, TikTok, SEO, Direct, etc.) pour enrichir les données du CRM Shootnbox (manager2).
+
+### Cookies écrits (domaine `.shootnbox.fr`, 30 jours, SameSite=Lax)
+| Cookie | Contenu |
+|---|---|
+| `snb_src` | Source : `ADS`, `FACEBOOK`, `INSTAGRAM`, `TIKTOK`, `SEO`, `YOUTUBE`, `LINKEDIN`, `TWITTER`, `PINTEREST`, `WHATSAPP`, `LLM`, `EMAIL`, `REFERRAL`, `DIRECT` |
+| `snb_gclid` | Google Ads click ID |
+| `snb_fbclid` | Meta Ads click ID |
+| `snb_msclkid` | Microsoft/Bing Ads click ID |
+| `snb_ttclid` | TikTok Ads click ID |
+| `snb_utm_source` | UTM source |
+| `snb_utm_medium` | UTM medium |
+| `snb_utm_campaign` | UTM campaign |
+| `snb_referrer` | URL du référent externe |
+| `snb_landing` | Premier chemin URL visité |
+
+### Logique de priorité (first-touch, ne se réécrit pas)
+1. `gclid` → ADS
+2. `fbclid` → FACEBOOK
+3. `msclkid` → ADS
+4. `ttclid` → TIKTOK
+5. UTM params → source déduite du medium/source
+6. Referrer externe → source déduite du domaine
+7. Fallback DIRECT (setTimeout 100ms)
+
+### Points d'injection
+
+**1. GDS — pages statiques déployées sur shootnbox.fr**
+- Stocké dans `headCustom` via `PUT /api/seo/scripts`
+- Injecté dans le `<head>` de toutes les pages buildées par GDS
+- Pages actuellement déployées : `home` et `location-photobooth` (redéployées le 06/05/2026)
+- Toute future publication via GDS inclut automatiquement le script
+
+**2. WordPress — tous les articles et pages**
+- Fonction `snb_ads_tracking()` dans `skole-child/functions.php`
+- `add_action('wp_head', 'snb_ads_tracking', 1)` — priority 1 (earliest possible)
+- Remplace l'ancienne `snb_capture_gclid()` (gclid uniquement, 90 jours) — supprimée
+- Cache WP Rocket vidé lors du déploiement (1008 fichiers supprimés)
+
+### Fichier WordPress
+- **Chemin** : `/var/www/shootnbox.fr/data/www/shootnbox.fr/wp-content/themes/skole-child/functions.php`
+- Modifié via helper PHP temporaire sur `/manager/` (neutralisé après)
+- **NE PAS** réinstaller `snb_capture_gclid` — elle est remplacée définitivement
