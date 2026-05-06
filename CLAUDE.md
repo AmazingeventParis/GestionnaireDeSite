@@ -550,6 +550,9 @@ var(--max-width)          /* 1300px */
 - **Bannieres perdues au redeploy** : stockees dans `banners/` (volume Docker non persiste) → deplacees dans `previews/_shared/banners/` (volume `gds-previews` persiste)
 - **Bouton Enregistrer banniere ne marchait pas** : HTML complexe de la banniere (avec `<style>`/`<script>`) cassait le template string JS du formulaire → textareas remplies via `.value` apres insertion DOM
 - **Header ecrase par rebuild** : fichier local `previews/_shared/header.html` ancien a ecrase la version serveur → restaure depuis git commit `8eee946` (version avec mega-menu dropdowns)
+- **Cartes pages affichaient "Shootnbox - Location Photobooth"** : `GET /api/pages` retournait `pageSeo.title` complet comme `name` → corrige en extrayant la partie avant ` | ` (`split(' | ')[0]`)
+- **Médias Smakk dans la médiathèque Shootnbox** : `scanImages()` recursive depuis `public/site-images/` incluait `_sites/` → ajout `continue` pour skipper `_sites/` au niveau racine de `baseDir`
+- **Dropdown header Smakk se fermait avant le clic** : gap de 10px entre bouton et dropdown (`top: calc(100% + 10px)`) faisait déclencher `mouseleave` → `top: 100%` + `padding-top: 10px` + délai 120ms
 
 ## Sauvegardes
 
@@ -666,6 +669,16 @@ blocks/_sites/{siteId}/               ← blocs réutilisables
 - `shared.js` : `getSharedDir()` → `getActiveSite().sharedDir`
 - `settings.js` : `readConfig()` / `writeConfig()` → `getActiveSite().configPath`
 - `blocks.js` : déjà adapté via `getBD(req)` → `req.activeSite.blocksDir`
+- `reviews.js` : `getReviewsPath()` → `getActiveSite().sharedDir + '/reviews.json'`
+
+### Nom des pages dans les cartes admin (GET /api/pages)
+- Le champ `name` retourné est la partie **avant le `|`** du titre SEO (`pageSeo.title.split(' | ')[0]`)
+- Ex : `"Accueil | Smakk"` → affiche `"Accueil"` dans la carte
+- Création de page : le titre SEO par défaut lit `identity.name` depuis `_config.json` du site actif (fallback Shootnbox si absent)
+
+### Isolation médiathèque multi-site
+- `scanImages()` dans `routes/media.js` skipe le sous-dossier `_sites/` quand il scanne depuis `IMAGES_BASE` (racine Shootnbox)
+- Sans ce fix, les médias de tous les sites secondaires remontaient dans la médiathèque Shootnbox
 
 ### A FAIRE — multi-site
 - [ ] Adapter `routes/puppeteer-audit.js` pour utiliser `req.activeSite.previewsDir`
@@ -794,10 +807,51 @@ Les cartes de prix des bornes sur le site statique sont alimentées **en temps r
 
 Le bloc est dans la bibliothèque GDS et peut être ajouté à n'importe quelle page via l'éditeur visuel. Il utilise `data-snb-bornes-target` comme div cible (pas `document.currentScript`, incompatible avec la réinjection GDS des scripts en fin de body).
 
+### Pages intégrant le bloc dynamique (29/04/2026)
+
+Les 5 pages suivantes ont leur section de cartes de bornes remplacée par le bloc dynamique :
+
+| Slug GDS | URL prod | Section |
+|---|---|---|
+| `location-photobooth` | `/location-photobooth/` | `30-bornes.html` |
+| `anniversaire` | `/photobooth-anniversaire/` | `30-section.html` |
+| `entreprises` | `/photobooth-soiree-entreprise/` | `30-section.html` |
+| `mariage` | `/photobooth-mariage/` | `30-section.html` |
+| `location-photocall` | `/location-photocall/` | `40-section.html` |
+
+- Chaque section a `data-snb-bornes-target data-snb-page="{slug}"` sur la div cible
+- Le JS fetch depuis `bornes-page-api.php?page={slug}` (pas `options_api.php`)
+- Pas de filtre `b.enabled` côté JS — c'est le PHP qui filtre
+
+### Contrôle par page — admin.html onglet "Cartes Bornes Site"
+
+- **Interface** : `https://shootnbox.fr/reservation/admin.html` → onglet **Cartes Bornes Site**
+- Affiche directement les 5 pages avec toutes les bornes cochables
+- Cocher = la borne apparaît sur cette page / Décocher = elle disparaît
+- Sauvegarde automatique au clic, persiste après refresh
+
+**Fichiers sur server 79 (`/manager/`)** :
+- `bornes-page-api.php` : lit `options_data.json`, filtre par `?page=slug` via `pageFilters`, `?action=config` retourne la config brute (no-cache)
+- `save-page-filters.php` : reçoit `{pageFilters: {...}}` en POST, écrit dans `options_data.json`
+
+**Clé `pageFilters` dans `options_data.json`** :
+```json
+{
+  "pageFilters": {
+    "location-photobooth": ["ring", "vegas"],
+    "anniversaire": ["vegas", "miroir"],
+    ...
+  }
+}
+```
+- Si la clé d'une page est absente → fallback : toutes les bornes `enabled: true`
+- `options_api.php` (modifié 29/04/2026) : préserve les clés absentes du payload lors d'un POST (dont `pageFilters`) — évite l'écrasement par `saveAll()`
+
+**Bug critique résolu** : PHP encode `{}` vide en `[]` (tableau JSON). Le JS assignait des propriétés string sur un tableau, silencieusement perdues par `JSON.stringify`. Fix : PHP caste `(object)`, JS guard `Array.isArray`.
+
 ### Admin manager2
 - **Interface** : `https://shootnbox.fr/reservation/admin.html`
-- **Onglet "Afficher sur le site"** : à créer dans manager2 — devra mettre à jour le champ `enabled` dans `options_api.php`
-- Une fois ce toggle en place : activer/désactiver une borne dans l'admin = apparition/disparition sur le site statique dans la minute
+- L'onglet "Cartes Bornes Site" gère désormais l'affichage par page (voir ci-dessus)
 
 ### Script original (référence)
 - `https://shootnbox.fr/reservation/embed/bornes.js` — version originale du manager2
@@ -928,6 +982,25 @@ Slug : `accueil` — sections actuelles dans l'ordre :
 - **Déployé** : ✅ (28/04/2026) — sans vague de transition (supprimée car fond dark-to-dark)
 - **Liens** : tous en `#` (pages inexistantes), à mettre à jour quand les pages Smakk seront créées
 
+### Avis Google Smakk
+
+- **Place ID** : `ChIJEUgCR7lt5kcRLPqvJqaGITg`
+- **Env var Coolify** : `SERPAPI_SMAKK_PLACE_ID=ChIJEUgCR7lt5kcRLPqvJqaGITg` (ajoutée le 06/05/2026)
+- **Stockage** : `previews/_sites/cb56296b-27d3-463c-a38f-76c764911746/_shared/reviews.json`
+- **Scheduler** : mensuel (30j), check toutes les 24h, premier fetch 90s après boot — activé si `SERPAPI_SMAKK_PLACE_ID` défini dans Coolify
+- **Script** : `scripts/fetch-reviews-serpapi.js` multi-site — accepte `{ placeId, dataId, outputPath }` en options. Utilise `place_id` (ChIJ...) quand pas de `data_id` hex disponible
+- **Bloc GDS** : `smakk_avis.html` (racine projet) — charte orange #F4A378/indigo #7877FF — fetch `/api/reviews?site=cb56296b-27d3-463c-a38f-76c764911746`
+- **API** : `GET /api/reviews?site={uuid}` retourne les avis du site actif. `POST /api/reviews/refresh` avec throttle mensuel pour les sites non-legacy
+- Ajouter le bloc à la page Smakk via l'éditeur une fois que le premier fetch automatique a peuplé le JSON (vérifier dans les logs Coolify : `[reviews-smakk] Done`)
+
+### Header Smakk — fixes
+
+- **Dropdown gap** : `top: calc(100% + 10px)` → `top: 100%` + `padding-top: 10px` (le vide entre bouton et dropdown déclenchait `mouseleave` prématuré)
+- **Délai fermeture** : `mouseleave` avec `setTimeout(120ms)` comme filet de sécurité
+- **Bouton "Location photobooth"** : converti en `<a href="https://sites.swipego.app/api/pages/location-photobooth/preview">` (cliquable + dropdown au survol)
+- **"Photobooth Smakk"** (dropdown desktop + mobile) : même URL que ci-dessus
+- **JS** : `querySelector('button')` → `querySelector('.smk-hdr-item-btn')` ; toggle clic seulement sur `<button>` (pas sur `<a>`)
+
 ### À faire — Smakk
 
 - [ ] Créer `_config.json` avec la charte Smakk (couleurs, typo, SEO template)
@@ -938,3 +1011,4 @@ Slug : `accueil` — sections actuelles dans l'ordre :
 - [ ] Nettoyer 3 images test orphelines dans la médiathèque Shootnbox : `smakk-arep-01`, `smakk-arep-02`, `smakk-arep-03`
 - [ ] Remplir les 10 placeholders d'images du slider (section 50) — vignettes auto-sync
 - [ ] Mettre à jour les liens du footer quand les pages Smakk seront créées
+- [ ] Ajouter le bloc `smakk_avis.html` à la page accueil Smakk (après confirmation du premier fetch SerpAPI)
