@@ -78,30 +78,47 @@ router.put('/', verifyToken, requireRole('admin'), (req, res) => {
 
 /**
  * POST /api/reviews/refresh — Admin: trigger SerpAPI fetch immediately
- * Respects the weekly throttle unless ?force=1 is passed.
+ * Respects the throttle (weekly for Shootnbox, monthly for other sites) unless ?force=1.
  */
 router.post('/refresh', verifyToken, requireRole('admin'), async (req, res) => {
   const force = req.query.force === '1' || req.body?.force === true;
-  const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+  const site = getActiveSite();
+
+  // Monthly throttle for non-legacy sites, weekly for Shootnbox
+  const THROTTLE_MS = site.isLegacy
+    ? 7 * 24 * 60 * 60 * 1000
+    : 30 * 24 * 60 * 60 * 1000;
 
   if (!force) {
     const existing = loadReviews();
     if (existing && existing.lastUpdated) {
       const elapsed = Date.now() - new Date(existing.lastUpdated).getTime();
-      if (elapsed < ONE_WEEK_MS) {
-        const hoursLeft = Math.round((ONE_WEEK_MS - elapsed) / 3600000);
+      if (elapsed < THROTTLE_MS) {
+        const hoursLeft = Math.round((THROTTLE_MS - elapsed) / 3600000);
         return res.status(429).json({
           error: 'Rafraîchissement trop récent',
-          message: `Dernier fetch il y a ${Math.round(elapsed / 3600000)}h. Prochain possible dans ${hoursLeft}h (quota SerpAPI). Utilise ?force=1 pour forcer.`,
+          message: `Dernier fetch il y a ${Math.round(elapsed / 3600000)}h. Prochain possible dans ${hoursLeft}h. Utilise ?force=1 pour forcer.`,
           lastUpdated: existing.lastUpdated,
         });
       }
     }
   }
 
+  // Resolve place ID for the active site
+  const placeId = site.isLegacy
+    ? (process.env.SERPAPI_PLACE_ID || 'ChIJxSIRRC5x5kcRX2Elmh-CeRI')
+    : process.env.SERPAPI_SMAKK_PLACE_ID;
+  const dataId = site.isLegacy
+    ? (process.env.SERPAPI_DATA_ID || '0x47e6712e441122c5:0x1279821f9a25615f')
+    : null;
+
+  if (!placeId) {
+    return res.status(400).json({ error: 'Place ID non configuré pour ce site (variable d\'env manquante)' });
+  }
+
   try {
     const { fetchReviews } = require('../scripts/fetch-reviews-serpapi');
-    const data = await fetchReviews({ silent: true });
+    const data = await fetchReviews({ silent: true, placeId, dataId, outputPath: getReviewsPath() });
     res.json({
       success: true,
       count: data.reviews.length,

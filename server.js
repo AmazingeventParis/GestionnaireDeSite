@@ -239,15 +239,10 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ===== SCHEDULER: Weekly reviews refresh via SerpAPI =====
-// Free plan 250 searches/month — weekly is safe. Checks every 6h, refreshes if > 7d old.
-(function scheduleReviewsFetch() {
-  if (!process.env.SERPAPI_KEY) {
-    logger.info('[reviews-cron] SERPAPI_KEY not set — scheduler disabled');
-    return;
-  }
-  const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-  const reviewsPath = path.join(__dirname, 'previews', '_shared', 'reviews.json');
+// ===== SCHEDULER: Reviews refresh via SerpAPI =====
+// Generic scheduler factory — handles both Shootnbox (weekly) and Smakk (monthly).
+function scheduleReviewsFetch({ label, outputPath, placeId, dataId, intervalMs, checkEveryMs, startDelayMs }) {
+  if (!process.env.SERPAPI_KEY) return;
   let running = false;
 
   async function checkAndFetch() {
@@ -255,31 +250,57 @@ app.use((err, req, res, next) => {
     try {
       const fs = require('fs');
       let lastUpdated = 0;
-      if (fs.existsSync(reviewsPath)) {
+      if (fs.existsSync(outputPath)) {
         try {
-          const data = JSON.parse(fs.readFileSync(reviewsPath, 'utf-8'));
+          const data = JSON.parse(fs.readFileSync(outputPath, 'utf-8'));
           if (data.lastUpdated) lastUpdated = new Date(data.lastUpdated).getTime();
         } catch {}
       }
-      if (Date.now() - lastUpdated < ONE_WEEK_MS) return;
+      if (Date.now() - lastUpdated < intervalMs) return;
 
       running = true;
-      logger.info('[reviews-cron] Weekly fetch starting');
+      logger.info(`[${label}] Fetch starting`);
       const { fetchReviews } = require('./scripts/fetch-reviews-serpapi');
-      const data = await fetchReviews({ silent: true });
-      logger.info(`[reviews-cron] Done — ${data.reviews.length} reviews saved, ${data.pagesFetched} pages used`);
+      const data = await fetchReviews({ silent: true, placeId, dataId, outputPath });
+      logger.info(`[${label}] Done — ${data.reviews.length} reviews, ${data.pagesFetched} pages`);
     } catch (err) {
-      logger.error(`[reviews-cron] Failed: ${err.message}`);
+      logger.error(`[${label}] Failed: ${err.message}`);
     } finally {
       running = false;
     }
   }
 
-  // Check 60s after startup, then every 6h
-  setTimeout(checkAndFetch, 60 * 1000);
-  setInterval(checkAndFetch, 6 * 60 * 60 * 1000);
-  logger.info('[reviews-cron] Scheduler started — weekly SerpAPI refresh');
-})();
+  setTimeout(checkAndFetch, startDelayMs);
+  setInterval(checkAndFetch, checkEveryMs);
+  logger.info(`[${label}] Scheduler started`);
+}
+
+if (process.env.SERPAPI_KEY) {
+  // Shootnbox — refresh weekly, check every 6h
+  scheduleReviewsFetch({
+    label: 'reviews-snb',
+    outputPath: path.join(__dirname, 'previews', '_shared', 'reviews.json'),
+    dataId: process.env.SERPAPI_DATA_ID || '0x47e6712e441122c5:0x1279821f9a25615f',
+    placeId: process.env.SERPAPI_PLACE_ID || 'ChIJxSIRRC5x5kcRX2Elmh-CeRI',
+    intervalMs: 7 * 24 * 60 * 60 * 1000,
+    checkEveryMs: 6 * 60 * 60 * 1000,
+    startDelayMs: 60 * 1000,
+  });
+
+  // Smakk — refresh monthly, check every 24h
+  if (process.env.SERPAPI_SMAKK_PLACE_ID) {
+    scheduleReviewsFetch({
+      label: 'reviews-smakk',
+      outputPath: path.join(__dirname, 'previews', '_sites', 'cb56296b-27d3-463c-a38f-76c764911746', '_shared', 'reviews.json'),
+      placeId: process.env.SERPAPI_SMAKK_PLACE_ID,
+      intervalMs: 30 * 24 * 60 * 60 * 1000,
+      checkEveryMs: 24 * 60 * 60 * 1000,
+      startDelayMs: 90 * 1000,
+    });
+  }
+} else {
+  logger.info('[reviews-cron] SERPAPI_KEY not set — schedulers disabled');
+}
 
 // ===== START =====
 app.listen(PORT, () => {

@@ -1,5 +1,5 @@
 // scripts/fetch-reviews-serpapi.js
-// Fetch Google Maps reviews via SerpAPI, filter, sort, save to previews/_shared/reviews.json
+// Fetch Google Maps reviews via SerpAPI, filter, sort, save to reviews.json
 // Run via: node scripts/fetch-reviews-serpapi.js
 // Requires env var: SERPAPI_KEY
 // Free plan: 250 searches/month — script capped at 15 pages per run.
@@ -8,23 +8,32 @@ const fs = require('fs');
 const path = require('path');
 
 const SERPAPI_KEY = process.env.SERPAPI_KEY;
-const DATA_ID = process.env.SERPAPI_DATA_ID || '0x47e6712e441122c5:0x1279821f9a25615f';
-const PLACE_ID = process.env.SERPAPI_PLACE_ID || 'ChIJxSIRRC5x5kcRX2Elmh-CeRI';
-const OUTPUT_PATH = path.join(__dirname, '..', 'previews', '_shared', 'reviews.json');
 
-const MAX_PAGES = 15;           // safety cap vs. 250/month budget
-const MAX_REVIEWS = 50;         // final count target
-const MIN_RATING = 4;           // keep only 4★ and 5★
-const MIN_TEXT_LENGTH = 40;     // keep only reviews with meaningful text
+// Shootnbox defaults (legacy)
+const DEFAULT_DATA_ID  = process.env.SERPAPI_DATA_ID  || '0x47e6712e441122c5:0x1279821f9a25615f';
+const DEFAULT_PLACE_ID = process.env.SERPAPI_PLACE_ID || 'ChIJxSIRRC5x5kcRX2Elmh-CeRI';
+const DEFAULT_OUTPUT   = path.join(__dirname, '..', 'previews', '_shared', 'reviews.json');
 
-async function fetchPage(nextPageToken) {
+const MAX_PAGES      = 15;
+const MAX_REVIEWS    = 50;
+const MIN_RATING     = 4;
+const MIN_TEXT_LENGTH = 40;
+
+async function fetchPage({ dataId, placeId, nextPageToken }) {
   const params = new URLSearchParams({
     engine: 'google_maps_reviews',
-    data_id: DATA_ID,
     api_key: SERPAPI_KEY,
     sort_by: 'newestFirst',
     hl: 'fr',
   });
+
+  // data_id takes precedence; fall back to place_id (ChIJ... format)
+  if (dataId) {
+    params.set('data_id', dataId);
+  } else {
+    params.set('place_id', placeId);
+  }
+
   if (nextPageToken) params.set('next_page_token', nextPageToken);
 
   const url = `https://serpapi.com/search.json?${params}`;
@@ -44,7 +53,7 @@ function computeDistribution(rawReviews) {
   return dist;
 }
 
-async function fetchAllReviews() {
+async function fetchAllReviews({ dataId, placeId }) {
   if (!SERPAPI_KEY) throw new Error('SERPAPI_KEY env var missing');
 
   let allRaw = [];
@@ -53,13 +62,12 @@ async function fetchAllReviews() {
   let page = 0;
 
   do {
-    const data = await fetchPage(nextToken);
+    const data = await fetchPage({ dataId, placeId, nextPageToken: nextToken });
     if (!placeInfo && data.place_info) placeInfo = data.place_info;
     const reviews = data.reviews || [];
     allRaw = allRaw.concat(reviews);
     page++;
 
-    // Stop if we already have enough reviews that pass the filter
     const passing = allRaw.filter(
       (r) => (r.rating || 0) >= MIN_RATING && ((r.snippet || r.extracted_snippet || '').trim().length > MIN_TEXT_LENGTH)
     ).length;
@@ -84,17 +92,20 @@ function mapToStoredReview(r) {
   };
 }
 
-async function fetchReviews({ silent = false } = {}) {
-  const { allRaw, placeInfo, pagesFetched } = await fetchAllReviews();
+async function fetchReviews({
+  silent = false,
+  dataId = DEFAULT_DATA_ID,
+  placeId = DEFAULT_PLACE_ID,
+  outputPath = DEFAULT_OUTPUT,
+} = {}) {
+  const { allRaw, placeInfo, pagesFetched } = await fetchAllReviews({ dataId, placeId });
 
-  // Filter: rating ≥ 4 AND text > 40 chars
   const filtered = allRaw.filter((r) => {
     const rating = r.rating || 0;
     const text = (r.snippet || r.extracted_snippet || '').trim();
     return rating >= MIN_RATING && text.length > MIN_TEXT_LENGTH;
   });
 
-  // Sort: most recent first (iso_date fallback to 0)
   filtered.sort((a, b) => {
     const da = a.iso_date ? new Date(a.iso_date).getTime() : 0;
     const db = b.iso_date ? new Date(b.iso_date).getTime() : 0;
@@ -102,23 +113,20 @@ async function fetchReviews({ silent = false } = {}) {
   });
 
   const top = filtered.slice(0, MAX_REVIEWS).map(mapToStoredReview);
-
-  // Rating distribution (from raw scraped sample; not the global Google distribution)
   const ratingDistributionSample = computeDistribution(allRaw);
 
-  // Load existing to preserve URLs
   let existing = {};
-  if (fs.existsSync(OUTPUT_PATH)) {
-    try { existing = JSON.parse(fs.readFileSync(OUTPUT_PATH, 'utf-8')); } catch {}
+  if (fs.existsSync(outputPath)) {
+    try { existing = JSON.parse(fs.readFileSync(outputPath, 'utf-8')); } catch {}
   }
 
   const data = {
-    rating: placeInfo?.rating ?? existing.rating ?? 4.8,
-    totalRatings: placeInfo?.reviews ?? existing.totalRatings ?? 1192,
-    googleUrl: existing.googleUrl || `https://www.google.com/maps/place/?q=place_id:${PLACE_ID}`,
-    placeId: PLACE_ID,
-    dataId: DATA_ID,
-    writeReviewUrl: existing.writeReviewUrl || `https://search.google.com/local/writereview?placeid=${PLACE_ID}`,
+    rating: placeInfo?.rating ?? existing.rating ?? 5.0,
+    totalRatings: placeInfo?.reviews ?? existing.totalRatings ?? 0,
+    googleUrl: existing.googleUrl || `https://www.google.com/maps/place/?q=place_id:${placeId}`,
+    placeId,
+    dataId: dataId || null,
+    writeReviewUrl: existing.writeReviewUrl || `https://search.google.com/local/writereview?placeid=${placeId}`,
     ratingDistributionSample,
     reviews: top,
     lastUpdated: new Date().toISOString(),
@@ -127,12 +135,13 @@ async function fetchReviews({ silent = false } = {}) {
     rawFetched: allRaw.length,
   };
 
-  fs.writeFileSync(OUTPUT_PATH, JSON.stringify(data, null, 2), 'utf-8');
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+  fs.writeFileSync(outputPath, JSON.stringify(data, null, 2), 'utf-8');
 
   if (!silent) {
     console.log(`[reviews-serpapi] pages=${pagesFetched} raw=${allRaw.length} filtered=${filtered.length} kept=${top.length}`);
     console.log(`[reviews-serpapi] rating=${data.rating} total=${data.totalRatings}`);
-    console.log(`[reviews-serpapi] written to ${OUTPUT_PATH}`);
+    console.log(`[reviews-serpapi] written to ${outputPath}`);
   }
 
   return data;
