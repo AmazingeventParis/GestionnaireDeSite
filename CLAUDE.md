@@ -553,6 +553,8 @@ var(--max-width)          /* 1300px */
 - **Cartes pages affichaient "Shootnbox - Location Photobooth"** : `GET /api/pages` retournait `pageSeo.title` complet comme `name` → corrige en extrayant la partie avant ` | ` (`split(' | ')[0]`)
 - **Médias Smakk dans la médiathèque Shootnbox** : `scanImages()` recursive depuis `public/site-images/` incluait `_sites/` → ajout `continue` pour skipper `_sites/` au niveau racine de `baseDir`
 - **Dropdown header Smakk se fermait avant le clic** : gap de 10px entre bouton et dropdown (`top: calc(100% + 10px)`) faisait déclencher `mouseleave` → `top: 100%` + `padding-top: 10px` + délai 120ms
+- **Pages Smakk héritaient le config Shootnbox** : `pages.js` lisait `site-config.json` en dur → headCustom, couleurs et favicon de Smakk ignorés → corrigé en utilisant `getActiveSite().configPath` dans les 2 fonctions de rendu
+- **Favicon Shootnbox sur pages Smakk** : favicon hardcodé en template → remplacé par logique multi-site : `config.scripts.favicon` si renseigné, sinon fallback Shootnbox pour legacy uniquement, vide pour les autres (headCustom gère)
 
 ## Sauvegardes
 
@@ -1004,7 +1006,7 @@ Slug : `accueil` — sections actuelles dans l'ordre :
 ### À faire — Smakk
 
 - [ ] Créer `_config.json` avec la charte Smakk (couleurs, typo, SEO template)
-- [ ] Ajouter favicon Smakk
+- [x] Favicon Smakk — data URIs 32x32 + 180x180 dans `config.scripts.headCustom` via `PUT /api/seo/scripts` (X-Site-Id Smakk). `pages.js` ne fallback plus sur le favicon Shootnbox pour les sites non-legacy.
 - [ ] Corriger SEO/OG titles (héritent actuellement les valeurs Shootnbox hardcodées dans `routes/pages.js`)
 - [ ] Adapter injection JSON-LD pour lire depuis `_config.json` du site actif
 - [ ] Ajouter `coolifyUuid` dans la config pour activer le bouton Déployer
