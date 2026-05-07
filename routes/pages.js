@@ -2230,6 +2230,7 @@ router.post('/:slug/history/:id/restore', verifyToken, requireRole('admin'), asy
 
     // Restore sections
     if (snapshot.sections) {
+      const currentFiles = fs.readdirSync(previewDir).filter(f => f.endsWith('.html'));
       // Delete current sections (except header/footer)
       for (const f of currentFiles) {
         if (!f.includes('header') && !f.includes('footer')) {
