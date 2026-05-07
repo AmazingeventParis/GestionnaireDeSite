@@ -493,8 +493,9 @@
           break;
         }
         // Also detect images/videos inside sections even without data-gds-img (e.g. JS-cloned elements)
-        if ((el.tagName === 'IMG' || el.tagName === 'VIDEO') && el.closest('.gds-section-wrapper') && !el.closest('.snb-header, .snb-nav, nav, header, .snb-footer, footer')) {
-          if (el.src && !el.src.includes('/logo/') && !el.src.startsWith('data:')) {
+        // Exclude data-gds-placeholder images (they have no real src — el.src resolves to document URL)
+        if ((el.tagName === 'IMG' || el.tagName === 'VIDEO') && !el.hasAttribute('data-gds-placeholder') && el.closest('.gds-section-wrapper') && !el.closest('.snb-header, .snb-nav, nav, header, .snb-footer, footer')) {
+          if (el.getAttribute('src') && !el.src.includes('/logo/') && !el.src.startsWith('data:')) {
             found = el;
             break;
           }
