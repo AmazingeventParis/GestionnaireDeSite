@@ -49,7 +49,7 @@ app.use(cookieParser());
 // 7. CORS
 app.use(cors({
   origin: process.env.NODE_ENV === 'production'
-    ? ['https://admin.swipego.app', 'https://gestionnaire.swipego.app', 'https://shootnbox.fr', 'https://www.shootnbox.fr']
+    ? ['https://admin.swipego.app', 'https://gestionnaire.swipego.app', 'https://shootnbox.fr', 'https://www.shootnbox.fr', 'https://smakk.fr', 'https://www.smakk.fr']
     : true,
   credentials: true
 }));

@@ -13,6 +13,7 @@ const CONFIG_PATH = path.join(__dirname, '..', 'site-config.json');
 const COOLIFY_HOST = 'http://217.182.89.133:8000';
 const BASE_GDS = 'https://sites.swipego.app';
 const MANAGER_MPH = 'https://shootnbox.fr/manager/m.php';
+const MANAGER_SMAKK = 'https://smakk.fr/manager/m.php';
 
 // ── Shootnbox deploy helpers ──────────────────────────────────────────────────
 
@@ -182,6 +183,116 @@ async function deployPageToShootnbox(slug) {
 
   return { destPath, bytes: html.length, uploadResult };
 }
+
+// ── Smakk deploy helpers ──────────────────────────────────────────────────────
+
+function absolutizeHtmlSmakk(html, siteId) {
+  html = absolutizeHtml(html);
+  // Inject a fetch interceptor so all calls to sites.swipego.app carry X-Site-Id
+  const interceptor = `<script>(function(){var _f=window.fetch;window.fetch=function(u,o){o=o||{};if(typeof u==='string'&&u.includes('sites.swipego.app')){o.headers=Object.assign({'X-Site-Id':'${siteId}'},o.headers||{});}return _f.call(this,u,o);};})();</script>`;
+  html = html.replace('</head>', interceptor + '\n</head>');
+  return html;
+}
+
+async function deployPageToSmakk(slug, siteId) {
+  const PORT = process.env.PORT || 3000;
+  const LOCAL = `http://localhost:${PORT}`;
+
+  // 1. Read SEO from filesystem (Docker volume on server 217)
+  const previewsBase = path.join(__dirname, '..', 'previews');
+  const siteDir = path.join(previewsBase, '_sites', siteId);
+  const pageDir = path.join(siteDir, slug);
+  const seoPath = path.join(pageDir, 'seo.json');
+  let seo = {};
+  if (fs.existsSync(seoPath)) {
+    try { seo = JSON.parse(fs.readFileSync(seoPath, 'utf-8')); } catch {}
+  }
+
+  // 2. Determine destPath from canonical or urlPath
+  let destPath;
+  if (seo.canonical) {
+    try {
+      const u = new URL(seo.canonical);
+      destPath = u.pathname === '/' ? '' : (u.pathname.replace(/\/$/, '') || `/${slug}`);
+    } catch { destPath = `/${slug}`; }
+  } else if (seo.urlPath) {
+    destPath = '/' + seo.urlPath.replace(/^\//, '').replace(/\/$/, '');
+  } else {
+    destPath = `/${slug}`;
+  }
+
+  // 3. Fetch assembled preview HTML with X-Site-Id
+  const htmlResp = await fetch(`${LOCAL}/api/pages/${encodeURIComponent(slug)}/preview`, {
+    headers: { 'X-Site-Id': siteId }
+  });
+  if (!htmlResp.ok) throw new Error(`Preview fetch failed: ${htmlResp.status}`);
+  let html = await htmlResp.text();
+
+  // 4. Absolutize GDS assets + inject X-Site-Id fetch interceptor
+  html = absolutizeHtmlSmakk(html, siteId);
+
+  // 5. Write index.html to smakk.fr via manager m.php (dir parameter)
+  const destDir = destPath ? destPath.replace(/^\//, '') : '';
+  const writeResult = await httpsPost(MANAGER_SMAKK, {
+    action: 'write',
+    file: 'index.html',
+    ...(destDir ? { dir: destDir } : {}),
+    content: html
+  });
+
+  if (!writeResult.startsWith('OK:')) throw new Error(`Write to smakk.fr failed: ${writeResult}`);
+
+  // 6. Persist deployedAt in local seo.json (only if file exists locally)
+  try {
+    if (fs.existsSync(seoPath)) {
+      seo.deployedAt = new Date().toISOString();
+      fs.writeFileSync(seoPath, JSON.stringify(seo, null, 2), 'utf-8');
+    }
+  } catch {}
+
+  return { destPath, bytes: html.length, writeResult };
+}
+
+// ── POST /smakk/:slug — deploy a Smakk GDS page to smakk.fr ──────────────────
+router.post('/smakk/:slug', verifyToken, requireRole('admin'), async (req, res) => {
+  const { slug } = req.params;
+  const siteId = req.activeSite && req.activeSite.id;
+  const ip = getClientIp(req);
+  const userAgent = req.headers['user-agent'] || '';
+
+  if (!slug || !/^[a-z0-9-]+$/.test(slug)) {
+    return res.status(400).json({ error: 'Slug invalide' });
+  }
+  if (!siteId) {
+    return res.status(400).json({ error: 'X-Site-Id Smakk requis pour ce déploiement' });
+  }
+
+  try {
+    const result = await deployPageToSmakk(slug, siteId);
+
+    await logAudit({
+      userId: req.user.id,
+      action: 'deploy_smakk',
+      entityType: 'page',
+      entityId: slug,
+      details: { siteId, destPath: result.destPath, bytes: result.bytes },
+      ip,
+      userAgent
+    });
+
+    res.json({
+      success: true,
+      slug,
+      siteId,
+      destPath: result.destPath,
+      url: `https://smakk.fr${result.destPath}/`,
+      bytes: result.bytes
+    });
+  } catch (err) {
+    console.error(`[Deploy Smakk] ${slug}:`, err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // ── POST /shootnbox/:slug — deploy a GDS page to shootnbox.fr ────────────────
 router.post('/shootnbox/:slug', verifyToken, requireRole('admin'), async (req, res) => {
