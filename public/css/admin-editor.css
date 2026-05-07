@@ -1156,9 +1156,18 @@ body.gds-admin-mode .gds-page-content {
   opacity: 1 !important;
 }
 
-/* Smakk product cards — situation overlay placeholder (hover reveal)
-   Default: keep pointer-events:none so the top-card placeholder stays accessible.
-   On card hover: situation overlay is visible → activate pointer-events. */
+/* Smakk product cards — make both placeholders independently accessible.
+   Problem: .smk-pcards-situation is position:absolute inset:0 z-index:3 and covers
+   the top image the moment the card is hovered.
+   Fix: raise top image above the overlay (z-index 10) + always show its upload button.
+   Situation placeholder: accessible by hovering the lower/body area of the card. */
+.smk-pcards-img {
+  position: relative !important;
+  z-index: 10 !important;
+}
+.smk-pcards-img .gds-ph-img-wrap .gds-ph-overlay {
+  opacity: 1 !important;
+}
 .smk-pcards-situation {
   pointer-events: none !important;
 }
