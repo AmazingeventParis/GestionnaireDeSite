@@ -231,12 +231,13 @@ async function deployPageToSmakk(slug, siteId) {
   // 4. Absolutize GDS assets + inject X-Site-Id fetch interceptor
   html = absolutizeHtmlSmakk(html, siteId);
 
-  // 5. Write index.html to smakk.fr via manager m.php (dir parameter)
+  // 5. Write index.html to smakk.fr via manager m.php
+  // dir='' → docroot (home), dir='slug' → docroot/slug/, no dir → manager/ (never used here)
   const destDir = destPath ? destPath.replace(/^\//, '') : '';
   const writeResult = await httpsPost(MANAGER_SMAKK, {
     action: 'write',
     file: 'index.html',
-    ...(destDir ? { dir: destDir } : {}),
+    dir: destDir,
     content: html
   });
 
