@@ -555,6 +555,11 @@ var(--max-width)          /* 1300px */
 - **Dropdown header Smakk se fermait avant le clic** : gap de 10px entre bouton et dropdown (`top: calc(100% + 10px)`) faisait déclencher `mouseleave` → `top: 100%` + `padding-top: 10px` + délai 120ms
 - **Pages Smakk héritaient le config Shootnbox** : `pages.js` lisait `site-config.json` en dur → headCustom, couleurs et favicon de Smakk ignorés → corrigé en utilisant `getActiveSite().configPath` dans les 2 fonctions de rendu
 - **Favicon Shootnbox sur pages Smakk** : favicon hardcodé en template → remplacé par logique multi-site : `config.scripts.favicon` si renseigné, sinon fallback Shootnbox pour legacy uniquement, vide pour les autres (headCustom gère)
+- **Restauration snapshot toujours en erreur** : `currentFiles` utilisé sans être défini dans `routes/pages.js` route `POST /:slug/history/:id/restore` → ajout `const currentFiles = fs.readdirSync(previewDir).filter(f => f.endsWith('.html'))` avant la boucle de suppression
+- **Toolbar Changer/Position/Miroir sur placeholders vides** : `el.src` (propriété JS) retourne l'URL absolue du document même pour `<img src="">`, donc tous les placeholders vides déclenchaient la toolbar → fix dans `admin-editor.js` : ajout `!el.hasAttribute('data-gds-placeholder')` + remplacement `el.src` par `el.getAttribute('src')` dans la détection fallback
+- **Placeholder hover inaccessible derrière overlay situation (Smakk pcards)** : `.smk-pcards-situation` est `position:absolute;inset:0;z-index:3` et capture les pointer-events dès le hover de carte → fix `admin-editor.css` : `pointer-events:none` par défaut sur situation, `auto` uniquement au hover de `.smk-pcards-card` ; top image avec `z-index:10` + overlay toujours visible
+- **CSS LED injecté à l'intérieur d'un bloc `::before`** : string replace ancré sur une propriété CSS intermédiaire place le nouveau contenu DANS le bloc (invalide) → toujours ancrer après le `}` fermant du bloc cible
+- **Corruption UTF-8 lors de manipulation de HTML via bash sur Windows** : passer du contenu UTF-8 par `echo "$VAR" | python3` corrompt les accents/€ (double encodage cp1252↔UTF-8) → toujours faire fetch + manipulation + push en un seul script Python avec `urllib.request` et `.decode('utf-8')` explicite, sans passer par des variables bash
 
 ## Sauvegardes
 
@@ -964,6 +969,8 @@ Slug : `accueil` — sections actuelles dans l'ordre :
 - **Accordéons section 60 et FAQ section 80 ne s'ouvrent pas** : `document.currentScript.previousElementSibling` invalide après réinjection GDS → remplacé par `document.querySelector('.smk-feat')` / `.smk-faq2` + guard `if (!root) return`
 - **Slider section 50 : double-clic placeholder bloqué** : fix global `admin-editor.css` pas déployé (commit `597b3aa` non pushé) + règle section-spécifique `.smk-slide-main-item .gds-ph-img-wrap` manquante → push + rebuild Coolify
 - **Slider section 50 : vignettes ne se mettent pas à jour** : thumbnails avaient leurs propres `data-gds-placeholder` séparés → supprimé les placeholders des vignettes, ajout `syncThumbs()` + `MutationObserver` dans le JS pour synchroniser automatiquement depuis les images principales
+- **Placeholder hover de carte inaccessible (anniversaire s20)** : `.smk-pcards-situation` est `position:absolute;inset:0;z-index:3` et bloque le placeholder du haut. Fix `admin-editor.css` : top image `.smk-pcards-img` à `z-index:10` + overlay toujours visible ; situation accessible via hover de la zone basse de carte
+- **LED neon identiques sur toutes les cartes** : shorthand `animation` avec `!important` ne peut pas être surchargé par des longhands `animation-duration`/`animation-delay` de manière fiable cross-browser → utiliser le shorthand `animation` complet dans les règles de surcharge, avec sélecteur `[data-c="xxx"]::before` (spécificité supérieure). Délais négatifs = décalage de départ
 
 ### Pages créées (accueil) — état actuel
 
@@ -977,12 +984,25 @@ Slug : `accueil` — sections actuelles dans l'ordre :
 | `60-section.html` | Accordéons features | OK |
 | `80-section.html` | FAQ | OK |
 
+### Page anniversaire — état actuel
+
+Slug : `anniversaire` — sections dans l'ordre :
+
+| Fichier | Contenu | État |
+|---|---|---|
+| `10-hero.html` | Hero dark | OK |
+| `20-section.html` | Cartes bornes (5 cartes, LED neon, photos situation + produit) | OK — photos uploadées, LED décalées par `data-c` |
+| autres sections | À compléter | — |
+
+**Animation LED neon (section 20)** : `@property --smk-pc-a` + `@keyframes smk-pc-rot`. Vitesse et décalage de départ varient par carte via sélecteur `[data-c="xxx"]::before` avec shorthand `animation` complet :
+- yellow : 2.3s, 0s | orange : 2.7s, -0.8s | indigo : 2.4s, -1.6s | green : 3.0s, -0.4s | violet : 2.1s, -1.9s
+
 ### Footer Smakk
 
 - **Fichier** : `previews/_sites/cb56296b-27d3-463c-a38f-76c764911746/_shared/footer.html`
-- **Structure** : CTA (gradient tricolore + 2 boutons) → grid 4 colonnes (logo + Nos bornes + Événements + Contact) → séparateur tricolore → barre copyright
-- **Déployé** : ✅ (28/04/2026) — sans vague de transition (supprimée car fond dark-to-dark)
-- **Liens** : tous en `#` (pages inexistantes), à mettre à jour quand les pages Smakk seront créées
+- **Structure** : CTA (gradient tricolore + 2 boutons) → grid 3 colonnes (logo + INFORMATIONS + CONTACT) → séparateur tricolore → barre copyright (mentions légales supprimées du bas, intégrées dans colonne INFORMATIONS)
+- **Déployé** : ✅ (07/05/2026) — maillage interne vers pages GDS Smakk, Instagram/LinkedIn dans CONTACT
+- **Liens** : maillés vers preview GDS (`?site=uuid`), à remplacer par URLs prod quand pages Smakk déployées
 
 ### Avis Google Smakk
 
