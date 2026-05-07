@@ -306,6 +306,11 @@ ${telephone && telephone !== '—' ? `<td align="center" width="50%" style="padd
 
     // Send email
     const smtpUser = (siteId === 'smakk' && process.env.SMTP_USER_SMAKK) ? process.env.SMTP_USER_SMAKK : process.env.SMTP_USER;
+    if (!smtpUser) {
+      console.error('[ContactForm] SMTP not configured: SMTP_USER env var is missing');
+      return res.status(500).json({ error: 'Erreur lors de l\'envoi, reessayez ou contactez-nous par telephone.' });
+    }
+    console.log(`[ContactForm] Sending via SMTP user: ${smtpUser} → to: ${dest} (site: ${siteId || 'shootnbox'})`);
     await getTransporter(siteId).sendMail({
       from: `"${senderName}" <${smtpUser}>`,
       replyTo: email,
@@ -328,7 +333,7 @@ ${telephone && telephone !== '—' ? `<td align="center" width="50%" style="padd
     }
 
   } catch (err) {
-    console.error('[ContactForm] Error:', err.message);
+    console.error('[ContactForm] Error:', err.message, '| code:', err.code, '| responseCode:', err.responseCode, '| command:', err.command);
     res.status(500).json({ error: 'Erreur lors de l\'envoi, reessayez ou contactez-nous par telephone.' });
   }
 });
