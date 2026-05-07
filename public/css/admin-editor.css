@@ -1156,6 +1156,20 @@ body.gds-admin-mode .gds-page-content {
   opacity: 1 !important;
 }
 
+/* Smakk product cards — situation overlay placeholder (hover reveal) */
+.smk-pcards-situation {
+  pointer-events: auto !important;
+}
+.smk-pcards-situation .gds-ph-img-wrap {
+  position: absolute !important;
+  inset: 0 !important;
+  height: 100% !important;
+  pointer-events: auto !important;
+}
+.smk-pcards-situation .gds-ph-img-wrap:hover .gds-ph-overlay {
+  opacity: 1 !important;
+}
+
 /* Smakk blog cards: images inside <a> with aspect-ratio container */
 .smk-blog-card-img .gds-ph-img-wrap {
   position: absolute !important;
