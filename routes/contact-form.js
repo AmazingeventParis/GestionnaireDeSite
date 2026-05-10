@@ -2,10 +2,10 @@ const router = require('express').Router();
 const nodemailer = require('nodemailer');
 const { rateLimit } = require('express-rate-limit');
 
-// Rate limit: 5 submissions per 15 minutes per IP
+// Rate limit: 3 submissions per 15 minutes per IP
 const contactLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  max: 3,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Trop de demandes, reessayez dans 15 minutes' }
@@ -49,7 +49,22 @@ function getTransporter(siteId) {
 // Spam detection helpers
 const CYRILLIC_RE = /[\u0400-\u04FF]/;
 const CJK_RE = /[\u3000-\u9FFF\uAC00-\uD7AF]/;
-const SPAM_WORDS = /\b(casino|viagra|crypto|bitcoin|lottery|prize|winner|click here|buy now|free money|make money)\b/i;
+const SPAM_WORDS = /\b(casino|viagra|crypto|bitcoin|lottery|prize|winner|click here|buy now|free money|make money|seo|backlink|link building|adult|porn|xxx|escort|nude|OnlyFans|enlargement|weight loss|diet pill|payday loan|forex|trading signal|investment offer|passive income|earn from home|work from home|make \$|guaranteed|100% free|limited offer|act now|urgent|dear friend|congratulation|you have been selected|wire transfer|bank account|western union|moneygram|whatsapp me|telegram|instagram follow)\b/i;
+
+const DISPOSABLE_DOMAINS = new Set([
+  'mailinator.com','tempmail.com','guerrillamail.com','throwaway.email','sharklasers.com',
+  'guerrillamailblock.com','grr.la','guerrillamail.info','guerrillamail.biz','guerrillamail.de',
+  'guerrillamail.net','guerrillamail.org','spam4.me','trashmail.com','trashmail.me',
+  'trashmail.net','trashmail.org','trashmail.at','trashmail.io','yopmail.com','yopmail.fr',
+  'cool.fr.nf','jetable.fr.nf','nospam.ze.tc','nomail.xl.cx','mega.zik.dj','speed.1s.fr',
+  'courriel.fr.nf','moncourrier.fr.nf','monemail.fr.nf','monmail.fr.nf','dispostable.com',
+  'maildrop.cc','fakeinbox.com','mailnull.com','spamgourmet.com','trashmail.at','filzmail.com',
+  'spambox.us','throwam.com','tempr.email','discard.email','spamfree24.org','mytrashmail.com',
+  'mailforspam.com','spamhereplease.com','spamslicer.com','throwam.com','0-mail.com','0815.ru',
+  'spamgob.com','spamex.com','mailnew.com','spammotel.com'
+]);
+
+const KNOWN_DOMAINS = ['shootnbox.fr', 'smakk.fr', 'sites.swipego.app', 'swipego.app'];
 
 function isSpam(fields) {
   const all = Object.values(fields).filter(Boolean).join(' ');
@@ -57,10 +72,21 @@ function isSpam(fields) {
   if (CYRILLIC_RE.test(all) || CJK_RE.test(all)) return 'contenu non latin detecte';
   // Spam keywords
   if (SPAM_WORDS.test(all)) return 'contenu suspect detecte';
-  // Too many URLs in message
+  // More than 1 URL in message
   const urlCount = (all.match(/https?:\/\//g) || []).length;
-  if (urlCount >= 3) return 'trop de liens dans le message';
+  if (urlCount > 1) return 'trop de liens dans le message';
   return false;
+}
+
+function isDisposableEmail(email) {
+  if (!email) return false;
+  const domain = email.split('@')[1]?.toLowerCase();
+  return domain ? DISPOSABLE_DOMAINS.has(domain) : false;
+}
+
+function isValidReturnUrl(url) {
+  if (!url) return false;
+  return KNOWN_DOMAINS.some(d => url.includes(d));
 }
 
 // POST / - public contact form submission (no auth required)
@@ -68,33 +94,47 @@ router.post('/', contactLimiter, async (req, res) => {
   try {
     const { nom, societe, email, telephone, type_evenement, date_evenement, ville, message, _honey, _returnUrl, _t } = req.body;
 
-    // --- ANTI-SPAM LAYER 1: Honeypot ---
-    if (_honey) {
+    // --- ANTI-SPAM LAYER 0: User-Agent check ---
+    const ua = req.headers['user-agent'] || '';
+    if (!ua || ua.trim().length < 5) {
+      console.log('[ContactForm] SPAM blocked: empty/missing user-agent');
       return res.json({ ok: true });
     }
 
-    // --- ANTI-SPAM LAYER 2: JS proof (_returnUrl required) ---
-    // This field is injected by JS on page load — bots POSTing directly won't have it
-    if (!_returnUrl) {
-      console.log('[ContactForm] SPAM blocked: missing _returnUrl (no JS proof)');
-      return res.json({ ok: true }); // silent reject
+    // --- ANTI-SPAM LAYER 1: Honeypot ---
+    if (_honey) {
+      console.log('[ContactForm] SPAM blocked: honeypot triggered');
+      return res.json({ ok: true });
     }
 
-    // --- ANTI-SPAM LAYER 3: Time trap ---
-    // _t = timestamp set by JS on page load. Reject if submitted < 3s after load
-    if (_t) {
-      const elapsed = Date.now() - parseInt(_t, 10);
-      if (elapsed < 3000) {
-        console.log(`[ContactForm] SPAM blocked: submitted in ${elapsed}ms (time trap)`);
-        return res.json({ ok: true }); // silent reject
-      }
+    // --- ANTI-SPAM LAYER 2: JS proof (_returnUrl required + domain check) ---
+    if (!_returnUrl || !isValidReturnUrl(_returnUrl)) {
+      console.log(`[ContactForm] SPAM blocked: invalid _returnUrl — "${_returnUrl}"`);
+      return res.json({ ok: true });
+    }
+
+    // --- ANTI-SPAM LAYER 3: Time trap (_t required, min 6s) ---
+    if (!_t) {
+      console.log('[ContactForm] SPAM blocked: missing _t (no JS proof)');
+      return res.json({ ok: true });
+    }
+    const elapsed = Date.now() - parseInt(_t, 10);
+    if (elapsed < 6000) {
+      console.log(`[ContactForm] SPAM blocked: submitted in ${elapsed}ms (time trap)`);
+      return res.json({ ok: true });
     }
 
     // --- ANTI-SPAM LAYER 4: Content filter ---
     const spamReason = isSpam({ nom, societe, email, telephone, ville, message });
     if (spamReason) {
       console.log(`[ContactForm] SPAM blocked: ${spamReason} — ${email}`);
-      return res.json({ ok: true }); // silent reject
+      return res.json({ ok: true });
+    }
+
+    // --- ANTI-SPAM LAYER 5: Disposable email ---
+    if (isDisposableEmail(email)) {
+      console.log(`[ContactForm] SPAM blocked: disposable email domain — ${email}`);
+      return res.json({ ok: true });
     }
 
     // Validation
