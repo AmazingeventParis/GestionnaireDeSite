@@ -46,6 +46,25 @@ function getTransporter(siteId) {
   return transporter;
 }
 
+// Cloudflare Turnstile verification
+async function verifyTurnstile(token, ip) {
+  const secret = process.env.TURNSTILE_SECRET_KEY;
+  if (!secret) return true; // skip if not configured (dev mode)
+  if (!token) return false;
+  try {
+    const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secret, response: token, remoteip: ip })
+    });
+    const data = await res.json();
+    return data.success === true;
+  } catch (err) {
+    console.error('[ContactForm] Turnstile verify error:', err.message);
+    return true; // fail open if Cloudflare is unreachable
+  }
+}
+
 // Spam detection helpers
 const CYRILLIC_RE = /[\u0400-\u04FF]/;
 const CJK_RE = /[\u3000-\u9FFF\uAC00-\uD7AF]/;
@@ -93,6 +112,7 @@ function isValidReturnUrl(url) {
 router.post('/', contactLimiter, async (req, res) => {
   try {
     const { nom, societe, email, telephone, type_evenement, date_evenement, ville, message, _honey, _returnUrl, _t } = req.body;
+    const cfToken = req.body['cf-turnstile-response'];
 
     // --- ANTI-SPAM LAYER 0: User-Agent check ---
     const ua = req.headers['user-agent'] || '';
@@ -135,6 +155,13 @@ router.post('/', contactLimiter, async (req, res) => {
     if (isDisposableEmail(email)) {
       console.log(`[ContactForm] SPAM blocked: disposable email domain — ${email}`);
       return res.json({ ok: true });
+    }
+
+    // --- ANTI-SPAM LAYER 6: Cloudflare Turnstile ---
+    const turnstileOk = await verifyTurnstile(cfToken, ip);
+    if (!turnstileOk) {
+      console.log(`[ContactForm] SPAM blocked: Turnstile challenge failed — ${email}`);
+      return res.status(400).json({ error: 'Vérification de sécurité échouée. Veuillez recharger la page et réessayer.' });
     }
 
     // Validation
