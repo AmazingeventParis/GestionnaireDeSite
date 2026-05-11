@@ -82,41 +82,6 @@ function httpsPost(url, postData) {
   });
 }
 
-function httpsGet(url) {
-  return new Promise((resolve, reject) => {
-    const u = new URL(url);
-    const options = { hostname: u.hostname, path: u.pathname + u.search, method: 'GET' };
-    const req = https.request(options, res => {
-      let data = '';
-      res.on('data', chunk => { data += chunk; });
-      res.on('end', () => resolve(data));
-    });
-    req.on('error', reject);
-    req.setTimeout(15000, () => { req.destroy(); reject(new Error('timeout')); });
-    req.end();
-  });
-}
-
-async function mWrite(url, filename, content) {
-  return httpsPost(url, { action: 'write', file: filename, content });
-}
-
-async function mGet(url) {
-  return httpsGet(url);
-}
-
-async function installMphp(destPath) {
-  const helperName = 'helper_gds_deploy.php';
-  const mphpCode = '<?php header("Content-Type:text/plain;charset=utf-8");$a=isset($_POST["action"])?$_POST["action"]:"";$dir=__DIR__."/";if($a==="write"&&isset($_POST["file"])&&isset($_POST["content"])){file_put_contents($dir.basename($_POST["file"]),$_POST["content"]);echo "OK:".strlen($_POST["content"]);}else{echo "ACTIVE";}';
-  const helperPhp = `<?php\n$target = dirname(__DIR__) . '${destPath}';\nif (!is_dir($target)) mkdir($target, 0755, true);\n$mphp = '${mphpCode}';\nfile_put_contents($target . '/m.php', $mphp);\necho "OK";\n?>`;
-
-  await mWrite(MANAGER_MPH, helperName, helperPhp);
-  const result = await mGet(`https://shootnbox.fr/manager/${helperName}`);
-  // Cleanup helper
-  await mWrite(MANAGER_MPH, helperName, '<?php http_response_code(404); ?>');
-  return result.includes('OK');
-}
-
 async function deployPageToShootnbox(slug) {
   const PORT = process.env.PORT || 3000;
   const LOCAL = `http://localhost:${PORT}`;
@@ -159,19 +124,15 @@ async function deployPageToShootnbox(slug) {
   // 3. Absolutize assets
   html = absolutizeHtml(html);
 
-  // 4. Install m.php + upload
-  const ok = await installMphp(destPath);
-  if (!ok) throw new Error('m.php install failed');
-
-  const targetMph = `https://shootnbox.fr${destPath}/m.php`;
-  const check = await mGet(targetMph);
-  if (!check.includes('ACTIVE')) throw new Error(`m.php not active: ${check.substring(0, 50)}`);
-
-  const uploadResult = await mWrite(targetMph, 'index.html', html);
-  if (!uploadResult.includes('OK:')) throw new Error(`Upload failed: ${uploadResult}`);
-
-  // Disable m.php
-  await mWrite(targetMph, 'm.php', '<?php http_response_code(404); ?>');
+  // 4. Write index.html directly via manager m.php (supports dir= param)
+  const destDir = destPath ? destPath.replace(/^\//, '') : '';
+  const uploadResult = await httpsPost(MANAGER_MPH, {
+    action:  'write',
+    file:    'index.html',
+    dir:     destDir,
+    content: html
+  });
+  if (!uploadResult.startsWith('OK:')) throw new Error(`Upload failed: ${uploadResult}`);
 
   // Persist deployedAt in seo.json so getPageStatus() survives Docker rebuilds
   try {
