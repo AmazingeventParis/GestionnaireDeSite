@@ -3390,6 +3390,21 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
           priceCurrency: 'EUR',
           availability: 'https://schema.org/InStock',
           url: pageCanonicalUrl || PROD_DOMAIN,
+          shippingDetails: {
+            '@type': 'OfferShippingDetails',
+            shippingRate: { '@type': 'MonetaryAmount', value: '0', currency: 'EUR' },
+            shippingDestination: { '@type': 'DefinedRegion', addressCountry: 'FR' },
+            deliveryTime: {
+              '@type': 'ShippingDeliveryTime',
+              handlingTime: { '@type': 'QuantitativeValue', minValue: 0, maxValue: 1, unitCode: 'DAY' },
+              transitTime: { '@type': 'QuantitativeValue', minValue: 0, maxValue: 2, unitCode: 'DAY' },
+            },
+          },
+          hasMerchantReturnPolicy: {
+            '@type': 'MerchantReturnPolicy',
+            applicableCountry: 'FR',
+            returnPolicyCategory: 'https://schema.org/MerchantReturnNotPermitted',
+          },
         },
         aggregateRating: { '@type': 'AggregateRating', ratingValue: String(liveRating), reviewCount: String(liveCount), bestRating: '5' },
       });
