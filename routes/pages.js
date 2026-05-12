@@ -3371,6 +3371,7 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
       'ring':             { name: 'Location Borne Ring',      price: '149' },
       'vegas':            { name: 'Location Borne Vegas',    price: '299' },
       'spinner':          { name: 'Location Spinner 360\u00b0', price: '799' },
+      'aircam-360':       { name: 'Location AirCam 360, vid\u00e9obooth a\u00e9rien XXL', price: '1099' },
       'miroir':           { name: 'Location Photobooth Miroir Magique', price: '599' },
       'karaoke':          { name: 'Location Borne Karaoké à Domicile', price: '299' },
     };
