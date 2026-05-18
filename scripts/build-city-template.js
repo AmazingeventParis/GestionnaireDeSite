@@ -225,6 +225,28 @@ function pickVariant(slug, pool) {
   return pool[Math.abs(hash) % pool.length];
 }
 
+// Pool d'ancres pour les CTAs internes vers /location-photobooth/ (diversification anchor text).
+const ANCHOR_LP_POOL = [
+  'Découvrir toutes les bornes',
+  'Voir nos modèles de photobooth',
+  'Comparer nos bornes photo',
+  'Explorer notre catalogue location',
+  'Tous nos photobooths professionnels',
+  'Voir l\'ensemble de la gamme',
+  'Découvrir notre catalogue photobooth',
+  'Comparer les modèles disponibles'
+];
+
+// Picks two DIFFERENT anchors for the slug (for Ring + Vegas zoom CTAs).
+function pickTwoAnchors(slug) {
+  let hash = 0;
+  for (let i = 0; i < slug.length; i++) hash = ((hash << 5) - hash + slug.charCodeAt(i)) | 0;
+  const h = Math.abs(hash);
+  const i1 = h % ANCHOR_LP_POOL.length;
+  const i2 = (h + 3) % ANCHOR_LP_POOL.length; // +3 to spread out
+  return [ANCHOR_LP_POOL[i1], i1 === i2 ? ANCHOR_LP_POOL[(i2 + 1) % ANCHOR_LP_POOL.length] : ANCHOR_LP_POOL[i2]];
+}
+
 // ============ TEMPLATES ============
 function escapeHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 // French elision: "de Antony" → "d'Antony", "de Versailles" → "de Versailles"
@@ -398,6 +420,7 @@ function tplLivraison(c, neighbors, dist) {
 
 function tplTarifs(c) {
   const intro = pickVariant(c.slug, TARIF_INTRO_POOL)(c);
+  const [anchorRing, anchorVegas] = pickTwoAnchors(c.slug);
   return `<style>
 .alf-tarif{max-width:1300px;margin:0 auto;padding:60px 20px;font-family:'Raleway',system-ui,sans-serif}
 .alf-tarif-head{text-align:center;margin-bottom:36px}
@@ -475,7 +498,7 @@ function tplTarifs(c) {
         <li>Installation 100% autonome</li>
       </ul>
       <a class="alf-borne-link" href="https://shootnbox.fr/le-ring/">Voir la fiche complète du Ring &rarr;</a>
-      <a class="alf-borne-cta" href="https://shootnbox.fr/location-photobooth/">Découvrir toutes les bornes <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
+      <a class="alf-borne-cta" href="https://shootnbox.fr/location-photobooth/">${escapeHtml(anchorRing)} <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
     </article>
     <article class="alf-borne-card alf-borne-vegas">
       <span class="alf-borne-eyebrow">Le Vegas · best-seller</span>
@@ -489,7 +512,7 @@ function tplTarifs(c) {
         <li>Filtres couleurs et effets vintage</li>
       </ul>
       <a class="alf-borne-link" href="https://shootnbox.fr/vegas/">Voir la fiche complète du Vegas &rarr;</a>
-      <a class="alf-borne-cta" href="https://shootnbox.fr/location-photobooth/">Découvrir toutes les bornes <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
+      <a class="alf-borne-cta" href="https://shootnbox.fr/location-photobooth/">${escapeHtml(anchorVegas)} <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
     </article>
   </div>
 </section>
