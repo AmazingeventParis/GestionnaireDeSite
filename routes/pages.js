@@ -2762,10 +2762,10 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
         }
         content = bodyMatch ? bodyMatch[1].trim() : content;
 
-        // Extract scripts (preserve JSON-LD in place for SEO/Schema)
-        content = content.replace(/<script[^>]*>([\s\S]*?)<\/script>/gi, (match, js) => {
+        // Extract scripts (preserve JSON-LD in place for SEO/Schema, keep original attributes like defer/async)
+        content = content.replace(/<script([^>]*)>([\s\S]*?)<\/script>/gi, (match, attrs, js) => {
           if (/type=["']application\/ld\+json["']/i.test(match)) return match;
-          if (js.trim()) sectionScripts += `<script>${js}</script>\n`;
+          if (js.trim()) sectionScripts += `<script${attrs}>${js}</script>\n`;
           return '';
         });
 
@@ -2864,11 +2864,11 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
         if (allCSS.trim()) sectionStyles += allCSS + '\n';
         bodyContent += `${content}\n</div>\n`;
       } else {
-        // Fragment HTML: extract scripts AND styles → consolidate in head
-        content = content.replace(/<script[^>]*>([\s\S]*?)<\/script>/gi, (match, js) => {
+        // Fragment HTML: extract scripts AND styles → consolidate in head (keep script attrs)
+        content = content.replace(/<script([^>]*)>([\s\S]*?)<\/script>/gi, (match, attrs, js) => {
           // Preserve JSON-LD scripts in place (Schema.org structured data)
           if (/type=["']application\/ld\+json["']/i.test(match)) return match;
-          if (js.trim()) sectionScripts += `<script>${js}</script>\n`;
+          if (js.trim()) sectionScripts += `<script${attrs}>${js}</script>\n`;
           return '';
         });
         content = content.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, (match, css) => {
