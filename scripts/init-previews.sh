@@ -19,11 +19,20 @@ if [ -d "$PREVIEWS_SEED" ]; then
     echo "[init] Previews volume has $HTML_COUNT HTML files — keeping existing data"
   fi
 
-  # Always sync shared files (header/footer updates from repo)
+  # Seed shared files (header/footer) ONLY if missing in volume.
+  # The volume is the source of truth at runtime: modifs via the admin UI
+  # (PUT /api/shared/header, footer) write to the volume and MUST persist
+  # across rebuilds. Existing files are never overwritten here.
   if [ -d "$PREVIEWS_SEED/_shared" ]; then
     mkdir -p "$PREVIEWS_DIR/_shared"
-    cp "$PREVIEWS_SEED/_shared"/*.html "$PREVIEWS_DIR/_shared/" 2>/dev/null || true
-    echo "[init] Synced shared header/footer from repo"
+    for src in "$PREVIEWS_SEED/_shared"/*.html; do
+      [ -f "$src" ] || continue
+      dst="$PREVIEWS_DIR/_shared/$(basename "$src")"
+      if [ ! -f "$dst" ]; then
+        cp "$src" "$dst"
+        echo "[init] Seeded missing $(basename "$src")"
+      fi
+    done
   fi
 fi
 
