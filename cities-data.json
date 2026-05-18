@@ -1,0 +1,137 @@
+{
+  "_meta": {
+    "description": "Source unique pour personnaliser les pages locales Shootnbox sans duplicate content. Chaque clé est un slug GDS.",
+    "lastUpdated": "2026-05-18",
+    "depot": {
+      "ville": "Montreuil",
+      "codePostal": "93100",
+      "geo": { "latitude": 48.8631, "longitude": 2.4419 }
+    },
+    "variants": {
+      "_doc": "Pool de variantes textuelles à roter par slug pour éviter le duplicate. Placeholders : {Ville} {CP} {Dept} {DeptCode}.",
+      "hero_h1": [
+        "Location de photobooth à {Ville}, facile à installer en 5 minutes.",
+        "Photobooth livré à {Ville} ({CP}), prêt en 5 minutes chrono.",
+        "Votre photobooth à {Ville} dès 149€, livraison incluse.",
+        "Location de borne photo à {Ville} ({DeptCode}), installation express."
+      ],
+      "tarif_intro": [
+        "Votre location de photobooth à {Ville} démarre à 149€, livraison et installation incluses. Comparez nos 4 bornes professionnelles ci-dessous et choisissez le modèle adapté à votre événement : mariage, anniversaire, soirée d'entreprise, baptême ou EVJF.",
+        "Pour vos événements à {Ville} ({CP}), profitez d'un photobooth tout équipé à partir de 149€, livraison offerte. Choisissez la borne adaptée parmi 4 modèles professionnels (Ring, Vegas, Miroir, Spinner) pour mariages, anniversaires ou soirées d'entreprise.",
+        "Photobooth professionnel livré gratuitement à {Ville} dès 149€. Quatre bornes au choix, du modèle connecté sans impression à la solution premium avec 600 tirages photo, pour habiller mariages, anniversaires, EVJF et soirées d'entreprise dans le {Dept}.",
+        "À {Ville}, louez votre photobooth dès 149€ avec livraison et installation comprises. Quatre modèles disponibles pour mariages, anniversaires, baptêmes et soirées d'entreprise. Comparez les bornes ci-dessous et obtenez un devis personnalisé."
+      ],
+      "livraison_intro": [
+        "Notre équipe se déplace à {Ville} ({CP}) depuis notre dépôt de Montreuil pour livrer votre photobooth, l'installer sur place et le récupérer après votre événement. Tous les quartiers sont couverts, week-ends et jours fériés inclus.",
+        "Depuis Montreuil, nos techniciens rejoignent {Ville} en {TempsLivraison} pour installer votre photobooth clé en main : livraison, montage, récupération. Service disponible 7 jours sur 7 dans tout le {Dept}.",
+        "Service photobooth clé en main à {Ville} et dans tout le {Dept} : {Distance} séparent notre dépôt de votre lieu d'événement. Nous livrons, installons et récupérons le matériel, vous n'avez rien à manipuler."
+      ]
+    }
+  },
+
+  "alfortville": {
+    "ville": "Alfortville",
+    "codePostal": "94140",
+    "codeInsee": "94002",
+    "departement": "Val-de-Marne",
+    "departementCode": "94",
+    "region": "Île-de-France",
+    "habitants": 44700,
+    "geo": { "latitude": 48.8081, "longitude": 2.4197 },
+    "depot": {
+      "distanceKm": 12,
+      "tempsTrajet": "30 min",
+      "depotVille": "Montreuil"
+    },
+    "quartiers": [
+      "Centre-ville",
+      "Bords-de-Seine",
+      "Chantereine",
+      "Grand Ensemble",
+      "Liberté",
+      "Vert-de-Maisons"
+    ],
+    "communesLimitrophes": [
+      "Maisons-Alfort",
+      "Charenton-le-Pont",
+      "Vitry-sur-Seine",
+      "Choisy-le-Roi",
+      "Ivry-sur-Seine"
+    ],
+    "evenementsLocaux": [
+      "Fête de la Pomme",
+      "Forum des Associations",
+      "Festival des Arts d'Alfortville"
+    ],
+    "variantPicks": {
+      "hero_h1": 0,
+      "tarif_intro": 1,
+      "livraison_intro": 0
+    },
+    "_status": "complete"
+  },
+
+  "maison-alfort": {
+    "ville": "Maisons-Alfort",
+    "codePostal": "94700",
+    "codeInsee": "94046",
+    "departement": "Val-de-Marne",
+    "departementCode": "94",
+    "region": "Île-de-France",
+    "habitants": 54300,
+    "geo": { "latitude": 48.8049, "longitude": 2.4366 },
+    "depot": { "distanceKm": 13, "tempsTrajet": "30 min", "depotVille": "Montreuil" },
+    "quartiers": ["Centre", "Les Planètes", "Vert-de-Maisons", "Charentonneau", "Les Juilliottes"],
+    "communesLimitrophes": ["Alfortville", "Charenton-le-Pont", "Créteil", "Saint-Maurice"],
+    "variantPicks": { "hero_h1": 1, "tarif_intro": 2, "livraison_intro": 1 },
+    "_status": "template"
+  },
+
+  "creteil": {
+    "ville": "Créteil",
+    "codePostal": "94000",
+    "codeInsee": "94028",
+    "departement": "Val-de-Marne",
+    "departementCode": "94",
+    "region": "Île-de-France",
+    "habitants": 91000,
+    "geo": { "latitude": 48.7903, "longitude": 2.4553 },
+    "depot": { "distanceKm": 15, "tempsTrajet": "35 min", "depotVille": "Montreuil" },
+    "quartiers": ["Centre Ancien", "Mont-Mesly", "Bleuets", "Bords-de-Marne", "Brèche", "Palais"],
+    "communesLimitrophes": ["Maisons-Alfort", "Bonneuil-sur-Marne", "Limeil-Brévannes", "Valenton", "Saint-Maur-des-Fossés"],
+    "variantPicks": { "hero_h1": 2, "tarif_intro": 3, "livraison_intro": 2 },
+    "_status": "template"
+  },
+
+  "vincennes": {
+    "ville": "Vincennes",
+    "codePostal": "94300",
+    "codeInsee": "94080",
+    "departement": "Val-de-Marne",
+    "departementCode": "94",
+    "region": "Île-de-France",
+    "habitants": 49000,
+    "geo": { "latitude": 48.8475, "longitude": 2.4378 },
+    "depot": { "distanceKm": 6, "tempsTrajet": "20 min", "depotVille": "Montreuil" },
+    "quartiers": ["Centre-ville", "Bois", "Cœur de Ville", "Sud", "Diderot"],
+    "communesLimitrophes": ["Paris 12e", "Montreuil", "Fontenay-sous-Bois", "Saint-Mandé"],
+    "variantPicks": { "hero_h1": 3, "tarif_intro": 0, "livraison_intro": 0 },
+    "_status": "template"
+  },
+
+  "saint-maur-des-fosses": {
+    "ville": "Saint-Maur-des-Fossés",
+    "codePostal": "94100",
+    "codeInsee": "94068",
+    "departement": "Val-de-Marne",
+    "departementCode": "94",
+    "region": "Île-de-France",
+    "habitants": 75800,
+    "geo": { "latitude": 48.7967, "longitude": 2.4828 },
+    "depot": { "distanceKm": 16, "tempsTrajet": "35 min", "depotVille": "Montreuil" },
+    "quartiers": ["Vieux Saint-Maur", "La Varenne", "Adamville", "Champignol", "Parc Saint-Maur"],
+    "communesLimitrophes": ["Créteil", "Bonneuil-sur-Marne", "Joinville-le-Pont", "Champigny-sur-Marne"],
+    "variantPicks": { "hero_h1": 0, "tarif_intro": 2, "livraison_intro": 1 },
+    "_status": "template"
+  }
+}
