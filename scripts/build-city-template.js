@@ -865,7 +865,7 @@ function buildSeoPayload(c, neighbors) {
         "name": `Location de photobooth à ${c.ville}`,
         "description": `Location de photobooth professionnel à ${c.ville} et dans tout le ${c.dept} (${c.deptCode}), à partir de 149€. Service complet de livraison, installation et récupération sur place.`,
         "serviceType": "Location de photobooth",
-        "provider": { "@type": "LocalBusiness", "name": "Shootnbox", "telephone": "+33145016666", "url": "https://shootnbox.fr/", "image": "https://shootnbox.fr/images/logo/shootnbox-logo-new-1.webp" },
+        "provider": { "@type": "LocalBusiness", "name": "Shootnbox", "telephone": "+33145016666", "url": "https://shootnbox.fr/", "image": "https://shootnbox.fr/images/logo/shootnbox-logo-new-1.webp", "address": { "@type": "PostalAddress", "addressLocality": "Montreuil", "postalCode": "93100", "addressRegion": "Île-de-France", "addressCountry": "FR" } },
         "areaServed": allCities.map(n => ({ "@type": "City", "name": n })),
         "offers": { "@type": "Offer", "price": "149", "priceCurrency": "EUR", "availability": "https://schema.org/InStock", "url": "https://shootnbox.fr/reservation/" },
         "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.8", "reviewCount": "1192", "bestRating": "5", "worstRating": "1" }

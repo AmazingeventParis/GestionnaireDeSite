@@ -391,6 +391,14 @@ function preRenderReviews(html) {
     '@id': 'https://shootnbox.fr/#localbusiness',
     name: 'Shootnbox',
     url: 'https://shootnbox.fr',
+    telephone: '+33145016666',
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: 'Montreuil',
+      postalCode: '93100',
+      addressRegion: 'Île-de-France',
+      addressCountry: 'FR',
+    },
     review: reviews.map((r) => {
       const o = {
         '@type': 'Review',
