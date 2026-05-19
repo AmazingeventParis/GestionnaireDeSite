@@ -3306,13 +3306,10 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
           priceCurrency: 'EUR',
           offerCount: '4',
         },
-        aggregateRating: {
-          '@type': 'AggregateRating',
-          ratingValue: String(liveRating),
-          reviewCount: String(liveCount),
-          bestRating: '5',
-          worstRating: '1',
-        },
+        // aggregateRating intentionally NOT on Service: Google flags it as
+        // "Type d'objet non valide pour <parent_node>" since 2023 — Service is
+        // not in the allowed types list for review snippets. Rating lives on
+        // the LocalBusiness block above and the Product blocks below.
       });
     }
 
@@ -3336,13 +3333,8 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
           priceCurrency: 'EUR',
           offerCount: '4',
         },
-        aggregateRating: {
-          '@type': 'AggregateRating',
-          ratingValue: String(liveRating),
-          reviewCount: String(liveCount),
-          bestRating: '5',
-          worstRating: '1',
-        },
+        // aggregateRating moved to LocalBusiness block (see comment in
+        // location-photobooth Service above).
       });
     }
 
@@ -3364,13 +3356,8 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
           priceCurrency: 'EUR',
           offerCount: '4',
         },
-        aggregateRating: {
-          '@type': 'AggregateRating',
-          ratingValue: String(liveRating),
-          reviewCount: String(liveCount),
-          bestRating: '5',
-          worstRating: '1',
-        },
+        // aggregateRating moved to LocalBusiness block (see comment in
+        // location-photobooth Service above).
       });
     }
 

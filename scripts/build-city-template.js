@@ -867,8 +867,10 @@ function buildSeoPayload(c, neighbors) {
         "serviceType": "Location de photobooth",
         "provider": { "@type": "LocalBusiness", "name": "Shootnbox", "telephone": "+33145016666", "url": "https://shootnbox.fr/", "image": "https://shootnbox.fr/images/logo/shootnbox-logo-new-1.webp", "address": { "@type": "PostalAddress", "addressLocality": "Montreuil", "postalCode": "93100", "addressRegion": "Île-de-France", "addressCountry": "FR" } },
         "areaServed": allCities.map(n => ({ "@type": "City", "name": n })),
-        "offers": { "@type": "Offer", "price": "149", "priceCurrency": "EUR", "availability": "https://schema.org/InStock", "url": "https://shootnbox.fr/reservation/" },
-        "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.8", "reviewCount": "1192", "bestRating": "5", "worstRating": "1" }
+        "offers": { "@type": "Offer", "price": "149", "priceCurrency": "EUR", "availability": "https://schema.org/InStock", "url": "https://shootnbox.fr/reservation/" }
+        // aggregateRating intentionally NOT here: Google flags AggregateRating
+        // on @type=Service as "Type d'objet non valide" since 2023. Rating is
+        // carried by the LocalBusiness block at site level instead.
       },
       {
         "@type": "Place",
