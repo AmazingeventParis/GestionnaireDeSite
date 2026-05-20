@@ -2704,8 +2704,11 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
       }
     }
 
-    // Inject shared page background (halos, glows, transitions) if enabled
-    // Deferred via script to avoid blocking LCP render
+    // Inject shared page background (halos, glows, transitions) if enabled.
+    // Rendered as static HTML — .snb-page-bg is position:fixed/z-index:-1, so it
+    // displays correctly regardless of DOM position. Inline streaming is parsed
+    // by the browser without occupying main thread (vs. the previous JS-injected
+    // version that cost ~800ms of TBT).
     if (config.sections?.background?.enabled !== false) {
       const bgPath = path.join(getSD(), 'page-background.html');
       if (fs.existsSync(bgPath)) {
@@ -2728,8 +2731,7 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
           if (css.trim()) sectionStyles += css + '\n';
           return '';
         });
-        // Defer background DOM injection until after LCP (next paint frame)
-        bodyContent += `<script>requestAnimationFrame(function(){var d=document.createElement('div');d.innerHTML=${JSON.stringify(bgHtml.trim())};document.body.prepend(d.firstElementChild);});</script>\n`;
+        bodyContent += bgHtml.trim() + '\n';
       }
     }
 
