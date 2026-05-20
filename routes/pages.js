@@ -3453,7 +3453,11 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
   <meta name="description" content="${seo.description || ''}">
   <meta name="author" content="Shootnbox">
 ${seo.canonical ? `  <link rel="canonical" href="${seo.canonical}">` : ''}
-${seo.noindex ? `  <meta name="robots" content="noindex,nofollow">` : ''}
+${seo.noindex
+  ? `  <meta name="robots" content="noindex,nofollow">`
+  : (seo.robots && seo.robots !== 'index, follow' && seo.robots !== 'index,follow')
+    ? `  <meta name="robots" content="${seo.robots}">`
+    : ''}
 ${config.scripts?.favicon
   ? `  <link rel="icon" href="${config.scripts.favicon}">`
   : getActiveSite().isLegacy
