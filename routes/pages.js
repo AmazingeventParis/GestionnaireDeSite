@@ -3507,7 +3507,7 @@ ${ogTagsHtml}
       --cta-section-padding: ${config.sections?.cta?.padding?.desktop || '60px 24px'};
       --cta-section-title-size: ${config.sections?.cta?.titleSize?.desktop || '40px'};
       --cta-section-max-width: ${config.sections?.cta?.maxWidth || '860px'};
-      /* Alias Shootnbox — variables utilisées dans les sections, définies ici une seule fois */
+      /* Alias Shootnbox : variables utilisées dans les sections, définies ici une seule fois */
       --rose: ${config.colors?.primary || '#E51981'};
       --rose-light: #ff6eb4; --rose-medium: #ff3fac; --rose-dark: #c41470;
       --bleu: ${config.colors?.secondary || '#0250FF'}; --bleu-light: #4d8aff;
@@ -3544,7 +3544,7 @@ ${ogTagsHtml}
     }
     h1, h2, h3, h4, h5, h6 { font-family: var(--font-headings); }
     .container { max-width: var(--max-width); margin: 0 auto; padding: 0 20px; }
-    /* Hero gradient global — dark left-to-right on all pages */
+    /* Hero gradient global : dark left-to-right on all pages */
     .lph-bg-overlay,
     .lp-hero-bg-overlay,
     .lp-bg-overlay,
