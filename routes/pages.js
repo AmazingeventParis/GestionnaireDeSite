@@ -3135,11 +3135,11 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
       .map(d => `  <link rel="preconnect" href="${d}" crossorigin>`)
       .join('\n');
 
-    // 3. CSS file check — only link if file exists (prevents MIME error on unpublished pages)
+    // 3. CSS file inlined (perf : avoid render-blocking external stylesheet)
     const cssSlug = slug === 'home' ? 'home' : slug;
     const cssFilePath = path.join(__dirname, '..', 'public', 'css', `styles-${cssSlug}.css`);
     const cssLink = fs.existsSync(cssFilePath)
-      ? `<link rel="stylesheet" href="/css/styles-${cssSlug}.css">`
+      ? `<style id="lp-css">${fs.readFileSync(cssFilePath, 'utf-8')}</style>`
       : '';
 
     // Read SEO data
@@ -3571,7 +3571,6 @@ ${sectionStyles ? `<style>${sectionStyles}</style>` : ''}
 ${preconnectLinks}
 ${lcpImageUrl ? `  <link rel="preload" as="image" href="${lcpImageUrl}" fetchpriority="high">` : ''}
 ${cssLink}
-${jsonLdHtml}
   ${config.scripts?.headCustom || ''}
 </head>
 <body>
@@ -3584,6 +3583,7 @@ ${editMode ? `<link rel="stylesheet" href="/css/admin-editor.css">
 <script src="/js/auth.js"></script>
 <script src="/js/admin-editor.js" defer></script>` : ''}
 ${config.scripts?.bodyEndCustom || ''}
+${jsonLdHtml}
 </body>
 </html>`;
 
