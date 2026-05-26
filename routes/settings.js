@@ -59,7 +59,8 @@ const configSchema = z.object({
     tagline: z.string().max(500).optional(),
     logo: z.string().max(1000).optional(),
     logoWhite: z.string().max(1000).optional(),
-    favicon: z.string().max(1000).optional()
+    favicon: z.string().max(1000).optional(),
+    prodDomain: z.string().max(200).optional()
   }).optional(),
   colors: z.object({
     primary: z.string().max(20).optional(),

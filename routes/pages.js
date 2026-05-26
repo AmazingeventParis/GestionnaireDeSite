@@ -3155,7 +3155,7 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
 
     // === OG / JSON-LD COMPUTATION ===
     const escAttr = v => (v || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const PROD_DOMAIN = 'https://shootnbox.fr';
+    const PROD_DOMAIN = config.identity?.prodDomain || 'https://shootnbox.fr';
 
     // Canonical page URL (for og:url and JSON-LD)
     const pageCanonicalUrl = seo.canonical
