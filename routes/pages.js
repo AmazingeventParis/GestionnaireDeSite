@@ -3521,7 +3521,7 @@ ${ogTagsHtml}
       --cta-section-padding: ${config.sections?.cta?.padding?.desktop || '60px 24px'};
       --cta-section-title-size: ${config.sections?.cta?.titleSize?.desktop || '40px'};
       --cta-section-max-width: ${config.sections?.cta?.maxWidth || '860px'};
-      /* Alias Shootnbox : variables utilisées dans les sections, définies ici une seule fois */
+      /* Aliases couleurs : variables utilisées dans les sections, définies ici une seule fois */
       --rose: ${config.colors?.primary || '#E51981'};
       --rose-light: #ff6eb4; --rose-medium: #ff3fac; --rose-dark: #c41470;
       --bleu: ${config.colors?.secondary || '#0250FF'}; --bleu-light: #4d8aff;
