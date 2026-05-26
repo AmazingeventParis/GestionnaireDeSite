@@ -3451,7 +3451,7 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${seo.title || config.identity?.name || 'Preview'}</title>
   <meta name="description" content="${seo.description || ''}">
-  <meta name="author" content="Shootnbox">
+  <meta name="author" content="${escAttr(config.seo?.metaAuthor || config.identity?.name || 'Shootnbox')}">
 ${seo.canonical ? `  <link rel="canonical" href="${seo.canonical}">` : ''}
 ${seo.noindex
   ? `  <meta name="robots" content="noindex,nofollow">`
