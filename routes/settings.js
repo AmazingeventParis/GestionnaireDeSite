@@ -140,7 +140,9 @@ const configSchema = z.object({
   }).optional(),
   scripts: z.object({
     headCustom: z.string().max(5000).optional(),
+    bodyStartCustom: z.string().max(5000).optional(),
     bodyEndCustom: z.string().max(5000).optional(),
+    favicon: z.string().max(1000).optional(),
     cookieConsent: z.object({
       enabled: z.boolean().optional(),
       text: z.string().max(1000).optional()
