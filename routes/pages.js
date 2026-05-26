@@ -2679,7 +2679,8 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
     const sections = scanSections(previewDir);
     let bodyContent = '';
     let sectionScripts = '';
-    let sectionStyles = ''; // All section CSS consolidated into one <style> in <head>
+    let sectionStyles = ''; // Critical CSS (header + first 2 sections) injected in <head>
+    let deferredSectionStyles = ''; // Below-the-fold CSS, injected at end of <body> for faster FCP
 
     // Inject shared header — extract its <style> to consolidated head CSS
     const sharedHeaderPath = path.join(getSD(), 'header.html');
@@ -2870,8 +2871,11 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
         // content-visibility:auto on sections >= 3 (below the fold) — skips layout/paint for off-screen
         const cvStyle = sectionIdx >= 3 ? 'content-visibility:auto;contain-intrinsic-size:auto 500px;' : '';
         bodyContent += `<div class="gds-section-wrapper" id="${scopeId}" data-gds-file="${section.file}" style="${wrapperStyle}${sectionSpacing}${cvStyle}">\n`;
-        // Collect CSS in head instead of per-section <style> blocks (reduces style recalculations)
-        if (allCSS.trim()) sectionStyles += allCSS + '\n';
+        // Critical CSS (sections 0-1: hero + def) goes to head; below-the-fold deferred to end of body
+        if (allCSS.trim()) {
+          if (sectionIdx < 2) sectionStyles += allCSS + '\n';
+          else deferredSectionStyles += allCSS + '\n';
+        }
         bodyContent += `${content}\n</div>\n`;
       } else {
         // Fragment HTML: extract scripts AND styles → consolidate in head (keep script attrs)
@@ -2882,7 +2886,10 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
           return '';
         });
         content = content.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, (match, css) => {
-          if (css.trim()) sectionStyles += css + '\n';
+          if (css.trim()) {
+            if (sectionIdx < 2) sectionStyles += css + '\n';
+            else deferredSectionStyles += css + '\n';
+          }
           return '';
         });
 
@@ -3104,13 +3111,16 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
     //    Les variables Shootnbox (--rose, --bleu, etc.) sont maintenant dans le :root global
     //    → supprime les blocs :root dupliqués pour réduire le temps de parsing CSS
     sectionStyles = sectionStyles.replace(/:root\s*\{[^{}]*\}/g, '');
+    deferredSectionStyles = deferredSectionStyles.replace(/:root\s*\{[^{}]*\}/g, '');
 
     // C. Minification CSS — réduit ~130KB → ~80KB (économise ~200ms parse sous throttle 4x)
-    sectionStyles = sectionStyles
-      .replace(/\/\*[\s\S]*?\*\//g, '')   // supprime les commentaires CSS
-      .replace(/[ \t]+/g, ' ')             // collapse whitespace horizontal
-      .replace(/\n\s*\n/g, '\n')           // supprime les lignes vides
+    const minifyCss = s => s
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\n\s*\n/g, '\n')
       .trim();
+    sectionStyles = minifyCss(sectionStyles);
+    deferredSectionStyles = minifyCss(deferredSectionStyles);
 
     // ── Performance hints ──
     // 1. LCP hero image preload — priorité : classe lp-hero-bg, sinon fetchpriority="high" + loading="eager"
@@ -3578,6 +3588,7 @@ ${cssLink}
 ${bodyContent}
 </div>
 ${sectionScripts}
+${deferredSectionStyles ? `<style id="lp-section-css-deferred">${deferredSectionStyles}</style>` : ''}
 ${editMode ? `<link rel="stylesheet" href="/css/admin-editor.css">
 <script>window.GDS_SLUG = '${slug}';</script>
 <script src="/js/auth.js"></script>
