@@ -3327,11 +3327,15 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
 
     // Service + AggregateOffer — money page /photobooth-mariage/ (slug: mariage)
     // Wedding-specific offering. Shares liveRating/liveCount with other pages.
-    if (slug === 'mariage') {
+    // Multi-site: gated on Shootnbox prodDomain so other sites (Smakk, etc.)
+    // can supply their own Service via seo.schema.customJsonLd without
+    // ending up with a Shootnbox-branded Service block they can't override.
+    const isLegacyShootnbox = (config.identity?.prodDomain || '').includes('shootnbox.fr');
+    if (slug === 'mariage' && isLegacyShootnbox) {
       jsonLdBlocks.push({
         '@context': 'https://schema.org',
         '@type': 'Service',
-        '@id': `${PROD_DOMAIN}/photobooth-mariage/#service`,
+        '@id': `${pageCanonicalUrl || PROD_DOMAIN + '/mariage/'}#service`,
         serviceType: 'Location de photobooth pour mariage',
         name: 'Photobooth Mariage Shootnbox',
         description: 'Location de photobooth pour mariage partout en France : borne Ring, Vegas, Miroir ou Spinner 360. Cadres personnalisés aux prénoms des mariés, 600 impressions, installation 5 minutes, support 7j/7.',
@@ -3350,11 +3354,11 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
       });
     }
 
-    if (slug === 'anniversaire') {
+    if (slug === 'anniversaire' && isLegacyShootnbox) {
       jsonLdBlocks.push({
         '@context': 'https://schema.org',
         '@type': 'Service',
-        '@id': `${PROD_DOMAIN}/photobooth-anniversaire/#service`,
+        '@id': `${pageCanonicalUrl || PROD_DOMAIN + '/anniversaire/'}#service`,
         serviceType: 'Location de photomaton pour anniversaire',
         name: 'Photomaton Anniversaire Shootnbox',
         description: 'Location de photomaton pour anniversaire partout en France : borne Ring, Vegas, Miroir ou Spinner 360 pour 18 ans, 30 ans, 40 ans, 50 ans, anniversaire enfant ou soirée. Cadres personnalisés, impressions instantanées, installation 5 minutes, support 7j/7.',
