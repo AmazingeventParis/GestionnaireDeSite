@@ -562,7 +562,8 @@
 .snb-avis .avis-carousel{flex:1;position:relative;min-width:0;padding:0 44px;overflow:hidden;}
 .snb-avis .avis-track{display:flex;gap:16px;overflow-x:auto;scroll-behavior:smooth;scroll-snap-type:x mandatory;scrollbar-width:none;}
 .snb-avis .avis-track::-webkit-scrollbar{display:none;}
-.snb-avis .avis-card{flex:0 0 calc(33.33% - 11px);scroll-snap-align:start;background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.05);border:1.5px solid rgba(0,0,0,0.04);transition:all 0.3s ease;}
+.snb-avis .avis-card{flex:0 0 calc(33.33% - 11px);scroll-snap-align:start;background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.05);border:1.5px solid rgba(0,0,0,0.04);transition:all 0.3s ease;display:flex;flex-direction:column;min-height:200px;}
+.snb-avis .avis-text:empty{display:none;}
 .snb-avis .avis-card:hover{transform:translateY(-4px);box-shadow:0 8px 24px rgba(229,25,129,0.12);border-color:rgba(229,25,129,0.15);}
 .snb-avis .avis-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
 .snb-avis .avis-avatar{width:40px;height:40px;border-radius:50%;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
