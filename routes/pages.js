@@ -3607,6 +3607,36 @@ ${jsonLdHtml}
       html = html.replace(/\s+data-gds-file="[^"]*"/g, '');
     }
 
+    // Perf step 6 — upgrade font-family fallback stacks (sans-serif → modern system stack)
+    // Inter is referenced in many sections but rarely actually loaded; system-ui stack
+    // renders instantly with consistent appearance on each OS.
+    if (!editMode) {
+      const SYS_STACK = "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif";
+      // Match font-family declarations ending with `, sans-serif` (with or without quotes around font name)
+      html = html.replace(/font-family:\s*'?Inter'?\s*,\s*sans-serif/gi, `font-family: 'Inter', ${SYS_STACK}`);
+      html = html.replace(/font-family:\s*"Inter"\s*,\s*sans-serif/gi, `font-family: "Inter", ${SYS_STACK}`);
+    }
+
+    // Perf step 5 — HTML minification (whitespace + comments, preserving <script>/<pre>/<textarea> content)
+    if (!editMode) {
+      const placeholders = [];
+      // Protect <script>, <pre>, <textarea> content from whitespace collapse
+      html = html.replace(/<(script|pre|textarea)\b[^>]*>[\s\S]*?<\/\1>/gi, m => {
+        placeholders.push(m);
+        return `PLACEHOLDER_${placeholders.length - 1}`;
+      });
+      // Drop HTML comments (keep IE conditionals just in case)
+      html = html.replace(/<!--(?!\[if)[\s\S]*?-->/g, '');
+      // Collapse leading whitespace on each line
+      html = html.replace(/^[ \t]+/gm, '');
+      // Collapse multiple blank lines to single newline
+      html = html.replace(/\n{2,}/g, '\n');
+      // Collapse whitespace between tags
+      html = html.replace(/>\s+</g, '><');
+      // Restore protected blocks
+      html = html.replace(/PLACEHOLDER_(\d+)/g, (_, i) => placeholders[parseInt(i, 10)]);
+    }
+
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.send(html);
   } catch (err) {
