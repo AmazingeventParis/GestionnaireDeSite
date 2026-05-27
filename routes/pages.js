@@ -3526,8 +3526,10 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
     let breadcrumbHtml = '';
     if (slug !== 'home' && pageCanonicalUrl) {
       const rawTitle = (seo.title || '').replace(/\s*[|\-–—]\s*Shootnbox\s*$/i, '').trim();
-      // Simpler label for breadcrumb (first part of title before " | ")
-      const crumbLabel = rawTitle.split(/\s*[|\-–—]\s*/)[0].trim() || (slug.charAt(0).toUpperCase() + slug.slice(1));
+      // Compact label for breadcrumb (humanize slug, fallback to title first segment)
+      // Example: 'mariage' -> 'Mariage', 'location-photobooth-paris' -> 'Location Photobooth Paris'
+      const slugToLabel = slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      const crumbLabel = slugToLabel || rawTitle.split(/\s*[|\-–—:]\s*/)[0].trim();
       const isCityPage = (seo.urlPath || '').startsWith('location-photobooth-');
       const breadcrumbItems = [
         { '@type': 'ListItem', position: 1, name: 'Accueil', item: `${PROD_DOMAIN}/` },
