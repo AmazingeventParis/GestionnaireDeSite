@@ -163,10 +163,46 @@ router.get('/sitemap', async (req, res) => {
 
     const pages = [];
 
-    // Scan public/site/ for index.html files (published pages)
+    // Scan public/site/ for index.html files (Shootnbox legacy build output)
     const siteDir = path.join(PUBLIC_DIR, 'site');
     if (fs.existsSync(siteDir)) {
       scanForPages(siteDir, siteDir, pages);
+    }
+
+    // Also scan previews/ (or previews/_sites/<id>/ for multi-site) so the
+    // sitemap covers ALL GDS pages even when they are not yet built to
+    // public/site/. For Smakk, the previews/_sites/<id>/ folder is the source
+    // of truth (the deployed HTML lives directly on smakk.fr, not in /site/).
+    const previewDir = getPD();
+    if (fs.existsSync(previewDir)) {
+      const slugs = fs.readdirSync(previewDir, { withFileTypes: true })
+        .filter(d => d.isDirectory() && d.name !== '_shared' && d.name !== '_banners' && d.name !== '_sites' && !d.name.startsWith('.'))
+        .map(d => d.name);
+      for (const slug of slugs) {
+        const loc = '/' + slug + '/';
+        // Skip if already added via /site/ scan
+        if (pages.some(p => p.loc === loc)) continue;
+        // Use seo.json lastModifiedAt or section file mtime as lastmod
+        const seoPath = path.join(previewDir, slug, 'seo.json');
+        let lastmod = new Date().toISOString().slice(0, 10);
+        if (fs.existsSync(seoPath)) {
+          try {
+            const s = JSON.parse(fs.readFileSync(seoPath, 'utf-8'));
+            if (s.lastModifiedAt) lastmod = String(s.lastModifiedAt).slice(0, 10);
+          } catch(e) {}
+        }
+        pages.push({ loc, lastmod });
+      }
+      // Home page (no slug) — use seo-home.json if present
+      const homeSeoPath = path.join(previewDir, 'seo-home.json');
+      if (fs.existsSync(homeSeoPath) && !pages.some(p => p.loc === '/')) {
+        let lastmod = new Date().toISOString().slice(0, 10);
+        try {
+          const s = JSON.parse(fs.readFileSync(homeSeoPath, 'utf-8'));
+          if (s.lastModifiedAt) lastmod = String(s.lastModifiedAt).slice(0, 10);
+        } catch(e) {}
+        pages.push({ loc: '/', lastmod });
+      }
     }
 
     // Try to read per-page seo.json for sitemap config
@@ -183,6 +219,8 @@ router.get('/sitemap', async (req, res) => {
             if (seoData.sitemap.priority) page.priority = seoData.sitemap.priority;
             if (seoData.sitemap.changefreq) page.changefreq = seoData.sitemap.changefreq;
           }
+          // Exclude legal pages from default high-priority sitemap entries
+          if (seoData.noindex === true) page.exclude = true;
         } catch(e) {}
       }
     }
