@@ -4,7 +4,8 @@
     "tagline": "Createur de souvenirs depuis 2019. Location de photobooths pour mariages, entreprises et evenements partout en France.",
     "logo": "/images/logo/shootnbox-logo-new-1.webp",
     "logoWhite": "/images/logo/shootnbox-logo-new-1.webp",
-    "favicon": "/images/logo/shootnbox-logo-new-1.webp"
+    "favicon": "/images/logo/shootnbox-logo-new-1.webp",
+    "prodDomain": "https://shootnbox.fr"
   },
   "colors": {
     "primary": "#E51981",
