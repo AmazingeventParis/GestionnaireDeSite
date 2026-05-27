@@ -41,7 +41,8 @@ async function _getImgDimensions(srcUrl) {
   }
 }
 
-// Perf: check if responsive variants (-480w / -768w) exist for a given /site-images/ path
+// Perf: check if responsive variants (-480w / -768w) exist for a given image path.
+// Supports both /site-images/ (newer multi-site assets) and /images/ (legacy Shootnbox).
 const _imgVariantCache = new Map();
 function _hasResponsiveVariants(srcPath) {
   if (_imgVariantCache.has(srcPath)) return _imgVariantCache.get(srcPath);
@@ -50,7 +51,10 @@ function _hasResponsiveVariants(srcPath) {
     relPath = srcPath.slice('https://sites.swipego.app'.length);
   }
   relPath = relPath.split('?')[0];
-  if (!relPath.startsWith('/site-images/')) { _imgVariantCache.set(srcPath, null); return null; }
+  if (!relPath.startsWith('/site-images/') && !relPath.startsWith('/images/')) {
+    _imgVariantCache.set(srcPath, null);
+    return null;
+  }
   const base = relPath.replace(/\.(webp|jpg|jpeg|png)$/i, '');
   const ext = (relPath.match(/\.(webp|jpg|jpeg|png)$/i) || ['.webp'])[0];
   const path480 = path.join(__dirname, '..', 'public', base + '-480w' + ext);
