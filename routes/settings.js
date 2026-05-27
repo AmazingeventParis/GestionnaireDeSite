@@ -136,7 +136,9 @@ const configSchema = z.object({
     noindex: z.boolean().optional(),
     ogImageDefault: z.string().max(1000).optional(),
     gtmId: z.string().max(50).optional(),
-    searchConsoleId: z.string().max(200).optional()
+    searchConsoleId: z.string().max(200).optional(),
+    metaAuthor: z.string().max(200).optional(),
+    themeColor: z.string().max(50).optional()
   }).optional(),
   scripts: z.object({
     headCustom: z.string().max(5000).optional(),
