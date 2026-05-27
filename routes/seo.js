@@ -151,8 +151,10 @@ router.put('/scripts', verifyToken, requireRole('admin'), async (req, res) => {
 router.get('/sitemap', async (req, res) => {
   try {
     const config = readConfig();
-    const domain = config.deploy?.domain || 'https://example.com';
-    const baseDomain = domain.startsWith('http') ? domain : 'https://' + domain;
+    // Prefer identity.prodDomain (the public production domain) over deploy.domain
+    // (which is often the GDS preview subdomain like shootnbox.swipego.app).
+    const rawDomain = config.identity?.prodDomain || config.deploy?.domain || 'https://example.com';
+    const baseDomain = rawDomain.startsWith('http') ? rawDomain.replace(/\/$/, '') : 'https://' + rawDomain.replace(/\/$/, '');
 
     // Default page priorities and change frequencies
     const pageConfig = {
@@ -180,19 +182,29 @@ router.get('/sitemap', async (req, res) => {
         .filter(d => d.isDirectory() && d.name !== '_shared' && d.name !== '_banners' && d.name !== '_sites' && !d.name.startsWith('.'))
         .map(d => d.name);
       for (const slug of slugs) {
-        const loc = '/' + slug + '/';
-        // Skip if already added via /site/ scan
-        if (pages.some(p => p.loc === loc)) continue;
-        // Use seo.json lastModifiedAt or section file mtime as lastmod
-        const seoPath = path.join(previewDir, slug, 'seo.json');
+        // Default loc = /{slug}/ but override with seo.urlPath or seo.canonical path
+        // (city pages: slug "ahuy" → urlPath "location-photobooth-ahuy")
+        let loc = '/' + slug + '/';
         let lastmod = new Date().toISOString().slice(0, 10);
+        const seoPath = path.join(previewDir, slug, 'seo.json');
         if (fs.existsSync(seoPath)) {
           try {
             const s = JSON.parse(fs.readFileSync(seoPath, 'utf-8'));
             if (s.lastModifiedAt) lastmod = String(s.lastModifiedAt).slice(0, 10);
+            if (s.urlPath && typeof s.urlPath === 'string') {
+              const up = s.urlPath.startsWith('/') ? s.urlPath : '/' + s.urlPath;
+              loc = up.endsWith('/') ? up : up + '/';
+            } else if (s.canonical && typeof s.canonical === 'string') {
+              try {
+                const u = new URL(s.canonical);
+                loc = u.pathname.endsWith('/') ? u.pathname : u.pathname + '/';
+              } catch(e) {}
+            }
           } catch(e) {}
         }
-        pages.push({ loc, lastmod });
+        // Skip if already added via /site/ scan or duplicate
+        if (pages.some(p => p.loc === loc)) continue;
+        pages.push({ loc, slug, lastmod });
       }
       // Home page (no slug) — use seo-home.json if present
       const homeSeoPath = path.join(previewDir, 'seo-home.json');
@@ -208,7 +220,8 @@ router.get('/sitemap', async (req, res) => {
 
     // Try to read per-page seo.json for sitemap config
     for (const page of pages) {
-      const slug = page.loc === '/' ? 'home' : page.loc.replace(/^\/|\/$/g, '');
+      // Prefer the slug captured during scan; fallback to loc-derived path component
+      const slug = page.slug || (page.loc === '/' ? 'home' : page.loc.replace(/^\/|\/$/g, ''));
       const seoPath = slug === 'home'
         ? path.join(getPD(), 'seo-home.json')
         : path.join(getPD(), slug, 'seo.json');
