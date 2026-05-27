@@ -9,6 +9,59 @@ const { getClientIp } = require('../middleware/threatDetector');
 const multer = require('multer');
 const sharp = require('sharp');
 
+// Perf: in-memory cache of image dimensions for auto width/height injection
+// Key: absolute /site-images/... URL ; value: { width, height } or null if unknown
+const _imgDimCache = new Map();
+async function _getImgDimensions(srcUrl) {
+  if (_imgDimCache.has(srcUrl)) return _imgDimCache.get(srcUrl);
+  // Only handle local images (relative or sites.swipego.app)
+  let relPath = srcUrl;
+  if (srcUrl.startsWith('https://sites.swipego.app/')) {
+    relPath = srcUrl.slice('https://sites.swipego.app'.length);
+  }
+  if (!relPath.startsWith('/site-images/') && !relPath.startsWith('/images/')) {
+    _imgDimCache.set(srcUrl, null);
+    return null;
+  }
+  // Strip query string
+  relPath = relPath.split('?')[0];
+  const filePath = path.join(__dirname, '..', 'public', relPath);
+  try {
+    if (!fs.existsSync(filePath)) {
+      _imgDimCache.set(srcUrl, null);
+      return null;
+    }
+    const meta = await sharp(filePath).metadata();
+    const dims = (meta.width && meta.height) ? { width: meta.width, height: meta.height } : null;
+    _imgDimCache.set(srcUrl, dims);
+    return dims;
+  } catch (e) {
+    _imgDimCache.set(srcUrl, null);
+    return null;
+  }
+}
+
+// Perf: check if responsive variants (-480w / -768w) exist for a given /site-images/ path
+const _imgVariantCache = new Map();
+function _hasResponsiveVariants(srcPath) {
+  if (_imgVariantCache.has(srcPath)) return _imgVariantCache.get(srcPath);
+  let relPath = srcPath;
+  if (srcPath.startsWith('https://sites.swipego.app/')) {
+    relPath = srcPath.slice('https://sites.swipego.app'.length);
+  }
+  relPath = relPath.split('?')[0];
+  if (!relPath.startsWith('/site-images/')) { _imgVariantCache.set(srcPath, null); return null; }
+  const base = relPath.replace(/\.(webp|jpg|jpeg|png)$/i, '');
+  const ext = (relPath.match(/\.(webp|jpg|jpeg|png)$/i) || ['.webp'])[0];
+  const path480 = path.join(__dirname, '..', 'public', base + '-480w' + ext);
+  const path768 = path.join(__dirname, '..', 'public', base + '-768w' + ext);
+  const has480 = fs.existsSync(path480);
+  const has768 = fs.existsSync(path768);
+  const result = (has480 || has768) ? { base, ext, has480, has768 } : null;
+  _imgVariantCache.set(srcPath, result);
+  return result;
+}
+
 // Multer for placeholder image uploads (editor)
 const _uploadTmp = path.join(__dirname, '..', 'uploads_tmp');
 if (!fs.existsSync(_uploadTmp)) fs.mkdirSync(_uploadTmp, { recursive: true });
@@ -3100,6 +3153,54 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
       return `<img${attrs} loading="lazy">`;
     });
 
+    // A-quater. Auto srcset + sizes pour images /site-images/ ayant variantes -480w/-768w
+    //           Cherche les fichiers -480w/-768w sur disque (cache mémoire).
+    if (!editMode) {
+      bodyContent = bodyContent.replace(/<img([^>]*?)src="([^"]+)"([^>]*?)>/gi, (match, pre, src, post) => {
+        if (/\bsrcset\s*=/i.test(match)) return match; // skip if srcset already present
+        const variants = _hasResponsiveVariants(src);
+        if (!variants) return match;
+        const parts = [];
+        if (variants.has480) parts.push(`${variants.base}-480w${variants.ext} 480w`);
+        if (variants.has768) parts.push(`${variants.base}-768w${variants.ext} 768w`);
+        parts.push(`${variants.base}${variants.ext} 1280w`);
+        const srcset = parts.join(', ');
+        const sizes = '(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 1280px';
+        return `<img${pre}src="${src}" srcset="${srcset}" sizes="${sizes}"${post}>`;
+      });
+    }
+
+    // A-quinquies. Auto width/height pour images /site-images/ (sharp metadata cache).
+    //              Helps browser reserve layout space, eliminates CLS risk.
+    if (!editMode) {
+      const imgMatches = [...bodyContent.matchAll(/<img[^>]+>/g)];
+      const replacements = await Promise.all(imgMatches.map(async (m) => {
+        const tag = m[0];
+        if (/\bwidth\s*=/i.test(tag) && /\bheight\s*=/i.test(tag)) return null;
+        const srcMatch = tag.match(/\bsrc="([^"]+)"/);
+        if (!srcMatch) return null;
+        const dims = await _getImgDimensions(srcMatch[1]);
+        if (!dims) return null;
+        // Inject width and height attributes
+        let updated = tag;
+        if (!/\bwidth\s*=/i.test(updated)) updated = updated.replace(/<img/i, `<img width="${dims.width}"`);
+        if (!/\bheight\s*=/i.test(updated)) updated = updated.replace(/<img/i, `<img height="${dims.height}"`);
+        return { from: tag, to: updated };
+      }));
+      for (const r of replacements) {
+        if (r) bodyContent = bodyContent.replace(r.from, r.to);
+      }
+    }
+
+    // A-sexies. aria-expanded sur boutons FAQ accordion (a11y).
+    //            Détecte les <button class="smk-mfaq-q"> et similaires.
+    if (!editMode) {
+      bodyContent = bodyContent.replace(/<button([^>]*?\bclass="[^"]*\b(?:smk-mfaq-q|smk-mfeat-head|smk-feat-head|smk-mirsuc-q)[^"]*"[^>]*?)>/gi, (m, attrs) => {
+        if (/\baria-expanded\s*=/i.test(attrs)) return m;
+        return `<button${attrs} aria-expanded="false">`;
+      });
+    }
+
     // A-bis. SSR des avis + JSON-LD Schema Review (voir preRenderReviews)
     //         → Googlebot voit les 50 cartes + l'aggregateRating dès le 1er passage HTML
     bodyContent = preRenderReviews(bodyContent);
@@ -3422,8 +3523,11 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
     }
 
     // BreadcrumbList — toutes les pages sauf home
+    let breadcrumbHtml = '';
     if (slug !== 'home' && pageCanonicalUrl) {
       const rawTitle = (seo.title || '').replace(/\s*[|\-–—]\s*Shootnbox\s*$/i, '').trim();
+      // Simpler label for breadcrumb (first part of title before " | ")
+      const crumbLabel = rawTitle.split(/\s*[|\-–—]\s*/)[0].trim() || (slug.charAt(0).toUpperCase() + slug.slice(1));
       const isCityPage = (seo.urlPath || '').startsWith('location-photobooth-');
       const breadcrumbItems = [
         { '@type': 'ListItem', position: 1, name: 'Accueil', item: `${PROD_DOMAIN}/` },
@@ -3435,6 +3539,16 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
         breadcrumbItems.push({ '@type': 'ListItem', position: 2, name: rawTitle, item: pageCanonicalUrl });
       }
       jsonLdBlocks.push({ '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: breadcrumbItems });
+
+      // Visual HTML breadcrumb (a11y nav + visible link to homepage)
+      const crumbHtmlItems = breadcrumbItems.map((it, i) => {
+        const isLast = i === breadcrumbItems.length - 1;
+        const sep = i > 0 ? '<span class="gds-bc-sep" aria-hidden="true">›</span>' : '';
+        const label = escAttr(i === breadcrumbItems.length - 1 ? crumbLabel : it.name);
+        if (isLast) return `${sep}<span class="gds-bc-current" aria-current="page">${label}</span>`;
+        return `${sep}<a class="gds-bc-link" href="${escAttr(it.item)}">${label}</a>`;
+      }).join('');
+      breadcrumbHtml = `<nav class="gds-breadcrumb" aria-label="Fil d'ariane"><div class="gds-bc-inner">${crumbHtmlItems}</div></nav>`;
     }
 
     // Custom JSON-LD from seo.json (validated before injection)
@@ -3580,6 +3694,30 @@ ${ogTagsHtml}
       background: transparent !important;
       padding: 0 !important;
     }
+    /* Breadcrumb (fil d'ariane) — visible just below the header */
+    .gds-breadcrumb {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 14px 32px 0;
+      font-family: var(--font-main, 'Inter'), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 13px;
+      color: rgba(255,255,255,0.55);
+      letter-spacing: 0.01em;
+    }
+    .gds-breadcrumb .gds-bc-inner {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+    }
+    .gds-breadcrumb .gds-bc-link {
+      color: rgba(255,255,255,0.55);
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+    .gds-breadcrumb .gds-bc-link:hover { color: #F4A378; text-decoration: underline; }
+    .gds-breadcrumb .gds-bc-sep { opacity: 0.45; font-weight: 400; padding: 0 2px; }
+    .gds-breadcrumb .gds-bc-current { color: rgba(255,255,255,0.85); font-weight: 500; }
+    @media (max-width: 700px) {
+      .gds-breadcrumb { padding: 10px 16px 0; font-size: 12px; }
+    }
   </style>
 ${sectionStyles ? `<style>${sectionStyles}</style>` : ''}
 ${preconnectLinks}
@@ -3589,6 +3727,7 @@ ${cssLink}
 </head>
 <body>
 <div class="snb-page-wrapper">
+${breadcrumbHtml}
 ${bodyContent}
 </div>
 ${sectionScripts}
