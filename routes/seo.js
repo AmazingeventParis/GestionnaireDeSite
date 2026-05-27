@@ -164,8 +164,9 @@ router.get('/sitemap', async (req, res) => {
     const pages = [];
 
     // Scan public/site/ for index.html files (Shootnbox legacy build output)
+    // Only for the legacy site — multi-site sitemaps must not include /site/ Shootnbox URLs
     const siteDir = path.join(PUBLIC_DIR, 'site');
-    if (fs.existsSync(siteDir)) {
+    if (getActiveSite().isLegacy && fs.existsSync(siteDir)) {
       scanForPages(siteDir, siteDir, pages);
     }
 
