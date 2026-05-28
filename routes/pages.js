@@ -56,12 +56,16 @@ function _hasResponsiveVariants(srcPath) {
     return null;
   }
   const base = relPath.replace(/\.(webp|jpg|jpeg|png)$/i, '');
-  const ext = (relPath.match(/\.(webp|jpg|jpeg|png)$/i) || ['.webp'])[0];
-  const path480 = path.join(__dirname, '..', 'public', base + '-480w' + ext);
-  const path768 = path.join(__dirname, '..', 'public', base + '-768w' + ext);
-  const has480 = fs.existsSync(path480);
-  const has768 = fs.existsSync(path768);
-  const result = (has480 || has768) ? { base, ext, has480, has768 } : null;
+  const srcExt = (relPath.match(/\.(webp|jpg|jpeg|png)$/i) || ['.webp'])[0];
+  // Prefer .webp variants (what media.js server-side + the upload pipeline generate),
+  // then fall back to same-extension variants (local generate-image-variants.js output).
+  // This lets a .jpg/.png source still get a WebP srcset, which is an upgrade for the browser.
+  let result = null;
+  for (const vext of ['.webp', srcExt]) {
+    const has480 = fs.existsSync(path.join(__dirname, '..', 'public', base + '-480w' + vext));
+    const has768 = fs.existsSync(path.join(__dirname, '..', 'public', base + '-768w' + vext));
+    if (has480 || has768) { result = { base, ext: vext, has480, has768 }; break; }
+  }
   _imgVariantCache.set(srcPath, result);
   return result;
 }
@@ -3167,7 +3171,9 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
         const parts = [];
         if (variants.has480) parts.push(`${variants.base}-480w${variants.ext} 480w`);
         if (variants.has768) parts.push(`${variants.base}-768w${variants.ext} 768w`);
-        parts.push(`${variants.base}${variants.ext} 1280w`);
+        // Largest descriptor = the original source itself (guaranteed to exist,
+        // whatever its extension — variants may be .webp while src is .jpg/.png).
+        parts.push(`${src} 1280w`);
         const srcset = parts.join(', ');
         const sizes = '(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 1280px';
         return `<img${pre}src="${src}" srcset="${srcset}" sizes="${sizes}"${post}>`;
