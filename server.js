@@ -115,34 +115,51 @@ try { app.use('/api/users', require('./routes/users')); } catch {}
 try { app.use('/api/reviews', require('./routes/reviews')); } catch {}
 
 // ===== STATIC FILES =====
-// Fonts and public images: CORS open (needed when pages are served from shootnbox.fr)
-// Cross-Origin-Resource-Policy must be 'cross-origin' to override Helmet's 'same-origin' default
-app.use('/fonts', (req, res, next) => { res.setHeader('Access-Control-Allow-Origin', '*'); res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin'); next(); });
-app.use('/images', (req, res, next) => { res.setHeader('Access-Control-Allow-Origin', '*'); res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin'); next(); });
-app.use('/site-images', (req, res, next) => { res.setHeader('Access-Control-Allow-Origin', '*'); res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin'); next(); });
-app.use('/css', (req, res, next) => { res.setHeader('Access-Control-Allow-Origin', '*'); res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin'); next(); });
-app.use('/js', (req, res, next) => { res.setHeader('Access-Control-Allow-Origin', '*'); res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin'); next(); });
-// No cache on admin JS/CSS (they change frequently during development)
-app.use(express.static(path.join(__dirname, 'public'), {
+// Public assets are served cross-origin because deployed pages (shootnbox.fr,
+// smakk.fr) reference them from this origin. They need CORS + a long cache.
+// Cross-Origin-Resource-Policy must be 'cross-origin' to override Helmet's default.
+// IMPORTANT: these specific dir handlers MUST come BEFORE the generic static below,
+// otherwise the generic handler (maxAge:0) catches everything first and kills caching.
+const PUBLIC_DIR = path.join(__dirname, 'public');
+const _isProd = process.env.NODE_ENV === 'production';
+// Admin JS/CSS change frequently — never cache them long even though they live in /css /js.
+const _ADMIN_ASSET = /(?:^|[\\/])(admin-[\w-]+|auth|components|settings|responsive-preview)\.(?:js|css)$/i;
+function _cors(res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+}
+function _hImmutable(res) { _cors(res); if (_isProd) res.setHeader('Cache-Control', 'public, max-age=31536000, immutable'); }
+function _hMedia(res)     { _cors(res); if (_isProd) res.setHeader('Cache-Control', 'public, max-age=2592000, stale-while-revalidate=86400'); }
+function _hCode(res, fp)  {
+  _cors(res);
+  if (!_isProd) return;
+  if (_ADMIN_ASSET.test(fp)) res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+  else res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=86400');
+}
+app.use('/fonts', express.static(path.join(PUBLIC_DIR, 'fonts'), { etag: true, setHeaders: (res) => _hImmutable(res) }));
+app.use('/site-images', express.static(path.join(PUBLIC_DIR, 'site-images'), { etag: true, setHeaders: (res) => _hMedia(res) }));
+app.use('/images', express.static(path.join(PUBLIC_DIR, 'images'), { etag: true, setHeaders: (res) => _hMedia(res) }));
+app.use('/css', express.static(path.join(PUBLIC_DIR, 'css'), { etag: true, setHeaders: (res, fp) => _hCode(res, fp) }));
+app.use('/js', express.static(path.join(PUBLIC_DIR, 'js'), { etag: true, setHeaders: (res, fp) => _hCode(res, fp) }));
+
+// Generic fallback for any other public file (admin HTML at root, etc.) — no cache.
+app.use(express.static(PUBLIC_DIR, {
   maxAge: 0,
-  etag: true
+  etag: true,
+  setHeaders: (res) => _cors(res)
 }));
 
 // ===== SITE PREVIEW (built pages served at /site/) =====
-app.use('/site', express.static(path.join(__dirname, 'public', 'site'), {
+app.use('/site', express.static(path.join(PUBLIC_DIR, 'site'), {
   maxAge: 0, etag: true, extensions: ['html'], index: ['index.html']
 }));
 // Fallback for /site/slug/ paths — serve index.html from subdirectory
 app.use('/site', (req, res, next) => {
   const fs = require('fs');
-  const sitePath = path.join(__dirname, 'public', 'site', req.path, 'index.html');
+  const sitePath = path.join(PUBLIC_DIR, 'site', req.path, 'index.html');
   if (fs.existsSync(sitePath)) return res.sendFile(sitePath);
   next();
 });
-// Serve site images
-app.use('/site-images', express.static(path.join(__dirname, 'public', 'site-images'), {
-  maxAge: process.env.NODE_ENV === 'production' ? '365d' : 0, etag: true
-}));
 
 // ===== URL PATH ROUTING — serve /location-photobooth-xxx/ directly (no redirect) =====
 function servePageBySlug(slug, req, res, next) {
