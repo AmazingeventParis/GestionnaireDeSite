@@ -3585,7 +3585,7 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
     const fontHeadings = config.typography?.fontHeadings || 'Raleway';
 
     let html = `<!DOCTYPE html>
-<html lang="fr">
+<html lang="${escAttr(seo.lang || 'fr')}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -3593,6 +3593,7 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
   <meta name="description" content="${seo.description || ''}">
   <meta name="author" content="${escAttr(config.seo?.metaAuthor || config.identity?.name || 'Shootnbox')}">
 ${seo.canonical ? `  <link rel="canonical" href="${seo.canonical}">` : ''}
+${Array.isArray(seo.hreflang) ? seo.hreflang.filter(h => h && h.hreflang && h.href).map(h => `  <link rel="alternate" hreflang="${escAttr(h.hreflang)}" href="${escAttr(h.href)}">`).join('\n') : ''}
 ${seo.noindex
   ? `  <meta name="robots" content="noindex,nofollow">`
   : (seo.robots && seo.robots !== 'index, follow' && seo.robots !== 'index,follow')
