@@ -3782,8 +3782,11 @@ ${jsonLdHtml}
       html = html.replace(/^[ \t]+/gm, '');
       // Collapse multiple blank lines to single newline
       html = html.replace(/\n{2,}/g, '\n');
-      // Collapse whitespace between tags
-      html = html.replace(/>\s+</g, '><');
+      // Collapse whitespace between tags. Whitespace containing a newline is
+      // indentation/formatting → remove it. Whitespace WITHOUT a newline (same
+      // line, e.g. "</span> <span>") is a meaningful inline word boundary →
+      // keep a single space, otherwise words glue together ("Louerunphotobooth").
+      html = html.replace(/>(\s+)</g, (full, ws) => /\n/.test(ws) ? '><' : '> <');
       // Restore protected blocks
       html = html.replace(/PLACEHOLDER_(\d+)/g, (_, i) => placeholders[parseInt(i, 10)]);
     }
