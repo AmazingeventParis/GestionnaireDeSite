@@ -160,7 +160,6 @@ router.get('/sitemap', async (req, res) => {
     const pageConfig = {
       '/': { priority: '1.0', changefreq: 'weekly' },
       '/location-photobooth/': { priority: '0.9', changefreq: 'monthly' },
-      '/location-photobooth-entreprise/': { priority: '0.9', changefreq: 'monthly' },
     };
 
     const pages = [];
@@ -325,7 +324,6 @@ router.post('/generate-sitemap', verifyToken, requireRole('admin'), async (req, 
     const pageConfig = {
       '/': { priority: '1.0', changefreq: 'weekly' },
       '/location-photobooth/': { priority: '0.9', changefreq: 'monthly' },
-      '/location-photobooth-entreprise/': { priority: '0.9', changefreq: 'monthly' },
     };
 
     const pages = [];
