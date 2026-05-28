@@ -3707,7 +3707,7 @@ ${ogTagsHtml}
       background: transparent !important;
       padding: 0 !important;
     }
-    /* Breadcrumb (fil d'ariane) — visible just below the header */
+    /* Breadcrumb (fil d'ariane) : visible just below the header */
     .gds-breadcrumb {
       max-width: 1280px;
       margin: 0 auto;
