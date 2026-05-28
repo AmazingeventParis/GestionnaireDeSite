@@ -589,4 +589,51 @@ function scanHtmlFiles(dir, filename, refs) {
   } catch (e) { /* skip unreadable dirs */ }
 }
 
+/**
+ * POST /regenerate-variants — Generate missing responsive variants for existing
+ * /site-images/ assets (legacy images uploaded before variant generation existed).
+ * Scans IMAGES_BASE recursively, skips _sites/ (scoped to other sites) and existing
+ * variants. Admin only. Idempotent — safe to run multiple times.
+ */
+router.post('/regenerate-variants', verifyToken, requireRole('admin'), async (req, res) => {
+  try {
+    const root = IMAGES_BASE;
+    let scanned = 0, generated = 0, skippedSmall = 0, skippedFresh = 0, errors = 0;
+
+    async function walk(dir) {
+      let entries;
+      try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (e) { return; }
+      for (const entry of entries) {
+        const fp = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          // Skip per-site scoped media and hidden dirs
+          if (entry.name === '_sites' || entry.name.startsWith('.')) continue;
+          await walk(fp);
+          continue;
+        }
+        if (!/\.(webp|jpg|jpeg|png)$/i.test(entry.name)) continue;
+        if (VARIANT_PATTERN.test(entry.name)) continue; // skip variants themselves
+        scanned++;
+        const baseName = entry.name.replace(/\.(webp|jpg|jpeg|png)$/i, '');
+        // Check if all applicable variants already exist
+        let meta;
+        try { meta = await sharp(fp).metadata(); } catch (e) { errors++; continue; }
+        const w = meta.width || 0;
+        if (w < RESPONSIVE_MIN_WIDTH) { skippedSmall++; continue; }
+        const targetWidths = RESPONSIVE_WIDTHS.filter(x => x < w);
+        const allExist = targetWidths.every(x => fs.existsSync(path.join(dir, `${baseName}-${x}w.webp`)));
+        if (allExist) { skippedFresh++; continue; }
+        const variants = await generateResponsiveVariants(fp, dir, baseName);
+        if (variants.length) generated += variants.length;
+      }
+    }
+
+    await walk(root);
+    res.json({ success: true, scanned, generated, skippedSmall, skippedFresh, errors });
+  } catch (err) {
+    console.error('[Media] regenerate-variants error:', err.message);
+    res.status(500).json({ error: 'Erreur lors de la regeneration des variants' });
+  }
+});
+
 module.exports = router;
