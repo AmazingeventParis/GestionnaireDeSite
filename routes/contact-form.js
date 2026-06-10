@@ -47,9 +47,8 @@ function getTransporter(siteId) {
 }
 
 // Cloudflare Turnstile verification
-async function verifyTurnstile(token, ip) {
-  const secret = process.env.TURNSTILE_SECRET_KEY;
-  if (!secret) return true; // skip if not configured (dev mode)
+async function verifyTurnstile(token, ip, secret) {
+  if (!secret) return true; // skip if not configured (dev mode / site without widget)
   if (!token) return false;
   try {
     const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
@@ -113,6 +112,8 @@ router.post('/', contactLimiter, async (req, res) => {
   try {
     const { nom, societe, email, telephone, type_evenement, date_evenement, ville, message, _honey, _returnUrl, _t } = req.body;
     const cfToken = req.body['cf-turnstile-response'];
+    const ip = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip;
+    const siteId = req.body._site;
 
     // --- ANTI-SPAM LAYER 0: User-Agent check ---
     const ua = req.headers['user-agent'] || '';
@@ -157,8 +158,11 @@ router.post('/', contactLimiter, async (req, res) => {
       return res.json({ ok: true });
     }
 
-    // --- ANTI-SPAM LAYER 6: Cloudflare Turnstile ---
-    const turnstileOk = await verifyTurnstile(cfToken, ip);
+    // --- ANTI-SPAM LAYER 6: Cloudflare Turnstile (per-site secret) ---
+    const turnstileSecret = (siteId === 'smakk')
+      ? process.env.TURNSTILE_SECRET_KEY_SMAKK
+      : process.env.TURNSTILE_SECRET_KEY;
+    const turnstileOk = await verifyTurnstile(cfToken, ip, turnstileSecret);
     if (!turnstileOk) {
       console.log(`[ContactForm] SPAM blocked: Turnstile challenge failed — ${email}`);
       return res.status(400).json({ error: 'Vérification de sécurité échouée. Veuillez recharger la page et réessayer.' });
@@ -179,7 +183,6 @@ router.post('/', contactLimiter, async (req, res) => {
 
     const typeLabels = { mariage: 'Mariage', anniversaire: 'Anniversaire', corporate: 'Evenement corporate', soiree: 'Soiree privee', autre: 'Autre' };
     const typeLabel = typeLabels[type_evenement] || safe(type_evenement);
-    const siteId = req.body._site;
     const dest = (siteId === 'smakk' && process.env.CONTACT_EMAIL_SMAKK)
       ? process.env.CONTACT_EMAIL_SMAKK
       : (process.env.CONTACT_EMAIL || 'contact@shootnbox.fr');
