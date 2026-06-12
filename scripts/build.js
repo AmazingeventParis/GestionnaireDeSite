@@ -11,6 +11,10 @@ const previewsDir = path.join(projectRoot, 'previews');
 // Read site-config.json for SEO data
 const siteConfigPath = path.join(projectRoot, 'site-config.json');
 const siteConfig = JSON.parse(fs.readFileSync(siteConfigPath, 'utf-8'));
+const legacyTracking = require('../lib/legacy-tracking');
+// build.js publishes the Shootnbox (legacy) site; guard so the canonical
+// tracking self-heal only ever applies to shootnbox.fr, never a secondary site.
+const IS_LEGACY = (siteConfig.identity?.prodDomain || siteConfig.deploy?.domain || 'shootnbox.fr').includes('shootnbox.fr');
 const SITE_DOMAIN = siteConfig.deploy?.domain ? `https://${siteConfig.deploy.domain}` : 'https://shootnbox.swipego.app';
 const PRODUCTION_DOMAIN = 'https://shootnbox.fr'; // Future production domain
 
@@ -940,6 +944,7 @@ ul { list-style: none; padding: 0; margin: 0; }
 .gds-section-wrapper .snb-header{position:static!important;top:auto!important;left:auto!important;width:auto!important;z-index:auto!important;background:transparent!important;padding:0!important}
 </style>
 ${buildJsonLdTags(page)}
+${legacyTracking.ensureHead(siteConfig.scripts?.headCustom, IS_LEGACY)}
 </head>
 <body>
 
@@ -952,6 +957,7 @@ ${page.sections.filter(s => sectionContents[s]).map(s => sectionContents[s]).joi
 
 ${sharedFooter}
 
+${legacyTracking.ensureNoscript(siteConfig.scripts?.bodyEndCustom, IS_LEGACY)}
 </body>
 </html>`;
 

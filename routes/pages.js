@@ -87,6 +87,7 @@ const _DEFAULT_PD = path.join(__dirname, '..', 'previews');
 const PUBLIC_DIR = path.join(__dirname, '..', 'public', 'site');
 const BUILD_SCRIPT = path.join(__dirname, '..', 'scripts', 'build.js');
 const { getActiveSite } = require('../middleware/activeSite');
+const legacyTracking = require('../lib/legacy-tracking');
 
 /** Get previews directory for the current request's active site. */
 function getPD() { return getActiveSite().previewsDir; }
@@ -3736,7 +3737,7 @@ ${sectionStyles ? `<style>${sectionStyles}</style>` : ''}
 ${preconnectLinks}
 ${lcpImageUrl ? `  <link rel="preload" as="image" href="${lcpImageUrl}" fetchpriority="high">` : ''}
 ${cssLink}
-  ${config.scripts?.headCustom || ''}
+  ${legacyTracking.ensureHead(config.scripts?.headCustom, getActiveSite().isLegacy)}
 </head>
 <body>
 <div class="snb-page-wrapper">
@@ -3749,7 +3750,7 @@ ${editMode ? `<link rel="stylesheet" href="/css/admin-editor.css">
 <script>window.GDS_SLUG = '${slug}';</script>
 <script src="/js/auth.js"></script>
 <script src="/js/admin-editor.js" defer></script>` : ''}
-${config.scripts?.bodyEndCustom || ''}
+${legacyTracking.ensureNoscript(config.scripts?.bodyEndCustom, getActiveSite().isLegacy)}
 ${jsonLdHtml}
 </body>
 </html>`;
