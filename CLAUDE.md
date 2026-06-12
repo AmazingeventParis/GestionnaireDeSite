@@ -198,9 +198,17 @@ curl -s "http://217.182.89.133:8000/api/v1/deploy?uuid=usnz6o4qp48maw8q0lny22nl&
 Ce bouton appelle `POST /api/deploy/shootnbox/:slug` sur server 217, qui :
 1. Recupere le HTML assemble de la page (`/api/pages/:slug/preview`)
 2. Absolutise tous les assets locaux (`/images/`, `/fonts/`, `/css/`, `/js/`) en `https://sites.swipego.app/...`
-3. Installe un `m.php` temporaire dans le dossier cible sur server 79 (via helper PHP passe par `/manager/m.php`)
-4. Pousse le `index.html` dans ce dossier
-5. Desactive `m.php` apres transfert
+3. Ecrit `index.html` directement via POST sur `https://shootnbox.fr/manager/m.php` avec `action=write`, `dir={slug}`, `file=index.html`
+4. Verifie la reponse `OK:bytes` (echec si autre chose)
+
+**m.php shootnbox.fr** — helper permanent (pas temporaire) sur `https://shootnbox.fr/manager/m.php` :
+- Repond `ACTIVE` sur GET (health check)
+- `action=write` + `file=index.html` + `dir=slug` → ecrit dans `/var/www/.../shootnbox.fr/{slug}/index.html`
+- `dir=''` → ecrit a la racine du docroot (page home)
+- Retourne `OK:{bytes}` si succes, `ERROR:write` sinon
+- **Ne jamais ecraser ce fichier** — c'est le seul point d'entree pour les deploys Shootnbox
+- Protege par `manager/.htaccess` avec `php_value auto_prepend_file none` (bypass Wordfence WAF)
+- Corrige le 11/05/2026 — commit `89a321c` (ancienne version cassee : pas de reponse ACTIVE, pas de param `dir`, retournait `OK` pas `OK:size`)
 
 Le dossier cible est determine par `urlPath` ou `canonical` dans le SEO de la page GDS.
 
@@ -423,13 +431,21 @@ var(--max-width)          /* 1300px */
 - `replyTo` = email du prospect, `from` = `contact@shootnbox.fr`
 - Charset UTF-8 force (`Content-Type` meta + `encoding: 'utf-8'` Nodemailer)
 
-### Anti-spam (4 couches invisibles)
-1. **Honeypot** : champ `_honey` cache, rejet silencieux si rempli
-2. **JS proof** : champ `_returnUrl` injecte par JS au chargement — bots qui POST directement n'ont pas ce champ
-3. **Time trap** : champ `_t` = timestamp au chargement, rejet si soumission < 3 secondes
-4. **Filtre contenu** : rejet cyrillique/CJK, mots-cles spam (casino, viagra, crypto...), 3+ URLs
-- Tous les rejets retournent `{"ok":true}` (le bot ne sait pas qu'il est bloque)
-- Rate limit : 5 soumissions / 15 minutes par IP
+### Anti-spam (7 couches — mis à jour 10/05/2026)
+0. **User-Agent** : obligatoire ≥5 chars — rejet silencieux
+1. **Honeypot** : champ `_honey` caché, rejet silencieux si rempli
+2. **JS proof** : champ `_returnUrl` obligatoire + domaine validé (shootnbox.fr / smakk.fr / swipego.app)
+3. **Time trap** : champ `_t` obligatoire (plus de bypass si absent), rejet si soumission < **6 secondes**
+4. **Filtre contenu** : rejet cyrillique/CJK, ~35 mots-clés spam (casino, SEO, forex, adult...), max **1 URL**
+5. **Email jetable** : blocklist 50 domaines (yopmail, mailinator, trashmail, guerrillamail...)
+6. **Cloudflare Turnstile** : challenge invisible validé via `POST challenges.cloudflare.com/turnstile/v0/siteverify` — échoue avec 400 explicite (pas silent)
+- Couches 0–5 : rejets silencieux `{"ok":true}` (le bot ne sait pas qu'il est bloqué)
+- Couche 6 : `400 + message explicite` (l'utilisateur peut recharger la page)
+- Fail-open si Cloudflare injoignable (pas de blocage des vrais utilisateurs)
+- Rate limit : **3 soumissions / 15 minutes** par IP
+- **Env var Coolify** : `TURNSTILE_SECRET_KEY=0x4AAAAAADMeIElwLrgw0cS8pSWzXHmiiaA` (ajoutée 10/05/2026)
+- **Site key** : `0x4AAAAAADMeIIBHgV_NzldV` (dans le HTML du formulaire)
+- **Bug corrigé** : body AJAX n'incluait pas `_returnUrl` ni `_t` (hidden inputs injectés mais non lus) → corrigé dans `contacts/20-section.html` (10/05/2026)
 
 ### Apres soumission
 - **POST AJAX** (JS actif) : reponse JSON `{"ok":true}`, formulaire remplace par message de confirmation
@@ -519,6 +535,7 @@ var(--max-width)          /* 1300px */
 
 ## Bugs resolus importants
 
+- **Deploy Shootnbox toujours en echec (m.php casse)** : `shootnbox.fr/manager/m.php` etait une vieille version qui ne retournait rien sur GET, ne supportait pas le param `dir=`, retournait `OK` au lieu de `OK:size` → `installMphp()` echouait silencieusement a chaque deploy. Fix (11/05/2026) : m.php remplace par version fonctionnelle via ISPmanager + `manager/.htaccess` cree pour bypass Wordfence WAF + `routes/deploy.js` simplifie (suppression des 4 fonctions helper, POST direct identique au pattern Smakk) — commit `89a321c`
 - **Sections disparaissant au deploy** : Volumes Docker non montes → corrige avec docker-compose build pack
 - **CSS casse entre sections** : Scoping CSS avec parser brace-matching + strip @import
 - **Placeholder overlay invisible** : z-index 50, detection par dashed border + [class*="placeholder"]
@@ -560,6 +577,10 @@ var(--max-width)          /* 1300px */
 - **Placeholder hover inaccessible derrière overlay situation (Smakk pcards)** : `.smk-pcards-situation` est `position:absolute;inset:0;z-index:3` et capture les pointer-events dès le hover de carte → fix `admin-editor.css` : `pointer-events:none` par défaut sur situation, `auto` uniquement au hover de `.smk-pcards-card` ; top image avec `z-index:10` + overlay toujours visible
 - **CSS LED injecté à l'intérieur d'un bloc `::before`** : string replace ancré sur une propriété CSS intermédiaire place le nouveau contenu DANS le bloc (invalide) → toujours ancrer après le `}` fermant du bloc cible
 - **Corruption UTF-8 lors de manipulation de HTML via bash sur Windows** : passer du contenu UTF-8 par `echo "$VAR" | python3` corrompt les accents/€ (double encodage cp1252↔UTF-8) → toujours faire fetch + manipulation + push en un seul script Python avec `urllib.request` et `.decode('utf-8')` explicite, sans passer par des variables bash
+- **smakk.fr/ servait WordPress malgré index.html présent** : ISPmanager avait `dirindex: index.php index.html` → Apache trouvait index.php en premier. Fix : `webdomain.edit&elid=smakk.fr&sok=yes&dirindex=index.html+index.php` via ISPmanager API
+- **m.php smakk.fr remplacé par script diagnostic** : Le m.php avait été remplacé par un script qui n'affichait que des diagnostics (taille index.html, DirectoryIndex). Restauré via ISPmanager `func=file.edit` en POST avec le contenu PHP fonctionnel
+- **Onglets section 50 anniversaire non cliquables dans l'éditeur** : GDS intercepte les `click` en phase capture avant les `onclick` inline → fix via `<script>` ajouté à la section avec `addEventListener('pointerdown', handler, true)` (capture phase, déclenche avant l'éditeur)
+- **Wordfence WAF bloque les gros POST sur smakk.fr/manager/** : Wordfence injecte via `auto_prepend_file` dans `.htaccess` racine — bypass en créant `manager/.htaccess` avec `php_value auto_prepend_file none` pour tous les modules PHP (mod_php, mod_php7, mod_php8)
 
 ## Sauvegardes
 
@@ -689,7 +710,7 @@ blocks/_sites/{siteId}/               ← blocs réutilisables
 
 ### A FAIRE — multi-site
 - [ ] Adapter `routes/puppeteer-audit.js` pour utiliser `req.activeSite.previewsDir`
-- [ ] Initialiser `_config.json` pour le site Smakk (une fois specs reçues)
+- [x] Initialiser `_config.json` pour le site Smakk — fait (identity, seo.titleTemplate, couleurs)
 - [ ] Adapter `routes/pages.js` injection JSON-LD (Organization, LocalBusiness) pour lire depuis `_config.json` du site actif au lieu de valeurs Shootnbox hardcodées
 
 ## Référentiel de configuration — Shootnbox (source : site-config.json + routes/pages.js)
@@ -877,7 +898,7 @@ Les 5 pages suivantes ont leur section de cartes de bornes remplacée par le blo
 - **Previews** : `previews/_sites/cb56296b-27d3-463c-a38f-76c764911746/`
 - **Images** : `public/site-images/_sites/cb56296b-27d3-463c-a38f-76c764911746/`
 - **Blocs** : `blocks/_sites/cb56296b-27d3-463c-a38f-76c764911746/`
-- **Config** : `previews/_sites/cb56296b-27d3-463c-a38f-76c764911746/_config.json` (à créer)
+- **Config** : `previews/_sites/cb56296b-27d3-463c-a38f-76c764911746/_config.json` (existe — identity.name "Smakk", titleTemplate, couleurs)
 - **Header/footer** : `previews/_sites/cb56296b-27d3-463c-a38f-76c764911746/_shared/`
 
 ### Activer le site dans GDS
@@ -971,15 +992,18 @@ Slug : `accueil` — sections actuelles dans l'ordre :
 - **Slider section 50 : vignettes ne se mettent pas à jour** : thumbnails avaient leurs propres `data-gds-placeholder` séparés → supprimé les placeholders des vignettes, ajout `syncThumbs()` + `MutationObserver` dans le JS pour synchroniser automatiquement depuis les images principales
 - **Placeholder hover de carte inaccessible (anniversaire s20)** : `.smk-pcards-situation` est `position:absolute;inset:0;z-index:3` et bloque le placeholder du haut. Fix `admin-editor.css` : top image `.smk-pcards-img` à `z-index:10` + overlay toujours visible ; situation accessible via hover de la zone basse de carte
 - **LED neon identiques sur toutes les cartes** : shorthand `animation` avec `!important` ne peut pas être surchargé par des longhands `animation-duration`/`animation-delay` de manière fiable cross-browser → utiliser le shorthand `animation` complet dans les règles de surcharge, avec sélecteur `[data-c="xxx"]::before` (spécificité supérieure). Délais négatifs = décalage de départ
+- **CSS `@keyframes` regex `[^}]+` casse le parser** : cette regex ne match que jusqu'au premier `}` dans un keyframe imbriqué (`50% { opacity: 0.4; }` → `}` orphelin) — le `}` restant corrompt silencieusement le CSSOM et supprime toutes les règles suivantes du stylesheet. Toujours utiliser `[\s\S]*?` avec un regex d'ancrage précis sur la signature complète du bloc à supprimer.
+- **Overlay situation hover (smk-pcards)** : `.smk-pcards-situation` plein-carte supprimé (08/05/2026) — conservé uniquement le layout classique (image + body). CSS rules situation + `opacity:0` hover sur img/body nettoyés de la section.
+- **Slider accueil s40 : autoplay cassé après suppression infobar** : le JS référençait `btnPrev/btnNext/btnPlay` (qui étaient dans `.smk-slide-infobar`) sans null check → `TypeError` avant `start()` → autoplay mort. Fix : `if (btnPrev)`, `if (btnNext)`, `if (btnPlay)` avant chaque `addEventListener`. Règle : toujours null-checker les éléments DOM qui peuvent avoir été supprimés.
 
 ### Pages créées (accueil) — état actuel
 
 | Fichier | Contenu | État |
 |---|---|---|
-| `10-hero.html` | Hero dark, image bg placeholder | Placeholder à remplir |
+| `10-hero.html` | Hero dark, image bg, pastille Offre Weekend | OK (08/05/2026) — WEEKEND25 supprimé, prix 299€/378€ mis en avant |
 | `20-section.html` | Bandeau logos défilants (confiance) | OK |
 | `30-section.html` | Cartes produits 5 bornes | OK |
-| `40-section.html` | Section additionnelle | OK |
+| `40-section.html` | Galerie slider photos | OK (08/05/2026) — barre info supprimée, autoplay fixé (null checks), DURATION 3s |
 | `50-section.html` | Galerie slider 10 slides | Placeholders principaux à remplir (vignettes auto-sync) |
 | `60-section.html` | Accordéons features | OK |
 | `80-section.html` | FAQ | OK |
@@ -991,18 +1015,37 @@ Slug : `anniversaire` — sections dans l'ordre :
 | Fichier | Contenu | État |
 |---|---|---|
 | `10-hero.html` | Hero dark | OK |
-| `20-section.html` | Cartes bornes (5 cartes, LED neon, photos situation + produit) | OK — photos uploadées, LED décalées par `data-c` |
+| `20-section.html` | Cartes bornes (5 cartes, LED neon, features complètes, layout classique) | OK (08/05/2026) |
+| `30-section.html` | Bloc avis Google (smk-mq) | OK — X-Site-Id header corrigé |
 | autres sections | À compléter | — |
 
-**Animation LED neon (section 20)** : `@property --smk-pc-a` + `@keyframes smk-pc-rot`. Vitesse et décalage de départ varient par carte via sélecteur `[data-c="xxx"]::before` avec shorthand `animation` complet :
-- yellow : 2.3s, 0s | orange : 2.7s, -0.8s | indigo : 2.4s, -1.6s | green : 3.0s, -0.4s | violet : 2.1s, -1.9s
+**Cartes bornes (section 20) — état 08/05/2026** :
+- **Features** : 6 features par carte avec emoji, reprises du bloc Shootnbox. Mapping : Vegas→La Smakk, Ring/Miroir/Spinner/Aircam = même nom
+- **Overlay situation** : supprimé — layout classique (image + corps) uniquement
+- **Padding** : `.smk-pcards-body` à `22px 28px`, `.smk-pcards-img` avec `margin: 8px 8px 0` + `width: calc(100% - 16px)` + `border-radius: 14px`
+- **LED neon** : `@property --smk-pc-a` + `@keyframes smk-pc-rot`. Délais : yellow 2.3s/0s | orange 2.7s/-0.8s | indigo 2.4s/-1.6s | green 3.0s/-0.4s | violet 2.1s/-1.9s
+
+### Page location-photobooth — état actuel
+
+| Fichier | Contenu | État |
+|---|---|---|
+| `10-hero.html` | Hero dark | OK — bouton "Voir les bornes" supprimé (08/05/2026) |
+| `20-section.html` | Texte gauche + Fiche technique droite | OK — placeholder image borne ajouté (côte-à-côte specs, 38% gauche, format portrait 2:3) |
+
+**Placeholder fiche technique (section 20)** : layout `.smk-loc-specs-body` flex row — placeholder `.smk-loc-specs-img` (38%, aspect-ratio 2/3) + `.smk-loc-specs-list` (flex:1). Responsive : colonne sur <500px.
+
+### Page location-photocall — état actuel
+
+- **Taille** : uniformisée à `230 × 230 cm` (= 2,3m × 2,3m) sur toutes les sections (10-hero, 20-section, 30-section)
+- **Prix** : `250€ HT` partout (hero) / `250€` + suffix HT séparé (section 30)
+- **Format section 30** : "2m × 2m ou 2,30m" → "2,30m × 2,30m" (suppression de l'option ambiguë 2m×2m)
 
 ### Footer Smakk
 
 - **Fichier** : `previews/_sites/cb56296b-27d3-463c-a38f-76c764911746/_shared/footer.html`
 - **Structure** : CTA (gradient tricolore + 2 boutons) → grid 3 colonnes (logo + INFORMATIONS + CONTACT) → séparateur tricolore → barre copyright (mentions légales supprimées du bas, intégrées dans colonne INFORMATIONS)
 - **Déployé** : ✅ (07/05/2026) — maillage interne vers pages GDS Smakk, Instagram/LinkedIn dans CONTACT
-- **Liens** : maillés vers preview GDS (`?site=uuid`), à remplacer par URLs prod quand pages Smakk déployées
+- **Liens** : ✅ mis à jour vers URLs prod smakk.fr (08/05/2026) — tous les liens preview GDS remplacés
 
 ### Avis Google Smakk
 
@@ -1011,29 +1054,144 @@ Slug : `anniversaire` — sections dans l'ordre :
 - **Stockage** : `previews/_sites/cb56296b-27d3-463c-a38f-76c764911746/_shared/reviews.json`
 - **Scheduler** : mensuel (30j), check toutes les 24h, premier fetch 90s après boot — activé si `SERPAPI_SMAKK_PLACE_ID` défini dans Coolify
 - **Script** : `scripts/fetch-reviews-serpapi.js` multi-site — accepte `{ placeId, dataId, outputPath }` en options. Utilise `place_id` (ChIJ...) quand pas de `data_id` hex disponible
-- **Bloc GDS** : `smakk_avis.html` (racine projet) — charte orange #F4A378/indigo #7877FF — fetch `/api/reviews?site=cb56296b-27d3-463c-a38f-76c764911746`
-- **API** : `GET /api/reviews?site={uuid}` retourne les avis du site actif. `POST /api/reviews/refresh` avec throttle mensuel pour les sites non-legacy
+- **Bloc GDS** : `smakk_avis.html` (racine projet) — charte orange #F4A378/indigo #7877FF — fetch `/api/reviews` avec header `X-Site-Id: cb56296b-...`
+- **API** : `GET /api/reviews` avec header `X-Site-Id` retourne les avis du site actif. `POST /api/reviews/refresh` avec throttle mensuel pour les sites non-legacy
+- **ATTENTION** : `?site=UUID` en query param ne résout pas le site actif dans `reviews.js` — toujours utiliser le header `X-Site-Id` pour les appels fetch côté client
+- **Bloc mis à jour** (08/05/2026) : 7 pages Smakk (`accueil/70`, `anniversaire/30`, `entreprise/30`, `location-photobooth/130`, `mariage/30`, `miroir-photobooth/30`, `photobooth-360/30`) — fetch corrigé + déployées
 - Ajouter le bloc à la page Smakk via l'éditeur une fois que le premier fetch automatique a peuplé le JSON (vérifier dans les logs Coolify : `[reviews-smakk] Done`)
 
 ### Header Smakk — fixes
 
 - **Dropdown gap** : `top: calc(100% + 10px)` → `top: 100%` + `padding-top: 10px` (le vide entre bouton et dropdown déclenchait `mouseleave` prématuré)
 - **Délai fermeture** : `mouseleave` avec `setTimeout(120ms)` comme filet de sécurité
-- **Bouton "Location photobooth"** : converti en `<a href="https://sites.swipego.app/api/pages/location-photobooth/preview">` (cliquable + dropdown au survol)
-- **"Photobooth Smakk"** (dropdown desktop + mobile) : même URL que ci-dessus
+- **Bouton "Location photobooth"** : lien vers `https://smakk.fr/location-photobooth/` (prod)
+- **"Photobooth Smakk"** (dropdown desktop + mobile) : même URL prod
 - **JS** : `querySelector('button')` → `querySelector('.smk-hdr-item-btn')` ; toggle clic seulement sur `<button>` (pas sur `<a>`)
+- **Liens prod** : ✅ tous les liens du header/footer mis à jour vers smakk.fr (08/05/2026) via script Python + PUT /api/shared/{header,footer}
 
 ### À faire — Smakk
 
-- [ ] Créer `_config.json` avec la charte Smakk (couleurs, typo, SEO template)
+- [x] Créer `_config.json` avec la charte Smakk (identity.name "Smakk", titleTemplate "%page% | Smakk - Location Photobooth", couleurs, SEO)
 - [x] Favicon Smakk — data URIs 32x32 + 180x180 dans `config.scripts.headCustom` via `PUT /api/seo/scripts` (X-Site-Id Smakk). `pages.js` ne fallback plus sur le favicon Shootnbox pour les sites non-legacy.
-- [ ] Corriger SEO/OG titles (héritent actuellement les valeurs Shootnbox hardcodées dans `routes/pages.js`)
-- [ ] Adapter injection JSON-LD pour lire depuis `_config.json` du site actif
-- [ ] Ajouter `coolifyUuid` dans la config pour activer le bouton Déployer
+- [x] Corriger SEO/OG titles — toutes les pages ont maintenant des titres Smakk (pas Shootnbox) via POST /api/pages/:slug/save + redéploiement
+- [ ] Adapter injection JSON-LD pour lire depuis `_config.json` du site actif (PROD_DOMAIN hardcodé shootnbox.fr dans pages.js)
+- [ ] Ajouter `coolifyUuid` dans la config pour activer le bouton Déployer (smakk.fr n'a pas de Coolify, deploy via m.php)
 - [ ] Nettoyer 3 images test orphelines dans la médiathèque Shootnbox : `smakk-arep-01`, `smakk-arep-02`, `smakk-arep-03`
-- [ ] Remplir les 10 placeholders d'images du slider (section 50) — vignettes auto-sync
-- [ ] Mettre à jour les liens du footer quand les pages Smakk seront créées
-- [ ] Ajouter le bloc `smakk_avis.html` à la page accueil Smakk (après confirmation du premier fetch SerpAPI)
+- [ ] Remplir les placeholders d'images des panels 02, 03, 04 de la section 50 anniversaire (cadre, accessoires, hashtag)
+- [x] Mettre à jour les liens du footer/header vers URLs prod smakk.fr (08/05/2026)
+- [x] Ajouter le bloc avis Google sur toutes les pages Smakk (08/05/2026) — bloc smk-mq avec X-Site-Id header, 7 pages déployées
+
+---
+
+## Bascule Smakk en production (08/05/2026)
+
+### État des 12 pages déployées sur smakk.fr
+
+| Slug GDS | URL prod | Titre SEO |
+|---|---|---|
+| `accueil` | `https://smakk.fr/` | Accueil \| Smakk - Location Photobooth |
+| `anniversaire` | `https://smakk.fr/anniversaire/` | Location Photobooth Anniversaire \| Smakk |
+| `mariage` | `https://smakk.fr/mariage/` | Location Photobooth Mariage \| Smakk |
+| `entreprise` | `https://smakk.fr/entreprise/` | Location Photobooth Soirée Entreprise \| Smakk |
+| `location-photobooth` | `https://smakk.fr/location-photobooth/` | Location Photobooth en Île-de-France \| Smakk |
+| `location-photocall` | `https://smakk.fr/location-photocall/` | Location Photocall \| Smakk |
+| `miroir-photobooth` | `https://smakk.fr/miroir-photobooth/` | Location Miroir Photobooth \| Smakk |
+| `photobooth-360` | `https://smakk.fr/photobooth-360/` | Photobooth 360 \| Smakk |
+| `contacts` | `https://smakk.fr/contacts/` | Contact \| Smakk - Location Photobooth |
+| `mentions-legales` | `https://smakk.fr/mentions-legales/` | Mentions Légales \| Smakk |
+| `conditions-generales-de-location` | `https://smakk.fr/conditions-generales-de-location/` | CGV \| Smakk |
+| `politique-de-confidentialite` | `https://smakk.fr/politique-de-confidentialite/` | Politique de Confidentialité \| Smakk |
+
+### Pipeline de déploiement GDS → smakk.fr
+
+**Route** : `POST /api/deploy/smakk/:slug` (header `X-Site-Id` requis)
+
+**Ce que fait `deployPageToSmakk()` dans `routes/deploy.js`** :
+1. Lit `seo.json` du slug (pour déterminer `destPath` = `seo.urlPath` ou slug)
+2. Fetch le preview HTML depuis `/api/pages/:slug/preview` (avec `X-Site-Id`)
+3. `absolutizeHtml()` — absolutise tous les assets locaux vers `https://sites.swipego.app/...`
+4. Injecte un intercepteur fetch qui ajoute `X-Site-Id` sur tous les appels vers `sites.swipego.app` (pour que les API de la page deployée fonctionnent)
+5. Écrit via `https://smakk.fr/manager/m.php` avec `action=write`, `dir={slug}`, `file=index.html`
+6. Pour l'accueil (`destPath = ''`) : `dir=''` → écrit à la racine du docroot
+
+**Constante** : `MANAGER_SMAKK = 'https://smakk.fr/manager/m.php'`
+
+**Déploiement en masse** (API directe) :
+```bash
+TOKEN=$(curl -s -X POST "https://sites.swipego.app/api/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@shootnbox.fr","password":"Laurytal2"}' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin).get('accessToken',''))")
+
+for slug in accueil anniversaire mariage entreprise location-photobooth location-photocall \
+  miroir-photobooth photobooth-360 contacts mentions-legales \
+  conditions-generales-de-location politique-de-confidentialite; do
+  curl -s -X POST "https://sites.swipego.app/api/deploy/smakk/${slug}" \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "X-Site-Id: cb56296b-27d3-463c-a38f-76c764911746" --max-time 90
+done
+```
+
+### smakk.fr — Accès serveur et m.php
+
+**m.php** : `https://smakk.fr/manager/m.php` — helper PHP pour écrire des fichiers sur le docroot smakk.fr
+- Docroot : `/var/www/smakk.fr/data/www/smakk.fr/`
+- `action=write` + `file=index.html` + `dir=''` → racine | `dir=slug` → sous-dossier
+- `action=read` + `file=X` + `dir=''` → lit depuis docroot
+- `action=delete` + `file=X` + `dir=slug` → supprime
+
+**WAF Wordfence bypass** : `smakk.fr/manager/.htaccess` contient `php_value auto_prepend_file none` pour tous les modules PHP — sans ça, Wordfence bloque les gros POST HTML.
+
+**ISPmanager** (accès fichiers en dernier recours) :
+- URL : `https://shootnbox.fr:1500/ispmgr?authinfo=root:HDvKKh3qEtCrDwDa`
+- Lire un fichier : `func=file.download&elid=/var/www/smakk.fr/data/www/smakk.fr/manager/m.php`
+- Éditer un fichier : `func=file.edit&elid=PATH&sok=yes&fdata=CONTENT&encoding=UTF-8` (POST)
+- Lister les domaines : `func=webdomain` — montre docroot de chaque vhost
+- Modifier `dirindex` : `func=webdomain.edit&elid=smakk.fr&sok=yes&dirindex=index.html+index.php`
+
+**Problème `dirindex`** (résolu 08/05/2026) : ISPmanager avait `dirindex: index.php index.html` pour smakk.fr → Apache servait WordPress au lieu de notre `index.html` statique. Fix : swapper l'ordre en `index.html index.php` via `webdomain.edit`.
+
+### Mise à jour SEO des pages Smakk (script)
+
+Le titre stocké dans `seo.json` de chaque page venait de l'époque où `_config.json` n'existait pas (valeurs Shootnbox). Fix : `POST /api/pages/:slug/save` avec `{ seo: { title, description, ogTitle, ogDescription, urlPath } }` + redéploiement.
+
+**Pattern pour mettre à jour le SEO d'une page** :
+```bash
+curl -s -X POST "https://sites.swipego.app/api/pages/SLUG/save" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "X-Site-Id: cb56296b-27d3-463c-a38f-76c764911746" \
+  -H "Content-Type: application/json" \
+  -d '{"seo":{"title":"Titre | Smakk","description":"...","urlPath":"slug"}}'
+```
+
+### Sections interactives (onglets, accordéons) dans l'éditeur GDS
+
+**Problème** : les `onclick` inline sur les boutons d'onglets ne se déclenchent pas dans l'éditeur GDS parce que l'éditeur intercepte les clics en phase capture avant que l'`onclick` puisse s'exécuter.
+
+**Fix systématique** : ajouter un `<script>` dans la section qui utilise `addEventListener('pointerdown', handler, true)` (capture phase) sur le container des boutons. `pointerdown` + capture se déclenche avant tout handler de l'éditeur.
+
+```html
+<script>
+(function() {
+  var nav = document.querySelector('.smk-atabs-nav'); // classe du container des onglets
+  if (!nav) return;
+  nav.addEventListener('pointerdown', function(e) {
+    var btn = e.target.closest('.smk-atabs-tab'); // classe du bouton onglet
+    if (!btn) return;
+    nav.querySelectorAll('.smk-atabs-tab').forEach(function(t) { t.classList.remove('is-active'); });
+    btn.classList.add('is-active');
+    var inner = btn.closest('.smk-atabs-inner');
+    inner.querySelectorAll('.smk-atabs-panel').forEach(function(p) { p.classList.remove('is-active'); });
+    var panel = inner.querySelector('[data-panel="' + btn.getAttribute('data-tab') + '"]');
+    if (panel) panel.classList.add('is-active');
+  }, true); // true = capture phase
+})();
+</script>
+```
+
+**Appliqué à** : `anniversaire` section 50 (`50-section.html`) — onglets "Le fond / Le cadre / Les accessoires / Un hashtag".
+
+**Règle générale** : toute section avec JS interactif (accordéons, onglets, sliders) qui ne répond pas dans l'éditeur → utiliser `pointerdown` + `capture:true` + `document.querySelector('.classe-unique')` (pas `document.currentScript` — invalide après réinjection GDS).
 
 ---
 
@@ -1083,3 +1241,121 @@ Capturer en cookie first-touch la source d'acquisition de chaque visiteur (Googl
 - **Chemin** : `/var/www/shootnbox.fr/data/www/shootnbox.fr/wp-content/themes/skole-child/functions.php`
 - Modifié via helper PHP temporaire sur `/manager/` (neutralisé après)
 - **NE PAS** réinstaller `snb_capture_gclid` — elle est remplacée définitivement
+
+---
+
+## Google Tag Manager — Shootnbox (12/05/2026)
+
+### Conteneur GTM
+- **ID** : `GTM-PNKV3HG`
+
+### Architecture d'injection (3 couches)
+
+#### 1. Pages GDS statiques (332 pages déployées sur shootnbox.fr)
+- **Script `<head>`** : stocké dans `config.scripts.headCustom` via `PUT /api/seo/scripts` (Shootnbox, pas de X-Site-Id)
+- **Noscript `<body>`** : stocké dans `config.scripts.bodyEndCustom` via `PUT /api/seo/scripts`
+- Injectés automatiquement dans `routes/pages.js` à chaque preview/deploy
+- `build.js` patché pour injecter `headCustom`/`bodyEndCustom` (cohérence builds locaux)
+- **Toutes les 332 pages redéployées** le 12/05/2026 — zéro erreur
+
+#### 2. Pages WordPress (blog, articles, pages WP)
+- **Must-use plugin** : `wp-content/mu-plugins/snb-gtm.php` — TOUJOURS actif, non désactivable depuis l'admin WP
+- Script GTM via `add_action("wp_head", ..., 1)` (priority 1)
+- Noscript GTM via `add_action("wp_body_open", ..., 1)` (priority 1, juste après `<body>`)
+- **NE PAS toucher ce fichier** — c'est la seule implémentation WP, propre et sans dépendance plugin
+
+#### 3. Application `/reservation/` (app indépendante, hors WP et hors GDS)
+- **Fichier** : `/var/www/shootnbox.fr/data/www/shootnbox.fr/reservation/index.html`
+- GTM injecté directement dans le `<head>` (après `<head>`, avant la balise charset)
+- **Pas de noscript** (pas de `wp_body_open` dans une app standalone)
+- À re-injecter si ce fichier est régénéré par le manager2
+
+### Nettoyage effectué
+- Plugin `duracelltomi-google-tag-manager` **désactivé** (était un doublon du mu-plugin) — retiré de `active_plugins` via PDO direct en DB
+- Fonction `snb_google_tag_manager()` retirée de `functions.php` (ajout accidentel en doublon)
+- Plugin WP Rocket cache vidé après chaque modification
+
+### Méthode pour modifier le GTM ID à l'avenir
+1. GDS : `PUT /api/seo/scripts` avec `{ headCustom: "...", bodyEndCustom: "..." }` → redéployer toutes les pages
+2. WP : éditer `/var/www/shootnbox.fr/data/www/shootnbox.fr/wp-content/mu-plugins/snb-gtm.php` via ISPmanager
+3. Reservation : éditer `/reservation/index.html` via m.php ou ISPmanager
+
+---
+
+## Google Tag Manager — Smakk (12/05/2026)
+
+### Conteneur GTM
+- **ID** : `GTM-TBR9HCD` (≠ Shootnbox GTM-PNKV3HG)
+
+### Architecture d'injection (2 couches)
+
+#### 1. Pages GDS Smakk (12 pages déployées sur smakk.fr)
+- **Script `<head>`** : stocké dans `_config.json` du site Smakk via `PUT /api/seo/scripts` avec `X-Site-Id: cb56296b-27d3-463c-a38f-76c764911746`
+- **Noscript `<body>`** : idem dans `bodyEndCustom`
+- **12 pages redéployées** le 12/05/2026 — zéro erreur
+
+#### 2. Application `/reservation/` (app indépendante)
+- GTM **déjà présent** dans `reservation/index.html` (version minifiée, ligne 4)
+- Docroot smakk.fr : `/var/www/smakk.fr/data/www/smakk.fr/reservation/index.html`
+- Pas de WordPress sur smakk.fr → pas de mu-plugin WP
+
+### Résultat
+- Pages GDS : script (headCustom) + noscript (bodyEndCustom) = 2 occurrences ✓
+- `/reservation/` : script uniquement (déjà présent) = 1 occurrence ✓
+
+---
+
+## Bulle WhatsApp flottante — Shootnbox (12/05/2026, corrigé 20/05/2026)
+
+### Emplacement
+- **Fichier** : `previews/_shared/header.html` (en bas du fichier, après le loader bannière)
+- Injectée sur toutes les pages GDS et WordPress via le header partagé
+
+### Configuration
+- **Numéro** : `+33 6 67 17 64 80` → `https://wa.me/33667176480`
+- **Position** : `fixed; bottom: 28px; right: 28px; z-index: 9998`
+- **Style** : cercle vert `#25D366`, 60×60px, animation pulse (`snbWaPulse`), tooltip "Une question ?"
+- **Mobile** : 52×52px, `bottom: 20px; right: 16px`, tooltip masqué
+
+### Déploiement (20/05/2026 — réel, commit `4aee00c`)
+- **Bug** : la documentation du 12/05/2026 était incorrecte — le `PUT /api/shared/header` n'avait jamais été exécuté. La bulle était uniquement dans le fichier local (non committé), jamais sur server 217.
+- Corrigé le 20/05/2026 : header fetché depuis server 217, bulle ajoutée, repoussé via `PUT /api/shared/header`
+- **332 pages Shootnbox redéployées** le 20/05/2026 — zéro erreur
+- WordPress reçoit le header dynamiquement (via `GET /api/shared/header`) — mise à jour immédiate sans redéploiement
+- **Committé dans git** (commit `4aee00c`) — protège contre tout reset du volume Docker
+
+### Durabilité
+- La bulle est dans git → survit à un rebuild Coolify complet avec reset de volume
+- **ATTENTION** : toute opération qui écrase le header (édition admin, script PUT) doit conserver le bloc `<!-- WhatsApp floating widget -->` en bas du fichier
+- Toujours fetcher le header prod avant modification (`GET /api/shared/header`), ne jamais partir du fichier local sans vérifier qu'il est à jour
+
+### Modifier le numéro
+1. Éditer `previews/_shared/header.html` ligne `<a class="snb-wa" href="https://wa.me/NUMERO">`
+2. Pousser via `PUT /api/shared/header` (Python + token JWT)
+3. Redéployer toutes les pages GDS (script masse `POST /api/deploy/shootnbox/:slug`)
+4. Committer + pusher vers GitHub
+
+---
+
+## Tracking visiteurs — verrouillage (12/06/2026)
+
+### Codes de tracking sur les pages statiques Shootnbox
+Trois blocs sont injectés avant `</head>` (+ noscript GTM en fin de `<body>`) sur **toutes** les pages GDS Shootnbox :
+1. **Tracker visiteurs** : `<script src="/reservation/js/snb-tracker.js" defer></script>` — alimente stats_v2 du manager2, notifications Telegram, live.shootnbox.fr
+2. **GTM** : `GTM-PNKV3HG`
+3. **Tracking ADS first-touch** : cookies `snb_src`/`snb_gclid`/... (voir section "Tracking ADS / source")
+
+### Régression du 10/06/2026 (cause racine)
+Ces codes vivaient **uniquement** dans `config.scripts.headCustom` (config runtime, posée via `PUT /api/seo/scripts`, **jamais commitée**). Un rebuild Coolify a rechargé `site-config.json` depuis git (où `headCustom` était vide) → la republication a propagé le vide sur les ~334 pages → **perte totale de tracking** (GTM + ADS + tracker disparus en live).
+
+### Double verrouillage mis en place (12/06/2026)
+1. **Config commitée dans git** : `headCustom` + `bodyEndCustom` sont désormais dans `site-config.json` versionné (commit `31c56dc`) → un rebuild ne les vide plus.
+2. **Filet auto-réparateur dans le code** : `lib/legacy-tracking.js` exporte le bloc canonique (`HEAD` + `NOSCRIPT`). `routes/pages.js` et `scripts/build.js` appellent `ensureHead()` / `ensureNoscript()` qui réinjectent le tracking **si `headCustom` ne le contient pas déjà** (commit `b69421b`).
+   - **Idempotent** : clé de détection `snb-tracker.js` / `ns.html?id=GTM-PNKV3HG` → jamais de double-injection.
+   - **Multi-site safe** : conditionné à `getActiveSite().isLegacy` (pages.js) / `IS_LEGACY` domaine shootnbox.fr (build.js) → **jamais sur Smakk** (le chemin `/reservation/js/` n'existe pas sur smakk.fr).
+   - **Self-healing** : même si la config est de nouveau vidée, le code restaure le tracking → plus jamais de perte de data.
+
+### Règles à respecter
+- **Ne jamais** supprimer le tracking de `headCustom` dans `site-config.json` sans aussi adapter `lib/legacy-tracking.js`.
+- **Pour changer le GTM id ou le chemin du tracker** : modifier **à la fois** `lib/legacy-tracking.js` ET le `headCustom` commité dans `site-config.json` (garder les deux sources synchrones), puis redéployer les pages + rebuild Coolify (server 217).
+- Le filet code n'est actif sur server 217 qu'après un **rebuild Coolify** (le code tourne là-bas) ; la config git, elle, est lue à chaque preview/deploy.
