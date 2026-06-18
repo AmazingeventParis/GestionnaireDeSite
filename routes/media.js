@@ -511,6 +511,29 @@ router.delete('/:filename', verifyToken, requireRole('admin'), async (req, res) 
     // Remove from meta
     const meta = loadMeta();
     delete meta[filename];
+
+    // Also delete responsive variants (-480w/-768w/-1280w) generated on upload,
+    // so they don't linger as orphans. Skip if the deleted file is itself a variant.
+    const deletedVariants = [];
+    if (!VARIANT_PATTERN.test(filename)) {
+      const ext = path.extname(filename);
+      const baseName = path.basename(filename, ext);
+      const fileDir = path.dirname(fullPath);
+      for (const w of RESPONSIVE_WIDTHS) {
+        const variantName = `${baseName}-${w}w.webp`;
+        const variantPath = path.join(fileDir, variantName);
+        if (fs.existsSync(variantPath)) {
+          try {
+            fs.unlinkSync(variantPath);
+            delete meta[variantName];
+            deletedVariants.push(variantName);
+          } catch (e) {
+            console.error('[Media] Variant delete error:', variantName, e.message);
+          }
+        }
+      }
+    }
+
     saveMeta(meta);
 
     await logAudit({
@@ -518,12 +541,12 @@ router.delete('/:filename', verifyToken, requireRole('admin'), async (req, res) 
       action: 'media_delete',
       entityType: 'media',
       entityId: filename,
-      details: {},
+      details: { variants: deletedVariants },
       ip: getClientIp(req),
       userAgent: req.headers['user-agent']
     });
 
-    res.json({ success: true, message: 'Image supprimee' });
+    res.json({ success: true, message: 'Image supprimee', variants: deletedVariants });
   } catch (err) {
     console.error('[Media] Delete error:', err.message);
     res.status(500).json({ error: 'Erreur lors de la suppression' });
