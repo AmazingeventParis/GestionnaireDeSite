@@ -77,10 +77,15 @@ function req(method, urlPath, bodyObj) {
     // Defer all script tags that don't already have async/defer (safe-ish: site uses self-contained IIFEs)
     stripped = stripped.replace(/<script(?![^>]*\b(?:async|defer|type="application\/ld\+json)\b)([^>]*)>/g, '<script$1 defer>');
 
-    // First section: prepend <link rel="stylesheet"> + LCP preload
+    // The PUT route preserves old <style> blocks if incoming has none → inject a marker to bypass.
+    const marker = '<style>/* externalized — see /css/location-photobooth.css */</style>';
+
+    // First section: prepend <link rel="stylesheet"> + LCP preload + marker
     if (i === 0) {
-      const head = `<link rel="stylesheet" href="/css/location-photobooth.css">\n<link rel="preload" as="image" href="${LCP_IMAGE}" fetchpriority="high">\n`;
+      const head = `<link rel="stylesheet" href="/css/location-photobooth.css">\n<link rel="preload" as="image" href="${LCP_IMAGE}" fetchpriority="high">\n${marker}\n`;
       stripped = head + stripped;
+    } else {
+      stripped = marker + '\n' + stripped;
     }
 
     if (stripped !== original) {

@@ -191,6 +191,22 @@ curl -s "http://217.182.89.133:8000/api/v1/deploy?uuid=usnz6o4qp48maw8q0lny22nl&
 - Coolify reconstruit l'image Docker depuis git — les **volumes Docker** (`gds-previews`, `gds-site-images`, etc.) persistent entre les redeploys
 - Les fichiers locaux `previews/` ne sont PAS dans le volume Docker : modifier en local + trigger Coolify ne met pas a jour les previews sur server 217. Utiliser l'API `PUT /api/pages/:slug/section/:file` pour modifier les sections sur le serveur.
 
+#### Accès Coolify (UI + API)
+- **UI normale** : `https://coolify.swipego.app/` — mais ce domaine tombe parfois en **503** (proxy/routing cassé).
+- **UI de secours (IP directe)** : **`http://217.182.89.133:8000/login`** (HTTP, pas HTTPS) — même instance Coolify, fonctionne quand `coolify.swipego.app` est down.
+- **API** : base `http://217.182.89.133:8000/api/v1/`, header `Authorization: Bearer 1|FNcssp3CipkrPNVSQyv3IboYwGsP8sjPskoBG3ux98e5a576`.
+  - `GET /deployments` — liste la file (status `in_progress`/`queued`, `commit`, `deployment_uuid`, `logs`).
+  - `GET /deployments/{deployment_uuid}` — détail + logs (utiliser le `deployment_uuid` COMPLET, pas tronqué).
+  - `POST /applications/{uuid}/stop` · `/start` · `/restart` — actions conteneur.
+  - **Pas d'endpoint d'annulation de déploiement** (`DELETE /deployments/{uuid}` → "Not found").
+
+#### Débloquer un build Coolify figé (`in_progress` zombie)
+Symptôme : un déploiement reste `in_progress` indéfiniment (>10 min, `updated_at` figé) et **bloque toute la file** (Horizon worker coincé). Le conteneur précédent continue de servir l'ancien code ; le **site public shootnbox.fr (server 79) n'est PAS impacté** (statique, indépendant de Coolify).
+- Pas d'annulation via API. Recovery qui a fonctionné : `POST /applications/{uuid}/stop` (stoppe le conteneur → tue le process bloqué) puis `GET /deploy?uuid=...&force=true` → le force-deploy relance sur le dernier commit et l'app remonte avec le nouveau code.
+- ⚠️ Le `stop` met l'app GDS (admin/preview) DOWN temporairement (`exited:unhealthy`, preview 503) — mais les pages déjà déployées sur shootnbox.fr restent UP.
+- Sinon : annuler/relancer via l'UI de secours (IP directe ci-dessus), ou redémarrer le worker Horizon en SSH sur 217.
+- **Cause fréquente de lenteur de build** : pas de `.dockerignore` → tout `public/images/` (centaines de variants responsive) part dans le contexte Docker.
+
 ### 2. Publier une page GDS vers shootnbox.fr (server 79)
 
 **Methode normale** : bouton **Deployer** sur `sites.swipego.app/pages.html`
@@ -256,6 +272,24 @@ curl -s -X POST "https://shootnbox.fr/manager/m.php" \
 ```
 
 **NE JAMAIS supprimer des fichiers sur server 79 sans savoir ce qu'ils contiennent** — les pages statiques deja deployees sont les versions de production en cours.
+
+## Page anglaise + hreflang (Shootnbox)
+
+### Page EN : `/photo-booth-rental-paris/`
+- Slug GDS `photo-booth-rental-paris`, urlPath plat `photo-booth-rental-paris`, ciblée **anglais US**, **Paris & région parisienne**.
+- 7 sections : hero, bornes/prix (avec photos `/images/bornes/*` + **Aircam 360** à la place du Spinner), **Vincent (interlocuteur anglophone dédié, juste sous les prix)** photo `vincent-ceo-shootnbox-1779960810747`, contact@shootnbox.fr / +33 1 45 01 66 66, how it works, use cases, coverage, FAQ EN.
+- Schema : array JSON-LD `Service` (offers Ring/Vegas/Miroir/Aircam) + `Person` (Vincent) + `FAQPage`.
+- Maillage : lien contextuel depuis `/location-photobooth/` (haut de l'intro) + lien `English` dans le footer partagé. **Pas de switch EN dans le header** (choix client).
+
+### Mécanisme `lang` + `hreflang` par page (routes/pages.js)
+- Champ SEO `seo.lang` → contrôle `<html lang="…">` (défaut `fr`). Mettre `en` pour la page anglaise.
+- Champ SEO `seo.hreflang` = tableau `[{hreflang, href}]` → injecte les `<link rel="alternate" hreflang=…>` dans le `<head>`.
+- **hreflang DOIT être réciproque** : le MÊME bloc de balises est posé sur les 2 pages (chacune se cite + cite l'autre + `x-default`). Bloc actuel :
+  - `fr-fr` → `https://shootnbox.fr/location-photobooth/`
+  - `en-us` → `https://shootnbox.fr/photo-booth-rental-paris/`
+  - `x-default` → `https://shootnbox.fr/location-photobooth/`
+- La page EN doit être **auto-canonical** (jamais canonical vers la FR, sinon non indexée).
+- hreflang = signal, PAS un lien crawlable : il faut EN PLUS un vrai `<a href>` pour la découverte + le PageRank (d'où le lien contextuel + footer).
 
 ## Systeme SEO
 
@@ -712,6 +746,75 @@ blocks/_sites/{siteId}/               ← blocs réutilisables
 - [ ] Adapter `routes/puppeteer-audit.js` pour utiliser `req.activeSite.previewsDir`
 - [x] Initialiser `_config.json` pour le site Smakk — fait (identity, seo.titleTemplate, couleurs)
 - [ ] Adapter `routes/pages.js` injection JSON-LD (Organization, LocalBusiness) pour lire depuis `_config.json` du site actif au lieu de valeurs Shootnbox hardcodées
+- [ ] **Refactor `routes/deploy.js` pour multi-site** (voir section suivante)
+
+### Bug deploy `m.php install failed` + refactor multi-site (diagnostiqué 11/05/2026)
+
+#### Cause racine
+Le `/manager/m.php` sur server 79 n'est plus dans un sous-dossier `/manager/`. C'est juste une URL qui pointe vers le m.php à la **racine du webroot** (`__DIR__ = /var/www/shootnbox.fr/data/www/shootnbox.fr/`).
+
+**Conséquence** : le code `routes/deploy.js` :
+1. Écrit le helper `helper_gds_deploy.php` via le m.php → atterrit à la **racine** (pas dans /manager/)
+2. GET `https://shootnbox.fr/manager/helper_gds_deploy.php` → 404 WordPress (route vers index.php car le fichier n'est pas vraiment dans /manager/)
+3. Erreur : `m.php install failed`
+
+#### Vérification empirique
+- `POST /manager/m.php action=write file=zztest.txt content=ABCDEFGH` → `OK`
+- `GET https://shootnbox.fr/zztest.txt` → **200 + "ABCDEFGH"** (fichier à la racine)
+- `GET https://shootnbox.fr/manager/zztest.txt` → 404 WordPress
+- L'action `read` du m.php retourne le contenu réel : confirme que `__DIR__` = webroot
+
+#### Bug shootnbox-spécifique dans `routes/deploy.js`
+2 lignes à corriger (chirurgical) :
+```js
+// ligne 110 : __DIR__ EST déjà le webroot, pas besoin de dirname()
+- $target = dirname(__DIR__) . '${destPath}';
++ $target = __DIR__ . '${destPath}';
+
+// ligne 113 : helper accessible à la racine, pas dans /manager/
+- const result = await mGet(`https://shootnbox.fr/manager/${helperName}`);
++ const result = await mGet(`https://shootnbox.fr/${helperName}`);
+```
+
+#### Mais : `deploy.js` est entièrement hardcodé Shootnbox
+- `const MANAGER_MPH = 'https://shootnbox.fr/manager/m.php'` (constante module)
+- Toutes les URLs cibles en dur sur `shootnbox.fr`
+- Route nommée `POST /api/deploy/shootnbox/:slug` (le mot "shootnbox" dans le path)
+- Méthode m.php propre à WordPress/Apache (Smakk utilisera peut-être S3/SFTP/headless)
+
+→ **Le fix chirurgical cristallise le hardcoding**. À éviter pour multi-site propre.
+
+#### Solution architecturale proposée (avant tout patch)
+
+**Externaliser la config deploy dans chaque site** (`site-config.json` pour Shootnbox, `_config.json` pour les sites scopés) :
+```json
+{
+  "deploy": {
+    "enabled": true,
+    "method": "wp-mphp",
+    "managerUrl": "https://shootnbox.fr/m.php",
+    "helperBaseUrl": "https://shootnbox.fr/",
+    "rootPath": ""
+  }
+}
+```
+
+**Refactor `deploy.js`** :
+- Route généralisée : `POST /api/deploy/:slug` (site via `req.activeSite`)
+- Alias backward-compat : `POST /api/deploy/shootnbox/:slug` → appelle la nouvelle avec site Shootnbox
+- Table de dispatch `DEPLOY_METHODS = { "wp-mphp": deployWpMphp, "s3": ..., "sftp": ..., "none": ... }`
+- Fonction `deployWpMphp(slug, cfg)` reçoit la config en paramètre, plus rien de hardcodé
+
+**Pour Smakk** : `"deploy": { "enabled": false }` tant que pas de prod. Le bouton est désactivé. Quand Smakk aura sa cible, on remplit la config.
+
+#### Fichiers diagnostic laissés à nettoyer sur prod
+- `https://shootnbox.fr/zztest.txt` (8 bytes "ABCDEFGH")
+- `https://shootnbox.fr/zzdiag_exec.php` (PHP exécutable, retourne "PHP_RAN_OK")
+- `https://shootnbox.fr/gds_diag_probe.txt` (12 bytes "PROBE_TXT_OK")
+- `https://shootnbox.fr/gds_diag_probe.php` (PHP, mais stubé en 404 par cleanup deploy.js)
+- `https://shootnbox.fr/helper_gds_deploy.php` (stubé en 404)
+
+À supprimer avant tout autre changement (publiquement accessibles).
 
 ## Référentiel de configuration — Shootnbox (source : site-config.json + routes/pages.js)
 
