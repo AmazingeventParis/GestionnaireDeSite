@@ -3313,7 +3313,12 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
     // JSON-LD Schema.org
     const jsonLdBlocks = [];
     const sameAs = Object.values(config.footer?.socials || {}).filter(Boolean);
-    const phoneFormatted = (config.contact?.phone || '').replace(/\./g, '').replace(/^0/, '+33');
+    // "01 89 27 27 27" / "01.45.01.66.66" → "+33 1 89 27 27 27" (l'ancien
+    // replace produisait "+331 89 27 27 27", invalide pour schema.org).
+    const phoneDigits = (config.contact?.phone || '').replace(/\D/g, '');
+    const phoneFormatted = /^0\d{9}$/.test(phoneDigits)
+      ? '+33 ' + phoneDigits.slice(1).replace(/^(\d)(\d{2})(\d{2})(\d{2})(\d{2})$/, '$1 $2 $3 $4 $5')
+      : (config.contact?.phone || '').replace(/\./g, '').replace(/^0/, '+33');
 
     // WebSite + SearchAction — home page only (Google sitelinks searchbox)
     if (slug === 'home') {
@@ -3411,10 +3416,17 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
       }
     }
 
+    // Multi-site: Service/Product auto-blocks gated on Shootnbox prodDomain so
+    // other sites (Smakk, etc.) can supply their own Service via
+    // seo.schema.customJsonLd without ending up with a Shootnbox-priced
+    // Service block they can't override (fix 2026-07-16 : la LP smakk sortait
+    // DEUX Service contradictoires, 149/899/4 auto vs 299/948/5 custom).
+    const isLegacyShootnbox = (config.identity?.prodDomain || '').includes('shootnbox.fr');
+
     // Service + AggregateOffer — money page /location-photobooth/
     // liveRating/liveCount computed at top of the JSON-LD block (shared with
     // LocalBusiness + Product schemas for consistency).
-    if (slug === 'location-photobooth') {
+    if (slug === 'location-photobooth' && isLegacyShootnbox) {
       jsonLdBlocks.push({
         '@context': 'https://schema.org',
         '@type': 'Service',
@@ -3439,10 +3451,8 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
 
     // Service + AggregateOffer — money page /photobooth-mariage/ (slug: mariage)
     // Wedding-specific offering. Shares liveRating/liveCount with other pages.
-    // Multi-site: gated on Shootnbox prodDomain so other sites (Smakk, etc.)
-    // can supply their own Service via seo.schema.customJsonLd without
-    // ending up with a Shootnbox-branded Service block they can't override.
-    const isLegacyShootnbox = (config.identity?.prodDomain || '').includes('shootnbox.fr');
+    // Multi-site: gated on Shootnbox prodDomain (isLegacyShootnbox défini plus
+    // haut, avant le bloc location-photobooth).
     if (slug === 'mariage' && isLegacyShootnbox) {
       jsonLdBlocks.push({
         '@context': 'https://schema.org',
@@ -3551,7 +3561,13 @@ router.get('/:slug/preview', optionalAuth, async (req, res) => {
       } else {
         breadcrumbItems.push({ '@type': 'ListItem', position: 2, name: rawTitle, item: pageCanonicalUrl });
       }
-      jsonLdBlocks.push({ '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: breadcrumbItems });
+      // Pas de doublon : si la page fournit déjà son BreadcrumbList via
+      // customJsonLd, on garde le sien (le crumb auto reprend le title complet,
+      // moche en rich result — fix 2026-07-16, LP smakk avait 2 BreadcrumbList).
+      const customHasBreadcrumb = (seo.schema?.customJsonLd || '').includes('BreadcrumbList');
+      if (!customHasBreadcrumb) {
+        jsonLdBlocks.push({ '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: breadcrumbItems });
+      }
 
       // Visual HTML breadcrumb (a11y nav + visible link to homepage)
       const crumbHtmlItems = breadcrumbItems.map((it, i) => {
